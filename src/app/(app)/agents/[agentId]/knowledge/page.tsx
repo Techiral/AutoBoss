@@ -6,29 +6,18 @@ import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { extractKnowledge } from "@/ai/flows/knowledge-extraction";
-import { processUrlContent } from "@/ai/flows/url-processor"; // New flow
-import { Upload, Loader2, FileText, Tag, AlertTriangle, Link as LinkIcon } from "lucide-react";
+import { Upload, Loader2, FileText, Tag, AlertTriangle } from "lucide-react";
 import type { KnowledgeItem, Agent } from "@/lib/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAppContext } from "../../../layout";
 import { Alert, AlertTitle } from "@/components/ui/alert";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // For UI
-
-// Function to convert text to Base64 data URI
-function textToDataUri(text: string, mimeType: string = "text/plain"): string {
-  const base64Encoded = btoa(unescape(encodeURIComponent(text)));
-  return `data:${mimeType};base64,${base64Encoded}`;
-}
-
 
 export default function KnowledgePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [urlInput, setUrlInput] = useState<string>("");
-  const [activeTab, setActiveTab] = useState<string>("file");
   
   const { toast } = useToast();
   const params = useParams();
@@ -49,10 +38,6 @@ export default function KnowledgePage() {
     if (event.target.files && event.target.files[0]) {
       setSelectedFile(event.target.files[0]);
     }
-  };
-
-  const handleUrlInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setUrlInput(event.target.value);
   };
 
   const processAndAddKnowledge = async (dataUri: string, fileName: string) => {
@@ -96,6 +81,11 @@ export default function KnowledgePage() {
         const documentDataUri = reader.result as string;
         await processAndAddKnowledge(documentDataUri, selectedFile.name);
         setSelectedFile(null); 
+        // Clear the file input visually for better UX
+        const fileInput = document.getElementById('document') as HTMLInputElement;
+        if (fileInput) {
+            fileInput.value = '';
+        }
         setIsLoading(false);
       };
       reader.onerror = (error) => {
@@ -107,30 +97,6 @@ export default function KnowledgePage() {
       console.error("Error initiating file processing:", error);
       toast({ title: "Processing Error", description: "An unexpected error occurred.", variant: "destructive" });
       setIsLoading(false);
-    }
-  };
-
-  const handleSubmitUrl = async () => {
-    if (!urlInput.trim()) {
-        toast({ title: "No URL entered", description: "Please enter a URL to process.", variant: "destructive" });
-        return;
-    }
-    setIsLoading(true);
-    try {
-        const processedResult = await processUrlContent({ url: urlInput });
-        
-        if (processedResult.textContent) {
-            const dataUri = textToDataUri(processedResult.textContent);
-            await processAndAddKnowledge(dataUri, processedResult.fileNameSuggestion);
-        } else {
-            toast({ title: "URL Processing Failed", description: "Could not extract text content from the URL.", variant: "destructive" });
-        }
-        setUrlInput("");
-    } catch (error) {
-        console.error("Error processing URL:", error);
-        toast({ title: "URL Processing Error", description: (error as Error).message || "Failed to process content from the URL.", variant: "destructive" });
-    } finally {
-        setIsLoading(false);
     }
   };
 
@@ -158,37 +124,18 @@ export default function KnowledgePage() {
       <Card>
         <CardHeader>
           <CardTitle className="font-headline text-2xl">Manage Knowledge Base</CardTitle>
-          <CardDescription>Upload documents or fetch content from URLs to build agent <span className="font-semibold">{currentAgent.generatedName || currentAgent.name}</span>'s knowledge.</CardDescription>
+          <CardDescription>Upload documents to build agent <span className="font-semibold">{currentAgent.generatedName || currentAgent.name}</span>'s knowledge.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="file"><Upload className="mr-2 h-4 w-4 inline-block"/>Upload File</TabsTrigger>
-                    <TabsTrigger value="url"><LinkIcon className="mr-2 h-4 w-4 inline-block"/>Fetch from URL</TabsTrigger>
-                </TabsList>
-                <TabsContent value="file" className="pt-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="document">Upload Document</Label>
-                        <Input id="document" type="file" onChange={handleFileChange} accept=".txt,.pdf,.md,.docx" disabled={isLoading}/>
-                        {selectedFile && <p className="text-sm text-muted-foreground">Selected: {selectedFile.name}</p>}
-                    </div>
-                    <Button onClick={handleSubmitFile} disabled={isLoading || !selectedFile} className="w-full mt-4">
-                        {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                        {isLoading ? "Processing File..." : "Extract from File"}
-                    </Button>
-                </TabsContent>
-                <TabsContent value="url" className="pt-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="urlInput">Enter URL</Label>
-                        <Input id="urlInput" type="url" placeholder="https://example.com/article" value={urlInput} onChange={handleUrlInputChange} disabled={isLoading}/>
-                        <p className="text-xs text-muted-foreground">Supports HTML pages (main content extraction) and direct links to plain text files.</p>
-                    </div>
-                     <Button onClick={handleSubmitUrl} disabled={isLoading || !urlInput.trim()} className="w-full mt-4">
-                        {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LinkIcon className="mr-2 h-4 w-4" />}
-                        {isLoading ? "Processing URL..." : "Fetch & Extract from URL"}
-                    </Button>
-                </TabsContent>
-            </Tabs>
+            <div className="space-y-2">
+                <Label htmlFor="document">Upload Document</Label>
+                <Input id="document" type="file" onChange={handleFileChange} accept=".txt,.pdf,.md,.docx" disabled={isLoading}/>
+                {selectedFile && <p className="text-sm text-muted-foreground">Selected: {selectedFile.name}</p>}
+            </div>
+            <Button onClick={handleSubmitFile} disabled={isLoading || !selectedFile} className="w-full mt-4">
+                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                {isLoading ? "Processing File..." : "Extract from File"}
+            </Button>
         </CardContent>
       </Card>
 
@@ -236,5 +183,3 @@ export default function KnowledgePage() {
     </div>
   );
 }
-
-    
