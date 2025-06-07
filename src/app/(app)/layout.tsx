@@ -51,9 +51,6 @@ export function useAppContext() {
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [agents, setAgents] = useState<Agent[]>(initialAgents);
-  // Default open state for SidebarProvider can be controlled here if needed
-  // For now, we let SidebarProvider handle its default based on its props.
-  // const [sidebarOpen, setSidebarOpen] = useState(true);
 
 
   const addAgent = useCallback((agent: Agent) => {
@@ -128,35 +125,40 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
 function AppHeader() {
   return (
-    <header className="sticky top-0 z-50 flex h-16 items-center gap-4 border-b bg-card px-4 md:px-6 justify-between md:justify-end">
-      <div className="md:hidden">
+    <header className="sticky top-0 z-50 flex h-16 items-center gap-4 border-b bg-card px-4 md:px-6">
+      {/* Sidebar Trigger - visible on all screen sizes now */}
+      {/* It will be on the left due to flex order */}
+      <div>
         <SidebarTrigger />
       </div>
-      <UserNav />
+      {/* Spacer to push UserNav to the right */}
+      <div className="flex-grow" />
+      {/* UserNav remains on the right */}
+      <div>
+         <UserNav />
+      </div>
     </header>
   );
 }
 
 function AppSidebar() {
   const pathname = usePathname();
-  const { state, setOpen, isMobile } = useSidebar(); // Get setOpen from useSidebar
+  const { state, setOpen, isMobile } = useSidebar(); 
   const collapsed = state === 'collapsed';
   
   const agentIdMatch = pathname.match(/^\/agents\/([a-zA-Z0-9_-]+)/);
   const currentAgentId = agentIdMatch ? agentIdMatch[1] : null;
 
   useEffect(() => {
-    if (isMobile) return; // Auto-collapse logic is primarily for desktop
+    if (isMobile) return; 
 
     const onAgentDetailPage = /^\/agents\/[^/]+\/(studio|knowledge|personality|test|export)/.test(pathname);
 
     if (onAgentDetailPage) {
-      setOpen(false); // Collapse sidebar on agent detail pages
+      setOpen(false); 
     } else {
-      setOpen(true);  // Expand sidebar on other pages (e.g., dashboard, create agent)
+      setOpen(true);  
     }
-  // currentAgentId is not strictly needed if using regex on pathname only
-  // but if agentNavItems were used for path matching, it would be relevant.
   }, [pathname, setOpen, isMobile]);
 
 
