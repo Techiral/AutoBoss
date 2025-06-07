@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAppContext } from "../../../layout";
 import type { Agent, AgentFlowDefinition, FlowNode as JsonFlowNode, FlowEdge as JsonFlowEdge } from "@/lib/types";
-import { Loader2, Save, AlertTriangle, Trash2, MousePointer, ArrowRight, MessageSquare, Zap, HelpCircle, Play, ChevronsUpDown, Settings2, Link2, Cog, BookOpen, Bot, Share2, Network, SlidersHorizontal, FileCode, MessageCircleQuestion, Timer, ArrowRightLeft, Users, BrainCircuit, StopCircle, Info, Sigma } from "lucide-react";
+import { Loader2, Save, AlertTriangle, Trash2, MousePointer, ArrowRight, MessageSquare, Zap, HelpCircle, Play, ChevronsUpDown, Settings2, Link2, Cog, BookOpen, Bot, Share2, Network, SlidersHorizontal, FileCode, MessageCircleQuestion, Timer, ArrowRightLeft, Users, BrainCircuit, StopCircle, Info, Sigma, GripVertical } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
@@ -89,7 +89,7 @@ const minimalInitialFlow: AgentFlowDefinition = {
   ]
 };
 
-const complexSampleFlow: AgentFlowDefinition = { // Renamed from sampleFlow to avoid conflict
+const complexSampleFlow: AgentFlowDefinition = { 
   flowId: "customer-support-agent-flow",
   name: "Customer Support Real-Time Agent",
   description: "A flow-driven assistant that greets the customer, classifies their issue, gathers details, provides an immediate solution, checks resolution, and escalates if needed.",
@@ -158,28 +158,32 @@ export default function AgentStudioPage() {
   const [mermaidCode, setMermaidCode] = useState<string>("");
   
   const canvasRef = useRef<HTMLDivElement>(null);
+  const canvasContentRef = useRef<HTMLDivElement>(null); // Ref for the pannable content
   const [draggingNodeInfo, setDraggingNodeInfo] = useState<{ id: string; offsetX: number; offsetY: number } | null>(null);
   
   const [edgeDragInfo, setEdgeDragInfo] = useState<{
     sourceNodeId: string;
-    sourceNodeX: number; 
-    sourceNodeY: number; 
-    startX: number;      
-    startY: number;      
-    currentX: number;    
-    currentY: number;    
+    startX: number;      // Virtual X of source port
+    startY: number;      // Virtual Y of source port
+    currentX: number;    // Virtual X of mouse cursor
+    currentY: number;    // Virtual Y of mouse cursor
   } | null>(null);
 
+  const [canvasOffset, setCanvasOffset] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStartCoords, setPanStartCoords] = useState<{ x: number; y: number } | null>(null);
+
+
   const loadFlowToVisual = useCallback((flowDef: AgentFlowDefinition | undefined) => {
-    const flowToLoad = flowDef && flowDef.nodes && flowDef.nodes.length > 0 ? flowDef : minimalInitialFlow; // Use minimalInitialFlow as default
+    const flowToLoad = flowDef && flowDef.nodes && flowDef.nodes.length > 0 ? flowDef : minimalInitialFlow; 
     
     const loadedNodes: VisualNode[] = flowToLoad.nodes.map((jsonNode: JsonFlowNode) => ({
       id: jsonNode.id,
       type: jsonNode.type as FlowNodeType,
-      label: jsonNode.label || NODE_DEFINITIONS.find(def => def.type === jsonNode.type)?.label || jsonNode.id,
+      label: jsonNode.label || NODE_DEFINITIONS.find(def => def.type === jsonNode.type)?.defaultProperties?.label || jsonNode.id,
       x: jsonNode.position?.x || Math.random() * 400,
       y: jsonNode.position?.y || Math.random() * 300,
-      ...jsonNode,
+      ...jsonNode, // include all other properties from JsonFlowNode
       content: jsonNode.message || jsonNode.prompt || jsonNode.llmPrompt || jsonNode.codeScript,
     }));
     const loadedEdges: VisualEdge[] = flowToLoad.edges.map((jsonEdge: JsonFlowEdge) => ({
@@ -188,6 +192,7 @@ export default function AgentStudioPage() {
     }));
     setNodes(loadedNodes);
     setEdges(loadedEdges);
+    setCanvasOffset({ x: 0, y: 0 }); // Reset pan on new flow load
   }, []);
 
   useEffect(() => {
@@ -211,19 +216,23 @@ export default function AgentStudioPage() {
     if (!nodeType) return;
 
     const canvasBounds = canvasRef.current.getBoundingClientRect();
-    const x = event.clientX - canvasBounds.left;
-    const y = event.clientY - canvasBounds.top;
+    // Calculate drop position relative to the viewport, then convert to virtual coordinates
+    const viewportX = event.clientX - canvasBounds.left;
+    const viewportY = event.clientY - canvasBounds.top;
+
+    const virtualX = viewportX + canvasOffset.x;
+    const virtualY = viewportY + canvasOffset.y;
     
     const nodeDef = NODE_DEFINITIONS.find(w => w.type === nodeType);
-    const defaultLabel = nodeDef?.label || 'Node';
+    const defaultLabel = nodeDef?.defaultProperties?.label || nodeDef?.label || 'Node';
     const newNodeId = generateId(nodeType.replace(/\s+/g, '_') + '_'); 
     
     const newNode: VisualNode = {
       id: newNodeId,
       type: nodeType,
-      label: nodeDef?.defaultProperties?.label || `${defaultLabel} ${nodes.filter(n => n.type === nodeType).length + 1}`,
-      x: Math.max(0, x - 75), 
-      y: Math.max(0, y - 25),
+      label: defaultLabel,
+      x: Math.max(0, virtualX - 75), // Adjust for node center being dragged
+      y: Math.max(0, virtualY - 25),
       ...(nodeDef?.defaultProperties || {}), 
     };
     setNodes((nds) => nds.concat(newNode));
@@ -244,8 +253,13 @@ export default function AgentStudioPage() {
     if (!node || !canvasRef.current) return;
 
     const canvasBounds = canvasRef.current.getBoundingClientRect();
-    const offsetX = event.clientX - canvasBounds.left - node.x;
-    const offsetY = event.clientY - canvasBounds.top - node.y;
+    // Calculate offsetX/Y relative to the node's visual top-left in the viewport
+    const nodeElement = event.currentTarget;
+    const nodeRect = nodeElement.getBoundingClientRect();
+
+    const offsetX = event.clientX - nodeRect.left;
+    const offsetY = event.clientY - nodeRect.top;
+
     setDraggingNodeInfo({ id: nodeId, offsetX, offsetY });
     setEdgeDragInfo(null); 
     setSelectedNodeId(nodeId);
@@ -255,36 +269,72 @@ export default function AgentStudioPage() {
   const nodeWidth = 180; 
   const nodeHeight = 70; 
 
+  const handleCanvasMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
+    // Check if the click is directly on the canvas background (canvasContentRef)
+    // or on the canvasRef if canvasContentRef is not the direct target (e.g. empty space)
+    if (event.target === canvasRef.current || event.target === canvasContentRef.current ) {
+        setIsPanning(true);
+        setPanStartCoords({ x: event.clientX, y: event.clientY });
+        setSelectedNodeId(null);
+        if (edgeDragInfo) {
+            setEdgeDragInfo(null);
+        }
+        event.preventDefault(); // Important to prevent text selection during pan
+    }
+  };
+
+
   const handleCanvasMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
     if (!canvasRef.current) return;
     const canvasBounds = canvasRef.current.getBoundingClientRect();
-    const mouseX = event.clientX - canvasBounds.left;
-    const mouseY = event.clientY - canvasBounds.top;
+    const mouseX_viewport = event.clientX - canvasBounds.left;
+    const mouseY_viewport = event.clientY - canvasBounds.top;
 
-    if (draggingNodeInfo) {
-        let x = mouseX - draggingNodeInfo.offsetX;
-        let y = mouseY - draggingNodeInfo.offsetY;
-        x = Math.max(0, Math.min(x, canvasBounds.width - nodeWidth)); 
-        y = Math.max(0, Math.min(y, canvasBounds.height - nodeHeight));
+    if (isPanning && panStartCoords) {
+        const dx = event.clientX - panStartCoords.x;
+        const dy = event.clientY - panStartCoords.y;
+        setCanvasOffset(prevOffset => ({ x: prevOffset.x - dx, y: prevOffset.y - dy }));
+        setPanStartCoords({ x: event.clientX, y: event.clientY });
+        event.preventDefault();
+    } else if (draggingNodeInfo) {
+        // Calculate new virtual top-left for the node
+        const newVirtualX = mouseX_viewport - draggingNodeInfo.offsetX + canvasOffset.x;
+        const newVirtualY = mouseY_viewport - draggingNodeInfo.offsetY + canvasOffset.y;
+        
         setNodes((nds) =>
-        nds.map((n) => (n.id === draggingNodeInfo.id ? { ...n, x, y } : n))
+        nds.map((n) => (n.id === draggingNodeInfo.id ? { ...n, x: newVirtualX, y: newVirtualY } : n))
         );
     } else if (edgeDragInfo) {
-        setEdgeDragInfo(prev => prev ? {...prev, currentX: mouseX, currentY: mouseY} : null);
+        const currentVirtualX = mouseX_viewport + canvasOffset.x;
+        const currentVirtualY = mouseY_viewport + canvasOffset.y;
+        setEdgeDragInfo(prev => prev ? {...prev, currentX: currentVirtualX, currentY: currentVirtualY} : null);
     }
   };
 
   const handleCanvasMouseUp = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (isPanning) {
+        setIsPanning(false);
+        setPanStartCoords(null);
+    }
     if (draggingNodeInfo) {
         setDraggingNodeInfo(null);
     }
+    // If releasing mouse not on an input port during an edge drag
     if (edgeDragInfo && !(event.target as HTMLElement).dataset.port?.includes('in')) {
-        setEdgeDragInfo(null);
+        const targetElement = event.target as HTMLElement;
+        // Check if the drop target is outside any node's input port area
+        const isInputPort = targetElement.dataset.port === 'in';
+        
+        if (!isInputPort) {
+             setEdgeDragInfo(null); // Cancel drag if not dropped on an input port
+        }
+        // if it IS an input port, handlePortMouseUp will take care of clearing edgeDragInfo
     }
   };
   
   const handleCanvasClick = (e: React.MouseEvent<HTMLDivElement>) => {
-      if (e.target === canvasRef.current) { 
+      // Deselect node if clicking on canvas background
+      if (e.target === canvasRef.current || e.target === canvasContentRef.current) { 
         setSelectedNodeId(null);
       }
   };
@@ -304,19 +354,18 @@ export default function AgentStudioPage() {
     
     const portElement = event.currentTarget as HTMLDivElement;
     const portRect = portElement.getBoundingClientRect();
-    const canvasRect = canvasRef.current.getBoundingClientRect();
+    const canvasViewportRect = canvasRef.current.getBoundingClientRect();
 
-    const startX = portRect.left + portRect.width / 2 - canvasRect.left;
-    const startY = portRect.top + portRect.height / 2 - canvasRect.top;
+    // Calculate virtual coordinates for the start of the edge drag
+    const startX_virtual = (portRect.left + portRect.width / 2 - canvasViewportRect.left) + canvasOffset.x;
+    const startY_virtual = (portRect.top + portRect.height / 2 - canvasViewportRect.top) + canvasOffset.y;
 
     setEdgeDragInfo({
         sourceNodeId: nodeId,
-        sourceNodeX: sourceNode.x,
-        sourceNodeY: sourceNode.y,
-        startX: startX,
-        startY: startY,
-        currentX: startX, 
-        currentY: startY,
+        startX: startX_virtual,
+        startY: startY_virtual,
+        currentX: startX_virtual, 
+        currentY: startY_virtual,
     });
   };
 
@@ -349,17 +398,21 @@ export default function AgentStudioPage() {
 
     const sourceNode = nodes.find(n=>n.id===edgeDragInfo.sourceNodeId);
     let defaultEdgeLabel = "";
+    let defaultEdgeType: JsonFlowEdge['edgeType'] = 'default';
+
     if (sourceNode?.type === 'condition') defaultEdgeLabel = "Case";
-    else if (sourceNode?.type === 'qnaLookup') defaultEdgeLabel = "Found";
-    else if (sourceNode?.type === 'apiCall') defaultEdgeLabel = "Success";
+    else if (sourceNode?.type === 'qnaLookup') { defaultEdgeLabel = "Found"; defaultEdgeType = "found"; }
+    else if (sourceNode?.type === 'apiCall') { defaultEdgeLabel = "Success"; defaultEdgeType = "success"; }
+    else if (sourceNode?.type === 'getUserInput') { defaultEdgeLabel = "Valid"; defaultEdgeType = "default"; }
+
 
     const newEdge: VisualEdge = {
         id: generateId('edge_'),
         source: edgeDragInfo.sourceNodeId,
         target: targetNodeId,
         label: defaultEdgeLabel, 
-        condition: defaultEdgeLabel,
-        edgeType: 'default'
+        condition: defaultEdgeLabel, // For condition nodes, label is the condition
+        edgeType: defaultEdgeType,
     };
     setEdges((eds) => eds.concat(newEdge));
     toast({ title: "Edge Created!", description: `Connected ${sourceNode?.label} to ${targetNode.label}.`});
@@ -371,6 +424,7 @@ export default function AgentStudioPage() {
     setNodes(nds => nds.map(n => {
         if (n.id === selectedNodeId) {
             const newProps = {...n, ...updatedProps};
+            // Keep 'content' consistent with specific fields if they are updated
             if (updatedProps.message !== undefined) newProps.content = updatedProps.message;
             else if (updatedProps.prompt !== undefined) newProps.content = updatedProps.prompt;
             else if (updatedProps.llmPrompt !== undefined) newProps.content = updatedProps.llmPrompt;
@@ -383,7 +437,17 @@ export default function AgentStudioPage() {
 
 
   const updateEdgeProperty = (edgeId: string, updatedProps: Partial<VisualEdge>) => {
-    setEdges(eds => eds.map(e => e.id === edgeId ? {...e, ...updatedProps, condition: updatedProps.label || e.label} : e));
+    setEdges(eds => eds.map(e => {
+      if (e.id === edgeId) {
+        const newEdge = {...e, ...updatedProps};
+        // If label is updated, also update condition for condition nodes (or vice-versa if that's the primary input)
+        if (updatedProps.label !== undefined) {
+          newEdge.condition = updatedProps.label;
+        }
+        return newEdge;
+      }
+      return e;
+    }));
   };
 
   const deleteNode = (nodeIdToDelete: string) => {
@@ -412,8 +476,8 @@ export default function AgentStudioPage() {
     edges.forEach(edge => {
       const sourceMermaidId = edge.source.replace(/[^a-zA-Z0-9_]/g, '_');
       const targetMermaidId = edge.target.replace(/[^a-zA-Z0-9_]/g, '_');
-      const edgeLabelText = edge.label || edge.edgeType || "";
-      const edgeLabel = edgeLabelText ? `|${edgeLabelText.replace(/"/g, '#quot;')}|` : '';
+      const edgeLabelText = edge.label || edge.edgeType || ""; // Use label, fallback to edgeType
+      const edgeLabel = edgeLabelText && edgeLabelText !== 'default' ? `|${edgeLabelText.replace(/"/g, '#quot;')}|` : '';
       mermaidStr += `  ${sourceMermaidId} -->${edgeLabel} ${targetMermaidId};\n`;
     });
     return mermaidStr;
@@ -423,15 +487,20 @@ export default function AgentStudioPage() {
     const hasStartNode = nodes.some(n => n.type === 'start');
     const hasEndNode = nodes.some(n => n.type === 'end');
 
-    if (!hasStartNode) {
-        toast({ title: "Invalid Flow", description: "A flow must have at least one 'Start' node.", variant: "destructive"});
+    if (!hasStartNode && nodes.length > 0) { // Allow empty flow, but if nodes exist, start is needed
+        toast({ title: "Invalid Flow", description: "A flow must have at least one 'Start' node if it has any nodes.", variant: "destructive"});
         return null;
     }
-    if (!hasEndNode && nodes.length > 0) { // Only warn if there are nodes but no end node
+    if (!hasEndNode && nodes.length > 0) { 
         toast({ title: "Incomplete Flow", description: "It's recommended to have at least one 'End' node.", variant: "default"});
     }
      
     for (const node of nodes) {
+        const nodeDef = NODE_DEFINITIONS.find(d => d.type === node.type);
+        if (!nodeDef) {
+             toast({ title: "Invalid Node Type", description: `Node '${node.label}' has an unrecognized type '${node.type}'.`, variant: "destructive"});
+            return null;
+        }
         if (node.type === 'callLLM' && (!node.llmPrompt || !node.outputVariable)) {
             toast({ title: "Invalid Node Config", description: `LLM Call node '${node.label}' is missing a prompt or output variable.`, variant: "destructive"});
             return null;
@@ -440,22 +509,50 @@ export default function AgentStudioPage() {
             toast({ title: "Invalid Node Config", description: `Ask Question node '${node.label}' is missing a prompt or variable name.`, variant: "destructive"});
             return null;
         }
+        if (node.type === 'condition' && !node.conditionVariable) {
+             toast({ title: "Invalid Node Config", description: `Condition node '${node.label}' is missing a 'Variable to Check'.`, variant: "destructive"});
+            return null;
+        }
     }
 
     const jsonNodes: JsonFlowNode[] = nodes.map(node => {
-      const { x, y, content, ...restOfNode } = node; 
-      const jsonNode: JsonFlowNode = {
-        ...restOfNode, 
-        position: { x: node.x, y: node.y },
+      // Destructure to explicitly pick known fields and handle potential extra fields from VisualNode
+      const { x, y, content, ...restOfVisualNode } = node;
+      
+      // Ensure only properties defined in JsonFlowNode are passed
+      const baseJsonNode: Partial<JsonFlowNode> = {
+          id: restOfVisualNode.id,
+          type: restOfVisualNode.type,
+          label: restOfVisualNode.label,
+          position: { x: node.x, y: node.y },
       };
-      return jsonNode;
+
+      // Add type-specific properties
+      if (node.type === 'sendMessage') baseJsonNode.message = node.message;
+      if (node.type === 'getUserInput') { baseJsonNode.prompt = node.prompt; baseJsonNode.variableName = node.variableName; baseJsonNode.inputType = node.inputType; baseJsonNode.validationRules = node.validationRules; }
+      if (node.type === 'callLLM') { baseJsonNode.llmPrompt = node.llmPrompt; baseJsonNode.outputVariable = node.outputVariable; baseJsonNode.useKnowledge = node.useKnowledge; }
+      if (node.type === 'condition') { baseJsonNode.conditionVariable = node.conditionVariable; baseJsonNode.useLLMForDecision = node.useLLMForDecision; }
+      if (node.type === 'apiCall') { baseJsonNode.apiUrl = node.apiUrl; baseJsonNode.apiMethod = node.apiMethod; baseJsonNode.apiHeaders = node.apiHeaders; baseJsonNode.apiBodyVariable = node.apiBodyVariable; baseJsonNode.apiOutputVariable = node.apiOutputVariable;}
+      if (node.type === 'action') { baseJsonNode.actionName = node.actionName; baseJsonNode.actionInputArgs = node.actionInputArgs; baseJsonNode.actionOutputVarMap = node.actionOutputVarMap; }
+      if (node.type === 'code') { baseJsonNode.codeScript = node.codeScript; baseJsonNode.codeReturnVarMap = node.codeReturnVarMap; }
+      if (node.type === 'qnaLookup') { baseJsonNode.qnaKnowledgeBaseId = node.qnaKnowledgeBaseId; baseJsonNode.qnaQueryVariable = node.qnaQueryVariable; baseJsonNode.qnaOutputVariable = node.qnaOutputVariable; baseJsonNode.qnaFallbackText = node.qnaFallbackText; }
+      if (node.type === 'wait') { baseJsonNode.waitDurationMs = node.waitDurationMs; }
+      if (node.type === 'transition') { baseJsonNode.transitionTargetFlowId = node.transitionTargetFlowId; baseJsonNode.transitionVariablesToPass = node.transitionVariablesToPass; }
+      if (node.type === 'agentSkill') { baseJsonNode.agentSkillId = node.agentSkillId; baseJsonNode.agentSkillsList = node.agentSkillsList; }
+      if (node.type === 'end') { baseJsonNode.endOutputVariable = node.endOutputVariable; }
+      
+      return baseJsonNode as JsonFlowNode;
     });
 
     const jsonEdges: JsonFlowEdge[] = edges.map(edge => {
-      const { ...restOfEdge } = edge;
-      return {
-        ...restOfEdge,
-        condition: edge.label, 
+      const { ...restOfEdge } = edge; // Spread to make a new object
+      return { // Explicitly create the JsonFlowEdge structure
+        id: restOfEdge.id,
+        source: restOfEdge.source,
+        target: restOfEdge.target,
+        label: restOfEdge.label,
+        condition: restOfEdge.condition,
+        edgeType: restOfEdge.edgeType,
       };
     });
     
@@ -479,7 +576,7 @@ export default function AgentStudioPage() {
       const agentFlowDef = convertToAgentFlowDefinition();
       if (!agentFlowDef) { 
         setIsSaving(false);
-        return;
+        return; // Validation messages are handled by convertToAgentFlowDefinition
       }
       updateAgentFlow(currentAgent.id, agentFlowDef);
       toast({ title: "Flow Saved!", description: `Flow "${agentFlowDef.name}" visually designed and updated.` });
@@ -537,7 +634,7 @@ export default function AgentStudioPage() {
                   <span className="text-sm">{def.label}</span>
                 </div>
               </TooltipTrigger>
-              <TooltipContent side="right" align="start" className="max-w-xs">
+              <TooltipContent side="right" align="start" className="max-w-xs z-[60]"> {/* Ensure tooltip is above canvas content */}
                 <p className="font-semibold">{def.label}</p>
                 <p className="text-xs text-muted-foreground">{def.docs.purpose}</p>
               </TooltipContent>
@@ -551,122 +648,132 @@ export default function AgentStudioPage() {
       </Card>
 
       <Card 
-        className="col-span-6 xl:col-span-7 h-full relative overflow-auto bg-muted/20 border-dashed border-input"
+        className="col-span-6 xl:col-span-7 h-full relative overflow-hidden bg-muted/20 border-dashed border-input cursor-grab"
         ref={canvasRef}
         onDrop={handleDropOnCanvas}
         onDragOver={handleDragOverCanvas}
         onMouseMove={handleCanvasMouseMove}
+        onMouseDown={handleCanvasMouseDown}
         onMouseUp={handleCanvasMouseUp}
         onMouseLeave={handleCanvasMouseUp} 
-        onClick={handleCanvasClick}
+        onClick={handleCanvasClick} // For deselecting
       >
-        <svg className="absolute top-0 left-0 w-full h-full pointer-events-none">
-          {edges.map(edge => {
-            const sourceNode = nodes.find(n => n.id === edge.source);
-            const targetNode = nodes.find(n => n.id === edge.target);
-            if (!sourceNode || !targetNode) return null;
-            
-            const x1 = sourceNode.x + nodeWidth; 
-            const y1 = sourceNode.y + nodeHeight / 2;
-            const x2 = targetNode.x; 
-            const y2 = targetNode.y + nodeHeight / 2;
+        <div 
+            ref={canvasContentRef}
+            className="absolute top-0 left-0 w-full h-full pointer-events-none" // Content div handles its own pointer events for nodes
+            style={{ transform: `translate(${-canvasOffset.x}px, ${-canvasOffset.y}px)` }}
+        >
+            <svg className="absolute top-0 left-0 w-full h-full pointer-events-none"> {/* SVG for edges */}
+            {edges.map(edge => {
+                const sourceNode = nodes.find(n => n.id === edge.source);
+                const targetNode = nodes.find(n => n.id === edge.target);
+                if (!sourceNode || !targetNode) return null;
+                
+                const x1 = sourceNode.x + nodeWidth; 
+                const y1 = sourceNode.y + nodeHeight / 2;
+                const x2 = targetNode.x; 
+                const y2 = targetNode.y + nodeHeight / 2;
 
-            const midX = (x1 + x2) / 2;
-            const midY = (y1 + y2) / 2;
+                const midX = (x1 + x2) / 2;
+                const midY = (y1 + y2) / 2;
 
-            const angle = Math.atan2(y2 - y1, x2 - x1);
-            const arrowLength = 8;
-            const arrowPoint1X = x2 - arrowLength * Math.cos(angle - Math.PI / 6);
-            const arrowPoint1Y = y2 - arrowLength * Math.sin(angle - Math.PI / 6);
-            const arrowPoint2X = x2 - arrowLength * Math.cos(angle + Math.PI / 6);
-            const arrowPoint2Y = y2 - arrowLength * Math.sin(angle + Math.PI / 6);
+                const angle = Math.atan2(y2 - y1, x2 - x1);
+                const arrowLength = 8;
+                const arrowPoint1X = x2 - arrowLength * Math.cos(angle - Math.PI / 6);
+                const arrowPoint1Y = y2 - arrowLength * Math.sin(angle - Math.PI / 6);
+                const arrowPoint2X = x2 - arrowLength * Math.cos(angle + Math.PI / 6);
+                const arrowPoint2Y = y2 - arrowLength * Math.sin(angle + Math.PI / 6);
 
-            return (
-              <g key={edge.id} className="cursor-pointer group/edge" onClick={(e) => { e.stopPropagation(); }}>
-                <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="hsl(var(--primary)/0.5)" strokeWidth="1.5" className="group-hover/edge:stroke-primary transition-colors" />
-                <polygon points={`${x2},${y2} ${arrowPoint1X},${arrowPoint1Y} ${arrowPoint2X},${arrowPoint2Y}`} fill="hsl(var(--primary)/0.5)" className="group-hover/edge:fill-primary transition-colors"/>
-                {(edge.label || (edge.edgeType && edge.edgeType !== 'default')) && (
-                  <text x={midX} y={midY - 5} fill="hsl(var(--foreground))" fontSize="10px" textAnchor="middle" className="pointer-events-none select-none bg-background/50 px-1 rounded">
-                    {edge.label || edge.edgeType}
-                  </text>
+                return (
+                <g key={edge.id} className="group/edge"> {/* Removed onClick as edges are not directly editable yet */}
+                    <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="hsl(var(--primary)/0.5)" strokeWidth="1.5" className="group-hover/edge:stroke-primary transition-colors" />
+                    <polygon points={`${x2},${y2} ${arrowPoint1X},${arrowPoint1Y} ${arrowPoint2X},${arrowPoint2Y}`} fill="hsl(var(--primary)/0.5)" className="group-hover/edge:fill-primary transition-colors"/>
+                    {(edge.label || (edge.edgeType && edge.edgeType !== 'default')) && (
+                    <text x={midX} y={midY - 5} fill="hsl(var(--foreground))" fontSize="10px" textAnchor="middle" className="pointer-events-none select-none bg-background/50 px-1 rounded">
+                        {edge.label || edge.edgeType}
+                    </text>
+                    )}
+                </g>
+                );
+            })}
+            {edgeDragInfo && ( // Temporary line for edge dragging, uses virtual coordinates
+                    <line
+                        x1={edgeDragInfo.startX}
+                        y1={edgeDragInfo.startY}
+                        x2={edgeDragInfo.currentX}
+                        y2={edgeDragInfo.currentY}
+                        stroke="hsl(var(--ring))"
+                        strokeWidth="2"
+                        strokeDasharray="4 2"
+                    />
                 )}
-              </g>
-            );
-          })}
-           {edgeDragInfo && (
-                <line
-                    x1={edgeDragInfo.startX}
-                    y1={edgeDragInfo.startY}
-                    x2={edgeDragInfo.currentX}
-                    y2={edgeDragInfo.currentY}
-                    stroke="hsl(var(--ring))"
-                    strokeWidth="2"
-                    strokeDasharray="4 2"
-                />
-            )}
-        </svg>
-        {nodes.map(node => (
-          <div
-            key={node.id}
-            onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
-            className="absolute p-2 border rounded bg-card shadow cursor-grab select-none flex flex-col justify-center group/node"
-            style={{ 
-                left: node.x, 
-                top: node.y,
-                width: `${nodeWidth}px`,
-                height: `${nodeHeight}px`,
-                borderColor: selectedNodeId === node.id ? 'hsl(var(--ring))' : 'hsl(var(--border))',
-                boxShadow: selectedNodeId === node.id ? '0 0 0 2px hsl(var(--ring))' : '0 1px 3px rgba(0,0,0,0.1)',
-            }}
-          >
-             {node.type !== 'start' && (
-                <div 
-                    data-port="in"
-                    onMouseUp={(e) => handlePortMouseUp(e, node.id, 'in')}
-                    title={`Connect to ${node.label}`}
-                    className="absolute -left-[6px] top-1/2 -translate-y-1/2 cursor-crosshair pointer-events-auto bg-background rounded-full"
-                    style={{width: `${portSize+2}px`, height: `${portSize+2}px`, display:'flex', alignItems:'center', justifyContent:'center'}}
-                >
-                   <div className="w-2 h-2 bg-primary/70 rounded-full border border-background ring-1 ring-primary/70 group-hover/node:bg-primary group-hover/node:ring-primary transition-all"/>
-                </div>
-             )}
-
-            <div className="flex items-center gap-1 mb-0.5 overflow-hidden">
-              {(() => {
-                const WidgetIcon = NODE_DEFINITIONS.find(w=>w.type === node.type)?.icon;
-                return WidgetIcon ? <WidgetIcon className="w-3 h-3 text-primary shrink-0" /> : <Link2 className="w-3 h-3 text-muted-foreground shrink-0"/>;
-              })()}
-              <span className="text-xs font-medium truncate" title={node.label}>{node.label}</span>
-            </div>
-            <p className="text-[10px] text-muted-foreground truncate" title={node.content || node.variableName || node.type}>
-              { node.type === 'sendMessage' ? (node.message || '...') :
-                node.type === 'getUserInput' ? (node.variableName ? `Var: ${node.variableName}`: '...') :
-                node.type === 'callLLM' ? (node.outputVariable ? `Out: ${node.outputVariable}`: '...') :
-                node.type === 'condition' ? (node.conditionVariable ? `If: ${node.conditionVariable}`: '...') :
-                node.type === 'action' ? (node.actionName || 'Action') :
-                node.type === 'apiCall' ? (node.apiUrl ? node.apiUrl.substring(0,20)+'...' : 'HTTP Req') :
-                node.type === 'code' ? 'JS Code' :
-                node.type === 'qnaLookup' ? (node.qnaOutputVariable || 'Q&A') :
-                node.type === 'wait' ? `${node.waitDurationMs || 0}ms Wait` :
-                node.type === 'transition' ? (node.transitionTargetFlowId || 'Transition') :
-                node.type === 'agentSkill' ? (node.agentSkillId || 'Agent Skill') :
-                NODE_DEFINITIONS.find(d=>d.type === node.type)?.label || node.type
-              }
-            </p>
-            
-            {node.type !== 'end' && (
-                 <div 
-                    data-port="out"
-                    onMouseDown={(e) => handlePortMouseDown(e, node.id, 'out')}
-                    title={`Connect from ${node.label}`}
-                    className="absolute -right-[6px] top-1/2 -translate-y-1/2 cursor-crosshair pointer-events-auto bg-background rounded-full"
-                     style={{width: `${portSize+2}px`, height: `${portSize+2}px`, display:'flex', alignItems:'center', justifyContent:'center'}}
-                 >
+            </svg>
+            {nodes.map(node => (
+            <div
+                key={node.id}
+                data-node-id={node.id} // For easier access if needed
+                onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
+                className="absolute p-2 border rounded bg-card shadow cursor-grab select-none flex flex-col justify-center group/node pointer-events-auto" // Nodes need pointer events
+                style={{ 
+                    left: node.x,  // Use virtual coordinates directly
+                    top: node.y,   // Use virtual coordinates directly
+                    width: `${nodeWidth}px`,
+                    height: `${nodeHeight}px`,
+                    borderColor: selectedNodeId === node.id ? 'hsl(var(--ring))' : 'hsl(var(--border))',
+                    boxShadow: selectedNodeId === node.id ? '0 0 0 2px hsl(var(--ring))' : '0 1px 3px rgba(0,0,0,0.1)',
+                    zIndex: draggingNodeInfo?.id === node.id || edgeDragInfo?.sourceNodeId === node.id ? 10 : 1, // Bring dragged/source node to front
+                }}
+            >
+                {node.type !== 'start' && (
+                    <div 
+                        data-port="in"
+                        onMouseUp={(e) => handlePortMouseUp(e, node.id, 'in')}
+                        title={`Connect to ${node.label}`}
+                        className="absolute -left-[6px] top-1/2 -translate-y-1/2 cursor-crosshair pointer-events-auto bg-background rounded-full"
+                        style={{width: `${portSize+2}px`, height: `${portSize+2}px`, display:'flex', alignItems:'center', justifyContent:'center'}}
+                    >
                     <div className="w-2 h-2 bg-primary/70 rounded-full border border-background ring-1 ring-primary/70 group-hover/node:bg-primary group-hover/node:ring-primary transition-all"/>
-                 </div>
-            )}
-          </div>
-        ))}
+                    </div>
+                )}
+
+                <div className="flex items-center gap-1 mb-0.5 overflow-hidden">
+                {(() => {
+                    const nodeDef = NODE_DEFINITIONS.find(w=>w.type === node.type);
+                    const WidgetIcon = nodeDef?.icon;
+                    return WidgetIcon ? <WidgetIcon className="w-3 h-3 text-primary shrink-0" /> : <GripVertical className="w-3 h-3 text-muted-foreground shrink-0"/>;
+                })()}
+                <span className="text-xs font-medium truncate" title={node.label}>{node.label}</span>
+                </div>
+                <p className="text-[10px] text-muted-foreground truncate" title={node.content || node.variableName || node.type}>
+                { node.type === 'sendMessage' ? (node.message || '...') :
+                    node.type === 'getUserInput' ? (node.variableName ? `Var: ${node.variableName}`: '...') :
+                    node.type === 'callLLM' ? (node.outputVariable ? `Out: ${node.outputVariable}`: '...') :
+                    node.type === 'condition' ? (node.conditionVariable ? `If: ${node.conditionVariable}`: '...') :
+                    node.type === 'action' ? (node.actionName || 'Action') :
+                    node.type === 'apiCall' ? (node.apiUrl ? node.apiUrl.substring(0,20)+'...' : 'HTTP Req') :
+                    node.type === 'code' ? 'JS Code' :
+                    node.type === 'qnaLookup' ? (node.qnaOutputVariable || 'Q&A') :
+                    node.type === 'wait' ? `${node.waitDurationMs || 0}ms Wait` :
+                    node.type === 'transition' ? (node.transitionTargetFlowId || 'Transition') :
+                    node.type === 'agentSkill' ? (node.agentSkillId || 'Agent Skill') :
+                    NODE_DEFINITIONS.find(d=>d.type === node.type)?.label || node.type
+                }
+                </p>
+                
+                {node.type !== 'end' && (
+                    <div 
+                        data-port="out"
+                        onMouseDown={(e) => handlePortMouseDown(e, node.id, 'out')}
+                        title={`Connect from ${node.label}`}
+                        className="absolute -right-[6px] top-1/2 -translate-y-1/2 cursor-crosshair pointer-events-auto bg-background rounded-full"
+                        style={{width: `${portSize+2}px`, height: `${portSize+2}px`, display:'flex', alignItems:'center', justifyContent:'center'}}
+                    >
+                        <div className="w-2 h-2 bg-primary/70 rounded-full border border-background ring-1 ring-primary/70 group-hover/node:bg-primary group-hover/node:ring-primary transition-all"/>
+                    </div>
+                )}
+            </div>
+            ))}
+        </div> {/* End of canvasContentRef */}
       </Card>
 
       <Card className="col-span-4 xl:col-span-3 h-full flex flex-col">
@@ -694,6 +801,9 @@ export default function AgentStudioPage() {
                   <>
                     <div><Label htmlFor="nodePrompt" className="text-xs">Prompt Text</Label><Textarea id="nodePrompt" value={selectedNodeDetails.prompt || ""} onChange={e => updateSelectedNodeProperties({ prompt: e.target.value })} rows={2} className="text-sm"/></div>
                     <div><Label htmlFor="nodeVariable" className="text-xs">Output Variable Name</Label><Input id="nodeVariable" value={selectedNodeDetails.variableName || ""} onChange={e => updateSelectedNodeProperties({ variableName: e.target.value })}  className="h-8 text-sm"/></div>
+                    <div><Label htmlFor="nodeInputType" className="text-xs">Input Type (Conceptual)</Label><Input id="nodeInputType" value={selectedNodeDetails.inputType || ""} onChange={e => updateSelectedNodeProperties({ inputType: e.target.value })}  className="h-8 text-sm" placeholder="e.g., text, number"/></div>
+                    <div><Label htmlFor="nodeValidation" className="text-xs">Validation Rules (Conceptual)</Label><Input id="nodeValidation" value={selectedNodeDetails.validationRules || ""} onChange={e => updateSelectedNodeProperties({ validationRules: e.target.value })}  className="h-8 text-sm" placeholder="e.g., regex"/></div>
+
                   </>
                 )}
                 { selectedNodeDetails.type === 'callLLM' && (
@@ -720,7 +830,7 @@ export default function AgentStudioPage() {
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div><Label htmlFor="apiHeaders" className="text-xs">Headers (JSON String)</Label><Textarea id="apiHeaders" placeholder='{ "Content-Type": "application/json" }' value={selectedNodeDetails.apiHeaders ? (typeof selectedNodeDetails.apiHeaders === 'string' ? selectedNodeDetails.apiHeaders : JSON.stringify(selectedNodeDetails.apiHeaders)) : ""} onChange={e => updateSelectedNodeProperties({ apiHeaders: e.target.value })} rows={2} className="text-sm font-code"/></div>
+                        <div><Label htmlFor="apiHeaders" className="text-xs">Headers (JSON String)</Label><Textarea id="apiHeaders" placeholder='{ "Content-Type": "application/json" }' value={selectedNodeDetails.apiHeaders ? (typeof selectedNodeDetails.apiHeaders === 'string' ? selectedNodeDetails.apiHeaders : JSON.stringify(selectedNodeDetails.apiHeaders)) : ""} onChange={e => updateSelectedNodeProperties({ apiHeaders: e.target.value as any })} rows={2} className="text-sm font-code"/></div>
                         <div><Label htmlFor="apiBodyVar" className="text-xs">Body Variable (from context)</Label><Input id="apiBodyVar" value={selectedNodeDetails.apiBodyVariable || ""} onChange={e => updateSelectedNodeProperties({ apiBodyVariable: e.target.value })} className="h-8 text-sm"/></div>
                         <div><Label htmlFor="apiOutputVar" className="text-xs">Output Variable (for response)</Label><Input id="apiOutputVar" value={selectedNodeDetails.apiOutputVariable || ""} onChange={e => updateSelectedNodeProperties({ apiOutputVariable: e.target.value })} className="h-8 text-sm"/></div>
                     </>
@@ -728,19 +838,20 @@ export default function AgentStudioPage() {
                  { selectedNodeDetails.type === 'action' && (
                     <>
                         <div><Label htmlFor="actionName" className="text-xs">Action Name</Label><Input id="actionName" value={selectedNodeDetails.actionName || ""} onChange={e => updateSelectedNodeProperties({ actionName: e.target.value })} className="h-8 text-sm"/></div>
-                        <div><Label htmlFor="actionInputs" className="text-xs">Input Arguments (JSON string or {{vars}})</Label><Textarea id="actionInputs" placeholder='{ "param1": "{{contextVar}}" }' value={selectedNodeDetails.actionInputArgs ? (typeof selectedNodeDetails.actionInputArgs === 'string' ? selectedNodeDetails.actionInputArgs : JSON.stringify(selectedNodeDetails.actionInputArgs)) : ""} onChange={e => updateSelectedNodeProperties({ actionInputArgs: e.target.value })} rows={2} className="text-sm font-code"/></div>
-                        <div><Label htmlFor="actionOutputMap" className="text-xs">Output Variable Map (JSON string)</Label><Textarea id="actionOutputMap" placeholder='{ "contextVar": "actionResultKey" }' value={selectedNodeDetails.actionOutputVarMap ? (typeof selectedNodeDetails.actionOutputVarMap === 'string' ? selectedNodeDetails.actionOutputVarMap : JSON.stringify(selectedNodeDetails.actionOutputVarMap)) : ""} onChange={e => updateSelectedNodeProperties({ actionOutputVarMap: e.target.value })} className="text-sm font-code h-8"/></div>
+                        <div><Label htmlFor="actionInputs" className="text-xs">Input Arguments (JSON string or {{vars}})</Label><Textarea id="actionInputs" placeholder='{ "param1": "{{contextVar}}" }' value={selectedNodeDetails.actionInputArgs ? (typeof selectedNodeDetails.actionInputArgs === 'string' ? selectedNodeDetails.actionInputArgs : JSON.stringify(selectedNodeDetails.actionInputArgs)) : ""} onChange={e => updateSelectedNodeProperties({ actionInputArgs: e.target.value as any })} rows={2} className="text-sm font-code"/></div>
+                        <div><Label htmlFor="actionOutputMap" className="text-xs">Output Variable Map (JSON string)</Label><Textarea id="actionOutputMap" placeholder='{ "contextVar": "actionResultKey" }' value={selectedNodeDetails.actionOutputVarMap ? (typeof selectedNodeDetails.actionOutputVarMap === 'string' ? selectedNodeDetails.actionOutputVarMap : JSON.stringify(selectedNodeDetails.actionOutputVarMap)) : ""} onChange={e => updateSelectedNodeProperties({ actionOutputVarMap: e.target.value as any })} className="text-sm font-code h-8"/></div>
                     </>
                 )}
                  { selectedNodeDetails.type === 'code' && (
                     <>
                         <div><Label htmlFor="codeScript" className="text-xs">JavaScript Code (Placeholder - Not Executed)</Label><Textarea id="codeScript" value={selectedNodeDetails.codeScript || ""} onChange={e => updateSelectedNodeProperties({ codeScript: e.target.value })} rows={3} className="text-sm font-code"/></div>
-                        <div><Label htmlFor="codeReturnMap" className="text-xs">Return Variable Map (JSON string)</Label><Textarea id="codeReturnMap" placeholder='{ "contextVar": "returnedObjectKey" }' value={selectedNodeDetails.codeReturnVarMap ? (typeof selectedNodeDetails.codeReturnVarMap === 'string' ? selectedNodeDetails.codeReturnVarMap : JSON.stringify(selectedNodeDetails.codeReturnVarMap)) : ""} onChange={e => updateSelectedNodeProperties({ codeReturnVarMap: e.target.value })} className="text-sm font-code h-8"/></div>
+                        <div><Label htmlFor="codeReturnMap" className="text-xs">Return Variable Map (JSON string)</Label><Textarea id="codeReturnMap" placeholder='{ "contextVar": "returnedObjectKey" }' value={selectedNodeDetails.codeReturnVarMap ? (typeof selectedNodeDetails.codeReturnVarMap === 'string' ? selectedNodeDetails.codeReturnVarMap : JSON.stringify(selectedNodeDetails.codeReturnVarMap)) : ""} onChange={e => updateSelectedNodeProperties({ codeReturnVarMap: e.target.value as any })} className="text-sm font-code h-8"/></div>
                     </>
                 )}
                 { selectedNodeDetails.type === 'qnaLookup' && (
                    <>
                     <div><Label htmlFor="qnaQueryVar" className="text-xs">Query Variable (from context)</Label><Input id="qnaQueryVar" value={selectedNodeDetails.qnaQueryVariable || ""} onChange={e => updateSelectedNodeProperties({ qnaQueryVariable: e.target.value })} className="h-8 text-sm"/></div>
+                    <div><Label htmlFor="qnaKBID" className="text-xs">Knowledge Base ID (Conceptual)</Label><Input id="qnaKBID" value={selectedNodeDetails.qnaKnowledgeBaseId || ""} onChange={e => updateSelectedNodeProperties({ qnaKnowledgeBaseId: e.target.value })} className="h-8 text-sm"/></div>
                     <div><Label htmlFor="qnaOutputVar" className="text-xs">Output Variable (for answer)</Label><Input id="qnaOutputVar" value={selectedNodeDetails.qnaOutputVariable || ""} onChange={e => updateSelectedNodeProperties({ qnaOutputVariable: e.target.value })} className="h-8 text-sm"/></div>
                     <div><Label htmlFor="qnaFallbackText" className="text-xs">Fallback Text</Label><Textarea id="qnaFallbackText" value={selectedNodeDetails.qnaFallbackText || ""} onChange={e => updateSelectedNodeProperties({ qnaFallbackText: e.target.value })} rows={2} className="text-sm"/></div>
                    </>
@@ -751,11 +862,14 @@ export default function AgentStudioPage() {
                 { selectedNodeDetails.type === 'transition' && (
                     <>
                       <div><Label htmlFor="transitionFlowId" className="text-xs">Target Flow ID</Label><Input id="transitionFlowId" value={selectedNodeDetails.transitionTargetFlowId || ""} onChange={e => updateSelectedNodeProperties({ transitionTargetFlowId: e.target.value })} className="h-8 text-sm"/></div>
-                      <div><Label htmlFor="transitionVars" className="text-xs">Variables to Pass (JSON string)</Label><Textarea id="transitionVars" placeholder='{ "targetVar": "{{currentVar}}" }' value={selectedNodeDetails.transitionVariablesToPass ? (typeof selectedNodeDetails.transitionVariablesToPass === 'string' ? selectedNodeDetails.transitionVariablesToPass : JSON.stringify(selectedNodeDetails.transitionVariablesToPass)) : ""} onChange={e => updateSelectedNodeProperties({ transitionVariablesToPass: e.target.value })} rows={2} className="text-sm font-code"/></div>
+                      <div><Label htmlFor="transitionVars" className="text-xs">Variables to Pass (JSON string)</Label><Textarea id="transitionVars" placeholder='{ "targetVar": "{{currentVar}}" }' value={selectedNodeDetails.transitionVariablesToPass ? (typeof selectedNodeDetails.transitionVariablesToPass === 'string' ? selectedNodeDetails.transitionVariablesToPass : JSON.stringify(selectedNodeDetails.transitionVariablesToPass)) : ""} onChange={e => updateSelectedNodeProperties({ transitionVariablesToPass: e.target.value as any })} rows={2} className="text-sm font-code"/></div>
                     </>
                 )}
                  { selectedNodeDetails.type === 'agentSkill' && (
+                   <>
                     <div><Label htmlFor="agentSkillId" className="text-xs">Agent Skill ID</Label><Input id="agentSkillId" value={selectedNodeDetails.agentSkillId || ""} onChange={e => updateSelectedNodeProperties({ agentSkillId: e.target.value })} className="h-8 text-sm"/></div>
+                     <div><Label htmlFor="agentSkillsList" className="text-xs">Skills List (Conceptual, comma-sep)</Label><Input id="agentSkillsList" value={selectedNodeDetails.agentSkillsList?.join(',') || ""} onChange={e => updateSelectedNodeProperties({ agentSkillsList: e.target.value.split(',').map(s=>s.trim()).filter(Boolean) })} className="h-8 text-sm"/></div>
+                   </>
                 )}
                 { selectedNodeDetails.type === 'end' && (
                      <div><Label htmlFor="endOutputVar" className="text-xs">Output Variable (from context)</Label><Input id="endOutputVar" value={selectedNodeDetails.endOutputVariable || ""} onChange={e => updateSelectedNodeProperties({ endOutputVariable: e.target.value })} className="h-8 text-sm"/></div>
@@ -775,7 +889,10 @@ export default function AgentStudioPage() {
                       <Button variant="ghost" size="icon" onClick={() => deleteEdge(edge.id)} className="h-5 w-5 shrink-0"><Trash2 className="h-3 w-3 text-destructive"/></Button>
                     </div>
                     {(selectedNodeDetails.type === 'condition' || selectedNodeDetails.type === 'apiCall' || selectedNodeDetails.type === 'qnaLookup' || selectedNodeDetails.type === 'getUserInput') && (
-                      <Input placeholder="Edge Label / Condition" value={edge.label || ""} onChange={e => updateEdgeProperty(edge.id, { label: e.target.value })} className="h-7 text-xs mt-1"/>
+                        <div>
+                            <Label htmlFor={`edgeLabel-${edge.id}`} className="text-[10px]">{selectedNodeDetails.type === 'condition' ? 'Condition/Case Label' : 'Edge Label'}</Label>
+                            <Input id={`edgeLabel-${edge.id}`} placeholder="Edge Label / Condition" value={edge.label || ""} onChange={e => updateEdgeProperty(edge.id, { label: e.target.value })} className="h-7 text-xs mt-1"/>
+                        </div>
                     )}
                      {(selectedNodeDetails.type === 'apiCall' || selectedNodeDetails.type === 'qnaLookup' || selectedNodeDetails.type === 'getUserInput' ) && (
                         <div>
@@ -802,7 +919,7 @@ export default function AgentStudioPage() {
                     <AccordionTrigger className="text-base hover:no-underline">
                       <Tooltip>
                         <TooltipTrigger asChild><Info className="mr-2 h-4 w-4 text-blue-500"/></TooltipTrigger>
-                        <TooltipContent><p>Node Documentation</p></TooltipContent>
+                        <TooltipContent side="top" className="z-[60]"><p>Node Documentation</p></TooltipContent>
                       </Tooltip>
                        Documentation: {selectedNodeDefinition.label}
                     </AccordionTrigger>
@@ -820,14 +937,14 @@ export default function AgentStudioPage() {
             <div className="text-left py-2 space-y-3">
                 <div className="flex items-center gap-2">
                    <MousePointer className="w-8 h-8 text-muted-foreground"/>
-                   <p className="text-sm text-muted-foreground">Select a node or tool for details & editing.</p>
+                   <p className="text-sm text-muted-foreground">Select a node for details & editing. Drag the canvas background to pan.</p>
                 </div>
                 <Accordion type="single" collapsible className="w-full">
                   <AccordionItem value="wiring-practices">
                     <AccordionTrigger className="text-base hover:no-underline">
                        <Tooltip>
                         <TooltipTrigger asChild><Sigma className="mr-2 h-4 w-4 text-blue-500"/></TooltipTrigger>
-                        <TooltipContent><p>General Wiring Guide</p></TooltipContent>
+                        <TooltipContent side="top" className="z-[60]"><p>General Wiring Guide</p></TooltipContent>
                       </Tooltip>
                       {WIRING_BEST_PRACTICES_DOCS.title}
                     </AccordionTrigger>
