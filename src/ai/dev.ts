@@ -1,1 +1,7 @@
-// Flows will be imported for their side effects in this file.
+import { config } from 'dotenv';
+config();
+
+import '@/ai/flows/intent-recognition.ts';
+import '@/ai/flows/knowledge-extraction.ts';
+import '@/ai/flows/autonomous-reasoning.ts';
+import '@/ai/flows/agent-creation.ts';
