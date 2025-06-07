@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -34,14 +35,22 @@ export async function createAgent(input: CreateAgentInput): Promise<CreateAgentO
 const prompt = ai.definePrompt({
   name: 'createAgentPrompt',
   input: {schema: CreateAgentInputSchema},
-  output: {schema: CreateAgentOutputSchema},
-  prompt: `You are an expert in creating AI agents. Based on the description provided, you will generate a name, a detailed persona, and a sample greeting for the agent. The agent persona must be detailed and in first person.
+  output: {schema: CreateAgentOutputSchema}, // This tells Genkit to expect JSON and parse it.
+  prompt: `You are an expert in creating AI agents. Based on the description provided, you will generate:
+1. A concise and catchy "agentName".
+2. A detailed "agentPersona" in the first person, embodying the role and personality.
+3. A sample "agentGreeting" that the agent would use to introduce itself.
 
 Description: {{{agentDescription}}}
 
-Name:
-Persona:
-Greeting:`, // Removed Handlebars 'return' statement and return all three as a single output.
+Your response MUST be a single, valid JSON object that adheres to the output schema.
+Specifically, it should have the fields: "agentName", "agentPersona", and "agentGreeting".
+Example format:
+{
+  "agentName": "Example Agent",
+  "agentPersona": "I am the Example Agent, here to assist you with...",
+  "agentGreeting": "Hello, I'm Example Agent, ready to help!"
+}`,
 });
 
 const createAgentFlow = ai.defineFlow(
@@ -50,14 +59,20 @@ const createAgentFlow = ai.defineFlow(
     inputSchema: CreateAgentInputSchema,
     outputSchema: CreateAgentOutputSchema,
   },
-  async input => {
-    const {output} = await prompt(input);
-    // Since the model returns a single block, we need to split it into its three output components.
-    const outputSplit = output!.text.split('\n');
-    return {
-      agentName: outputSplit[0].replace('Name:', '').trim(),
-      agentPersona: outputSplit[1].replace('Persona:', '').trim(),
-      agentGreeting: outputSplit[2].replace('Greeting:', '').trim(),
-    };
+  async (input): Promise<CreateAgentOutput> => {
+    const modelResponse = await prompt(input); // `prompt` is the object from ai.definePrompt
+
+    if (!modelResponse.output) {
+      const rawText = modelResponse.response?.text; // For debugging
+      console.error(
+        'Failed to get structured output from createAgentPrompt. Raw model response:',
+        rawText || 'No raw text available'
+      );
+      throw new Error(
+        'AI agent could not generate valid details. The model did not return the expected JSON format.'
+      );
+    }
+    // modelResponse.output is already parsed by Genkit according to CreateAgentOutputSchema
+    return modelResponse.output;
   }
 );
