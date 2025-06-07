@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, createContext, useContext } from 'react';
+import React, { useState, createContext, useContext, useCallback } from 'react'; // Added useCallback
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Logo } from '@/components/logo';
@@ -49,17 +49,19 @@ export function useAppContext() {
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [agents, setAgents] = useState<Agent[]>(initialAgents);
 
-  const addAgent = (agent: Agent) => {
+  const addAgent = useCallback((agent: Agent) => {
     setAgents((prevAgents) => [...prevAgents, agent]);
-  };
+  }, []); // setAgents itself is stable
 
-  const updateAgent = (updatedAgent: Agent) => {
+  const updateAgent = useCallback((updatedAgent: Agent) => {
     setAgents((prevAgents) =>
       prevAgents.map((agent) => (agent.id === updatedAgent.id ? updatedAgent : agent))
     );
-  };
+  }, []); // setAgents itself is stable
   
-  const getAgent = (id: string) => agents.find(agent => agent.id === id);
+  const getAgent = useCallback((id: string) => {
+    return agents.find(agent => agent.id === id);
+  }, [agents]); // Depends on the `agents` state
 
   return (
     <AppContext.Provider value={{ agents, addAgent, updateAgent, getAgent }}>
