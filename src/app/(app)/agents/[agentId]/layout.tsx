@@ -20,19 +20,11 @@ export default function AgentDetailLayout({ children }: { children: React.ReactN
     if (agentId) {
       const foundAgent = getAgent(agentId);
       setAgent(foundAgent);
-      if (!foundAgent && agent === undefined) { // only redirect if not found on initial load check
-         // Small delay to ensure context is potentially updated if agents list is async (not in this mock)
-        setTimeout(() => {
-          const stillNotFoundAgent = getAgent(agentId);
-          if(!stillNotFoundAgent) {
-            // router.push('/dashboard'); // Redirect if agent not found
-          } else {
-            setAgent(stillNotFoundAgent);
-          }
-        }, 100);
-      }
+      // If agent is not found initially, it will render the "Agent Not Found" message.
+      // The setTimeout logic for a delayed check/redirect is removed for simplification.
+      // If redirection is strictly needed after a delay, this might need a different approach.
     }
-  }, [agentId, getAgent, router, agent]);
+  }, [agentId, getAgent]); // Removed router and agent from dependencies as setTimeout is removed
 
   if (agent === undefined) {
     return (
