@@ -14,51 +14,199 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertTitle } from "@/components/ui/alert";
 
 const sampleFlow: AgentFlowDefinition = {
-  flowId: "sample-conditional-flow",
-  name: "Sample Conditional Welcome",
-  description: "A sample flow that greets, asks for a name, asks about jokes, and branches conditionally.",
+  flowId: "customer-support-agent-flow",
+  name: "Customer Support Real-Time Agent",
+  description: "A flow-driven assistant that greets the customer, classifies their issue, gathers details, provides an immediate solution, checks resolution, and escalates if needed.",
   nodes: [
-    { id: "start", type: "start", position: { x: 50, y: 50 } },
-    { id: "greet", type: "sendMessage", message: "Hello! I'm your friendly flow-driven assistant. What's your name?", position: { x: 50, y: 150 } },
-    { id: "get_name", type: "getUserInput", prompt: "Please enter your name:", variableName: "userName", position: { x: 50, y: 250 } },
-    { 
-      id: "welcome_user", 
-      type: "sendMessage", 
-      message: "Nice to meet you, {{userName}}! I can use my knowledge base if needed for tasks.", 
-      position: { x: 50, y: 350 } 
+    {
+      "id": "start",
+      "type": "start",
+      "position": { "x": 50, "y": 50 }
     },
-    { id: "ask_joke_preference", type: "getUserInput", prompt: "Do you like jokes? (Please type 'yes' or 'no')", variableName: "likesJokes", position: { x: 50, y: 450 } },
-    { id: "check_joke_preference", type: "condition", conditionVariable: "likesJokes", position: { x: 50, y: 550 } },
-    { 
-      id: "tell_joke", 
-      type: "callLLM", 
-      llmPrompt: "Tell me a short, clean, and funny joke. User {{userName}} likes jokes.", 
-      outputVariable: "jokeText", 
-      useKnowledge: false, // Jokes usually don't need external knowledge
-      position: { x: 250, y: 650 } 
+    {
+      "id": "greet",
+      "type": "sendMessage",
+      "message": "Hi there! I’m your support agent. What can I help you with today?",
+      "position": { "x": 50, "y": 150 }
     },
-    { id: "send_joke", type: "sendMessage", message: "{{jokeText}}", position: { x: 250, y: 750 } },
-    { id: "end_joke", type: "end", position: { x: 250, y: 850 } },
-    { id: "no_joke_reply", type: "sendMessage", message: "Alright, {{userName}}, no jokes today then. How else can I help?", position: { x: -150, y: 650 } },
-    { id: "end_no_joke", type: "end", position: { x: -150, y: 750 } },
-    { id: "confused_reply", type: "sendMessage", message: "Hmm, I didn't quite catch if you like jokes, {{userName}}. Let's move on.", position: {x: 50, y: 650} },
-    { id: "end_confused", type: "end", position: {x: 50, y: 750 }}
+    {
+      "id": "get_issue_category",
+      "type": "getUserInput",
+      "prompt": "Please choose your issue category (Billing, Technical, Other):",
+      "variableName": "issueCategory",
+      "position": { "x": 50, "y": 250 }
+    },
+    {
+      "id": "check_category",
+      "type": "condition",
+      "conditionVariable": "issueCategory",
+      "position": { "x": 50, "y": 350 }
+    },
+
+    {
+      "id": "ask_billing_details",
+      "type": "getUserInput",
+      "prompt": "Got it—billing issue. Can you share your account ID or invoice number?",
+      "variableName": "billingInfo",
+      "position": { "x": 250, "y": 450 }
+    },
+    {
+      "id": "resolve_billing",
+      "type": "callLLM",
+      "llmPrompt": "You are a billing support agent. Based on the account/invoice `{{billingInfo}}`, give a concise, accurate solution or next steps.",
+      "outputVariable": "billingSolution",
+      "useKnowledge": true,
+      "position": { "x": 250, "y": 550 }
+    },
+    {
+      "id": "send_billing_solution",
+      "type": "sendMessage",
+      "message": "{{billingSolution}}",
+      "position": { "x": 250, "y": 650 }
+    },
+
+    {
+      "id": "ask_tech_details",
+      "type": "getUserInput",
+      "prompt": "Alright—technical issue. Could you describe the error or what’s not working?",
+      "variableName": "techDetails",
+      "position": { "x": 50, "y": 450 } // Adjusted Y for visual clarity if parallel
+    },
+    {
+      "id": "resolve_technical",
+      "type": "callLLM",
+      "llmPrompt": "You’re a technical support agent. Based on the description `{{techDetails}}`, provide step-by-step troubleshooting.",
+      "outputVariable": "techSolution",
+      "useKnowledge": true,
+      "position": { "x": 50, "y": 550 } // Adjusted Y
+    },
+    {
+      "id": "send_tech_solution",
+      "type": "sendMessage",
+      "message": "{{techSolution}}",
+      "position": { "x": 50, "y": 650 } // Adjusted Y
+    },
+
+    {
+      "id": "ask_general_details",
+      "type": "getUserInput",
+      "prompt": "Sure—other issue. Can you give me more details?",
+      "variableName": "generalDetails",
+      "position": { "x": -150, "y": 450 } // Adjusted Y
+    },
+    {
+      "id": "resolve_general",
+      "type": "callLLM",
+      "llmPrompt": "You’re a customer support agent. Based on `{{generalDetails}}`, provide a helpful next step or resource.",
+      "outputVariable": "generalSolution",
+      "useKnowledge": true,
+      "position": { "x": -150, "y": 550 } // Adjusted Y
+    },
+    {
+      "id": "send_general_solution",
+      "type": "sendMessage",
+      "message": "{{generalSolution}}",
+      "position": { "x": -150, "y": 650 } // Adjusted Y
+    },
+
+    // Common node for asking resolution, all solution paths should lead here
+    {
+      "id": "ask_resolution",
+      "type": "getUserInput",
+      "prompt": "Did that solve your problem? (yes/no)",
+      "variableName": "resolved",
+      "position": { "x": 50, "y": 750 } // Centralized after solutions
+    },
+    {
+      "id": "check_resolution",
+      "type": "condition",
+      "conditionVariable": "resolved",
+      "position": { "x": 50, "y": 850 }
+    },
+
+    {
+      "id": "resolved_yes",
+      "type": "sendMessage",
+      "message": "Awesome! Glad I could help. If there’s anything else, just let me know. 👍",
+      "position": { "x": 250, "y": 950 } // Branch for 'yes'
+    },
+    {
+      "id": "end_resolved_yes",
+      "type": "end",
+      "position": { "x": 250, "y": 1050 }
+    },
+
+    {
+      "id": "resolved_no",
+      "type": "sendMessage",
+      "message": "I’m sorry it’s still not sorted. I’ll escalate this to our specialist team—expect an email or call soon.",
+      "position": { "x": -150, "y": 950 } // Branch for 'no'
+    },
+    {
+      "id": "end_resolved_no",
+      "type": "end",
+      "position": { "x": -150, "y": 1050 }
+    },
+    {
+      "id": "invalid_category_response", // Renamed for clarity
+      "type": "sendMessage",
+      "message": "Hmm, I didn’t catch that category. Let’s try again. Please choose Billing, Technical, or Other.",
+      "position": { "x": 50, "y": 450 } // Default path from check_category
+    },
+    // No end node immediately after invalid_category_response, edge will loop back
+    {
+      "id": "end_flow_default_resolution", // Default if resolution input is not yes/no
+      "type": "sendMessage",
+      "message": "Okay, if you need more help later, just ask!",
+      "position": { "x": 50, "y": 950 }
+    },
+    {
+      "id": "final_end_default_resolution",
+      "type": "end",
+      "position": { "x": 50, "y": 1050}
+    }
   ],
-  edges: [
-    { id: "e_start_greet", source: "start", target: "greet", label: "Start" },
-    { id: "e_greet_get_name", source: "greet", target: "get_name" },
-    { id: "e_get_name_welcome", source: "get_name", target: "welcome_user" },
-    { id: "e_welcome_ask_joke", source: "welcome_user", target: "ask_joke_preference" },
-    { id: "e_ask_joke_check", source: "ask_joke_preference", target: "check_joke_preference" },
-    { id: "e_check_joke_yes", source: "check_joke_preference", target: "tell_joke", condition: "yes", label: "User likes jokes" },
-    { id: "e_tell_joke_send", source: "tell_joke", target: "send_joke" },
-    { id: "e_send_joke_end", source: "send_joke", target: "end_joke" },
-    { id: "e_check_joke_no", source: "check_joke_preference", target: "no_joke_reply", condition: "no", label: "User dislikes jokes" },
-    { id: "e_no_joke_end", source: "no_joke_reply", target: "end_no_joke" },
-    { id: "e_check_joke_confused", source: "check_joke_preference", target: "confused_reply", condition: "", label: "Default/Confused" }, // Default path if not "yes" or "no"
-    { id: "e_confused_end", source: "confused_reply", target: "end_confused"}
+  "edges": [
+    { "id": "e_start_greet", "source": "start", "target": "greet", "label": "Start" },
+    { "id": "e_greet_category", "source": "greet", "target": "get_issue_category" },
+    { "id": "e_category_check", "source": "get_issue_category", "target": "check_category" },
+
+    { "id": "e_cat_billing", "source": "check_category", "target": "ask_billing_details", "condition": "Billing", "label": "Category: Billing" },
+    { "id": "e_billing_resolve", "source": "ask_billing_details", "target": "resolve_billing" },
+    { "id": "e_billing_send", "source": "resolve_billing", "target": "send_billing_solution" },
+
+    { "id": "e_cat_tech", "source": "check_category", "target": "ask_tech_details", "condition": "Technical", "label": "Category: Technical" },
+    { "id": "e_tech_resolve", "source": "ask_tech_details", "target": "resolve_technical" },
+    { "id": "e_tech_send", "source": "resolve_technical", "target": "send_tech_solution" },
+
+    { "id": "e_cat_other", "source": "check_category", "target": "ask_general_details", "condition": "Other", "label": "Category: Other" },
+    { "id": "e_general_resolve", "source": "ask_general_details", "target": "resolve_general" },
+    { "id": "e_general_send", "source": "resolve_general", "target": "send_general_solution" },
+    
+    // Default path for category check
+    { "id": "e_cat_invalid", "source": "check_category", "target": "invalid_category_response", "condition": "", "label": "Invalid Category" },
+    // Loop back from invalid category message to asking for category again
+    { "id": "e_invalid_loop_to_category", "source": "invalid_category_response", "target": "get_issue_category"},
+
+
+    // Edges from all solution paths to the common 'ask_resolution' node
+    { "id": "e_billing_to_ask_resolution", "source": "send_billing_solution", "target": "ask_resolution" },
+    { "id": "e_tech_to_ask_resolution", "source": "send_tech_solution", "target": "ask_resolution" },
+    { "id": "e_general_to_ask_resolution", "source": "send_general_solution", "target": "ask_resolution" },
+
+    { "id": "e_ask_resolution_to_check", "source": "ask_resolution", "target": "check_resolution" },
+    { "id": "e_resolved_yes_path", "source": "check_resolution", "target": "resolved_yes", "condition": "yes", "label": "Resolved: Yes" },
+    { "id": "e_yes_to_end", "source": "resolved_yes", "target": "end_resolved_yes" },
+
+    { "id": "e_resolved_no_path", "source": "check_resolution", "target": "resolved_no", "condition": "no", "label": "Resolved: No" },
+    { "id": "e_no_to_end", "source": "resolved_no", "target": "end_resolved_no" },
+    
+    // Default path for resolution check
+    { "id": "e_resolution_default_path", "source": "check_resolution", "target": "end_flow_default_resolution", "condition": "", "label": "Resolution Unclear" },
+    { "id": "e_default_resolution_to_end", "source": "end_flow_default_resolution", "target": "final_end_default_resolution"}
   ]
 };
+
 
 export default function AgentStudioPage() {
   const params = useParams();
@@ -98,10 +246,7 @@ export default function AgentStudioPage() {
         return;
       }
       const parsed = JSON.parse(newJson);
-      // Basic validation: check for essential flow properties
       if (parsed && parsed.nodes && Array.isArray(parsed.nodes) && parsed.edges && Array.isArray(parsed.edges) && parsed.flowId && typeof parsed.flowId === 'string') {
-        // Further validation could be done here against AgentFlowDefinitionSchema if needed,
-        // but for now, basic structure check is enough for the UI.
         setParsedFlow(parsed);
         setJsonError(null);
       } else {
@@ -124,20 +269,15 @@ export default function AgentStudioPage() {
         return;
     }
     
-    // If flowJson is empty, parsedFlow will be null (or should be set to null for clarity before saving)
     const flowToSave = flowJson.trim() === "" ? undefined : parsedFlow;
 
     if (!flowToSave && flowJson.trim() !== "") {
-      // This case means JSON is present but not parsable into a valid flow structure,
-      // which should ideally be caught by jsonError state.
       toast({ title: "No Valid Flow Data", description: "Cannot save, flow data is not valid or is empty but editor is not.", variant: "destructive"});
       return;
     }
 
-
     setIsSaving(true);
     try {
-      // Pass undefined if flowToSave is null/undefined, otherwise pass the flow object
       updateAgentFlow(currentAgent.id, flowToSave); 
       toast({
         title: "Flow Saved!",
@@ -154,7 +294,7 @@ export default function AgentStudioPage() {
   const loadSample = () => {
     const sampleJsonString = JSON.stringify(sampleFlow, null, 2);
     setFlowJson(sampleJsonString);
-    setParsedFlow(sampleFlow); // Assume sampleFlow is always valid
+    setParsedFlow(sampleFlow); 
     setJsonError(null);
     toast({ title: "Sample Flow Loaded", description: "You can now edit and save this sample flow."});
   };
@@ -164,10 +304,9 @@ export default function AgentStudioPage() {
     setParsedFlow(null);
     setJsonError(null);
      if (currentAgent) {
-      updateAgentFlow(currentAgent.id, undefined); // Explicitly pass undefined
+      updateAgentFlow(currentAgent.id, undefined); 
       toast({ title: "Flow Cleared", description: "Flow editor and agent's flow data have been cleared."});
     } else {
-      // Should not happen if UI is correct, but good for robustness
       toast({ title: "Flow Editor Cleared", description: "Flow editor has been cleared (no agent context found to update).", variant: "default"});
     }
   };
