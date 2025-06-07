@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, createContext, useContext } from 'react';
@@ -111,7 +112,7 @@ function AppSidebar() {
       <SidebarContent>
         <SidebarMenu>
           <SidebarMenuItem>
-            <Link href="/dashboard" legacyBehavior passHref>
+            <Link href="/dashboard">
               <SidebarMenuButton isActive={pathname === '/dashboard'} tooltip={collapsed ? 'Dashboard' : undefined}>
                 <Home />
                 <span>Dashboard</span>
@@ -119,7 +120,7 @@ function AppSidebar() {
             </Link>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <Link href="/agents/create" legacyBehavior passHref>
+            <Link href="/agents/create">
               <SidebarMenuButton isActive={pathname === '/agents/create'} tooltip={collapsed ? 'Create Agent' : undefined}>
                 <PlusCircle />
                 <span>Create Agent</span>
@@ -134,7 +135,7 @@ function AppSidebar() {
               </SidebarMenuItem>
               {agentNavItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
-                  <Link href={item.href} legacyBehavior passHref>
+                  <Link href={item.href}>
                     <SidebarMenuButton isActive={pathname.startsWith(item.href)} tooltip={collapsed ? item.label : undefined}>
                       <item.icon />
                       <span>{item.label}</span>
@@ -147,7 +148,7 @@ function AppSidebar() {
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="p-4">
-        <Link href="/settings" legacyBehavior passHref>
+        <Link href="/settings">
           <SidebarMenuButton tooltip={collapsed ? 'Settings' : undefined}>
             <Settings />
             <span>Settings</span>
