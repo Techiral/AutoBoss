@@ -113,7 +113,7 @@ export default function ExportAgentPage() {
                 {copied === "API Endpoint" ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Use this API endpoint to integrate with external systems. (POST: `{"message": "your message"}`)</p>
+            <p className="text-xs text-muted-foreground mt-1">Use this API endpoint to integrate with external systems. (POST: {`{"message": "your message"}`})</p>
              {!apiEndpoint && <p className="text-xs text-destructive mt-1">Base URL not yet available. Try refreshing if this persists.</p>}
           </div>
           
@@ -134,5 +134,3 @@ export default function ExportAgentPage() {
     </div>
   );
 }
-    
-    
