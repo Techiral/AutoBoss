@@ -29,9 +29,7 @@ interface VisualNode extends Omit<JsonFlowNode, 'type' | 'position' | 'message' 
   label: string;
   x: number;
   y: number;
-  content?: string; 
-  // Re-add specific properties that might have been Omitted but are needed for VisualNode if different from JsonFlowNode
-  // For instance, if 'content' is a consolidation, ensure its source fields are still available if needed for editing
+  content?: string;
   message?: string;
   prompt?: string;
   llmPrompt?: string;
@@ -71,7 +69,7 @@ interface NodeDefinition {
   type: FlowNodeType;
   label: string;
   icon: React.ElementType;
-  defaultProperties?: Partial<VisualNode & JsonFlowNode>; 
+  defaultProperties?: Partial<VisualNode & JsonFlowNode>;
   docs: {
     purpose: string;
     settings: string;
@@ -121,7 +119,7 @@ const minimalInitialFlow: AgentFlowDefinition = {
   ]
 };
 
-const complexSampleFlow: AgentFlowDefinition = { 
+const complexSampleFlow: AgentFlowDefinition = {
   flowId: "customer-support-agent-flow",
   name: "Customer Support Real-Time Agent",
   description: "A flow-driven assistant that greets the customer, classifies their issue, gathers details, provides an immediate solution, checks resolution, and escalates if needed.",
@@ -145,7 +143,7 @@ const complexSampleFlow: AgentFlowDefinition = {
     { id: "end_resolved_yes_node_16", type: "end", position: { x: 250, y: 1050 }, label: "End (Yes)" },
     { id: "resolved_no_node_17", type: "sendMessage", message: "I’m sorry it’s still not sorted. I’ll escalate this to our specialist team—expect an email or call soon.", position: { x: -150, y: 950 }, label: "Resolved: No" },
     { id: "end_resolved_no_node_18", type: "end", position: { x: -150, y: 1050 }, label: "End (No)" },
-    { id: "invalid_category_node_19", type: "sendMessage", message: "Hmm, I didn’t quite catch that category. Let’s try again: Billing, Technical, or Other?", position: { x: 50, y: 500 }, label: "Invalid Category" }, 
+    { id: "invalid_category_node_19", type: "sendMessage", message: "Hmm, I didn’t quite catch that category. Let’s try again: Billing, Technical, or Other?", position: { x: 50, y: 500 }, label: "Invalid Category" },
   ],
   edges: [
     { id: "e_start_greet", source: "start", target: "greet_user_node_1", label: "Start" },
@@ -168,8 +166,8 @@ const complexSampleFlow: AgentFlowDefinition = {
     { id: "e_check_is_resolved_no", source: "check_resolution_node_14", target: "resolved_no_node_17", condition: "User indicates the issue is not resolved or problem persists.", label: "Issue Not Resolved" },
     { id: "e_resolved_end", source: "resolved_yes_node_15", target: "end_resolved_yes_node_16" },
     { id: "e_notresolved_end", source: "resolved_no_node_17", target: "end_resolved_no_node_18" },
-    { id: "e_check_invalid_category_default", source: "check_category_node_3", target: "invalid_category_node_19", condition: "" , edgeType: "default", label: "Default/Invalid Category"}, 
-    { id: "e_invalid_cat_to_get_category", source: "invalid_category_node_19", target: "get_issue_category_node_2"}, 
+    { id: "e_check_invalid_category_default", source: "check_category_node_3", target: "invalid_category_node_19", condition: "" , edgeType: "default", label: "Default/Invalid Category"},
+    { id: "e_invalid_cat_to_get_category", source: "invalid_category_node_19", target: "get_issue_category_node_2"},
   ]
 };
 
@@ -178,27 +176,27 @@ export default function AgentStudioPage() {
   const params = useParams();
   const { toast } = useToast();
   const { getAgent, updateAgentFlow } = useAppContext();
-  
+
   const agentId = Array.isArray(params.agentId) ? params.agentId[0] : params.agentId;
   const [currentAgent, setCurrentAgent] = useState<Agent | null | undefined>(undefined);
-  
+
   const [nodes, setNodes] = useState<VisualNode[]>([]);
   const [edges, setEdges] = useState<VisualEdge[]>([]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  
+
   const [isSaving, setIsSaving] = useState(false);
   const [mermaidCode, setMermaidCode] = useState<string>("");
-  
+
   const canvasRef = useRef<HTMLDivElement>(null);
-  const canvasContentRef = useRef<HTMLDivElement>(null); 
+  const canvasContentRef = useRef<HTMLDivElement>(null);
   const [draggingNodeInfo, setDraggingNodeInfo] = useState<{ id: string; offsetX: number; offsetY: number } | null>(null);
-  
+
   const [edgeDragInfo, setEdgeDragInfo] = useState<{
     sourceNodeId: string;
-    startX: number;      
-    startY: number;      
-    currentX: number;    
-    currentY: number;    
+    startX: number;
+    startY: number;
+    currentX: number;
+    currentY: number;
   } | null>(null);
 
   const [canvasOffset, setCanvasOffset] = useState({ x: 0, y: 0 });
@@ -207,24 +205,24 @@ export default function AgentStudioPage() {
 
 
   const loadFlowToVisual = useCallback((flowDef: AgentFlowDefinition | undefined) => {
-    const flowToLoad = flowDef && flowDef.nodes && flowDef.nodes.length > 0 ? flowDef : minimalInitialFlow; 
-    
+    const flowToLoad = flowDef && flowDef.nodes && flowDef.nodes.length > 0 ? flowDef : minimalInitialFlow;
+
     const loadedNodes: VisualNode[] = flowToLoad.nodes.map((jsonNode: JsonFlowNode) => ({
       id: jsonNode.id,
       type: jsonNode.type as FlowNodeType,
       label: jsonNode.label || NODE_DEFINITIONS.find(def => def.type === jsonNode.type)?.defaultProperties?.label || jsonNode.id,
       x: jsonNode.position?.x || Math.random() * 400,
       y: jsonNode.position?.y || Math.random() * 300,
-      ...jsonNode, 
+      ...jsonNode,
       content: jsonNode.message || jsonNode.prompt || jsonNode.llmPrompt || jsonNode.codeScript,
     }));
     const loadedEdges: VisualEdge[] = flowToLoad.edges.map((jsonEdge: JsonFlowEdge) => ({
-      ...jsonEdge, 
-      label: jsonEdge.label || jsonEdge.condition, 
+      ...jsonEdge,
+      label: jsonEdge.label || jsonEdge.condition,
     }));
     setNodes(loadedNodes);
     setEdges(loadedEdges);
-    setCanvasOffset({ x: 0, y: 0 }); 
+    setCanvasOffset({ x: 0, y: 0 });
   }, []);
 
   useEffect(() => {
@@ -253,18 +251,18 @@ export default function AgentStudioPage() {
 
     const virtualX = viewportX + canvasOffset.x;
     const virtualY = viewportY + canvasOffset.y;
-    
+
     const nodeDef = NODE_DEFINITIONS.find(w => w.type === nodeType);
     const defaultLabel = nodeDef?.defaultProperties?.label || nodeDef?.label || 'Node';
-    const newNodeId = generateId(nodeType.replace(/\s+/g, '_') + '_'); 
-    
+    const newNodeId = generateId(nodeType.replace(/\s+/g, '_') + '_');
+
     const newNode: VisualNode = {
       id: newNodeId,
       type: nodeType,
       label: defaultLabel,
-      x: Math.max(0, virtualX - 75), 
+      x: Math.max(0, virtualX - 75),
       y: Math.max(0, virtualY - 25),
-      ...(nodeDef?.defaultProperties || {}), 
+      ...(nodeDef?.defaultProperties || {}),
     };
     setNodes((nds) => nds.concat(newNode));
     setSelectedNodeId(newNodeId);
@@ -277,7 +275,7 @@ export default function AgentStudioPage() {
 
   const handleNodeMouseDown = (event: React.MouseEvent<HTMLDivElement>, nodeId: string) => {
     if ((event.target as HTMLElement).dataset.port === 'out' || (event.target as HTMLElement).dataset.port === 'in') {
-        event.stopPropagation(); 
+        event.stopPropagation();
         return;
     }
     const node = nodes.find(n => n.id === nodeId);
@@ -290,13 +288,13 @@ export default function AgentStudioPage() {
     const offsetY = event.clientY - nodeRect.top;
 
     setDraggingNodeInfo({ id: nodeId, offsetX, offsetY });
-    setEdgeDragInfo(null); 
+    setEdgeDragInfo(null);
     setSelectedNodeId(nodeId);
-    event.stopPropagation(); 
+    event.stopPropagation();
   };
-  
-  const nodeWidth = 180; 
-  const nodeHeight = 70; 
+
+  const nodeWidth = 180;
+  const nodeHeight = 70;
 
   const handleCanvasMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
     if (event.target === canvasRef.current || event.target === canvasContentRef.current ) {
@@ -306,7 +304,7 @@ export default function AgentStudioPage() {
         if (edgeDragInfo) {
             setEdgeDragInfo(null);
         }
-        event.preventDefault(); 
+        event.preventDefault();
     }
   };
 
@@ -326,7 +324,7 @@ export default function AgentStudioPage() {
     } else if (draggingNodeInfo) {
         const newVirtualX = mouseX_viewport - draggingNodeInfo.offsetX + canvasOffset.x;
         const newVirtualY = mouseY_viewport - draggingNodeInfo.offsetY + canvasOffset.y;
-        
+
         setNodes((nds) =>
         nds.map((n) => (n.id === draggingNodeInfo.id ? { ...n, x: newVirtualX, y: newVirtualY } : n))
         );
@@ -348,21 +346,21 @@ export default function AgentStudioPage() {
     if (edgeDragInfo && !(event.target as HTMLElement).dataset.port?.includes('in')) {
         const targetElement = event.target as HTMLElement;
         const isInputPort = targetElement.dataset.port === 'in';
-        
+
         if (!isInputPort) {
-             setEdgeDragInfo(null); 
+             setEdgeDragInfo(null);
         }
     }
   };
-  
+
   const handleCanvasClick = (e: React.MouseEvent<HTMLDivElement>) => {
-      if (e.target === canvasRef.current || e.target === canvasContentRef.current) { 
+      if (e.target === canvasRef.current || e.target === canvasContentRef.current) {
         setSelectedNodeId(null);
       }
   };
 
   const handlePortMouseDown = (event: React.MouseEvent, nodeId: string, portType: 'out') => {
-    event.stopPropagation(); 
+    event.stopPropagation();
     const sourceNode = nodes.find(n => n.id === nodeId);
     if (!sourceNode || portType !== 'out' || sourceNode.type === 'end') {
         if (sourceNode && sourceNode.type === 'end') {
@@ -370,10 +368,10 @@ export default function AgentStudioPage() {
         }
         return;
     }
-    
+
     if (!canvasRef.current) return;
-    setDraggingNodeInfo(null); 
-    
+    setDraggingNodeInfo(null);
+
     const portElement = event.currentTarget as HTMLDivElement;
     const portRect = portElement.getBoundingClientRect();
     const canvasViewportRect = canvasRef.current.getBoundingClientRect();
@@ -385,7 +383,7 @@ export default function AgentStudioPage() {
         sourceNodeId: nodeId,
         startX: startX_virtual,
         startY: startY_virtual,
-        currentX: startX_virtual, 
+        currentX: startX_virtual,
         currentY: startY_virtual,
     });
   };
@@ -393,7 +391,7 @@ export default function AgentStudioPage() {
   const handlePortMouseUp = (event: React.MouseEvent, targetNodeId: string, portType: 'in') => {
     event.stopPropagation();
     if (!edgeDragInfo || portType !== 'in') {
-        if (edgeDragInfo) setEdgeDragInfo(null); 
+        if (edgeDragInfo) setEdgeDragInfo(null);
         return;
     }
 
@@ -409,7 +407,7 @@ export default function AgentStudioPage() {
         setEdgeDragInfo(null);
         return;
     }
-    
+
     const existingEdge = edges.find(e => e.source === edgeDragInfo.sourceNodeId && e.target === targetNodeId);
     if (existingEdge) {
         toast({title: "Connection Exists", description: "An edge already exists between these nodes."});
@@ -431,15 +429,15 @@ export default function AgentStudioPage() {
         id: generateId('edge_'),
         source: edgeDragInfo.sourceNodeId,
         target: targetNodeId,
-        label: defaultEdgeLabel, 
-        condition: defaultEdgeLabel, 
+        label: defaultEdgeLabel,
+        condition: defaultEdgeLabel,
         edgeType: defaultEdgeType,
     };
     setEdges((eds) => eds.concat(newEdge));
     toast({ title: "Edge Created!", description: `Connected ${sourceNode?.label} to ${targetNode.label}.`});
     setEdgeDragInfo(null);
   };
-  
+
   const updateSelectedNodeProperties = (updatedProps: Partial<JsonFlowNode>) => {
     if (!selectedNodeId) return;
     setNodes(nds => nds.map(n => {
@@ -482,20 +480,20 @@ export default function AgentStudioPage() {
   const convertToMermaid = useCallback((): string => {
     let mermaidStr = "graph TD;\n";
     nodes.forEach(node => {
-      const mermaidId = node.id.replace(/[^a-zA-Z0-9_]/g, '_'); 
+      const mermaidId = node.id.replace(/[^a-zA-Z0-9_]/g, '_');
       const displayLabel = node.label ? node.label.replace(/"/g, '#quot;') : node.id;
       const nodeDef = NODE_DEFINITIONS.find(d => d.type === node.type);
-      let shapeStart = '["'; 
+      let shapeStart = '["';
       let shapeEnd = '"]';
-      if (node.type === 'start' || node.type === 'end') { shapeStart = '(("'; shapeEnd = '"))'; } 
-      else if (node.type === 'condition') { shapeStart = '{{"'; shapeEnd = '"}}'; } 
-      
+      if (node.type === 'start' || node.type === 'end') { shapeStart = '(("'; shapeEnd = '"))'; }
+      else if (node.type === 'condition') { shapeStart = '{{"'; shapeEnd = '"}}'; }
+
       mermaidStr += `  ${mermaidId}${shapeStart}${displayLabel} (${nodeDef?.label || node.type})${shapeEnd};\n`;
     });
     edges.forEach(edge => {
       const sourceMermaidId = edge.source.replace(/[^a-zA-Z0-9_]/g, '_');
       const targetMermaidId = edge.target.replace(/[^a-zA-Z0-9_]/g, '_');
-      const edgeLabelText = edge.label || edge.edgeType || ""; 
+      const edgeLabelText = edge.label || edge.edgeType || "";
       const edgeLabel = edgeLabelText && edgeLabelText !== 'default' ? `|${edgeLabelText.replace(/"/g, '#quot;')}|` : '';
       mermaidStr += `  ${sourceMermaidId} -->${edgeLabel} ${targetMermaidId};\n`;
     });
@@ -506,14 +504,14 @@ export default function AgentStudioPage() {
     const hasStartNode = nodes.some(n => n.type === 'start');
     const hasEndNode = nodes.some(n => n.type === 'end');
 
-    if (!hasStartNode && nodes.length > 0) { 
+    if (!hasStartNode && nodes.length > 0) {
         toast({ title: "Invalid Flow", description: "A flow must have at least one 'Start' node if it has any nodes.", variant: "destructive"});
         return null;
     }
-    if (!hasEndNode && nodes.length > 0) { 
+    if (!hasEndNode && nodes.length > 0) {
         toast({ title: "Incomplete Flow", description: "It's recommended to have at least one 'End' node for all paths.", variant: "default"});
     }
-     
+
     for (const node of nodes) {
         const nodeDef = NODE_DEFINITIONS.find(d => d.type === node.type);
         if (!nodeDef) {
@@ -555,13 +553,13 @@ export default function AgentStudioPage() {
       if (node.type === 'transition') { baseJsonNode.transitionTargetFlowId = node.transitionTargetFlowId; baseJsonNode.transitionVariablesToPass = node.transitionVariablesToPass; }
       if (node.type === 'agentSkill') { baseJsonNode.agentSkillId = node.agentSkillId; baseJsonNode.agentSkillsList = node.agentSkillsList; }
       if (node.type === 'end') { baseJsonNode.endOutputVariable = node.endOutputVariable; }
-      
+
       return baseJsonNode as JsonFlowNode;
     });
 
     const jsonEdges: JsonFlowEdge[] = edges.map(edge => {
-      const { ...restOfEdge } = edge; 
-      return { 
+      const { ...restOfEdge } = edge;
+      return {
         id: restOfEdge.id,
         source: restOfEdge.source,
         target: restOfEdge.target,
@@ -570,11 +568,11 @@ export default function AgentStudioPage() {
         edgeType: restOfEdge.edgeType,
       };
     });
-    
+
     const flowId = currentAgent?.flow?.flowId || generateId('flow_');
     const flowName = currentAgent?.flow?.name || "My Visual Flow";
     const flowDescription = currentAgent?.flow?.description || "A flow created with the visual editor.";
-    
+
     return { flowId, name: flowName, description: flowDescription, nodes: jsonNodes, edges: jsonEdges };
   }, [nodes, edges, currentAgent, toast]);
 
@@ -584,14 +582,14 @@ export default function AgentStudioPage() {
       return;
     }
     setIsSaving(true);
-    
-    setMermaidCode(convertToMermaid()); 
-    
+
+    setMermaidCode(convertToMermaid());
+
     try {
       const agentFlowDef = convertToAgentFlowDefinition();
-      if (!agentFlowDef) { 
+      if (!agentFlowDef) {
         setIsSaving(false);
-        return; 
+        return;
       }
       updateAgentFlow(currentAgent.id, agentFlowDef);
       toast({ title: "Flow Saved!", description: `Flow "${agentFlowDef.name}" visually designed and updated.` });
@@ -602,9 +600,9 @@ export default function AgentStudioPage() {
       setIsSaving(false);
     }
   }, [currentAgent, convertToMermaid, convertToAgentFlowDefinition, updateAgentFlow, toast]);
-  
+
   const resetToComplexSampleFlow = () => {
-    loadFlowToVisual(complexSampleFlow); 
+    loadFlowToVisual(complexSampleFlow);
     setSelectedNodeId(null);
     setMermaidCode("");
      if (currentAgent) {
@@ -626,7 +624,7 @@ export default function AgentStudioPage() {
   if (currentAgent === undefined) return <Card><CardHeader><CardTitle>Loading Studio...</CardTitle></CardHeader><CardContent><Loader2 className="mx-auto h-10 w-10 animate-spin text-primary" /></CardContent></Card>;
   if (!currentAgent) return <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>Agent Not Found</AlertTitle><AlertDescription>The agent could not be loaded.</AlertDescription></Alert>;
 
-  const portSize = 10; 
+  const portSize = 10;
 
   return (
     <TooltipProvider>
@@ -649,7 +647,7 @@ export default function AgentStudioPage() {
                   <span className="text-sm">{def.label}</span>
                 </div>
               </TooltipTrigger>
-              <TooltipContent side="right" align="start" className="max-w-xs z-[60]"> 
+              <TooltipContent side="right" align="start" className="max-w-xs z-[60]">
                 <p className="font-semibold">{def.label}</p>
                 <p className="text-xs text-muted-foreground">{def.docs.purpose}</p>
               </TooltipContent>
@@ -662,7 +660,7 @@ export default function AgentStudioPage() {
         </CardFooter>
       </Card>
 
-      <Card 
+      <Card
         className="col-span-6 xl:col-span-7 h-full relative overflow-hidden bg-muted/20 border-dashed border-input cursor-grab"
         ref={canvasRef}
         onDrop={handleDropOnCanvas}
@@ -670,23 +668,23 @@ export default function AgentStudioPage() {
         onMouseMove={handleCanvasMouseMove}
         onMouseDown={handleCanvasMouseDown}
         onMouseUp={handleCanvasMouseUp}
-        onMouseLeave={handleCanvasMouseUp} 
-        onClick={handleCanvasClick} 
+        onMouseLeave={handleCanvasMouseUp}
+        onClick={handleCanvasClick}
       >
-        <div 
+        <div
             ref={canvasContentRef}
-            className="absolute top-0 left-0 w-full h-full pointer-events-none" 
+            className="absolute top-0 left-0 w-full h-full pointer-events-none"
             style={{ transform: `translate(${-canvasOffset.x}px, ${-canvasOffset.y}px)` }}
         >
-            <svg className="absolute top-0 left-0 w-full h-full pointer-events-none"> 
+            <svg className="absolute top-0 left-0 w-full h-full pointer-events-none">
             {edges.map(edge => {
                 const sourceNode = nodes.find(n => n.id === edge.source);
                 const targetNode = nodes.find(n => n.id === edge.target);
                 if (!sourceNode || !targetNode) return null;
-                
-                const x1 = sourceNode.x + nodeWidth; 
+
+                const x1 = sourceNode.x + nodeWidth;
                 const y1 = sourceNode.y + nodeHeight / 2;
-                const x2 = targetNode.x; 
+                const x2 = targetNode.x;
                 const y2 = targetNode.y + nodeHeight / 2;
 
                 const midX = (x1 + x2) / 2;
@@ -700,7 +698,7 @@ export default function AgentStudioPage() {
                 const arrowPoint2Y = y2 - arrowLength * Math.sin(angle + Math.PI / 6);
 
                 return (
-                <g key={edge.id} className="group/edge"> 
+                <g key={edge.id} className="group/edge">
                     <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="hsl(var(--primary)/0.5)" strokeWidth="1.5" className="group-hover/edge:stroke-primary transition-colors" />
                     <polygon points={`${x2},${y2} ${arrowPoint1X},${arrowPoint1Y} ${arrowPoint2X},${arrowPoint2Y}`} fill="hsl(var(--primary)/0.5)" className="group-hover/edge:fill-primary transition-colors"/>
                     {(edge.label || (edge.edgeType && edge.edgeType !== 'default')) && (
@@ -711,7 +709,7 @@ export default function AgentStudioPage() {
                 </g>
                 );
             })}
-            {edgeDragInfo && ( 
+            {edgeDragInfo && (
                     <line
                         x1={edgeDragInfo.startX}
                         y1={edgeDragInfo.startY}
@@ -726,21 +724,21 @@ export default function AgentStudioPage() {
             {nodes.map(node => (
             <div
                 key={node.id}
-                data-node-id={node.id} 
+                data-node-id={node.id}
                 onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
-                className="absolute p-2 border rounded bg-card shadow cursor-grab select-none flex flex-col justify-center group/node pointer-events-auto" 
-                style={{ 
-                    left: node.x,  
-                    top: node.y,   
+                className="absolute p-2 border rounded bg-card shadow cursor-grab select-none flex flex-col justify-center group/node pointer-events-auto"
+                style={{
+                    left: node.x,
+                    top: node.y,
                     width: `${nodeWidth}px`,
                     height: `${nodeHeight}px`,
                     borderColor: selectedNodeId === node.id ? 'hsl(var(--ring))' : 'hsl(var(--border))',
                     boxShadow: selectedNodeId === node.id ? '0 0 0 2px hsl(var(--ring))' : '0 1px 3px rgba(0,0,0,0.1)',
-                    zIndex: draggingNodeInfo?.id === node.id || edgeDragInfo?.sourceNodeId === node.id ? 10 : 1, 
+                    zIndex: draggingNodeInfo?.id === node.id || edgeDragInfo?.sourceNodeId === node.id ? 10 : 1,
                 }}
             >
                 {node.type !== 'start' && (
-                    <div 
+                    <div
                         data-port="in"
                         onMouseUp={(e) => handlePortMouseUp(e, node.id, 'in')}
                         title={`Connect to ${node.label}`}
@@ -751,14 +749,14 @@ export default function AgentStudioPage() {
                     </div>
                 )}
 
-                <div className="flex items-center gap-1 mb-0.5">
-                {(() => {
-                    const WidgetIcon = NODE_DEFINITIONS.find(w=>w.type === node.type)?.icon;
-                    return WidgetIcon ? <WidgetIcon className="w-3 h-3 text-primary shrink-0" /> : <GripVertical className="w-3 h-3 text-muted-foreground shrink-0"/>;
-                })()}
-                <span className="text-xs font-medium" title={node.label}>{node.label}</span>
+                <div className="flex items-center gap-1 mb-0.5 w-full">
+                    {(() => {
+                        const WidgetIcon = NODE_DEFINITIONS.find(w=>w.type === node.type)?.icon;
+                        return WidgetIcon ? <WidgetIcon className="w-3 h-3 text-primary shrink-0" /> : <GripVertical className="w-3 h-3 text-muted-foreground shrink-0"/>;
+                    })()}
+                    <span className="text-xs font-medium flex-1 min-w-0" style={{ overflowWrap: 'break-word', wordBreak: 'break-all' }} title={node.label}>{node.label}</span>
                 </div>
-                <p className="text-[10px] text-muted-foreground" title={node.content || node.variableName || node.type}>
+                <p className="text-[10px] text-muted-foreground w-full" style={{ overflowWrap: 'break-word', wordBreak: 'break-all' }} title={node.content || node.variableName || node.type}>
                 { node.type === 'sendMessage' ? (node.message || '...') :
                     node.type === 'getUserInput' ? (node.variableName ? `Var: ${node.variableName}`: '...') :
                     node.type === 'callLLM' ? (node.outputVariable ? `Out: ${node.outputVariable}`: '...') :
@@ -773,9 +771,9 @@ export default function AgentStudioPage() {
                     NODE_DEFINITIONS.find(d=>d.type === node.type)?.label || node.type
                 }
                 </p>
-                
+
                 {node.type !== 'end' && (
-                    <div 
+                    <div
                         data-port="out"
                         onMouseDown={(e) => handlePortMouseDown(e, node.id, 'out')}
                         title={`Connect from ${node.label}`}
@@ -787,7 +785,7 @@ export default function AgentStudioPage() {
                 )}
             </div>
             ))}
-        </div> 
+        </div>
       </Card>
 
       <Card className="col-span-4 xl:col-span-3 h-full flex flex-col">
@@ -807,7 +805,7 @@ export default function AgentStudioPage() {
                   <Label htmlFor="nodeLabel" className="text-xs">Node Label (ID: {selectedNodeDetails.id})</Label>
                   <Input id="nodeLabel" value={selectedNodeDetails.label} onChange={e => updateSelectedNodeProperties({ label: e.target.value })} className="h-8 text-sm"/>
                 </div>
-                
+
                 { selectedNodeDetails.type === 'sendMessage' && (
                   <div><Label htmlFor="nodeMessage" className="text-xs">Message Text</Label><Textarea id="nodeMessage" value={selectedNodeDetails.message || ""} onChange={e => updateSelectedNodeProperties({ message: e.target.value })} rows={3} className="text-sm"/></div>
                 )}
@@ -933,9 +931,7 @@ export default function AgentStudioPage() {
                   <AccordionItem value="docs">
                      <AccordionTrigger className="text-base hover:no-underline">
                         <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Info className="mr-2 h-4 w-4 text-blue-500"/>
-                            </TooltipTrigger>
+                            <TooltipTrigger asChild><Info className="mr-2 h-4 w-4 text-blue-500"/></TooltipTrigger>
                             <TooltipContent side="top" className="z-[60] max-w-xs"><p>Documentation for the <strong>{selectedNodeDefinition.label}</strong> node type.</p></TooltipContent>
                         </Tooltip>
                        Node Guide: {selectedNodeDefinition.label}
@@ -995,3 +991,4 @@ export default function AgentStudioPage() {
     </TooltipProvider>
   );
 }
+
