@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -12,7 +13,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { useToast } from "@/hooks/use-toast";
 import { createAgent, CreateAgentOutput } from "@/ai/flows/agent-creation";
 import { useRouter } from "next/navigation";
-import { useAppContext } from "../../layout"; // Adjust path as necessary
+import { useAppContext } from "../../layout"; 
 import type { Agent } from "@/lib/types";
 import { Loader2 } from "lucide-react";
 
@@ -45,14 +46,15 @@ export default function CreateAgentPage() {
       
       const newAgent: Agent = {
         id: Date.now().toString(), // Simple ID generation
-        name: data.name,
-        description: `Role: ${data.role}. Personality: ${data.personality}.`,
+        name: data.name, // This is the user-defined name/concept
+        description: `Role: ${data.role}. Personality: ${data.personality}.`, // A composite description
         role: data.role,
         personality: data.personality,
         generatedName: result.agentName,
         generatedPersona: result.agentPersona,
         generatedGreeting: result.agentGreeting,
         createdAt: new Date().toISOString(),
+        knowledgeItems: [], // Initialize with empty knowledge items
       };
       addAgent(newAgent);
 
@@ -80,6 +82,8 @@ export default function CreateAgentPage() {
           <CardTitle className="font-headline text-2xl">Configure New AI Agent</CardTitle>
           <CardDescription>
             Define the core characteristics of your new agent. The AI will help refine its persona.
+            <br />
+            <span className="text-xs text-muted-foreground">Note: Agent data is stored for the current session only and is not persisted.</span>
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
@@ -103,7 +107,7 @@ export default function CreateAgentPage() {
           <CardFooter>
             <Button type="submit" disabled={isLoading} className="w-full">
               {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              {isLoading ? "Configuring Agent..." : "Configure Agent"}
+              {isLoading ? "Configuring Agent..." : "Configure Agent & Generate Details"}
             </Button>
           </CardFooter>
         </form>

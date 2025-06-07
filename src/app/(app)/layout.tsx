@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, createContext, useContext, useCallback } from 'react'; // Added useCallback
+import React, { useState, createContext, useContext, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Logo } from '@/components/logo';
@@ -21,12 +21,12 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { Home, PlusCircle, Bot, Settings, BookOpen, MessageSquare, Share2, Cog } from 'lucide-react';
-import type { Agent } from '@/lib/types';
+import type { Agent, KnowledgeItem } from '@/lib/types';
 
-// Mock initial agents data with static dates
+// Mock initial agents data with static dates and empty knowledgeItems
 const initialAgents: Agent[] = [
-  { id: '1', name: 'Support Bot Alpha', description: 'Handles customer support queries.', createdAt: '2024-01-15T10:00:00.000Z', generatedName: 'Support Bot Alpha' },
-  { id: '2', name: 'Sales Assistant Beta', description: 'Assists with sales questions.', createdAt: '2024-01-16T11:30:00.000Z', generatedName: 'Sales Assistant Beta' },
+  { id: '1', name: 'Support Bot Alpha', description: 'Handles customer support queries.', createdAt: '2024-01-15T10:00:00.000Z', generatedName: 'Support Bot Alpha', knowledgeItems: [] },
+  { id: '2', name: 'Sales Assistant Beta', description: 'Assists with sales questions.', createdAt: '2024-01-16T11:30:00.000Z', generatedName: 'Sales Assistant Beta', knowledgeItems: [] },
 ];
 
 interface AppContextType {
@@ -34,6 +34,7 @@ interface AppContextType {
   addAgent: (agent: Agent) => void;
   updateAgent: (agent: Agent) => void;
   getAgent: (id: string) => Agent | undefined;
+  addKnowledgeItem: (agentId: string, item: KnowledgeItem) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -50,21 +51,41 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [agents, setAgents] = useState<Agent[]>(initialAgents);
 
   const addAgent = useCallback((agent: Agent) => {
-    setAgents((prevAgents) => [...prevAgents, agent]);
-  }, []); // setAgents itself is stable
+    // Ensure new agents also have an initialized knowledgeItems array
+    const agentWithKnowledge = { ...agent, knowledgeItems: agent.knowledgeItems || [] };
+    setAgents((prevAgents) => [...prevAgents, agentWithKnowledge]);
+  }, []);
 
   const updateAgent = useCallback((updatedAgent: Agent) => {
     setAgents((prevAgents) =>
-      prevAgents.map((agent) => (agent.id === updatedAgent.id ? updatedAgent : agent))
+      prevAgents.map((agent) => {
+        if (agent.id === updatedAgent.id) {
+          // Ensure knowledgeItems are preserved or initialized
+          return { ...agent, ...updatedAgent, knowledgeItems: updatedAgent.knowledgeItems || agent.knowledgeItems || [] };
+        }
+        return agent;
+      })
     );
-  }, []); // setAgents itself is stable
+  }, []);
   
   const getAgent = useCallback((id: string) => {
     return agents.find(agent => agent.id === id);
-  }, [agents]); // Depends on the `agents` state
+  }, [agents]);
+
+  const addKnowledgeItem = useCallback((agentId: string, item: KnowledgeItem) => {
+    setAgents(prevAgents =>
+      prevAgents.map(agent => {
+        if (agent.id === agentId) {
+          const updatedKnowledgeItems = [...(agent.knowledgeItems || []), item];
+          return { ...agent, knowledgeItems: updatedKnowledgeItems };
+        }
+        return agent;
+      })
+    );
+  }, []);
 
   return (
-    <AppContext.Provider value={{ agents, addAgent, updateAgent, getAgent }}>
+    <AppContext.Provider value={{ agents, addAgent, updateAgent, getAgent, addKnowledgeItem }}>
       <SidebarProvider defaultOpen>
         <AppSidebar />
         <div className="flex flex-col flex-1 min-h-screen">

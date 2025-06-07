@@ -1,27 +1,45 @@
+
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { extractKnowledge, KnowledgeExtractionOutput } from "@/ai/flows/knowledge-extraction";
-import { Upload, Loader2, FileText, Tag } from "lucide-react";
-import type { KnowledgeItem } from "@/lib/types";
+import { Upload, Loader2, FileText, Tag, AlertTriangle } from "lucide-react";
+import type { KnowledgeItem, Agent } from "@/lib/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useAppContext } from "../../../layout";
+import { Alert, AlertTitle } from "@/components/ui/alert";
 
 export default function KnowledgePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [extractionResult, setExtractionResult] = useState<KnowledgeExtractionOutput | null>(null);
-  const [knowledgeItems, setKnowledgeItems] = useState<KnowledgeItem[]>([]); // To store multiple uploaded docs
+  // const [extractionResult, setExtractionResult] = useState<KnowledgeExtractionOutput | null>(null); // No longer needed locally
+  // const [knowledgeItems, setKnowledgeItems] = useState<KnowledgeItem[]>([]); // Managed by context
+  
   const { toast } = useToast();
+  const params = useParams();
+  const agentId = Array.isArray(params.agentId) ? params.agentId[0] : params.agentId;
+  const { getAgent, addKnowledgeItem } = useAppContext();
+  const [currentAgent, setCurrentAgent] = useState<Agent | null | undefined>(undefined);
+
+  useEffect(() => {
+    if (agentId) {
+      const agent = getAgent(agentId as string);
+      setCurrentAgent(agent);
+    }
+  }, [agentId, getAgent]);
+
+  const knowledgeItems = currentAgent?.knowledgeItems || [];
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       setSelectedFile(event.target.files[0]);
-      setExtractionResult(null); // Reset previous result
+      // setExtractionResult(null); // Reset previous result - not needed
     }
   };
 
@@ -30,61 +48,82 @@ export default function KnowledgePage() {
       toast({ title: "No file selected", description: "Please select a file to upload.", variant: "destructive" });
       return;
     }
+    if (!agentId) {
+      toast({ title: "Agent ID missing", description: "Cannot add knowledge without an agent context.", variant: "destructive" });
+      return;
+    }
 
     setIsLoading(true);
     try {
       const reader = new FileReader();
       reader.readAsDataURL(selectedFile);
+      
       reader.onload = async () => {
         const documentDataUri = reader.result as string;
-        const result = await extractKnowledge({ documentDataUri });
-        setExtractionResult(result);
+        try {
+          const result = await extractKnowledge({ documentDataUri });
+          // setExtractionResult(result); // No longer needed locally
 
-        const newKnowledgeItem: KnowledgeItem = {
-          id: Date.now().toString(),
-          fileName: selectedFile.name,
-          uploadedAt: new Date().toISOString(),
-          summary: result.summary,
-          keywords: result.keywords,
-        };
-        setKnowledgeItems(prevItems => [newKnowledgeItem, ...prevItems]);
+          const newKnowledgeItem: KnowledgeItem = {
+            id: Date.now().toString(),
+            fileName: selectedFile.name,
+            uploadedAt: new Date().toISOString(),
+            summary: result.summary,
+            keywords: result.keywords,
+          };
+          // setKnowledgeItems(prevItems => [newKnowledgeItem, ...prevItems]); // Update context instead
+          addKnowledgeItem(agentId, newKnowledgeItem);
 
-        toast({
-          title: "Knowledge Extracted!",
-          description: `Successfully processed "${selectedFile.name}".`,
-        });
-        setSelectedFile(null); // Reset file input
+          toast({
+            title: "Knowledge Extracted!",
+            description: `Successfully processed "${selectedFile.name}".`,
+          });
+          setSelectedFile(null); // Reset file input
+        } catch (extractionError) {
+          console.error("Error extracting knowledge:", extractionError);
+          toast({ title: "Extraction Error", description: "Failed to extract knowledge from the document.", variant: "destructive" });
+        } finally {
+          setIsLoading(false); // Moved here
+        }
       };
       reader.onerror = (error) => {
         console.error("Error reading file:", error);
         toast({ title: "File Read Error", description: "Could not read the selected file.", variant: "destructive" });
-        setIsLoading(false);
+        setIsLoading(false); // Moved here
       };
     } catch (error) {
-      console.error("Error extracting knowledge:", error);
-      toast({ title: "Extraction Error", description: "Failed to extract knowledge from the document.", variant: "destructive" });
+      // This catch block might be redundant if FileReader's errors are handled,
+      // but kept for safety for synchronous errors before reader starts.
+      console.error("Error initiating file processing:", error);
+      toast({ title: "Processing Error", description: "An unexpected error occurred.", variant: "destructive" });
       setIsLoading(false);
-    } finally {
-      // setIsLoading(false) is handled within onload or onerror for FileReader
     }
   };
-  
-  // This needs to be outside handleSubmit, in the FileReader onloadend.
-  // For simplicity in this snippet, it's assumed loading ends after submit attempts.
-  // A more robust solution would manage isLoading state more carefully with FileReader's lifecycle.
-  if (isLoading && selectedFile) {
-     // This is a bit of a hack; ideally, isLoading is set to false in reader.onloadend
-     // For now, we'll assume it resets after an attempt.
-     // setTimeout(() => setIsLoading(false), 500); // To prevent infinite loading state on error
+
+  if (currentAgent === undefined) {
+    return (
+      <Card>
+        <CardHeader><CardTitle>Loading Knowledge...</CardTitle></CardHeader>
+        <CardContent><Loader2 className="mx-auto h-10 w-10 animate-spin text-primary" /></CardContent>
+      </Card>
+    )
   }
 
+  if (!currentAgent) {
+    return (
+       <Alert variant="destructive">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>Agent Not Found</AlertTitle>
+      </Alert>
+    );
+  }
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <Card>
         <CardHeader>
           <CardTitle className="font-headline text-2xl">Manage Knowledge Base</CardTitle>
-          <CardDescription>Upload documents to build your agent's knowledge.</CardDescription>
+          <CardDescription>Upload documents to build agent <span className="font-semibold">{currentAgent.generatedName || currentAgent.name}</span>'s knowledge.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
@@ -104,7 +143,7 @@ export default function KnowledgePage() {
       {knowledgeItems.length > 0 && (
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle className="font-headline">Uploaded Documents</CardTitle>
+            <CardTitle className="font-headline">Uploaded Documents for {currentAgent.generatedName || currentAgent.name}</CardTitle>
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-[400px] pr-4">
