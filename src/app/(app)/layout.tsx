@@ -21,12 +21,12 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { Home, PlusCircle, Bot, Settings, BookOpen, MessageSquare, Share2, Cog } from 'lucide-react';
-import type { Agent, KnowledgeItem } from '@/lib/types';
+import type { Agent, KnowledgeItem, AgentFlowDefinition } from '@/lib/types';
 
 // Mock initial agents data with static dates and empty knowledgeItems
 const initialAgents: Agent[] = [
-  { id: '1', name: 'Support Bot Alpha', description: 'Handles customer support queries.', createdAt: '2024-01-15T10:00:00.000Z', generatedName: 'Support Bot Alpha', knowledgeItems: [] },
-  { id: '2', name: 'Sales Assistant Beta', description: 'Assists with sales questions.', createdAt: '2024-01-16T11:30:00.000Z', generatedName: 'Sales Assistant Beta', knowledgeItems: [] },
+  { id: '1', name: 'Support Bot Alpha', description: 'Handles customer support queries.', createdAt: '2024-01-15T10:00:00.000Z', generatedName: 'Support Bot Alpha', knowledgeItems: [], flow: undefined },
+  { id: '2', name: 'Sales Assistant Beta', description: 'Assists with sales questions.', createdAt: '2024-01-16T11:30:00.000Z', generatedName: 'Sales Assistant Beta', knowledgeItems: [], flow: undefined },
 ];
 
 interface AppContextType {
@@ -35,6 +35,8 @@ interface AppContextType {
   updateAgent: (agent: Agent) => void;
   getAgent: (id: string) => Agent | undefined;
   addKnowledgeItem: (agentId: string, item: KnowledgeItem) => void;
+  updateAgentFlow: (agentId: string, flow: AgentFlowDefinition) => void;
+  getAgentFlow: (agentId: string) => AgentFlowDefinition | undefined;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -51,17 +53,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [agents, setAgents] = useState<Agent[]>(initialAgents);
 
   const addAgent = useCallback((agent: Agent) => {
-    // Ensure new agents also have an initialized knowledgeItems array
-    const agentWithKnowledge = { ...agent, knowledgeItems: agent.knowledgeItems || [] };
-    setAgents((prevAgents) => [...prevAgents, agentWithKnowledge]);
+    const agentWithExtras = { ...agent, knowledgeItems: agent.knowledgeItems || [], flow: agent.flow || undefined };
+    setAgents((prevAgents) => [...prevAgents, agentWithExtras]);
   }, []);
 
   const updateAgent = useCallback((updatedAgent: Agent) => {
     setAgents((prevAgents) =>
       prevAgents.map((agent) => {
         if (agent.id === updatedAgent.id) {
-          // Ensure knowledgeItems are preserved or initialized
-          return { ...agent, ...updatedAgent, knowledgeItems: updatedAgent.knowledgeItems || agent.knowledgeItems || [] };
+          return { 
+            ...agent, 
+            ...updatedAgent, 
+            knowledgeItems: updatedAgent.knowledgeItems || agent.knowledgeItems || [],
+            flow: updatedAgent.flow || agent.flow // Preserve or update flow
+          };
         }
         return agent;
       })
@@ -84,8 +89,24 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }, []);
 
+  const updateAgentFlow = useCallback((agentId: string, flow: AgentFlowDefinition) => {
+    setAgents(prevAgents => 
+      prevAgents.map(agent => {
+        if (agent.id === agentId) {
+          return { ...agent, flow: flow };
+        }
+        return agent;
+      })
+    );
+  }, []);
+
+  const getAgentFlow = useCallback((agentId: string): AgentFlowDefinition | undefined => {
+    const agent = agents.find(a => a.id === agentId);
+    return agent?.flow;
+  }, [agents]);
+
   return (
-    <AppContext.Provider value={{ agents, addAgent, updateAgent, getAgent, addKnowledgeItem }}>
+    <AppContext.Provider value={{ agents, addAgent, updateAgent, getAgent, addKnowledgeItem, updateAgentFlow, getAgentFlow }}>
       <SidebarProvider defaultOpen>
         <AppSidebar />
         <div className="flex flex-col flex-1 min-h-screen">
