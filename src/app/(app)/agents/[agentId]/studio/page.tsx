@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAppContext } from "../../../layout";
-import type { Agent, AgentFlowDefinition, FlowNode, FlowEdge } from "@/lib/types";
+import type { Agent, AgentFlowDefinition, FlowNode, FlowEdge } from "@/lib/types"; // These types come from lib/types
 import { Loader2, Save, FileJson, AlertTriangle } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertTitle } from "@/components/ui/alert";
@@ -65,7 +65,7 @@ export default function AgentStudioPage() {
     }
   }, [agentId, getAgent]);
 
-  const handleJsonChange = (event: React.ChangeEvent<Textarea>) => {
+  const handleJsonChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newJson = event.target.value;
     setFlowJson(newJson);
     try {
@@ -188,7 +188,6 @@ export default function AgentStudioPage() {
                         {node.message && <span className="text-muted-foreground block pl-4 text-xs">Msg: "{node.message}"</span>}
                         {node.prompt && <span className="text-muted-foreground block pl-4 text-xs">Prompt: "{node.prompt}"</span>}
                         {node.llmPrompt && <span className="text-muted-foreground block pl-4 text-xs">LLM Prompt: "{node.llmPrompt}"</span>}
-
                       </li>
                     ))}
                   </ul>
@@ -209,7 +208,7 @@ export default function AgentStudioPage() {
           ) : (
             <p className="text-sm text-muted-foreground">
               {flowJson ? "JSON is invalid or not structured correctly." : "No flow loaded or defined. Paste JSON or load a sample."}
-            </Pokemon>
+            </p>
           )}
         </CardContent>
       </Card>
