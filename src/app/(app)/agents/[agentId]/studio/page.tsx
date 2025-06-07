@@ -8,36 +8,55 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAppContext } from "../../../layout";
-import type { Agent, AgentFlowDefinition } from "@/lib/types"; // These types come from lib/types
+import type { Agent, AgentFlowDefinition } from "@/lib/types";
 import { Loader2, Save, FileJson, AlertTriangle, Trash2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertTitle } from "@/components/ui/alert";
 
 const sampleFlow: AgentFlowDefinition = {
-  flowId: "sample-welcome-flow",
-  name: "Sample Welcome Onboarding",
-  description: "A sample flow to greet users and ask for their name, then uses knowledge.",
+  flowId: "sample-conditional-flow",
+  name: "Sample Conditional Welcome",
+  description: "A sample flow that greets, asks for a name, asks about jokes, and branches conditionally.",
   nodes: [
     { id: "start", type: "start", position: { x: 50, y: 50 } },
-    { id: "greet", type: "sendMessage", message: "Hello! Welcome to AgentVerse. I can use my knowledge base. What's your name?", position: { x: 50, y: 150 } },
-    { id: "get_name", type: "getUserInput", prompt: "Please tell me your name.", variableName: "userName", position: { x: 50, y: 250 } },
+    { id: "greet", type: "sendMessage", message: "Hello! I'm your friendly flow-driven assistant. What's your name?", position: { x: 50, y: 150 } },
+    { id: "get_name", type: "getUserInput", prompt: "Please enter your name:", variableName: "userName", position: { x: 50, y: 250 } },
     { 
-      id: "confirm_name_with_knowledge", 
-      type: "callLLM", 
-      llmPrompt: "User's name is {{userName}}. Respond with a friendly confirmation like 'Nice to meet you, {{userName}}!' and mention something from your knowledge if relevant.", 
-      outputVariable: "confirmationMessage", 
-      useKnowledge: true, // Use knowledge here
+      id: "welcome_user", 
+      type: "sendMessage", 
+      message: "Nice to meet you, {{userName}}! I can use my knowledge base if needed for tasks.", 
       position: { x: 50, y: 350 } 
     },
-    { id: "send_confirmation", type: "sendMessage", message: "{{confirmationMessage}}", position: { x: 50, y: 450 } },
-    { id: "end", type: "end", position: { x: 50, y: 550 } }
+    { id: "ask_joke_preference", type: "getUserInput", prompt: "Do you like jokes? (Please type 'yes' or 'no')", variableName: "likesJokes", position: { x: 50, y: 450 } },
+    { id: "check_joke_preference", type: "condition", conditionVariable: "likesJokes", position: { x: 50, y: 550 } },
+    { 
+      id: "tell_joke", 
+      type: "callLLM", 
+      llmPrompt: "Tell me a short, clean, and funny joke. User {{userName}} likes jokes.", 
+      outputVariable: "jokeText", 
+      useKnowledge: false, // Jokes usually don't need external knowledge
+      position: { x: 250, y: 650 } 
+    },
+    { id: "send_joke", type: "sendMessage", message: "{{jokeText}}", position: { x: 250, y: 750 } },
+    { id: "end_joke", type: "end", position: { x: 250, y: 850 } },
+    { id: "no_joke_reply", type: "sendMessage", message: "Alright, {{userName}}, no jokes today then. How else can I help?", position: { x: -150, y: 650 } },
+    { id: "end_no_joke", type: "end", position: { x: -150, y: 750 } },
+    { id: "confused_reply", type: "sendMessage", message: "Hmm, I didn't quite catch if you like jokes, {{userName}}. Let's move on.", position: {x: 50, y: 650} },
+    { id: "end_confused", type: "end", position: {x: 50, y: 750 }}
   ],
   edges: [
     { id: "e_start_greet", source: "start", target: "greet", label: "Start" },
     { id: "e_greet_get_name", source: "greet", target: "get_name" },
-    { id: "e_get_name_confirm_name", source: "get_name", target: "confirm_name_with_knowledge" },
-    { id: "e_confirm_name_send_confirmation", source: "confirm_name_with_knowledge", target: "send_confirmation"},
-    { id: "e_send_confirmation_end", source: "send_confirmation", target: "end" }
+    { id: "e_get_name_welcome", source: "get_name", target: "welcome_user" },
+    { id: "e_welcome_ask_joke", source: "welcome_user", target: "ask_joke_preference" },
+    { id: "e_ask_joke_check", source: "ask_joke_preference", target: "check_joke_preference" },
+    { id: "e_check_joke_yes", source: "check_joke_preference", target: "tell_joke", condition: "yes", label: "User likes jokes" },
+    { id: "e_tell_joke_send", source: "tell_joke", target: "send_joke" },
+    { id: "e_send_joke_end", source: "send_joke", target: "end_joke" },
+    { id: "e_check_joke_no", source: "check_joke_preference", target: "no_joke_reply", condition: "no", label: "User dislikes jokes" },
+    { id: "e_no_joke_end", source: "no_joke_reply", target: "end_no_joke" },
+    { id: "e_check_joke_confused", source: "check_joke_preference", target: "confused_reply", condition: "", label: "Default/Confused" }, // Default path if not "yes" or "no"
+    { id: "e_confused_end", source: "confused_reply", target: "end_confused"}
   ]
 };
 
@@ -79,12 +98,15 @@ export default function AgentStudioPage() {
         return;
       }
       const parsed = JSON.parse(newJson);
-      if (parsed && parsed.nodes && parsed.edges && parsed.flowId) {
+      // Basic validation: check for essential flow properties
+      if (parsed && parsed.nodes && Array.isArray(parsed.nodes) && parsed.edges && Array.isArray(parsed.edges) && parsed.flowId && typeof parsed.flowId === 'string') {
+        // Further validation could be done here against AgentFlowDefinitionSchema if needed,
+        // but for now, basic structure check is enough for the UI.
         setParsedFlow(parsed);
         setJsonError(null);
       } else {
         setParsedFlow(null);
-        setJsonError("Invalid flow structure. Missing flowId, nodes, or edges.");
+        setJsonError("Invalid flow structure. Must include flowId (string), nodes (array), and edges (array).");
       }
     } catch (error) {
       setParsedFlow(null);
@@ -101,17 +123,25 @@ export default function AgentStudioPage() {
         toast({ title: "Invalid JSON", description: "Cannot save, JSON is invalid.", variant: "destructive"});
         return;
     }
-    if (!parsedFlow && flowJson.trim() !== "") { 
-      toast({ title: "No Valid Flow Data", description: "Cannot save, flow data is not valid or empty.", variant: "destructive"});
+    
+    // If flowJson is empty, parsedFlow will be null (or should be set to null for clarity before saving)
+    const flowToSave = flowJson.trim() === "" ? undefined : parsedFlow;
+
+    if (!flowToSave && flowJson.trim() !== "") {
+      // This case means JSON is present but not parsable into a valid flow structure,
+      // which should ideally be caught by jsonError state.
+      toast({ title: "No Valid Flow Data", description: "Cannot save, flow data is not valid or is empty but editor is not.", variant: "destructive"});
       return;
     }
 
+
     setIsSaving(true);
     try {
-      updateAgentFlow(currentAgent.id, parsedFlow || undefined as any); 
+      // Pass undefined if flowToSave is null/undefined, otherwise pass the flow object
+      updateAgentFlow(currentAgent.id, flowToSave); 
       toast({
         title: "Flow Saved!",
-        description: parsedFlow ? `Flow "${parsedFlow.name}" has been updated for agent ${currentAgent.generatedName || currentAgent.name}.` : `Flow cleared for agent ${currentAgent.generatedName || currentAgent.name}.`,
+        description: flowToSave ? `Flow "${flowToSave.name}" has been updated for agent ${currentAgent.generatedName || currentAgent.name}.` : `Flow cleared for agent ${currentAgent.generatedName || currentAgent.name}.`,
       });
     } catch (error) {
       console.error("Error saving flow:", error);
@@ -124,7 +154,7 @@ export default function AgentStudioPage() {
   const loadSample = () => {
     const sampleJsonString = JSON.stringify(sampleFlow, null, 2);
     setFlowJson(sampleJsonString);
-    setParsedFlow(sampleFlow);
+    setParsedFlow(sampleFlow); // Assume sampleFlow is always valid
     setJsonError(null);
     toast({ title: "Sample Flow Loaded", description: "You can now edit and save this sample flow."});
   };
@@ -134,10 +164,11 @@ export default function AgentStudioPage() {
     setParsedFlow(null);
     setJsonError(null);
      if (currentAgent) {
-      updateAgentFlow(currentAgent.id, undefined as any); 
+      updateAgentFlow(currentAgent.id, undefined); // Explicitly pass undefined
       toast({ title: "Flow Cleared", description: "Flow editor and agent's flow data have been cleared."});
     } else {
-      toast({ title: "Flow Cleared", description: "Flow editor has been cleared."});
+      // Should not happen if UI is correct, but good for robustness
+      toast({ title: "Flow Editor Cleared", description: "Flow editor has been cleared (no agent context found to update).", variant: "default"});
     }
   };
 
@@ -175,7 +206,7 @@ export default function AgentStudioPage() {
         <CardFooter>
           <Button 
             onClick={handleSaveFlow} 
-            disabled={isSaving || (!!jsonError && flowJson.trim() !== "")} 
+            disabled={isSaving || (!!jsonError && flowJson.trim() !== "") || (!parsedFlow && flowJson.trim() !== "")} 
             className="w-full"
           >
             {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
@@ -203,10 +234,13 @@ export default function AgentStudioPage() {
                     {parsedFlow.nodes.map(node => (
                       <li key={node.id} className="text-xs">
                         <span className="font-medium">{node.id}</span> ({node.type})
+                        {node.conditionVariable && <span className="text-muted-foreground block pl-4 text-xs italic">(Checks: {node.conditionVariable})</span>}
                         {node.useKnowledge && <span className="text-muted-foreground block pl-4 text-xs italic">(Uses Knowledge)</span>}
                         {node.message && <span className="text-muted-foreground block pl-4 text-xs">Msg: "{node.message}"</span>}
                         {node.prompt && <span className="text-muted-foreground block pl-4 text-xs">Prompt: "{node.prompt}"</span>}
                         {node.llmPrompt && <span className="text-muted-foreground block pl-4 text-xs">LLM Prompt: "{node.llmPrompt}"</span>}
+                        {node.variableName && <span className="text-muted-foreground block pl-4 text-xs">Stores in: "{node.variableName}"</span>}
+                         {node.outputVariable && <span className="text-muted-foreground block pl-4 text-xs">Output to: "{node.outputVariable}"</span>}
                       </li>
                     ))}
                   </ul>
@@ -218,6 +252,7 @@ export default function AgentStudioPage() {
                       <li key={edge.id} className="text-xs">
                         {edge.source} <span className="text-primary mx-1">&rarr;</span> {edge.target}
                         {edge.label && <span className="text-muted-foreground text-xs"> ({edge.label})</span>}
+                        {edge.condition !== undefined && <span className="text-muted-foreground text-xs"> (If: '{edge.condition || 'Default'}')</span>}
                       </li>
                     ))}
                   </ul>
