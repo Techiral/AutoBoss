@@ -36,8 +36,8 @@ function suggestFilenameFromUrl(url: string): string {
             pathName = pathName.substring(pathName.lastIndexOf('/') + 1);
         }
         // Remove problematic characters and extensions, ensure it's not too long
-        let name = pathName.replace(/\.(html|htm|php|aspx?|jsp|txt)$/i, '') 
-                           .replace(/[^a-zA-Z0-9_.-]/g, '_') 
+        let name = pathName.replace(/\.(html|htm|php|aspx?|jsp|txt)$/i, '')
+                           .replace(/[^a-zA-Z0-9_.-]/g, '_')
                            .substring(0, 50);
         return name || 'web_content';
     } catch (e) {
@@ -53,7 +53,10 @@ const extractTextFromHtmlPrompt = ai.definePrompt({
     prompt: `You are an expert at extracting the main textual content from an HTML page.
     Your task is to ignore navigation menus, sidebars, advertisements, footers, scripts, and other boilerplate content.
     Focus on returning only the primary article, blog post, or informational content.
-    If the HTML appears to be an error page or has no discernible main content, return an empty string or a very brief note like "No main content found."
+
+    IMPORTANT:
+    - If you find discernible main content, return only that content.
+    - If the HTML appears to be an error page, has no discernible main content, or if the content is trivial (e.g., just a login form, a few words of placeholder text), return the exact string "[NO_MAIN_CONTENT_FOUND]". Do not return an empty string or any other explanation in this case.
 
     HTML Content:
     \`\`\`html
@@ -92,17 +95,25 @@ const processUrlContentFlow = ai.defineFlow(
         }
         // Use LLM to extract main content from HTML
         const llmResult = await extractTextFromHtmlPrompt({ htmlContent: bodyText });
-        if (!llmResult.output || !llmResult.output.extractedText) {
-            return { textContent: null, fileNameSuggestion, error: 'AI failed to extract text from HTML.' };
+        const extractedText = llmResult.output?.extractedText;
+
+        if (!extractedText && extractedText !== "") { // Handles null/undefined from LLM, but allows empty string if model truly returns it before marker check
+            return { textContent: null, fileNameSuggestion, error: 'AI failed to extract text from HTML or returned no response.' };
         }
-        return { textContent: llmResult.output.extractedText, fileNameSuggestion, error: undefined };
+        if (extractedText === "[NO_MAIN_CONTENT_FOUND]") {
+            return { textContent: null, fileNameSuggestion, error: 'AI determined no substantive main content on the page.' };
+        }
+        if (extractedText.trim() === "") { // If, after all, it's just whitespace or empty (and not the marker)
+             return { textContent: null, fileNameSuggestion, error: 'AI extracted empty or whitespace content from HTML.' };
+        }
+        return { textContent: extractedText, fileNameSuggestion, error: undefined };
 
       } else if (contentType && contentType.includes('text/plain')) {
+        if (bodyText.trim() === '') {
+            return { textContent: null, fileNameSuggestion, error: 'Fetched plain text content is empty.'};
+        }
         return { textContent: bodyText, fileNameSuggestion, error: undefined };
       } else {
-        // For other content types, we might not be able to process them directly here.
-        // The original extractKnowledge flow might handle some via data URI (like PDF if Gemini supports it).
-        // For this flow, we'll indicate it's not plain text or HTML.
         return { textContent: null, fileNameSuggestion, error: `Unsupported content type for direct text extraction: ${contentType}. Try uploading the file directly if possible.` };
       }
     } catch (error: any) {
@@ -111,5 +122,3 @@ const processUrlContentFlow = ai.defineFlow(
     }
   }
 );
-
-    
