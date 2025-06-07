@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAppContext } from "../../../layout";
 import type { Agent, AgentFlowDefinition, FlowNode as JsonFlowNode, FlowEdge as JsonFlowEdge } from "@/lib/types";
-import { Loader2, Save, AlertTriangle, Trash2, MousePointer, ArrowRight, MessageSquare, Zap, HelpCircle, Play, ChevronsUpDown, Settings2 } from "lucide-react";
+import { Loader2, Save, AlertTriangle, Trash2, MousePointer, ArrowRight, MessageSquare, Zap, HelpCircle, Play, ChevronsUpDown, Settings2, Link2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
@@ -49,11 +49,89 @@ const NODE_WIDGETS: { type: FlowNodeType; label: string; icon: React.ElementType
   { type: 'end', label: 'End', icon: ArrowRight },
 ];
 
-const initialNodes: VisualNode[] = [
-    { id: generateId('start_'), type: 'start', label: 'Start', x: 50, y: 50 },
-    { id: generateId('end_'), type: 'end', label: 'End', x: 400, y: 50 },
-];
-const initialEdges: VisualEdge[] = [];
+const sampleFlow: AgentFlowDefinition = {
+  flowId: "sample-customer-support-flow",
+  name: "Sample Customer Support",
+  description: "A sample flow demonstrating basic customer interaction with conditional logic and LLM usage.",
+  nodes: [
+    { id: "start_node", type: "start", position: { x: 50, y: 50 } },
+    { id: "greet_user", type: "sendMessage", message: "Hello! I'm your AI assistant. How can I help you today?", position: { x: 50, y: 150 } },
+    { id: "get_issue_type", type: "getUserInput", prompt: "First, could you tell me if your issue is related to 'Billing', 'Technical support', or 'Other'?", variableName: "issueType", position: { x: 50, y: 250 } },
+    { id: "check_issue_type", type: "condition", conditionVariable: "issueType", useLLMForDecision: true, position: { x: 50, y: 350 } },
+    // Billing Path
+    { id: "billing_inquiry", type: "sendMessage", message: "Okay, for billing issues, I can help with that.", position: { x: 250, y: 450 } },
+    { id: "get_billing_details", type: "getUserInput", prompt: "Please provide your account number or invoice ID.", variableName: "billingDetails", position: { x: 250, y: 550 } },
+    { id: "lookup_billing_info", type: "callLLM", llmPrompt: "User '{{userName}}' has a billing issue with details: {{billingDetails}}. Provide a concise summary or next step based on this. You can refer to our knowledge base.", outputVariable: "billingResolution", useKnowledge: true, position: { x: 250, y: 650 } },
+    { id: "send_billing_resolution", type: "sendMessage", message: "Here's what I found or the next step for your billing query: {{billingResolution}}", position: { x: 250, y: 750 } },
+    // Technical Path
+    { id: "technical_inquiry", type: "sendMessage", message: "I see, a technical issue. Let's try to resolve it.", position: { x: 50, y: 450 } },
+    { id: "get_tech_description", type: "getUserInput", prompt: "Can you describe the technical problem you're experiencing?", variableName: "techDescription", position: { x: 50, y: 550 } },
+    { id: "resolve_tech_issue", type: "callLLM", llmPrompt: "User '{{userName}}' is facing a technical issue: {{techDescription}}. Provide troubleshooting steps or guidance from our knowledge base.", outputVariable: "techSolution", useKnowledge: true, position: { x: 50, y: 650 } },
+    { id: "send_tech_solution", type: "sendMessage", message: "Here are some steps you can try: {{techSolution}}", position: { x: 50, y: 750 } },
+    // Other Path
+    { id: "other_inquiry", type: "sendMessage", message: "Alright, for other issues, let me get some more details.", position: { x: -150, y: 450 } },
+    { id: "get_other_details", type: "getUserInput", prompt: "Please describe your issue in more detail.", variableName: "otherDetails", position: { x: -150, y: 550 } },
+    { id: "handle_other_issue", type: "callLLM", llmPrompt: "User '{{userName}}' has an issue: {{otherDetails}}. Provide general assistance or direct them to the appropriate resource using our knowledge base.", outputVariable: "otherSolution", useKnowledge: true, position: { x: -150, y: 650 } },
+    { id: "send_other_solution", type: "sendMessage", message: "Regarding your issue: {{otherSolution}}", position: { x: -150, y: 750 } },
+    // Common Resolution Check
+    { id: "ask_if_resolved", type: "getUserInput", prompt: "Did this resolve your issue? (Yes/No)", variableName: "isResolved", position: { x: 50, y: 850 } },
+    { id: "check_resolution", type: "condition", conditionVariable: "isResolved", useLLMForDecision: true, position: { x: 50, y: 950 } },
+    { id: "issue_resolved_msg", type: "sendMessage", message: "Great! I'm glad I could help. Is there anything else?", position: { x: 250, y: 1050 } },
+    { id: "issue_not_resolved_msg", type: "sendMessage", message: "I'm sorry to hear that. I'll note this down. For further assistance, please contact our support team directly.", position: { x: -150, y: 1050 } },
+    { id: "end_resolved", type: "end", position: { x: 250, y: 1150 } },
+    { id: "end_not_resolved", type: "end", position: { x: -150, y: 1150 } },
+    { id: "end_after_greet", type: "end", position: { x: 50, y: 1250 } }, // Catch-all end if flow stops early
+  ],
+  edges: [
+    { id: "e_start_greet", source: "start_node", target: "greet_user", label: "Start" },
+    { id: "e_greet_getissue", source: "greet_user", target: "get_issue_type" },
+    { id: "e_getissue_checkissue", source: "get_issue_type", target: "check_issue_type" },
+    // Billing Edges
+    { id: "e_check_billing", source: "check_issue_type", target: "billing_inquiry", condition: "User has a billing related question or issue." },
+    { id: "e_billing_getdetails", source: "billing_inquiry", target: "get_billing_details" },
+    { id: "e_getdetails_lookup", source: "get_billing_details", target: "lookup_billing_info" },
+    { id: "e_lookup_sendresolution", source: "lookup_billing_info", target: "send_billing_resolution" },
+    { id: "e_billing_askresolved", source: "send_billing_resolution", target: "ask_if_resolved" },
+    // Technical Edges
+    { id: "e_check_technical", source: "check_issue_type", target: "technical_inquiry", condition: "User has a technical problem or needs technical support." },
+    { id: "e_technical_getdesc", source: "technical_inquiry", target: "get_tech_description" },
+    { id: "e_getdesc_resolve", source: "get_tech_description", target: "resolve_tech_issue" },
+    { id: "e_resolve_sendsolution", source: "resolve_tech_issue", target: "send_tech_solution" },
+    { id: "e_technical_askresolved", source: "send_tech_solution", target: "ask_if_resolved" },
+    // Other Edges
+    { id: "e_check_other", source: "check_issue_type", target: "other_inquiry", condition: "User issue does not fit billing or technical, or is general." }, // Default/fallback for LLM
+    { id: "e_other_getdetails_other", source: "other_inquiry", target: "get_other_details" },
+    { id: "e_getdetails_handleother", source: "get_other_details", target: "handle_other_issue" },
+    { id: "e_handleother_sendothersolution", source: "handle_other_issue", target: "send_other_solution" },
+    { id: "e_other_askresolved", source: "send_other_solution", target: "ask_if_resolved" },
+    // Resolution Check Edges
+    { id: "e_askresolved_check", source: "ask_if_resolved", target: "check_resolution" },
+    { id: "e_check_is_resolved_yes", source: "check_resolution", target: "issue_resolved_msg", condition: "User indicates the issue is resolved or problem is solved." },
+    { id: "e_check_is_resolved_no", source: "check_resolution", target: "issue_not_resolved_msg", condition: "User indicates the issue is not resolved or problem persists." }, // Default/fallback for LLM
+    // End Edges
+    { id: "e_resolved_end", source: "issue_resolved_msg", target: "end_resolved" },
+    { id: "e_notresolved_end", source: "issue_not_resolved_msg", target: "end_not_resolved" },
+    { id: "e_greet_end_fallback", source: "greet_user", target: "end_after_greet"} // Fallback if flow is manually ended early.
+  ]
+};
+
+const initialNodes: VisualNode[] = sampleFlow.nodes.map(n => ({
+    id: n.id,
+    type: n.type as FlowNodeType,
+    label: n.id,
+    x: n.position?.x || Math.random() * 400,
+    y: n.position?.y || Math.random() * 300,
+    content: n.message || n.prompt || n.llmPrompt,
+    variableName: n.variableName || n.outputVariable || n.conditionVariable,
+    useKnowledge: n.useKnowledge,
+    useLLMForDecision: n.useLLMForDecision,
+}));
+const initialEdges: VisualEdge[] = sampleFlow.edges.map(e => ({
+    id: e.id,
+    sourceId: e.source,
+    targetId: e.target,
+    label: e.condition || e.label,
+}));
 
 
 export default function AgentStudioPage() {
@@ -73,39 +151,52 @@ export default function AgentStudioPage() {
   
   const canvasRef = useRef<HTMLDivElement>(null);
   const [draggingNodeInfo, setDraggingNodeInfo] = useState<{ id: string; offsetX: number; offsetY: number } | null>(null);
-  const [connectingInfo, setConnectingInfo] = useState<{ sourceId: string } | null>(null);
+  
+  const [edgeDragInfo, setEdgeDragInfo] = useState<{
+    sourceNodeId: string;
+    sourceNodeX: number; // X of the source node's top-left
+    sourceNodeY: number; // Y of the source node's top-left
+    startX: number; // X of the output port, relative to canvas
+    startY: number; // Y of the output port, relative to canvas
+    currentX: number; // Current mouse X, relative to canvas
+    currentY: number; // Current mouse Y, relative to canvas
+  } | null>(null);
 
+
+  const loadFlowToVisual = useCallback((flowDef: AgentFlowDefinition | undefined) => {
+    if (flowDef && flowDef.nodes && flowDef.edges) {
+      const loadedNodes: VisualNode[] = flowDef.nodes.map((jsonNode: JsonFlowNode) => ({
+        id: jsonNode.id,
+        type: jsonNode.type as FlowNodeType,
+        label: jsonNode.id, 
+        x: jsonNode.position?.x || Math.random() * 400,
+        y: jsonNode.position?.y || Math.random() * 300,
+        content: jsonNode.message || jsonNode.prompt || jsonNode.llmPrompt,
+        variableName: jsonNode.variableName || jsonNode.outputVariable || jsonNode.conditionVariable,
+        useKnowledge: jsonNode.useKnowledge,
+        useLLMForDecision: jsonNode.useLLMForDecision,
+      }));
+      const loadedEdges: VisualEdge[] = flowDef.edges.map((jsonEdge: JsonFlowEdge) => ({
+        id: jsonEdge.id,
+        sourceId: jsonEdge.source,
+        targetId: jsonEdge.target,
+        label: jsonEdge.condition || jsonEdge.label, 
+      }));
+      setNodes(loadedNodes.length > 0 ? loadedNodes : initialNodes);
+      setEdges(loadedEdges);
+    } else {
+      setNodes(initialNodes); // Default to sample flow if no flow or invalid
+      setEdges(initialEdges);
+    }
+  }, []);
 
   useEffect(() => {
     if (agentId) {
       const agent = getAgent(agentId as string);
       setCurrentAgent(agent);
-      if (agent?.flow && agent.flow.nodes && agent.flow.edges) {
-        const loadedNodes: VisualNode[] = agent.flow.nodes.map((jsonNode: JsonFlowNode) => ({
-          id: jsonNode.id,
-          type: jsonNode.type as FlowNodeType,
-          label: jsonNode.id, 
-          x: jsonNode.position?.x || Math.random() * 400,
-          y: jsonNode.position?.y || Math.random() * 300,
-          content: jsonNode.message || jsonNode.prompt || jsonNode.llmPrompt,
-          variableName: jsonNode.variableName || jsonNode.outputVariable || jsonNode.conditionVariable,
-          useKnowledge: jsonNode.useKnowledge,
-          useLLMForDecision: jsonNode.useLLMForDecision,
-        }));
-        const loadedEdges: VisualEdge[] = agent.flow.edges.map((jsonEdge: JsonFlowEdge) => ({
-          id: jsonEdge.id,
-          sourceId: jsonEdge.source,
-          targetId: jsonEdge.target,
-          label: jsonEdge.condition || jsonEdge.label, 
-        }));
-        setNodes(loadedNodes.length > 0 ? loadedNodes : initialNodes);
-        setEdges(loadedEdges);
-      } else {
-        setNodes(initialNodes);
-        setEdges(initialEdges);
-      }
+      loadFlowToVisual(agent?.flow);
     }
-  }, [agentId, getAgent]);
+  }, [agentId, getAgent, loadFlowToVisual]);
 
   const handleDragStartWidget = (event: React.DragEvent<HTMLDivElement>, nodeType: FlowNodeType) => {
     event.dataTransfer.setData("application/visual-node-type", nodeType);
@@ -120,7 +211,6 @@ export default function AgentStudioPage() {
     if (!nodeType) return;
 
     const canvasBounds = canvasRef.current.getBoundingClientRect();
-    // Adjust for canvas scroll position if any (not implemented here but important for real apps)
     const x = event.clientX - canvasBounds.left;
     const y = event.clientY - canvasBounds.top;
     
@@ -130,15 +220,15 @@ export default function AgentStudioPage() {
       id: newNodeId,
       type: nodeType,
       label: `${defaultLabel} ${nodes.filter(n => n.type === nodeType).length + 1}`,
-      x: Math.max(0, x - 75), // Adjust for typical node width/2
-      y: Math.max(0, y - 25), // Adjust for typical node height/2
+      x: Math.max(0, x - 75), 
+      y: Math.max(0, y - 25), 
       ...(nodeType === 'sendMessage' && { content: 'New message' }),
       ...(nodeType === 'getUserInput' && { content: 'Ask something...', variableName: 'userInput' }),
       ...(nodeType === 'callLLM' && { content: 'Your LLM prompt for {{variable}}', variableName: 'llmOutput', useKnowledge: false }),
       ...(nodeType === 'condition' && { variableName: 'conditionVariable', useLLMForDecision: false }),
     };
     setNodes((nds) => nds.concat(newNode));
-    setSelectedNodeId(newNodeId); // Auto-select new node
+    setSelectedNodeId(newNodeId);
   };
 
   const handleDragOverCanvas = (event: React.DragEvent<HTMLDivElement>) => {
@@ -149,87 +239,124 @@ export default function AgentStudioPage() {
   const handleNodeMouseDown = (event: React.MouseEvent<HTMLDivElement>, nodeId: string) => {
     const node = nodes.find(n => n.id === nodeId);
     if (!node || !canvasRef.current) return;
+    // Prevent starting a node drag if an edge drag is in progress or starting from a port
+    if (event.target !== event.currentTarget && (event.target as HTMLElement).dataset.port) {
+        return; // Click was on a port, not the node body
+    }
+
     const canvasBounds = canvasRef.current.getBoundingClientRect();
     const offsetX = event.clientX - canvasBounds.left - node.x;
     const offsetY = event.clientY - canvasBounds.top - node.y;
     setDraggingNodeInfo({ id: nodeId, offsetX, offsetY });
-    if (event.ctrlKey || event.metaKey) { // Allow selecting multiple nodes in future
-        // For now, just set as selected
-    } else {
-        setSelectedNodeId(nodeId);
-    }
-    event.stopPropagation(); // Prevent canvas click/deselect
+    setEdgeDragInfo(null); // Ensure edge dragging is cancelled
+    setSelectedNodeId(nodeId);
+    event.stopPropagation(); 
   };
   
   const handleCanvasMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!draggingNodeInfo || !canvasRef.current) return;
+    if (!canvasRef.current) return;
     const canvasBounds = canvasRef.current.getBoundingClientRect();
-    let x = event.clientX - canvasBounds.left - draggingNodeInfo.offsetX;
-    let y = event.clientY - canvasBounds.top - draggingNodeInfo.offsetY;
 
-    // Ensure node stays within canvas bounds (approx)
-    x = Math.max(0, Math.min(x, canvasBounds.width - 150)); // 150 is approx node width
-    y = Math.max(0, Math.min(y, canvasBounds.height - 50)); // 50 is approx node height
-    
-    setNodes((nds) =>
-      nds.map((n) => (n.id === draggingNodeInfo.id ? { ...n, x, y } : n))
-    );
+    if (draggingNodeInfo) {
+        let x = event.clientX - canvasBounds.left - draggingNodeInfo.offsetX;
+        let y = event.clientY - canvasBounds.top - draggingNodeInfo.offsetY;
+        x = Math.max(0, Math.min(x, canvasBounds.width - nodeWidth)); 
+        y = Math.max(0, Math.min(y, canvasBounds.height - nodeHeight));
+        setNodes((nds) =>
+        nds.map((n) => (n.id === draggingNodeInfo.id ? { ...n, x, y } : n))
+        );
+    } else if (edgeDragInfo) {
+        const currentX = event.clientX - canvasBounds.left;
+        const currentY = event.clientY - canvasBounds.top;
+        setEdgeDragInfo(prev => prev ? {...prev, currentX, currentY} : null);
+    }
   };
 
   const handleCanvasMouseUp = () => {
-    setDraggingNodeInfo(null);
+    if (draggingNodeInfo) {
+        setDraggingNodeInfo(null);
+    }
+    if (edgeDragInfo) { // If an edge drag was in progress and mouse is released on canvas (not a port)
+        setEdgeDragInfo(null); // Cancel edge drag
+    }
   };
   
   const handleCanvasClick = (e: React.MouseEvent<HTMLDivElement>) => {
-      if (e.target === canvasRef.current) { // Clicked on canvas background
+      if (e.target === canvasRef.current) { 
         setSelectedNodeId(null);
-        setConnectingInfo(null); // Cancel connection attempt
+        setEdgeDragInfo(null); // Cancel any ongoing edge drag
       }
   };
 
-  const handleNodePortClick = (nodeId: string, portType: 'in' | 'out', event: React.MouseEvent) => {
-    event.stopPropagation(); // Prevent node selection when clicking port
-    const node = nodes.find(n => n.id === nodeId);
-    if (!node) return;
-
-    if (portType === 'out') {
-      if (node.type === 'end') {
-        toast({title: "Invalid Connection", description: "Cannot connect from an 'End' node's output.", variant:"destructive"});
+  const handlePortMouseDown = (event: React.MouseEvent, nodeId: string, portType: 'out') => {
+    event.stopPropagation();
+    const sourceNode = nodes.find(n => n.id === nodeId);
+    if (!sourceNode || portType !== 'out' || sourceNode.type === 'end') {
+        if (sourceNode && sourceNode.type === 'end') {
+            toast({title: "Invalid Start", description: "Cannot drag an edge from an 'End' node.", variant: "destructive"});
+        }
         return;
-      }
-      setConnectingInfo({ sourceId: nodeId });
-      toast({ title: "Connecting...", description: `Source: ${node.label}. Click an input port on another node.`});
-    } else if (portType === 'in' && connectingInfo) {
-      if (node.type === 'start') {
-         toast({title: "Invalid Connection", description: "Cannot connect to a 'Start' node's input.", variant:"destructive"});
-         setConnectingInfo(null);
-         return;
-      }
-      if (connectingInfo.sourceId === nodeId) { // Cannot connect node to itself
-        toast({title: "Invalid Connection", description: "Cannot connect a node to itself.", variant:"destructive"});
-        setConnectingInfo(null);
-        return;
-      }
-      // Check for existing edge (simple check, could be more robust)
-      const existingEdge = edges.find(e => e.sourceId === connectingInfo.sourceId && e.targetId === nodeId);
-      if (existingEdge) {
-        toast({title: "Connection Exists", description: "An edge already exists between these nodes.", variant:"default"});
-        setConnectingInfo(null);
-        return;
-      }
-
-      const newEdge: VisualEdge = {
-        id: generateId('edge_'),
-        sourceId: connectingInfo.sourceId,
-        targetId: nodeId,
-        label: '', 
-      };
-      setEdges((eds) => eds.concat(newEdge));
-      const sourceNode = nodes.find(n=>n.id===connectingInfo.sourceId);
-      toast({ title: "Edge Created!", description: `Connected ${sourceNode?.label} to ${node.label}.`});
-      setConnectingInfo(null);
     }
+    
+    if (!canvasRef.current) return;
+
+    setDraggingNodeInfo(null); // Ensure node dragging is cancelled
+
+    // Calculate output port's absolute position on the canvas
+    const startX = sourceNode.x + nodeWidth; // Right edge of the node
+    const startY = sourceNode.y + nodeHeight / 2; // Middle of the node height
+
+    setEdgeDragInfo({
+        sourceNodeId: nodeId,
+        sourceNodeX: sourceNode.x,
+        sourceNodeY: sourceNode.y,
+        startX: startX,
+        startY: startY,
+        currentX: startX, // Initially, current mouse pos is the start of the port
+        currentY: startY,
+    });
+    toast({title: "Connecting...", description: `Drag from ${sourceNode.label} to an input port.`});
   };
+
+  const handlePortMouseUp = (event: React.MouseEvent, targetNodeId: string, portType: 'in') => {
+    event.stopPropagation();
+    if (!edgeDragInfo || portType !== 'in') {
+        if (edgeDragInfo) setEdgeDragInfo(null); // Ended drag on an output or invalid port
+        return;
+    }
+
+    const targetNode = nodes.find(n => n.id === targetNodeId);
+    if (!targetNode || targetNode.type === 'start') {
+        toast({title: "Invalid Connection", description: "Cannot connect to a 'Start' node's input.", variant:"destructive"});
+        setEdgeDragInfo(null);
+        return;
+    }
+
+    if (edgeDragInfo.sourceNodeId === targetNodeId) {
+        toast({title: "Invalid Connection", description: "Cannot connect a node to itself.", variant:"destructive"});
+        setEdgeDragInfo(null);
+        return;
+    }
+    
+    const existingEdge = edges.find(e => e.sourceId === edgeDragInfo.sourceNodeId && e.targetId === targetNodeId);
+    if (existingEdge) {
+        toast({title: "Connection Exists", description: "An edge already exists between these nodes."});
+        setEdgeDragInfo(null);
+        return;
+    }
+
+    const newEdge: VisualEdge = {
+        id: generateId('edge_'),
+        sourceId: edgeDragInfo.sourceNodeId,
+        targetId: targetNodeId,
+        label: '', 
+    };
+    setEdges((eds) => eds.concat(newEdge));
+    const sourceNode = nodes.find(n=>n.id===edgeDragInfo.sourceNodeId);
+    toast({ title: "Edge Created!", description: `Connected ${sourceNode?.label} to ${targetNode.label}.`});
+    setEdgeDragInfo(null);
+  };
+
   
   const updateSelectedNodeProperties = (updatedProps: Partial<VisualNode>) => {
     if (!selectedNodeId) return;
@@ -258,8 +385,8 @@ export default function AgentStudioPage() {
       const displayLabel = node.label ? node.label.replace(/"/g, '#quot;') : node.id;
       let shapeStart = '["';
       let shapeEnd = '"]';
-      if (node.type === 'start' || node.type === 'end') { shapeStart = '(("'; shapeEnd = '"))'; } // Circle for start/end
-      else if (node.type === 'condition') { shapeStart = '{{"'; shapeEnd = '"}}'; } // Rhombus for condition
+      if (node.type === 'start' || node.type === 'end') { shapeStart = '(("'; shapeEnd = '"))'; } 
+      else if (node.type === 'condition') { shapeStart = '{{"'; shapeEnd = '"}}'; } 
       
       mermaidStr += `  ${mermaidId}${shapeStart}${displayLabel} (${node.type})${shapeEnd};\n`;
     });
@@ -276,7 +403,7 @@ export default function AgentStudioPage() {
     const jsonNodes: JsonFlowNode[] = nodes.map(node => {
       const baseJsonNode: Omit<JsonFlowNode, 'type'> & {type: string} = { 
         id: node.id,
-        type: node.type, // Will be narrowed down
+        type: node.type, 
         position: { x: node.x, y: node.y },
       };
       switch (node.type) {
@@ -292,7 +419,7 @@ export default function AgentStudioPage() {
            return { ...baseJsonNode, type: 'start'};
         case 'end':
             return { ...baseJsonNode, type: 'end'};
-        default: // Should not happen with FlowNodeType
+        default: 
           throw new Error(`Unknown node type during JSON conversion: ${node.type}`);
       }
     });
@@ -309,7 +436,6 @@ export default function AgentStudioPage() {
     const flowName = currentAgent?.flow?.name || "My Visual Flow";
     const flowDescription = currentAgent?.flow?.description || "A flow created with the visual editor.";
     
-    // Validate: Ensure there's at least one start and one end node if nodes exist
     const hasStartNode = nodes.some(n => n.type === 'start');
     const hasEndNode = nodes.some(n => n.type === 'end');
 
@@ -319,9 +445,7 @@ export default function AgentStudioPage() {
             description: "A flow must have at least one 'Start' and one 'End' node.",
             variant: "destructive"
         });
-        // Potentially throw error to prevent saving invalid flow
     }
-
 
     return {
       flowId: flowId,
@@ -340,7 +464,7 @@ export default function AgentStudioPage() {
     setIsSaving(true);
     
     const mermaid = convertToMermaid();
-    setMermaidCode(mermaid); // For display
+    setMermaidCode(mermaid); 
     
     try {
       const agentFlowDef = convertToAgentFlowDefinition();
@@ -358,26 +482,32 @@ export default function AgentStudioPage() {
   }, [currentAgent, convertToMermaid, convertToAgentFlowDefinition, updateAgentFlow, toast]);
   
   const clearFlow = () => {
-    setNodes(initialNodes);
-    setEdges(initialEdges);
+    const defaultInitialNodes = sampleFlow.nodes.map(n => ({
+        id: n.id, type: n.type as FlowNodeType, label: n.id, x: n.position?.x || 0, y: n.position?.y || 0,
+        content: n.message || n.prompt || n.llmPrompt, variableName: n.variableName || n.outputVariable || n.conditionVariable,
+        useKnowledge: n.useKnowledge, useLLMForDecision: n.useLLMForDecision,
+    }));
+    const defaultInitialEdges = sampleFlow.edges.map(e => ({id: e.id, sourceId: e.source, targetId: e.target, label: e.condition || e.label}));
+    
+    setNodes(defaultInitialNodes);
+    setEdges(defaultInitialEdges);
     setSelectedNodeId(null);
     setMermaidCode("");
      if (currentAgent) {
       updateAgentFlow(currentAgent.id, {
         flowId: generateId('flow_'),
         name: "Cleared Flow",
-        description: "Flow has been cleared.",
-        nodes: initialNodes.map(n => ({id: n.id, type: n.type as 'start'|'end', position: {x:n.x, y:n.y}})),
-        edges: [],
+        description: "Flow has been cleared and reset to sample.",
+        nodes: defaultInitialNodes.map(n => ({id: n.id, type: n.type as any, position: {x:n.x, y:n.y}})), // Type assertion needed here
+        edges: defaultInitialEdges.map(e=>({id:e.id, source: e.sourceId, target:e.targetId, label: e.label, condition: e.label})),
       }); 
-      toast({ title: "Flow Cleared", description: "Visual flow editor and agent's flow data have been cleared."});
+      toast({ title: "Flow Cleared", description: "Visual flow editor reset to sample flow."});
     }
   };
 
   const selectedNodeDetails = selectedNodeId ? nodes.find(n => n.id === selectedNodeId) : null;
 
   useEffect(() => {
-    // Generate mermaid code for display whenever nodes or edges change
     if(nodes.length > 0 || edges.length > 0) {
         setMermaidCode(convertToMermaid());
     } else {
@@ -390,13 +520,12 @@ export default function AgentStudioPage() {
   if (!currentAgent) return <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>Agent Not Found</AlertTitle></Alert>;
 
   const nodeWidth = 150;
-  const nodeHeight = 60; // Increased height for better label visibility
-  const portSize = 8; // Diameter of port circles
+  const nodeHeight = 60; 
+  const portSize = 8; 
 
 
   return (
     <div className="grid grid-cols-12 gap-4 h-[calc(100vh-200px)]">
-      {/* Sidebar for Node Widgets */}
       <Card className="col-span-2 h-full flex flex-col">
         <CardHeader className="pb-2">
           <CardTitle className="text-lg">Node Tools</CardTitle>
@@ -417,11 +546,10 @@ export default function AgentStudioPage() {
         </CardContent>
         </ScrollArea>
          <CardFooter className="p-2 border-t mt-auto">
-            <Button onClick={clearFlow} variant="outline" size="sm" className="w-full"><Trash2 className="mr-2 h-4 w-4" />Clear Canvas</Button>
+            <Button onClick={clearFlow} variant="outline" size="sm" className="w-full"><Trash2 className="mr-2 h-4 w-4" />Reset to Sample</Button>
         </CardFooter>
       </Card>
 
-      {/* Canvas Area */}
       <Card 
         className="col-span-7 h-full relative overflow-auto bg-muted/20 border-dashed border-input"
         ref={canvasRef}
@@ -446,7 +574,6 @@ export default function AgentStudioPage() {
             const midX = (x1 + x2) / 2;
             const midY = (y1 + y2) / 2;
 
-            // Arrowhead
             const angle = Math.atan2(y2 - y1, x2 - x1);
             const arrowLength = 8;
             const arrowPoint1X = x2 - arrowLength * Math.cos(angle - Math.PI / 6);
@@ -454,9 +581,8 @@ export default function AgentStudioPage() {
             const arrowPoint2X = x2 - arrowLength * Math.cos(angle + Math.PI / 6);
             const arrowPoint2Y = y2 - arrowLength * Math.sin(angle + Math.PI / 6);
 
-
             return (
-              <g key={edge.id} className="cursor-pointer" onClick={() => {/*Future: select edge*/}}>
+              <g key={edge.id} className="cursor-pointer" onClick={(e) => { /* Future: select edge */ e.stopPropagation(); }}>
                 <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="hsl(var(--primary)/0.7)" strokeWidth="1.5" />
                 <polygon points={`${x2},${y2} ${arrowPoint1X},${arrowPoint1Y} ${arrowPoint2X},${arrowPoint2Y}`} fill="hsl(var(--primary)/0.7)" />
                 {edge.label && (
@@ -467,12 +593,12 @@ export default function AgentStudioPage() {
               </g>
             );
           })}
-           {connectingInfo && ( // Visual feedback for connecting line
+           {edgeDragInfo && (
                 <line
-                    x1={nodes.find(n => n.id === connectingInfo.sourceId)!.x + nodeWidth}
-                    y1={nodes.find(n => n.id === connectingInfo.sourceId)!.y + nodeHeight/2}
-                    x2={draggingNodeInfo ? draggingNodeInfo.offsetX : (canvasRef.current?.getBoundingClientRect().width || 0) / 2} // Temporary endpoint
-                    y2={draggingNodeInfo ? draggingNodeInfo.offsetY : (canvasRef.current?.getBoundingClientRect().height || 0) / 2}
+                    x1={edgeDragInfo.startX}
+                    y1={edgeDragInfo.startY}
+                    x2={edgeDragInfo.currentX}
+                    y2={edgeDragInfo.currentY}
                     stroke="hsl(var(--ring))"
                     strokeWidth="2"
                     strokeDasharray="4 2"
@@ -483,7 +609,6 @@ export default function AgentStudioPage() {
           <div
             key={node.id}
             onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
-            // onClick={(e) => { e.stopPropagation(); setSelectedNodeId(node.id);}} // Already handled by mousedown
             className="absolute p-2 border rounded bg-card shadow cursor-grab select-none flex flex-col justify-center"
             style={{ 
                 left: node.x, 
@@ -494,12 +619,12 @@ export default function AgentStudioPage() {
                 boxShadow: selectedNodeId === node.id ? '0 0 0 1px hsl(var(--ring))' : '0 1px 3px rgba(0,0,0,0.1)',
             }}
           >
-             {/* Input Port */}
              {node.type !== 'start' && (
                 <div 
-                    onClick={(e) => handleNodePortClick(node.id, 'in', e)}
+                    data-port="in"
+                    onMouseUp={(e) => handlePortMouseUp(e, node.id, 'in')}
                     title={`Connect to ${node.label}`}
-                    className="absolute -left-[5px] top-1/2 -translate-y-1/2 cursor-crosshair"
+                    className="absolute -left-[5px] top-1/2 -translate-y-1/2 cursor-crosshair pointer-events-auto"
                     style={{width: `${portSize+4}px`, height: `${portSize+4}px`, display:'flex', alignItems:'center', justifyContent:'center'}}
                 >
                    <div className="w-2 h-2 bg-primary/70 rounded-full border border-background ring-1 ring-primary/70 hover:bg-primary hover:ring-primary transition-all"/>
@@ -509,7 +634,7 @@ export default function AgentStudioPage() {
             <div className="flex items-center gap-1 mb-0.5 overflow-hidden">
               {(() => {
                 const WidgetIcon = NODE_WIDGETS.find(w=>w.type === node.type)?.icon;
-                return WidgetIcon ? <WidgetIcon className="w-3 h-3 text-primary shrink-0" /> : null;
+                return WidgetIcon ? <WidgetIcon className="w-3 h-3 text-primary shrink-0" /> : <Link2 className="w-3 h-3 text-muted-foreground shrink-0"/>;
               })()}
               <span className="text-xs font-medium truncate" title={node.label}>{node.label}</span>
             </div>
@@ -522,12 +647,12 @@ export default function AgentStudioPage() {
               }
             </p>
             
-            {/* Output Port */}
             {node.type !== 'end' && (
                  <div 
-                    onClick={(e) => handleNodePortClick(node.id, 'out', e)}
+                    data-port="out"
+                    onMouseDown={(e) => handlePortMouseDown(e, node.id, 'out')}
                     title={`Connect from ${node.label}`}
-                    className="absolute -right-[5px] top-1/2 -translate-y-1/2 cursor-crosshair"
+                    className="absolute -right-[5px] top-1/2 -translate-y-1/2 cursor-crosshair pointer-events-auto"
                      style={{width: `${portSize+4}px`, height: `${portSize+4}px`, display:'flex', alignItems:'center', justifyContent:'center'}}
                  >
                     <div className="w-2 h-2 bg-primary/70 rounded-full border border-background ring-1 ring-primary/70 hover:bg-primary hover:ring-primary transition-all"/>
@@ -537,7 +662,6 @@ export default function AgentStudioPage() {
         ))}
       </Card>
 
-      {/* Properties Panel */}
       <Card className="col-span-3 h-full flex flex-col">
         <CardHeader className="pb-2">
           <CardTitle className="text-lg flex items-center gap-2">
@@ -602,7 +726,7 @@ export default function AgentStudioPage() {
                 <p className="text-sm text-muted-foreground">
                     Select a node on the canvas to view and edit its properties here.
                     <br/>Drag tools from the left panel to add new nodes.
-                    <br/>Click node ports to connect them.
+                    <br/>Drag from an output port (<div className="inline-block w-2 h-2 bg-primary/70 rounded-full border border-background ring-1 ring-primary/70 align-middle"></div>) to an input port to connect nodes.
                 </p>
             </div>
           )}
