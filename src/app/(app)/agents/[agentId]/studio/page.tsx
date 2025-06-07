@@ -1,200 +1,59 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAppContext } from "../../../layout";
-import type { Agent, AgentFlowDefinition } from "@/lib/types";
-import { Loader2, Save, FileJson, AlertTriangle, Trash2 } from "lucide-react";
+import type { Agent, AgentFlowDefinition, FlowNode as JsonFlowNode, FlowEdge as JsonFlowEdge } from "@/lib/types";
+import { Loader2, Save, AlertTriangle, Trash2, MousePointer, ArrowRight, MessageSquare, Zap, HelpCircle, Play, ChevronsUpDown, Settings2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertTitle } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 
-const sampleFlow: AgentFlowDefinition = {
-  "flowId": "customer-support-agent-v2",
-  "name": "Intelligent Customer Support Agent",
-  "description": "A flow-driven assistant that greets the customer, intelligently classifies their issue using an LLM, gathers details, provides solutions (optionally using knowledge), checks resolution with LLM understanding, and escalates if needed.",
-  "nodes": [
-    {
-      "id": "start",
-      "type": "start",
-      "position": { "x": 50, "y": 50 }
-    },
-    {
-      "id": "greet",
-      "type": "sendMessage",
-      "message": "Hi there! I’m your support agent. How can I assist you today?",
-      "position": { "x": 50, "y": 150 }
-    },
-    {
-      "id": "get_issue_description",
-      "type": "getUserInput",
-      "prompt": "Please describe your issue or question.",
-      "variableName": "userIssueDescription",
-      "position": { "x": 50, "y": 250 }
-    },
-    {
-      "id": "check_category_intelligent",
-      "type": "condition",
-      "conditionVariable": "userIssueDescription",
-      "useLLMForDecision": true, // Key change: Use LLM for this decision
-      "position": { "x": 50, "y": 350 }
-    },
-    {
-      "id": "ask_billing_details",
-      "type": "getUserInput",
-      "prompt": "I understand you have a billing-related question. Could you please provide your account ID or invoice number so I can look into it?",
-      "variableName": "billingInfo",
-      "position": { "x": 300, "y": 450 }
-    },
-    {
-      "id": "resolve_billing",
-      "type": "callLLM",
-      "llmPrompt": "You are a billing support specialist. The user's issue is about billing. Their details: '{{billingInfo}}'. Provide a concise solution or clear next steps. If relevant knowledge is available, use it.",
-      "outputVariable": "billingSolution",
-      "useKnowledge": true,
-      "position": { "x": 300, "y": 550 }
-    },
-    {
-      "id": "send_billing_solution",
-      "type": "sendMessage",
-      "message": "{{billingSolution}}",
-      "position": { "x": 300, "y": 650 }
-    },
-    {
-      "id": "ask_tech_details",
-      "type": "getUserInput",
-      "prompt": "It sounds like a technical issue. To help you best, could you describe any error messages you're seeing, or what exactly isn't working?",
-      "variableName": "techDetails",
-      "position": { "x": 50, "y": 450 }
-    },
-    {
-      "id": "resolve_technical",
-      "type": "callLLM",
-      "llmPrompt": "You are a technical support expert. The user described a technical problem: '{{techDetails}}'. Provide step-by-step troubleshooting. If relevant knowledge is available, incorporate it.",
-      "outputVariable": "techSolution",
-      "useKnowledge": true,
-      "position": { "x": 50, "y": 550 }
-    },
-    {
-      "id": "send_tech_solution",
-      "type": "sendMessage",
-      "message": "{{techSolution}}",
-      "position": { "x": 50, "y": 650 }
-    },
-    {
-      "id": "ask_general_query_details",
-      "type": "getUserInput",
-      "prompt": "I'll do my best to help with that. Could you give me a bit more detail on your query?",
-      "variableName": "generalQueryDetails",
-      "position": { "x": -200, "y": 450 }
-    },
-    {
-      "id": "resolve_general_query",
-      "type": "callLLM",
-      "llmPrompt": "You are a general customer support agent. The user's query: '{{generalQueryDetails}}'. Provide a helpful response or direct them to the appropriate resources. Use available knowledge if applicable.",
-      "outputVariable": "generalQuerySolution",
-      "useKnowledge": true,
-      "position": { "x": -200, "y": 550 }
-    },
-    {
-      "id": "send_general_query_solution",
-      "type": "sendMessage",
-      "message": "{{generalQuerySolution}}",
-      "position": { "x": -200, "y": 650 }
-    },
-    {
-      "id": "unclear_issue_message",
-      "type": "sendMessage",
-      "message": "I'm not quite sure how to categorize your request. Could you please try rephrasing it, perhaps mentioning if it's about billing, a technical problem, or something else?",
-      "position": { "x": 50, "y": 450 } // Default from check_category_intelligent
-    },
-    {
-      "id": "ask_if_resolved",
-      "type": "getUserInput",
-      "prompt": "Did that help resolve your issue? (e.g., yes, mostly, not really, no)",
-      "variableName": "userResolutionFeedback",
-      "position": { "x": 50, "y": 750 }
-    },
-    {
-      "id": "check_resolution_intelligent",
-      "type": "condition",
-      "conditionVariable": "userResolutionFeedback",
-      "useLLMForDecision": true, // Key change: Use LLM for this decision
-      "position": { "x": 50, "y": 850 }
-    },
-    {
-      "id": "resolved_positive_message",
-      "type": "sendMessage",
-      "message": "Great! I'm glad I could help. If you need anything else, just let me know. 👍",
-      "position": { "x": 300, "y": 950 }
-    },
-    {
-      "id": "end_resolved_positive",
-      "type": "end",
-      "position": { "x": 300, "y": 1050 }
-    },
-    {
-      "id": "resolved_negative_message",
-      "type": "sendMessage",
-      "message": "I’m sorry to hear that didn't fully resolve it. I can escalate this to our specialist team. They'll review the details and get back to you. Is there anything else I can note for them?",
-      "variableName": "escalationNotes", // Example of capturing more info before ending or true escalation
-      "position": { "x": -200, "y": 950 }
-    },
-    {
-      "id": "end_resolved_negative_escalated",
-      "type": "end",
-      "position": { "x": -200, "y": 1050 }
-    },
-    {
-      "id": "resolution_unclear_message", // Default from check_resolution_intelligent
-      "type": "sendMessage",
-      "message": "Okay, if you need more help later, feel free to ask!",
-      "position": { "x": 50, "y": 950 }
-    },
-    {
-      "id": "end_resolution_unclear",
-      "type": "end",
-      "position": { "x": 50, "y": 1050 }
-    }
-  ],
-  "edges": [
-    { "id": "e_start_to_greet", "source": "start", "target": "greet" },
-    { "id": "e_greet_to_get_issue", "source": "greet", "target": "get_issue_description" },
-    { "id": "e_get_issue_to_check_category", "source": "get_issue_description", "target": "check_category_intelligent" },
-    // Edges from INTELLIGENT category check
-    { "id": "e_cat_billing_ai", "source": "check_category_intelligent", "target": "ask_billing_details", "condition": "Billing Inquiry", "label": "Path: Billing" },
-    { "id": "e_cat_tech_ai", "source": "check_category_intelligent", "target": "ask_tech_details", "condition": "Technical Support", "label": "Path: Technical" },
-    { "id": "e_cat_general_ai", "source": "check_category_intelligent", "target": "ask_general_query_details", "condition": "General Question", "label": "Path: General" },
-    { "id": "e_cat_unclear_ai", "source": "check_category_intelligent", "target": "unclear_issue_message", "condition": "", "label": "Path: Unclear (Default)" }, // Default path for category check
-    { "id": "e_unclear_issue_to_get_issue", "source": "unclear_issue_message", "target": "get_issue_description" }, // Loop back if unclear
+// Helper for unique IDs
+const generateId = (prefix = "node_") => `${prefix}${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    { "id": "e_ask_billing_to_resolve", "source": "ask_billing_details", "target": "resolve_billing" },
-    { "id": "e_resolve_billing_to_send", "source": "resolve_billing", "target": "send_billing_solution" },
-    { "id": "e_send_billing_to_ask_resolved", "source": "send_billing_solution", "target": "ask_if_resolved" },
+interface VisualNode {
+  id: string;
+  type: FlowNodeType; 
+  label: string; 
+  x: number;
+  y: number;
+  content?: string; 
+  variableName?: string; 
+  useKnowledge?: boolean; 
+  useLLMForDecision?: boolean; 
+}
 
-    { "id": "e_ask_tech_to_resolve", "source": "ask_tech_details", "target": "resolve_technical" },
-    { "id": "e_resolve_tech_to_send", "source": "resolve_technical", "target": "send_tech_solution" },
-    { "id": "e_send_tech_to_ask_resolved", "source": "send_tech_solution", "target": "ask_if_resolved" },
+interface VisualEdge {
+  id: string;
+  sourceId: string;
+  targetId: string;
+  label?: string; 
+}
 
-    { "id": "e_ask_general_to_resolve", "source": "ask_general_query_details", "target": "resolve_general_query" },
-    { "id": "e_resolve_general_to_send", "source": "resolve_general_query", "target": "send_general_query_solution" },
-    { "id": "e_send_general_to_ask_resolved", "source": "send_general_query_solution", "target": "ask_if_resolved" },
+type FlowNodeType = 'start' | 'sendMessage' | 'getUserInput' | 'callLLM' | 'condition' | 'end';
 
-    { "id": "e_ask_resolved_to_check_resolution", "source": "ask_if_resolved", "target": "check_resolution_intelligent" },
-    // Edges from INTELLIGENT resolution check
-    { "id": "e_res_positive_ai", "source": "check_resolution_intelligent", "target": "resolved_positive_message", "condition": "Issue Resolved", "label": "Feedback: Positive" },
-    { "id": "e_res_negative_ai", "source": "check_resolution_intelligent", "target": "resolved_negative_message", "condition": "Issue Not Resolved", "label": "Feedback: Negative" },
-    { "id": "e_res_unclear_ai", "source": "check_resolution_intelligent", "target": "resolution_unclear_message", "condition": "", "label": "Feedback: Unclear (Default)" }, // Default path for resolution check
+const NODE_WIDGETS: { type: FlowNodeType; label: string; icon: React.ElementType }[] = [
+  { type: 'start', label: 'Start', icon: Play },
+  { type: 'sendMessage', label: 'Message', icon: MessageSquare },
+  { type: 'getUserInput', label: 'User Input', icon: HelpCircle },
+  { type: 'callLLM', label: 'LLM Call', icon: Zap },
+  { type: 'condition', label: 'Condition', icon: ChevronsUpDown },
+  { type: 'end', label: 'End', icon: ArrowRight },
+];
 
-    { "id": "e_resolved_positive_to_end", "source": "resolved_positive_message", "target": "end_resolved_positive" },
-    { "id": "e_resolved_negative_to_end", "source": "resolved_negative_message", "target": "end_resolved_negative_escalated" },
-    { "id": "e_resolution_unclear_to_end", "source": "resolution_unclear_message", "target": "end_resolution_unclear" }
-  ]
-};
+const initialNodes: VisualNode[] = [
+    { id: generateId('start_'), type: 'start', label: 'Start', x: 50, y: 50 },
+    { id: generateId('end_'), type: 'end', label: 'End', x: 400, y: 50 },
+];
+const initialEdges: VisualEdge[] = [];
 
 
 export default function AgentStudioPage() {
@@ -204,199 +63,565 @@ export default function AgentStudioPage() {
   
   const agentId = Array.isArray(params.agentId) ? params.agentId[0] : params.agentId;
   const [currentAgent, setCurrentAgent] = useState<Agent | null | undefined>(undefined);
-  const [flowJson, setFlowJson] = useState<string>("");
-  const [parsedFlow, setParsedFlow] = useState<AgentFlowDefinition | null>(null);
+  
+  const [nodes, setNodes] = useState<VisualNode[]>(initialNodes);
+  const [edges, setEdges] = useState<VisualEdge[]>(initialEdges);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  
   const [isSaving, setIsSaving] = useState(false);
-  const [jsonError, setJsonError] = useState<string | null>(null);
+  const [mermaidCode, setMermaidCode] = useState<string>("");
+  
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const [draggingNodeInfo, setDraggingNodeInfo] = useState<{ id: string; offsetX: number; offsetY: number } | null>(null);
+  const [connectingInfo, setConnectingInfo] = useState<{ sourceId: string } | null>(null);
+
 
   useEffect(() => {
     if (agentId) {
       const agent = getAgent(agentId as string);
       setCurrentAgent(agent);
-      if (agent?.flow) {
-        const flowString = JSON.stringify(agent.flow, null, 2);
-        setFlowJson(flowString);
-        setParsedFlow(agent.flow);
-        setJsonError(null);
+      if (agent?.flow && agent.flow.nodes && agent.flow.edges) {
+        const loadedNodes: VisualNode[] = agent.flow.nodes.map((jsonNode: JsonFlowNode) => ({
+          id: jsonNode.id,
+          type: jsonNode.type as FlowNodeType,
+          label: jsonNode.id, 
+          x: jsonNode.position?.x || Math.random() * 400,
+          y: jsonNode.position?.y || Math.random() * 300,
+          content: jsonNode.message || jsonNode.prompt || jsonNode.llmPrompt,
+          variableName: jsonNode.variableName || jsonNode.outputVariable || jsonNode.conditionVariable,
+          useKnowledge: jsonNode.useKnowledge,
+          useLLMForDecision: jsonNode.useLLMForDecision,
+        }));
+        const loadedEdges: VisualEdge[] = agent.flow.edges.map((jsonEdge: JsonFlowEdge) => ({
+          id: jsonEdge.id,
+          sourceId: jsonEdge.source,
+          targetId: jsonEdge.target,
+          label: jsonEdge.condition || jsonEdge.label, 
+        }));
+        setNodes(loadedNodes.length > 0 ? loadedNodes : initialNodes);
+        setEdges(loadedEdges);
       } else {
-        setFlowJson(""); 
-        setParsedFlow(null);
+        setNodes(initialNodes);
+        setEdges(initialEdges);
       }
     }
-  }, [agentId, getAgent]); 
+  }, [agentId, getAgent]);
 
-  const handleJsonChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newJson = event.target.value;
-    setFlowJson(newJson);
-    try {
-      if (newJson.trim() === "") {
-        setParsedFlow(null);
-        setJsonError(null);
-        return;
-      }
-      const parsed = JSON.parse(newJson);
-      // Basic validation: check for flowId, nodes array, and edges array
-      if (parsed && parsed.nodes && Array.isArray(parsed.nodes) && parsed.edges && Array.isArray(parsed.edges) && parsed.flowId && typeof parsed.flowId === 'string') {
-         // Further validation using Zod schema could be added here for deeper checks
-        setParsedFlow(parsed);
-        setJsonError(null);
-      } else {
-        setParsedFlow(null);
-        setJsonError("Invalid flow structure. Must include flowId (string), nodes (array), and edges (array). Other required fields might be missing per node type.");
-      }
-    } catch (error) {
-      setParsedFlow(null);
-      setJsonError("Invalid JSON format. " + (error as Error).message);
-    }
+  const handleDragStartWidget = (event: React.DragEvent<HTMLDivElement>, nodeType: FlowNodeType) => {
+    event.dataTransfer.setData("application/visual-node-type", nodeType);
+    event.dataTransfer.effectAllowed = "move";
   };
 
-  const handleSaveFlow = () => {
-    if (!currentAgent) {
-        toast({ title: "Agent Not Found", description: "Cannot save flow, agent not loaded.", variant: "destructive" });
-        return;
-    }
-    if (jsonError && flowJson.trim() !== "") { 
-        toast({ title: "Invalid JSON", description: "Cannot save, JSON is invalid.", variant: "destructive"});
-        return;
-    }
-    
-    const flowToSave = flowJson.trim() === "" ? undefined : parsedFlow;
+  const handleDropOnCanvas = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    if (!canvasRef.current) return;
 
-    if (!flowToSave && flowJson.trim() !== "") {
-      toast({ title: "No Valid Flow Data", description: "Cannot save, flow data is not valid or is empty but editor is not.", variant: "destructive"});
+    const nodeType = event.dataTransfer.getData("application/visual-node-type") as FlowNodeType;
+    if (!nodeType) return;
+
+    const canvasBounds = canvasRef.current.getBoundingClientRect();
+    // Adjust for canvas scroll position if any (not implemented here but important for real apps)
+    const x = event.clientX - canvasBounds.left;
+    const y = event.clientY - canvasBounds.top;
+    
+    const defaultLabel = NODE_WIDGETS.find(w => w.type === nodeType)?.label || 'Node';
+    const newNodeId = generateId(nodeType + '_');
+    const newNode: VisualNode = {
+      id: newNodeId,
+      type: nodeType,
+      label: `${defaultLabel} ${nodes.filter(n => n.type === nodeType).length + 1}`,
+      x: Math.max(0, x - 75), // Adjust for typical node width/2
+      y: Math.max(0, y - 25), // Adjust for typical node height/2
+      ...(nodeType === 'sendMessage' && { content: 'New message' }),
+      ...(nodeType === 'getUserInput' && { content: 'Ask something...', variableName: 'userInput' }),
+      ...(nodeType === 'callLLM' && { content: 'Your LLM prompt for {{variable}}', variableName: 'llmOutput', useKnowledge: false }),
+      ...(nodeType === 'condition' && { variableName: 'conditionVariable', useLLMForDecision: false }),
+    };
+    setNodes((nds) => nds.concat(newNode));
+    setSelectedNodeId(newNodeId); // Auto-select new node
+  };
+
+  const handleDragOverCanvas = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+  };
+
+  const handleNodeMouseDown = (event: React.MouseEvent<HTMLDivElement>, nodeId: string) => {
+    const node = nodes.find(n => n.id === nodeId);
+    if (!node || !canvasRef.current) return;
+    const canvasBounds = canvasRef.current.getBoundingClientRect();
+    const offsetX = event.clientX - canvasBounds.left - node.x;
+    const offsetY = event.clientY - canvasBounds.top - node.y;
+    setDraggingNodeInfo({ id: nodeId, offsetX, offsetY });
+    if (event.ctrlKey || event.metaKey) { // Allow selecting multiple nodes in future
+        // For now, just set as selected
+    } else {
+        setSelectedNodeId(nodeId);
+    }
+    event.stopPropagation(); // Prevent canvas click/deselect
+  };
+  
+  const handleCanvasMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!draggingNodeInfo || !canvasRef.current) return;
+    const canvasBounds = canvasRef.current.getBoundingClientRect();
+    let x = event.clientX - canvasBounds.left - draggingNodeInfo.offsetX;
+    let y = event.clientY - canvasBounds.top - draggingNodeInfo.offsetY;
+
+    // Ensure node stays within canvas bounds (approx)
+    x = Math.max(0, Math.min(x, canvasBounds.width - 150)); // 150 is approx node width
+    y = Math.max(0, Math.min(y, canvasBounds.height - 50)); // 50 is approx node height
+    
+    setNodes((nds) =>
+      nds.map((n) => (n.id === draggingNodeInfo.id ? { ...n, x, y } : n))
+    );
+  };
+
+  const handleCanvasMouseUp = () => {
+    setDraggingNodeInfo(null);
+  };
+  
+  const handleCanvasClick = (e: React.MouseEvent<HTMLDivElement>) => {
+      if (e.target === canvasRef.current) { // Clicked on canvas background
+        setSelectedNodeId(null);
+        setConnectingInfo(null); // Cancel connection attempt
+      }
+  };
+
+  const handleNodePortClick = (nodeId: string, portType: 'in' | 'out', event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent node selection when clicking port
+    const node = nodes.find(n => n.id === nodeId);
+    if (!node) return;
+
+    if (portType === 'out') {
+      if (node.type === 'end') {
+        toast({title: "Invalid Connection", description: "Cannot connect from an 'End' node's output.", variant:"destructive"});
+        return;
+      }
+      setConnectingInfo({ sourceId: nodeId });
+      toast({ title: "Connecting...", description: `Source: ${node.label}. Click an input port on another node.`});
+    } else if (portType === 'in' && connectingInfo) {
+      if (node.type === 'start') {
+         toast({title: "Invalid Connection", description: "Cannot connect to a 'Start' node's input.", variant:"destructive"});
+         setConnectingInfo(null);
+         return;
+      }
+      if (connectingInfo.sourceId === nodeId) { // Cannot connect node to itself
+        toast({title: "Invalid Connection", description: "Cannot connect a node to itself.", variant:"destructive"});
+        setConnectingInfo(null);
+        return;
+      }
+      // Check for existing edge (simple check, could be more robust)
+      const existingEdge = edges.find(e => e.sourceId === connectingInfo.sourceId && e.targetId === nodeId);
+      if (existingEdge) {
+        toast({title: "Connection Exists", description: "An edge already exists between these nodes.", variant:"default"});
+        setConnectingInfo(null);
+        return;
+      }
+
+      const newEdge: VisualEdge = {
+        id: generateId('edge_'),
+        sourceId: connectingInfo.sourceId,
+        targetId: nodeId,
+        label: '', 
+      };
+      setEdges((eds) => eds.concat(newEdge));
+      const sourceNode = nodes.find(n=>n.id===connectingInfo.sourceId);
+      toast({ title: "Edge Created!", description: `Connected ${sourceNode?.label} to ${node.label}.`});
+      setConnectingInfo(null);
+    }
+  };
+  
+  const updateSelectedNodeProperties = (updatedProps: Partial<VisualNode>) => {
+    if (!selectedNodeId) return;
+    setNodes(nds => nds.map(n => n.id === selectedNodeId ? {...n, ...updatedProps} : n));
+  };
+
+  const updateEdgeLabel = (edgeId: string, label: string) => {
+    setEdges(eds => eds.map(e => e.id === edgeId ? {...e, label} : e));
+  };
+
+  const deleteNode = (nodeIdToDelete: string) => {
+    setNodes(nds => nds.filter(n => n.id !== nodeIdToDelete));
+    setEdges(eds => eds.filter(e => e.sourceId !== nodeIdToDelete && e.targetId !== nodeIdToDelete));
+    if (selectedNodeId === nodeIdToDelete) setSelectedNodeId(null);
+  };
+
+  const deleteEdge = (edgeIdToDelete: string) => {
+    setEdges(eds => eds.filter(e => e.id !== edgeIdToDelete));
+  };
+
+
+  const convertToMermaid = useCallback((): string => {
+    let mermaidStr = "graph TD;\n";
+    nodes.forEach(node => {
+      const mermaidId = node.id.replace(/[^a-zA-Z0-9_]/g, '_');
+      const displayLabel = node.label ? node.label.replace(/"/g, '#quot;') : node.id;
+      let shapeStart = '["';
+      let shapeEnd = '"]';
+      if (node.type === 'start' || node.type === 'end') { shapeStart = '(("'; shapeEnd = '"))'; } // Circle for start/end
+      else if (node.type === 'condition') { shapeStart = '{{"'; shapeEnd = '"}}'; } // Rhombus for condition
+      
+      mermaidStr += `  ${mermaidId}${shapeStart}${displayLabel} (${node.type})${shapeEnd};\n`;
+    });
+    edges.forEach(edge => {
+      const sourceMermaidId = edge.sourceId.replace(/[^a-zA-Z0-9_]/g, '_');
+      const targetMermaidId = edge.targetId.replace(/[^a-zA-Z0-9_]/g, '_');
+      const edgeLabel = edge.label ? `|${edge.label.replace(/"/g, '#quot;')}|` : '';
+      mermaidStr += `  ${sourceMermaidId} -->${edgeLabel} ${targetMermaidId};\n`;
+    });
+    return mermaidStr;
+  }, [nodes, edges]);
+
+  const convertToAgentFlowDefinition = useCallback((): AgentFlowDefinition => {
+    const jsonNodes: JsonFlowNode[] = nodes.map(node => {
+      const baseJsonNode: Omit<JsonFlowNode, 'type'> & {type: string} = { 
+        id: node.id,
+        type: node.type, // Will be narrowed down
+        position: { x: node.x, y: node.y },
+      };
+      switch (node.type) {
+        case 'sendMessage':
+          return { ...baseJsonNode, type: 'sendMessage', message: node.content || "" };
+        case 'getUserInput':
+          return { ...baseJsonNode, type: 'getUserInput', prompt: node.content || "", variableName: node.variableName || "" };
+        case 'callLLM':
+          return { ...baseJsonNode, type: 'callLLM', llmPrompt: node.content || "", outputVariable: node.variableName || "", useKnowledge: !!node.useKnowledge };
+        case 'condition':
+          return { ...baseJsonNode, type: 'condition', conditionVariable: node.variableName || "", useLLMForDecision: !!node.useLLMForDecision };
+        case 'start':
+           return { ...baseJsonNode, type: 'start'};
+        case 'end':
+            return { ...baseJsonNode, type: 'end'};
+        default: // Should not happen with FlowNodeType
+          throw new Error(`Unknown node type during JSON conversion: ${node.type}`);
+      }
+    });
+
+    const jsonEdges: JsonFlowEdge[] = edges.map(edge => ({
+      id: edge.id,
+      source: edge.sourceId,
+      target: edge.targetId,
+      label: edge.label, 
+      condition: edge.label, 
+    }));
+    
+    const flowId = currentAgent?.flow?.flowId || generateId('flow_');
+    const flowName = currentAgent?.flow?.name || "My Visual Flow";
+    const flowDescription = currentAgent?.flow?.description || "A flow created with the visual editor.";
+    
+    // Validate: Ensure there's at least one start and one end node if nodes exist
+    const hasStartNode = nodes.some(n => n.type === 'start');
+    const hasEndNode = nodes.some(n => n.type === 'end');
+
+    if (nodes.length > 0 && (!hasStartNode || !hasEndNode)) {
+        toast({
+            title: "Invalid Flow Structure",
+            description: "A flow must have at least one 'Start' and one 'End' node.",
+            variant: "destructive"
+        });
+        // Potentially throw error to prevent saving invalid flow
+    }
+
+
+    return {
+      flowId: flowId,
+      name: flowName,
+      description: flowDescription,
+      nodes: jsonNodes,
+      edges: jsonEdges,
+    };
+  }, [nodes, edges, currentAgent, toast]);
+
+  const handleSaveFlow = useCallback(() => {
+    if (!currentAgent) {
+      toast({ title: "Agent Not Found", description: "Cannot save flow.", variant: "destructive" });
       return;
     }
-
     setIsSaving(true);
+    
+    const mermaid = convertToMermaid();
+    setMermaidCode(mermaid); // For display
+    
     try {
-      updateAgentFlow(currentAgent.id, flowToSave); 
+      const agentFlowDef = convertToAgentFlowDefinition();
+      updateAgentFlow(currentAgent.id, agentFlowDef);
       toast({
         title: "Flow Saved!",
-        description: flowToSave ? `Flow "${flowToSave.name}" has been updated for agent ${currentAgent.generatedName || currentAgent.name}.` : `Flow cleared for agent ${currentAgent.generatedName || currentAgent.name}.`,
+        description: `Flow "${agentFlowDef.name}" visually designed and updated.`,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving flow:", error);
-      toast({ title: "Save Error", description: "Could not save the flow.", variant: "destructive" });
+      toast({ title: "Save Error", description: error.message || "Could not save the flow.", variant: "destructive" });
     } finally {
       setIsSaving(false);
     }
-  };
-
-  const loadSample = () => {
-    const sampleJsonString = JSON.stringify(sampleFlow, null, 2);
-    setFlowJson(sampleJsonString);
-    setParsedFlow(sampleFlow); 
-    setJsonError(null);
-    toast({ title: "Sample Flow Loaded", description: "You can now edit and save this sample flow."});
-  };
+  }, [currentAgent, convertToMermaid, convertToAgentFlowDefinition, updateAgentFlow, toast]);
   
   const clearFlow = () => {
-    setFlowJson("");
-    setParsedFlow(null);
-    setJsonError(null);
+    setNodes(initialNodes);
+    setEdges(initialEdges);
+    setSelectedNodeId(null);
+    setMermaidCode("");
      if (currentAgent) {
-      updateAgentFlow(currentAgent.id, undefined); 
-      toast({ title: "Flow Cleared", description: "Flow editor and agent's flow data have been cleared."});
-    } else {
-      toast({ title: "Flow Editor Cleared", description: "Flow editor has been cleared (no agent context found to update).", variant: "default"});
+      updateAgentFlow(currentAgent.id, {
+        flowId: generateId('flow_'),
+        name: "Cleared Flow",
+        description: "Flow has been cleared.",
+        nodes: initialNodes.map(n => ({id: n.id, type: n.type as 'start'|'end', position: {x:n.x, y:n.y}})),
+        edges: [],
+      }); 
+      toast({ title: "Flow Cleared", description: "Visual flow editor and agent's flow data have been cleared."});
     }
   };
+
+  const selectedNodeDetails = selectedNodeId ? nodes.find(n => n.id === selectedNodeId) : null;
+
+  useEffect(() => {
+    // Generate mermaid code for display whenever nodes or edges change
+    if(nodes.length > 0 || edges.length > 0) {
+        setMermaidCode(convertToMermaid());
+    } else {
+        setMermaidCode("");
+    }
+  }, [nodes, edges, convertToMermaid]);
 
 
   if (currentAgent === undefined) return <Card><CardHeader><CardTitle>Loading Studio...</CardTitle></CardHeader><CardContent><Loader2 className="mx-auto h-10 w-10 animate-spin text-primary" /></CardContent></Card>;
   if (!currentAgent) return <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>Agent Not Found</AlertTitle></Alert>;
 
+  const nodeWidth = 150;
+  const nodeHeight = 60; // Increased height for better label visibility
+  const portSize = 8; // Diameter of port circles
+
+
   return (
-    <div className="grid gap-6 lg:grid-cols-3">
-      <Card className="lg:col-span-2">
-        <CardHeader>
-          <CardTitle className="font-headline text-2xl">Agent Flow Studio: {currentAgent.generatedName || currentAgent.name}</CardTitle>
-          <CardDescription>Define your agent's conversational logic using a JSON-based flow definition. Node positions are for potential future visual rendering and not used by the current execution engine. Use `useLLMForDecision: true` on condition nodes for intelligent branching.</CardDescription>
+    <div className="grid grid-cols-12 gap-4 h-[calc(100vh-200px)]">
+      {/* Sidebar for Node Widgets */}
+      <Card className="col-span-2 h-full flex flex-col">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg">Node Tools</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex gap-2">
-            <Button onClick={loadSample} variant="outline" size="sm"><FileJson className="mr-2 h-4 w-4" />Load Sample Flow</Button>
-            <Button onClick={clearFlow} variant="destructive" size="sm" disabled={!flowJson && (!currentAgent.flow || Object.keys(currentAgent.flow).length === 0)}><Trash2 className="mr-2 h-4 w-4" />Clear Flow & Editor</Button>
-          </div>
-          <Textarea
-            value={flowJson}
-            onChange={handleJsonChange}
-            rows={25}
-            placeholder="Paste or write your agent flow JSON here, or leave empty to clear the flow..."
-            className="font-code text-xs bg-muted/30 border-input focus:border-primary"
-          />
-          {jsonError && (
-            <Alert variant="destructive" className="mt-2">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>JSON Error</AlertTitle>
-              <p className="text-xs">{jsonError}</p>
-            </Alert>
-          )}
+        <ScrollArea className="flex-grow">
+        <CardContent className="space-y-2 p-2">
+          {NODE_WIDGETS.map(widget => (
+            <div
+              key={widget.type}
+              draggable
+              onDragStart={(e) => handleDragStartWidget(e, widget.type)}
+              className="p-2 border rounded-md cursor-grab flex items-center gap-2 hover:bg-muted active:cursor-grabbing transition-colors"
+            >
+              <widget.icon className="w-5 h-5 text-primary shrink-0"/>
+              <span className="text-sm">{widget.label}</span>
+            </div>
+          ))}
         </CardContent>
-        <CardFooter>
-          <Button 
-            onClick={handleSaveFlow} 
-            disabled={isSaving || (!!jsonError && flowJson.trim() !== "") || (!parsedFlow && flowJson.trim() !== "")} 
-            className="w-full"
-          >
-            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-            Save Flow
-          </Button>
+        </ScrollArea>
+         <CardFooter className="p-2 border-t mt-auto">
+            <Button onClick={clearFlow} variant="outline" size="sm" className="w-full"><Trash2 className="mr-2 h-4 w-4" />Clear Canvas</Button>
         </CardFooter>
       </Card>
 
-      <Card className="lg:col-span-1">
-        <CardHeader>
-          <CardTitle className="font-headline text-xl">Flow Structure</CardTitle>
-          <CardDescription>A basic overview of your parsed flow.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {parsedFlow ? (
-            <ScrollArea className="h-[600px] pr-3">
-              <div className="space-y-4">
-                <div>
-                  <h4 className="font-semibold">Flow: {parsedFlow.name}</h4>
-                  <p className="text-xs text-muted-foreground">{parsedFlow.description}</p>
+      {/* Canvas Area */}
+      <Card 
+        className="col-span-7 h-full relative overflow-auto bg-muted/20 border-dashed border-input"
+        ref={canvasRef}
+        onDrop={handleDropOnCanvas}
+        onDragOver={handleDragOverCanvas}
+        onMouseMove={handleCanvasMouseMove}
+        onMouseUp={handleCanvasMouseUp}
+        onMouseLeave={handleCanvasMouseUp} 
+        onClick={handleCanvasClick}
+      >
+        <svg className="absolute top-0 left-0 w-full h-full pointer-events-none">
+          {edges.map(edge => {
+            const sourceNode = nodes.find(n => n.id === edge.sourceId);
+            const targetNode = nodes.find(n => n.id === edge.targetId);
+            if (!sourceNode || !targetNode) return null;
+            
+            const x1 = sourceNode.x + nodeWidth; 
+            const y1 = sourceNode.y + nodeHeight / 2;
+            const x2 = targetNode.x; 
+            const y2 = targetNode.y + nodeHeight / 2;
+
+            const midX = (x1 + x2) / 2;
+            const midY = (y1 + y2) / 2;
+
+            // Arrowhead
+            const angle = Math.atan2(y2 - y1, x2 - x1);
+            const arrowLength = 8;
+            const arrowPoint1X = x2 - arrowLength * Math.cos(angle - Math.PI / 6);
+            const arrowPoint1Y = y2 - arrowLength * Math.sin(angle - Math.PI / 6);
+            const arrowPoint2X = x2 - arrowLength * Math.cos(angle + Math.PI / 6);
+            const arrowPoint2Y = y2 - arrowLength * Math.sin(angle + Math.PI / 6);
+
+
+            return (
+              <g key={edge.id} className="cursor-pointer" onClick={() => {/*Future: select edge*/}}>
+                <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="hsl(var(--primary)/0.7)" strokeWidth="1.5" />
+                <polygon points={`${x2},${y2} ${arrowPoint1X},${arrowPoint1Y} ${arrowPoint2X},${arrowPoint2Y}`} fill="hsl(var(--primary)/0.7)" />
+                {edge.label && (
+                  <text x={midX} y={midY - 5} fill="hsl(var(--foreground))" fontSize="10px" textAnchor="middle" className="pointer-events-none select-none">
+                    {edge.label}
+                  </text>
+                )}
+              </g>
+            );
+          })}
+           {connectingInfo && ( // Visual feedback for connecting line
+                <line
+                    x1={nodes.find(n => n.id === connectingInfo.sourceId)!.x + nodeWidth}
+                    y1={nodes.find(n => n.id === connectingInfo.sourceId)!.y + nodeHeight/2}
+                    x2={draggingNodeInfo ? draggingNodeInfo.offsetX : (canvasRef.current?.getBoundingClientRect().width || 0) / 2} // Temporary endpoint
+                    y2={draggingNodeInfo ? draggingNodeInfo.offsetY : (canvasRef.current?.getBoundingClientRect().height || 0) / 2}
+                    stroke="hsl(var(--ring))"
+                    strokeWidth="2"
+                    strokeDasharray="4 2"
+                />
+            )}
+        </svg>
+        {nodes.map(node => (
+          <div
+            key={node.id}
+            onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
+            // onClick={(e) => { e.stopPropagation(); setSelectedNodeId(node.id);}} // Already handled by mousedown
+            className="absolute p-2 border rounded bg-card shadow cursor-grab select-none flex flex-col justify-center"
+            style={{ 
+                left: node.x, 
+                top: node.y,
+                width: `${nodeWidth}px`,
+                height: `${nodeHeight}px`,
+                borderColor: selectedNodeId === node.id ? 'hsl(var(--ring))' : 'hsl(var(--border))',
+                boxShadow: selectedNodeId === node.id ? '0 0 0 1px hsl(var(--ring))' : '0 1px 3px rgba(0,0,0,0.1)',
+            }}
+          >
+             {/* Input Port */}
+             {node.type !== 'start' && (
+                <div 
+                    onClick={(e) => handleNodePortClick(node.id, 'in', e)}
+                    title={`Connect to ${node.label}`}
+                    className="absolute -left-[5px] top-1/2 -translate-y-1/2 cursor-crosshair"
+                    style={{width: `${portSize+4}px`, height: `${portSize+4}px`, display:'flex', alignItems:'center', justifyContent:'center'}}
+                >
+                   <div className="w-2 h-2 bg-primary/70 rounded-full border border-background ring-1 ring-primary/70 hover:bg-primary hover:ring-primary transition-all"/>
                 </div>
-                <div>
-                  <h4 className="font-semibold mb-1">Nodes ({parsedFlow.nodes.length}):</h4>
-                  <ul className="list-disc list-inside space-y-1 text-sm pl-2">
-                    {parsedFlow.nodes.map(node => (
-                      <li key={node.id} className="text-xs">
-                        <span className="font-medium">{node.id}</span> ({node.type})
-                        {node.type === 'condition' && node.useLLMForDecision && <span className="text-muted-foreground block pl-4 text-xs italic">(Uses LLM for decision)</span>}
-                        {node.conditionVariable && <span className="text-muted-foreground block pl-4 text-xs italic">(Checks: {node.conditionVariable})</span>}
-                        {node.useKnowledge && <span className="text-muted-foreground block pl-4 text-xs italic">(Uses Knowledge)</span>}
-                        {node.message && <span className="text-muted-foreground block pl-4 text-xs">Msg: "{node.message}"</span>}
-                        {node.prompt && <span className="text-muted-foreground block pl-4 text-xs">Prompt: "{node.prompt}"</span>}
-                        {node.llmPrompt && <span className="text-muted-foreground block pl-4 text-xs">LLM Prompt: "{node.llmPrompt}"</span>}
-                        {node.variableName && <span className="text-muted-foreground block pl-4 text-xs">Stores in: "{node.variableName}"</span>}
-                         {node.outputVariable && <span className="text-muted-foreground block pl-4 text-xs">Output to: "{node.outputVariable}"</span>}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div>
-                  <h4 className="font-semibold mb-1">Edges ({parsedFlow.edges.length}):</h4>
-                  <ul className="list-disc list-inside space-y-1 text-sm pl-2">
-                    {parsedFlow.edges.map(edge => (
-                      <li key={edge.id} className="text-xs">
-                        {edge.source} <span className="text-primary mx-1">&rarr;</span> {edge.target}
-                        {edge.label && <span className="text-muted-foreground text-xs"> ({edge.label})</span>}
-                        {edge.condition !== undefined && <span className="text-muted-foreground text-xs"> (If: '{edge.condition || 'Default Path'}')</span>}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            </ScrollArea>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              {flowJson.trim() ? "JSON is invalid or not structured correctly." : "No flow loaded or defined. Paste JSON or load a sample."}
+             )}
+
+            <div className="flex items-center gap-1 mb-0.5 overflow-hidden">
+              {NODE_WIDGETS.find(w=>w.type === node.type)?.icon({className: "w-3 h-3 text-primary shrink-0"})}
+              <span className="text-xs font-medium truncate" title={node.label}>{node.label}</span>
+            </div>
+            <p className="text-[10px] text-muted-foreground truncate" title={node.content || node.variableName || node.type}>
+              {node.type === 'sendMessage' ? (node.content || '...') :
+               node.type === 'getUserInput' ? (node.variableName ? `Var: ${node.variableName}`: '...') :
+               node.type === 'callLLM' ? (node.variableName ? `Out: ${node.variableName}`: '...') :
+               node.type === 'condition' ? (node.variableName ? `If: ${node.variableName}`: '...') :
+               node.type
+              }
             </p>
+            
+            {/* Output Port */}
+            {node.type !== 'end' && (
+                 <div 
+                    onClick={(e) => handleNodePortClick(node.id, 'out', e)}
+                    title={`Connect from ${node.label}`}
+                    className="absolute -right-[5px] top-1/2 -translate-y-1/2 cursor-crosshair"
+                     style={{width: `${portSize+4}px`, height: `${portSize+4}px`, display:'flex', alignItems:'center', justifyContent:'center'}}
+                 >
+                    <div className="w-2 h-2 bg-primary/70 rounded-full border border-background ring-1 ring-primary/70 hover:bg-primary hover:ring-primary transition-all"/>
+                 </div>
+            )}
+          </div>
+        ))}
+      </Card>
+
+      {/* Properties Panel */}
+      <Card className="col-span-3 h-full flex flex-col">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Settings2 className="w-5 h-5" />
+            {selectedNodeDetails ? `Edit: ${selectedNodeDetails.label}` : "Properties / Output"}
+          </CardTitle>
+        </CardHeader>
+        <ScrollArea className="flex-grow">
+        <CardContent className="p-3 space-y-3 text-sm">
+          {selectedNodeDetails ? (
+            <div className="space-y-3">
+              <div>
+                <Label htmlFor="nodeLabel" className="text-xs">Node Label (ID)</Label>
+                <Input id="nodeLabel" value={selectedNodeDetails.label} onChange={e => updateSelectedNodeProperties({ label: e.target.value })} className="h-8 text-sm"/>
+              </div>
+              { (selectedNodeDetails.type === 'sendMessage' || selectedNodeDetails.type === 'getUserInput' || selectedNodeDetails.type === 'callLLM') && (
+                <div>
+                  <Label htmlFor="nodeContent" className="text-xs">{selectedNodeDetails.type === 'sendMessage' ? 'Message Text' : selectedNodeDetails.type === 'getUserInput' ? 'Prompt Text' : 'LLM Prompt'}</Label>
+                  <Textarea id="nodeContent" value={selectedNodeDetails.content || ""} onChange={e => updateSelectedNodeProperties({ content: e.target.value })} rows={3} className="text-sm"/>
+                </div>
+              )}
+              { (selectedNodeDetails.type === 'getUserInput' || selectedNodeDetails.type === 'callLLM' || selectedNodeDetails.type === 'condition') && (
+                <div>
+                  <Label htmlFor="nodeVariable" className="text-xs">{selectedNodeDetails.type === 'condition' ? 'Variable to Check' : 'Output Variable Name'}</Label>
+                  <Input id="nodeVariable" value={selectedNodeDetails.variableName || ""} onChange={e => updateSelectedNodeProperties({ variableName: e.target.value })}  className="h-8 text-sm"/>
+                </div>
+              )}
+              { selectedNodeDetails.type === 'callLLM' && (
+                <div className="flex items-center space-x-2 pt-1">
+                  <Checkbox id="useKnowledge" checked={!!selectedNodeDetails.useKnowledge} onCheckedChange={(checked) => updateSelectedNodeProperties({ useKnowledge: !!checked })}/>
+                  <Label htmlFor="useKnowledge" className="text-xs font-normal cursor-pointer">Use Knowledge Base</Label>
+                </div>
+              )}
+              { selectedNodeDetails.type === 'condition' && (
+                <div className="flex items-center space-x-2 pt-1">
+                  <Checkbox id="useLLMForDecision" checked={!!selectedNodeDetails.useLLMForDecision} onCheckedChange={(checked) => updateSelectedNodeProperties({ useLLMForDecision: !!checked })}/>
+                  <Label htmlFor="useLLMForDecision" className="text-xs font-normal cursor-pointer">Use LLM for Decision</Label>
+                </div>
+              )}
+              <Button variant="outline" size="sm" onClick={() => deleteNode(selectedNodeDetails.id)} className="text-destructive border-destructive hover:bg-destructive/10 w-full mt-2">
+                <Trash2 className="mr-2 h-3 w-3" /> Delete Node
+              </Button>
+              <hr className="my-3"/>
+              <Label className="text-xs text-muted-foreground block mb-1">Outgoing Edges:</Label>
+              {edges.filter(e => e.sourceId === selectedNodeDetails.id).length === 0 && <p className="text-xs text-muted-foreground italic">No outgoing edges.</p>}
+              {edges.filter(e => e.sourceId === selectedNodeDetails.id).map(edge => (
+                <div key={edge.id} className="text-xs space-y-1 border p-1.5 rounded mb-1 bg-muted/30">
+                  <div className="flex justify-between items-center">
+                    <span className="truncate" title={`To: ${nodes.find(n=>n.id===edge.targetId)?.label || edge.targetId}`}>To: {nodes.find(n=>n.id===edge.targetId)?.label || edge.targetId}</span>
+                    <Button variant="ghost" size="icon" onClick={() => deleteEdge(edge.id)} className="h-5 w-5 shrink-0"><Trash2 className="h-3 w-3 text-destructive"/></Button>
+                  </div>
+                  {selectedNodeDetails.type === 'condition' && (
+                    <Input placeholder="Edge Condition Label" value={edge.label || ""} onChange={e => updateEdgeLabel(edge.id, e.target.value)} className="h-7 text-xs mt-1"/>
+                  )}
+                </div>
+              ))}
+
+            </div>
+          ) : (
+            <div className="text-center py-10">
+                <MousePointer className="mx-auto w-10 h-10 text-muted-foreground mb-2"/>
+                <p className="text-sm text-muted-foreground">
+                    Select a node on the canvas to view and edit its properties here.
+                    <br/>Drag tools from the left panel to add new nodes.
+                    <br/>Click node ports to connect them.
+                </p>
+            </div>
           )}
+          
         </CardContent>
+        </ScrollArea>
+         <CardFooter className="p-2 border-t mt-auto space-y-2 flex-col items-stretch">
+             {mermaidCode && (
+                <details className="w-full">
+                  <summary className="text-xs cursor-pointer text-muted-foreground hover:text-foreground">View Generated Mermaid Code</summary>
+                  <ScrollArea className="h-[100px] bg-muted/50 p-1.5 rounded mt-1">
+                    <pre className="text-[10px] whitespace-pre-wrap">{mermaidCode}</pre>
+                  </ScrollArea>
+                </details>
+              )}
+          <Button onClick={handleSaveFlow} disabled={isSaving} className="w-full">
+            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+            Save Visual Flow
+          </Button>
+        </CardFooter>
       </Card>
     </div>
   );
 }
+
