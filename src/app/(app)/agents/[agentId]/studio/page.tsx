@@ -16,20 +16,27 @@ import { Alert, AlertTitle } from "@/components/ui/alert";
 const sampleFlow: AgentFlowDefinition = {
   flowId: "sample-welcome-flow",
   name: "Sample Welcome Onboarding",
-  description: "A sample flow to greet users and ask for their name.",
+  description: "A sample flow to greet users and ask for their name, then uses knowledge.",
   nodes: [
     { id: "start", type: "start", position: { x: 50, y: 50 } },
-    { id: "greet", type: "sendMessage", message: "Hello! Welcome to AgentVerse. What's your name?", position: { x: 50, y: 150 } },
+    { id: "greet", type: "sendMessage", message: "Hello! Welcome to AgentVerse. I can use my knowledge base. What's your name?", position: { x: 50, y: 150 } },
     { id: "get_name", type: "getUserInput", prompt: "Please tell me your name.", variableName: "userName", position: { x: 50, y: 250 } },
-    { id: "confirm_name", type: "callLLM", llmPrompt: "User's name is {{userName}}. Respond with a friendly confirmation like 'Nice to meet you, {{userName}}!'", outputVariable: "confirmationMessage", position: { x: 50, y: 350 } },
+    { 
+      id: "confirm_name_with_knowledge", 
+      type: "callLLM", 
+      llmPrompt: "User's name is {{userName}}. Respond with a friendly confirmation like 'Nice to meet you, {{userName}}!' and mention something from your knowledge if relevant.", 
+      outputVariable: "confirmationMessage", 
+      useKnowledge: true, // Use knowledge here
+      position: { x: 50, y: 350 } 
+    },
     { id: "send_confirmation", type: "sendMessage", message: "{{confirmationMessage}}", position: { x: 50, y: 450 } },
     { id: "end", type: "end", position: { x: 50, y: 550 } }
   ],
   edges: [
     { id: "e_start_greet", source: "start", target: "greet", label: "Start" },
     { id: "e_greet_get_name", source: "greet", target: "get_name" },
-    { id: "e_get_name_confirm_name", source: "get_name", target: "confirm_name" },
-    { id: "e_confirm_name_send_confirmation", source: "confirm_name", target: "send_confirmation"},
+    { id: "e_get_name_confirm_name", source: "get_name", target: "confirm_name_with_knowledge" },
+    { id: "e_confirm_name_send_confirmation", source: "confirm_name_with_knowledge", target: "send_confirmation"},
     { id: "e_send_confirmation_end", source: "send_confirmation", target: "end" }
   ]
 };
@@ -60,7 +67,7 @@ export default function AgentStudioPage() {
         setParsedFlow(null);
       }
     }
-  }, [agentId, getAgent]); // getAgent dependency will refetch agent if context's agent list changes
+  }, [agentId, getAgent]); 
 
   const handleJsonChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newJson = event.target.value;
@@ -72,7 +79,6 @@ export default function AgentStudioPage() {
         return;
       }
       const parsed = JSON.parse(newJson);
-      // Basic validation (can be improved with Zod schema.parse)
       if (parsed && parsed.nodes && parsed.edges && parsed.flowId) {
         setParsedFlow(parsed);
         setJsonError(null);
@@ -91,19 +97,18 @@ export default function AgentStudioPage() {
         toast({ title: "Agent Not Found", description: "Cannot save flow, agent not loaded.", variant: "destructive" });
         return;
     }
-    if (jsonError && flowJson.trim() !== "") { // Allow saving an empty flow (effectively deleting it)
+    if (jsonError && flowJson.trim() !== "") { 
         toast({ title: "Invalid JSON", description: "Cannot save, JSON is invalid.", variant: "destructive"});
         return;
     }
-    if (!parsedFlow && flowJson.trim() !== "") { // If JSON is not empty but not parsable to a flow
+    if (!parsedFlow && flowJson.trim() !== "") { 
       toast({ title: "No Valid Flow Data", description: "Cannot save, flow data is not valid or empty.", variant: "destructive"});
       return;
     }
 
     setIsSaving(true);
     try {
-      // If flowJson is empty, parsedFlow will be null, effectively clearing the flow
-      updateAgentFlow(currentAgent.id, parsedFlow || undefined as any); // Pass undefined if parsedFlow is null
+      updateAgentFlow(currentAgent.id, parsedFlow || undefined as any); 
       toast({
         title: "Flow Saved!",
         description: parsedFlow ? `Flow "${parsedFlow.name}" has been updated for agent ${currentAgent.generatedName || currentAgent.name}.` : `Flow cleared for agent ${currentAgent.generatedName || currentAgent.name}.`,
@@ -129,7 +134,7 @@ export default function AgentStudioPage() {
     setParsedFlow(null);
     setJsonError(null);
      if (currentAgent) {
-      updateAgentFlow(currentAgent.id, undefined as any); // Explicitly clear from context
+      updateAgentFlow(currentAgent.id, undefined as any); 
       toast({ title: "Flow Cleared", description: "Flow editor and agent's flow data have been cleared."});
     } else {
       toast({ title: "Flow Cleared", description: "Flow editor has been cleared."});
@@ -150,7 +155,7 @@ export default function AgentStudioPage() {
         <CardContent className="space-y-4">
           <div className="flex gap-2">
             <Button onClick={loadSample} variant="outline" size="sm"><FileJson className="mr-2 h-4 w-4" />Load Sample Flow</Button>
-            <Button onClick={clearFlow} variant="destructive" size="sm" disabled={!flowJson && !currentAgent.flow}><Trash2 className="mr-2 h-4 w-4" />Clear Flow & Editor</Button>
+            <Button onClick={clearFlow} variant="destructive" size="sm" disabled={!flowJson && (!currentAgent.flow || Object.keys(currentAgent.flow).length === 0)}><Trash2 className="mr-2 h-4 w-4" />Clear Flow & Editor</Button>
           </div>
           <Textarea
             value={flowJson}
@@ -198,6 +203,7 @@ export default function AgentStudioPage() {
                     {parsedFlow.nodes.map(node => (
                       <li key={node.id} className="text-xs">
                         <span className="font-medium">{node.id}</span> ({node.type})
+                        {node.useKnowledge && <span className="text-muted-foreground block pl-4 text-xs italic">(Uses Knowledge)</span>}
                         {node.message && <span className="text-muted-foreground block pl-4 text-xs">Msg: "{node.message}"</span>}
                         {node.prompt && <span className="text-muted-foreground block pl-4 text-xs">Prompt: "{node.prompt}"</span>}
                         {node.llmPrompt && <span className="text-muted-foreground block pl-4 text-xs">LLM Prompt: "{node.llmPrompt}"</span>}
@@ -228,5 +234,3 @@ export default function AgentStudioPage() {
     </div>
   );
 }
-
-    

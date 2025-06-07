@@ -10,8 +10,8 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import type { FlowNode, FlowEdge, AgentFlowDefinition, FlowContext } from '@/lib/types'; // Import types
-import { AgentFlowDefinitionSchema, FlowContextSchema } from '@/lib/types'; // Import Zod schemas
+import type { FlowNode, FlowEdge, AgentFlowDefinition, FlowContext, KnowledgeItem } from '@/lib/types'; // Import types
+import { AgentFlowDefinitionSchema, FlowContextSchema, KnowledgeItemSchema } from '@/lib/types'; // Import Zod schemas
 
 // Input schema for the Genkit flow, using imported Zod schemas
 const ExecuteAgentFlowInputSchema = z.object({
@@ -19,6 +19,7 @@ const ExecuteAgentFlowInputSchema = z.object({
   currentContext: FlowContextSchema.describe("The current state of conversation variables."),
   currentMessage: z.string().optional().describe("The user's latest input message, if any."),
   startNodeId: z.string().optional().describe("The ID of the node from which to start or resume execution. Defaults to 'start' node."),
+  knowledgeItems: z.array(KnowledgeItemSchema).optional().describe("An array of knowledge items for the agent."),
 });
 export type ExecuteAgentFlowInput = z.infer<typeof ExecuteAgentFlowInputSchema>;
 
@@ -42,7 +43,7 @@ function templatize(templateString: string, context: FlowContext): string {
 }
 
 export async function executeAgentFlow(input: ExecuteAgentFlowInput): Promise<ExecuteAgentFlowOutput> {
-  const { flowDefinition, currentMessage } = input;
+  const { flowDefinition, currentMessage, knowledgeItems } = input;
   let { currentContext, startNodeId } = input;
 
   const messagesToSend: string[] = [];
@@ -66,12 +67,10 @@ export async function executeAgentFlow(input: ExecuteAgentFlowInput): Promise<Ex
         break;
       }
       
-      // Store current node in context for potential resume/debug
       currentContext.currentNodeId = currentNode.id;
 
       switch (currentNode.type) {
         case 'start':
-          // Start node usually just transitions.
           break;
 
         case 'sendMessage':
@@ -82,28 +81,34 @@ export async function executeAgentFlow(input: ExecuteAgentFlowInput): Promise<Ex
 
         case 'getUserInput':
           if (currentMessage && currentContext.waitingForInput === currentNode.id) {
-            // We were waiting for input for this node, and we got it.
             if (currentNode.variableName) {
               currentContext[currentNode.variableName] = currentMessage;
             }
-            currentContext.waitingForInput = undefined; // Clear the waiting flag
-            // currentMessage = undefined; // Consume the message for this node.
+            currentContext.waitingForInput = undefined; 
           } else if (!currentContext.waitingForInput) {
-             // This node requires user input, and we don't have it yet for *this turn* or *this node*.
             if (currentNode.prompt) {
               messagesToSend.push(templatize(currentNode.prompt, currentContext));
             }
-            currentContext.waitingForInput = currentNode.id; // Set waiting flag
+            currentContext.waitingForInput = currentNode.id; 
             return { messagesToSend, updatedContext: currentContext, nextNodeId: currentNode.id, isFlowFinished };
           }
-          // If we are here, it means we either got input or this node was already processed in a previous turn.
-          // If currentMessage was for a *previous* getUserInput node, it should have been consumed.
           break;
 
         case 'callLLM':
           if (currentNode.llmPrompt && currentNode.outputVariable) {
-            const populatedPrompt = templatize(currentNode.llmPrompt, currentContext);
-            // Using the globally configured model in ai.ts
+            let populatedPrompt = templatize(currentNode.llmPrompt, currentContext);
+            
+            if (currentNode.useKnowledge && knowledgeItems && knowledgeItems.length > 0) {
+              const knowledgeSummaries = knowledgeItems
+                .map(item => item.summary)
+                .filter(Boolean) // Remove any undefined/empty summaries
+                .join("\n\n---\n\n");
+              if (knowledgeSummaries) {
+                populatedPrompt = `Relevant Information from Knowledge Base:\n${knowledgeSummaries}\n\nOriginal Prompt:\n${populatedPrompt}`;
+                // messagesToSend.push("(System: Using knowledge from uploaded documents for this response.)");
+              }
+            }
+            
             const llmResponse = await ai.generate({ prompt: populatedPrompt });
             currentContext[currentNode.outputVariable] = llmResponse.text;
           } else {
@@ -112,53 +117,32 @@ export async function executeAgentFlow(input: ExecuteAgentFlowInput): Promise<Ex
           break;
         
         case 'condition':
-          // Simplified: expects edges to have a "condition" field that matches "true" or "false"
-          // For a real implementation, currentNode.conditionExpression would be evaluated against currentContext
-          // e.g., using a safe expression evaluator like Jexl or similar.
-          // For now, we'll assume the condition itself is resolved externally or by edge properties.
-          // The logic for choosing the next edge for a 'condition' node is handled in edge finding.
           messagesToSend.push(`(System: Condition node '${currentNode.id}' - evaluation placeholder)`);
           break;
 
         case 'apiCall':
-          // Placeholder for API call logic
            messagesToSend.push(`(System: API Call node '${currentNode.id}' - not implemented)`);
-          // Example:
-          // if (currentNode.apiUrl && currentNode.apiOutputVariable) {
-          //   try {
-          //     const response = await fetch(templatize(currentNode.apiUrl, currentContext), { method: currentNode.apiMethod || 'GET' });
-          //     const data = await response.json();
-          //     currentContext[currentNode.apiOutputVariable] = data;
-          //   } catch (e) {
-          //     currentContext[currentNode.apiOutputVariable] = { error: 'API call failed', details: (e as Error).message };
-          //   }
-          // }
           break;
 
         case 'end':
           isFlowFinished = true;
-          currentNodeId = undefined; // Stop the loop
-          continue; // Skip edge finding for 'end' node
+          currentNodeId = undefined; 
+          continue; 
 
         default:
           messagesToSend.push(`(System: Unknown node type '${(currentNode as any).type}' for node '${currentNode.id}')`);
       }
       
-      // Determine the next node
       let nextEdge: FlowEdge | undefined;
       if (currentNode.type === 'condition') {
-        // For condition nodes, find an edge whose 'condition' matches the evaluation (simplified)
-        // Here, you would evaluate currentNode.conditionExpression against currentContext
-        const conditionValue = "true"; // Placeholder for actual evaluation result
+        const conditionValue = "true"; 
         nextEdge = flowDefinition.edges.find(edge => edge.source === currentNodeId && edge.condition === conditionValue);
-        if (!nextEdge) { // Fallback to an edge without a condition if specific one not found
+        if (!nextEdge) { 
             nextEdge = flowDefinition.edges.find(edge => edge.source === currentNodeId && !edge.condition);
         }
       } else {
-        // For other nodes, find the first (or only) outgoing edge
         nextEdge = flowDefinition.edges.find(edge => edge.source === currentNodeId);
       }
-
 
       if (nextEdge) {
         currentNodeId = nextEdge.target;
@@ -166,9 +150,9 @@ export async function executeAgentFlow(input: ExecuteAgentFlowInput): Promise<Ex
         if (currentNode.type !== 'end') {
            messagesToSend.push(`(System: No outgoing edge from node '${currentNode.id}' and it's not an end node.)`);
         }
-        currentNodeId = undefined; // End of flow or dead end
+        currentNodeId = undefined; 
       }
-    } // end while loop
+    } 
 
     if (maxSteps <= 0) {
       error = "Flow execution exceeded maximum steps.";
@@ -179,23 +163,20 @@ export async function executeAgentFlow(input: ExecuteAgentFlowInput): Promise<Ex
     error = e.message || "An unexpected error occurred during flow execution.";
   }
   
-  // Clear waitingForInput if flow finished or errored
   if (isFlowFinished || error) {
     currentContext.waitingForInput = undefined;
   }
 
-
   return { messagesToSend, updatedContext: currentContext, error, nextNodeId: currentContext.waitingForInput, isFlowFinished };
 }
 
-// Defining the Genkit flow (wrapper around the main logic)
 const agentJsonFlow = ai.defineFlow(
   {
     name: 'agentJsonFlow', 
-    inputSchema: ExecuteAgentFlowInputSchema,  // Uses locally defined schema (which internally uses imported schemas)
-    outputSchema: ExecuteAgentFlowOutputSchema, // Uses locally defined schema (which internally uses imported schemas)
+    inputSchema: ExecuteAgentFlowInputSchema,
+    outputSchema: ExecuteAgentFlowOutputSchema,
   },
   async (input) => {
-    return executeAgentFlow(input); // Calls the exported async function
+    return executeAgentFlow(input);
   }
 );
