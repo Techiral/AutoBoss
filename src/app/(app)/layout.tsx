@@ -143,24 +143,14 @@ function AppHeader() {
 
 function AppSidebar() {
   const pathname = usePathname();
-  const { state, setOpen, isMobile } = useSidebar(); 
+  const { state, isMobile } = useSidebar(); // Removed setOpen from here
   const collapsed = state === 'collapsed';
   
   const agentIdMatch = pathname.match(/^\/agents\/([a-zA-Z0-9_-]+)/);
   const currentAgentId = agentIdMatch ? agentIdMatch[1] : null;
 
-  useEffect(() => {
-    if (isMobile) return; 
-
-    const onAgentDetailPage = /^\/agents\/[^/]+\/(studio|knowledge|personality|test|export)/.test(pathname);
-
-    if (onAgentDetailPage) {
-      setOpen(false); 
-    } else {
-      setOpen(true);  
-    }
-  }, [pathname, setOpen, isMobile]);
-
+  // Removed useEffect that auto-collapses/expands sidebar based on pathname
+  // The sidebar state will now be primarily user-controlled via the SidebarTrigger
 
   const agentNavItems = currentAgentId ? [
     { href: `/agents/${currentAgentId}/studio`, label: 'Studio', icon: Cog },
@@ -224,4 +214,3 @@ function AppSidebar() {
     </Sidebar>
   );
 }
-
