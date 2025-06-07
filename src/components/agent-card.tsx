@@ -1,8 +1,12 @@
+
+"use client";
+
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Bot, ArrowRight, Pencil, Trash2 } from "lucide-react";
 import type { Agent } from "@/lib/types";
+import { useState, useEffect } from 'react';
 
 interface AgentCardProps {
   agent: Agent;
@@ -10,6 +14,14 @@ interface AgentCardProps {
 }
 
 export function AgentCard({ agent, onDelete }: AgentCardProps) {
+  const [formattedDate, setFormattedDate] = useState('');
+
+  useEffect(() => {
+    if (agent.createdAt) {
+      setFormattedDate(new Date(agent.createdAt).toLocaleDateString());
+    }
+  }, [agent.createdAt]);
+
   return (
     <Card className="flex flex-col">
       <CardHeader>
@@ -20,9 +32,13 @@ export function AgentCard({ agent, onDelete }: AgentCardProps) {
         <CardDescription className="line-clamp-2 h-10">{agent.description}</CardDescription>
       </CardHeader>
       <CardContent className="flex-grow">
-        <p className="text-xs text-muted-foreground">
-          Created: {new Date(agent.createdAt).toLocaleDateString()}
-        </p>
+        {formattedDate ? (
+          <p className="text-xs text-muted-foreground">
+            Created: {formattedDate}
+          </p>
+        ) : (
+          <p className="text-xs text-muted-foreground">Loading date...</p>
+        )}
       </CardContent>
       <CardFooter className="flex justify-between items-center">
         <Button variant="ghost" size="sm" onClick={() => onDelete(agent.id)} aria-label="Delete agent">

@@ -23,10 +23,10 @@ import {
 import { Home, PlusCircle, Bot, Settings, BookOpen, MessageSquare, Share2, Cog } from 'lucide-react';
 import type { Agent } from '@/lib/types';
 
-// Mock initial agents data
+// Mock initial agents data with static dates
 const initialAgents: Agent[] = [
-  { id: '1', name: 'Support Bot Alpha', description: 'Handles customer support queries.', createdAt: new Date().toISOString(), generatedName: 'Support Bot Alpha' },
-  { id: '2', name: 'Sales Assistant Beta', description: 'Assists with sales questions.', createdAt: new Date().toISOString(), generatedName: 'Sales Assistant Beta' },
+  { id: '1', name: 'Support Bot Alpha', description: 'Handles customer support queries.', createdAt: '2024-01-15T10:00:00.000Z', generatedName: 'Support Bot Alpha' },
+  { id: '2', name: 'Sales Assistant Beta', description: 'Assists with sales questions.', createdAt: '2024-01-16T11:30:00.000Z', generatedName: 'Sales Assistant Beta' },
 ];
 
 interface AppContextType {
