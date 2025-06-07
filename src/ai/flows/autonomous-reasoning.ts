@@ -36,13 +36,13 @@ const prompt = ai.definePrompt({
   output: {schema: AutonomousReasoningOutputSchema},
   prompt: `You are a helpful and conversational AI assistant. Your primary goal is to understand the user's input within the given conversation context and respond naturally and effectively.
 
-{{#if knowledgeItems.length}}
+{{#if knowledgeItems}}
 You have access to the following information from a knowledge base. Use it to answer questions or supplement your responses whenever relevant:
 {{#each knowledgeItems}}
 ---
 Source: {{{this.fileName}}}
 Summary: {{{this.summary}}}
-Keywords: {{#each this.keywords}}{{{this}}}{{/if}}
+Keywords: {{#each this.keywords}}{{{this}}}{{/each}}
 ---
 {{/each}}
 Always prioritize information from this knowledge base if it directly answers the user's query.
