@@ -6,54 +6,15 @@
  * - executeAgentFlow - Main function to process the flow.
  * - ExecuteAgentFlowInput - Input schema for the flow.
  * - ExecuteAgentFlowOutput - Output schema for the flow.
- * - AgentFlowDefinitionSchema - Zod schema for the flow definition.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import type { FlowNode as LibFlowNode, FlowEdge as LibFlowEdge, AgentFlowDefinition as LibAgentFlowDefinition, FlowContext as LibFlowContext } from '@/lib/types';
+import type { FlowNode, FlowEdge, AgentFlowDefinition, FlowContext } from '@/lib/types'; // Import types
+import { AgentFlowDefinitionSchema, FlowContextSchema } from '@/lib/types'; // Import Zod schemas
 
-// Zod Schemas for validation (mirroring lib/types but with Zod)
-const FlowNodeSchema = z.object({
-  id: z.string(),
-  type: z.enum(['start', 'sendMessage', 'getUserInput', 'callLLM', 'condition', 'apiCall', 'end']),
-  position: z.object({ x: z.number(), y: z.number() }).optional(),
-  message: z.string().optional(),
-  prompt: z.string().optional(), // For getUserInput
-  variableName: z.string().optional(),
-  llmPrompt: z.string().optional(), // For callLLM
-  outputVariable: z.string().optional(),
-  conditionExpression: z.string().optional(),
-  apiUrl: z.string().optional(),
-  apiMethod: z.enum(['GET', 'POST']).optional(),
-  apiPayloadVariable: z.string().optional(),
-  apiOutputVariable: z.string().optional(),
-});
-export type FlowNode = z.infer<typeof FlowNodeSchema>;
-
-const FlowEdgeSchema = z.object({
-  id: z.string(),
-  source: z.string(),
-  target: z.string(),
-  label: z.string().optional(),
-  condition: z.string().optional(),
-});
-export type FlowEdge = z.infer<typeof FlowEdgeSchema>;
-
-export const AgentFlowDefinitionSchema = z.object({
-  flowId: z.string(),
-  name: z.string(),
-  description: z.string(),
-  nodes: z.array(FlowNodeSchema),
-  edges: z.array(FlowEdgeSchema),
-});
-export type AgentFlowDefinition = z.infer<typeof AgentFlowDefinitionSchema>;
-
-const FlowContextSchema = z.record(z.any()); // Allows any structure for context variables
-export type FlowContext = z.infer<typeof FlowContextSchema>;
-
-
-export const ExecuteAgentFlowInputSchema = z.object({
+// Input schema for the Genkit flow, using imported Zod schemas
+const ExecuteAgentFlowInputSchema = z.object({
   flowDefinition: AgentFlowDefinitionSchema.describe("The JSON definition of the agent's conversational flow."),
   currentContext: FlowContextSchema.describe("The current state of conversation variables."),
   currentMessage: z.string().optional().describe("The user's latest input message, if any."),
@@ -61,7 +22,8 @@ export const ExecuteAgentFlowInputSchema = z.object({
 });
 export type ExecuteAgentFlowInput = z.infer<typeof ExecuteAgentFlowInputSchema>;
 
-export const ExecuteAgentFlowOutputSchema = z.object({
+// Output schema for the Genkit flow, using imported Zod schemas
+const ExecuteAgentFlowOutputSchema = z.object({
   messagesToSend: z.array(z.string()).describe("An array of messages the agent should send to the user."),
   updatedContext: FlowContextSchema.describe("The conversation context after executing the current step(s)."),
   nextNodeId: z.string().optional().describe("If the flow is waiting for user input, this is the ID of the node to resume from. Otherwise, undefined."),
@@ -69,6 +31,7 @@ export const ExecuteAgentFlowOutputSchema = z.object({
   isFlowFinished: z.boolean().describe("True if the flow reached an 'end' node.")
 });
 export type ExecuteAgentFlowOutput = z.infer<typeof ExecuteAgentFlowOutputSchema>;
+
 
 // Helper to replace {{variables}} in a string
 function templatize(templateString: string, context: FlowContext): string {
@@ -140,6 +103,7 @@ export async function executeAgentFlow(input: ExecuteAgentFlowInput): Promise<Ex
         case 'callLLM':
           if (currentNode.llmPrompt && currentNode.outputVariable) {
             const populatedPrompt = templatize(currentNode.llmPrompt, currentContext);
+            // Using the globally configured model in ai.ts
             const llmResponse = await ai.generate({ prompt: populatedPrompt });
             currentContext[currentNode.outputVariable] = llmResponse.text;
           } else {
@@ -177,7 +141,7 @@ export async function executeAgentFlow(input: ExecuteAgentFlowInput): Promise<Ex
           continue; // Skip edge finding for 'end' node
 
         default:
-          messagesToSend.push(`(System: Unknown node type '${currentNode.type}' for node '${currentNode.id}')`);
+          messagesToSend.push(`(System: Unknown node type '${(currentNode as any).type}' for node '${currentNode.id}')`);
       }
       
       // Determine the next node
@@ -227,11 +191,11 @@ export async function executeAgentFlow(input: ExecuteAgentFlowInput): Promise<Ex
 // Defining the Genkit flow (wrapper around the main logic)
 const agentJsonFlow = ai.defineFlow(
   {
-    name: 'agentJsonFlow', // Renamed from executeAgentFlow to avoid conflict with exported function
-    inputSchema: ExecuteAgentFlowInputSchema,
-    outputSchema: ExecuteAgentFlowOutputSchema,
+    name: 'agentJsonFlow', 
+    inputSchema: ExecuteAgentFlowInputSchema,  // Uses locally defined schema (which internally uses imported schemas)
+    outputSchema: ExecuteAgentFlowOutputSchema, // Uses locally defined schema (which internally uses imported schemas)
   },
   async (input) => {
-    return executeAgentFlow(input);
+    return executeAgentFlow(input); // Calls the exported async function
   }
 );

@@ -1,41 +1,53 @@
 
-export interface FlowNode {
-  id: string;
-  type: 'start' | 'sendMessage' | 'getUserInput' | 'callLLM' | 'condition' | 'apiCall' | 'end';
-  position?: { x: number; y: number };
+import { z } from 'zod';
+
+// Zod Schemas for Flow Definition
+export const FlowNodeSchema = z.object({
+  id: z.string(),
+  type: z.enum(['start', 'sendMessage', 'getUserInput', 'callLLM', 'condition', 'apiCall', 'end']),
+  position: z.object({ x: z.number(), y: z.number() }).optional(),
   // sendMessage
-  message?: string;
+  message: z.string().optional(),
   // getUserInput
-  prompt?: string; // Prompt for getUserInput
-  variableName?: string; // Variable to store user input
+  prompt: z.string().optional(), // Prompt for getUserInput
+  variableName: z.string().optional(), // Variable to store user input
   // callLLM
-  llmPrompt?: string; // Prompt for callLLM (renamed from 'prompt' to avoid clash)
-  outputVariable?: string; // Variable to store LLM output
+  llmPrompt: z.string().optional(), // Prompt for callLLM
+  outputVariable: z.string().optional(), // Variable to store LLM output
   // condition
-  conditionExpression?: string; // e.g., "context.variableName == 'value'"
+  conditionExpression: z.string().optional(), // e.g., "context.variableName == 'value'"
   // apiCall
-  apiUrl?: string;
-  apiMethod?: 'GET' | 'POST'; // etc.
-  apiPayloadVariable?: string; // variable from context to use as payload
-  apiOutputVariable?: string; // variable to store api response
-}
+  apiUrl: z.string().optional(),
+  apiMethod: z.enum(['GET', 'POST']).optional(), // etc.
+  apiPayloadVariable: z.string().optional(), // variable from context to use as payload
+  apiOutputVariable: z.string().optional(), // variable to store api response
+});
+export type FlowNode = z.infer<typeof FlowNodeSchema>;
 
-export interface FlowEdge {
-  id: string;
-  source: string; // source node id
-  target: string; // target node id
-  label?: string;
-  condition?: string; // For conditional transitions from a 'condition' node, e.g., "true" or "false" or specific value
-}
+export const FlowEdgeSchema = z.object({
+  id: z.string(),
+  source: z.string(), // source node id
+  target: z.string(), // target node id
+  label: z.string().optional(),
+  condition: z.string().optional(), // For conditional transitions from a 'condition' node, e.g., "true" or "false" or specific value
+});
+export type FlowEdge = z.infer<typeof FlowEdgeSchema>;
 
-export interface AgentFlowDefinition {
-  flowId: string;
-  name: string;
-  description: string;
-  nodes: FlowNode[];
-  edges: FlowEdge[];
-}
+export const AgentFlowDefinitionSchema = z.object({
+  flowId: z.string(),
+  name: z.string(),
+  description: z.string(),
+  nodes: z.array(FlowNodeSchema),
+  edges: z.array(FlowEdgeSchema),
+});
+export type AgentFlowDefinition = z.infer<typeof AgentFlowDefinitionSchema>;
 
+// Zod Schema for Flow Context
+export const FlowContextSchema = z.record(z.any()).describe("Holds variables like userName, llmResponse etc. Also includes conversationHistory.");
+export type FlowContext = z.infer<typeof FlowContextSchema>;
+
+
+// Existing Agent and other types
 export interface Agent {
   id: string;
   name: string;
@@ -56,12 +68,6 @@ export interface KnowledgeItem {
   uploadedAt: string;
   summary?: string;
   keywords?: string[];
-}
-
-// Conversation context for flow execution
-export interface FlowContext {
-  [key: string]: any; // Holds variables like userName, llmResponse etc.
-  conversationHistory?: ChatMessage[]; // Optional: for more complex context
 }
 
 export interface ChatMessage {
