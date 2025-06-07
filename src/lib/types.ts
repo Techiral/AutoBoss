@@ -14,25 +14,82 @@ export type KnowledgeItem = z.infer<typeof KnowledgeItemSchema>;
 // Zod Schemas for Flow Definition
 export const FlowNodeSchema = z.object({
   id: z.string(),
-  type: z.enum(['start', 'sendMessage', 'getUserInput', 'callLLM', 'condition', 'apiCall', 'end']),
+  type: z.enum([
+    'start', 
+    'sendMessage', 
+    'getUserInput', 
+    'callLLM', 
+    'condition', 
+    'apiCall', // Used for HTTP Request
+    'end',
+    'action',      // New
+    'code',        // New
+    'qnaLookup',   // New
+    'wait',        // New
+    'transition',  // New
+    'agentSkill'   // New
+  ]),
   position: z.object({ x: z.number(), y: z.number() }).optional(),
+  
   // sendMessage
   message: z.string().optional(),
-  // getUserInput
-  prompt: z.string().optional(), // Prompt for getUserInput
-  variableName: z.string().optional(), // Variable to store user input
+  
+  // getUserInput (Ask Question)
+  prompt: z.string().optional(), 
+  variableName: z.string().optional(), 
+  inputType: z.string().optional().describe("e.g., text, number, email, choice, date"),
+  validationRules: z.string().optional().describe("e.g., regex, ranges"),
+
   // callLLM
-  llmPrompt: z.string().optional(), // Prompt for callLLM
-  outputVariable: z.string().optional(), // Variable to store LLM output
+  llmPrompt: z.string().optional(), 
+  outputVariable: z.string().optional(), 
   useKnowledge: z.boolean().optional(),
+  
   // condition
-  conditionVariable: z.string().optional(), // Name of the variable in context to check for branching
+  conditionVariable: z.string().optional(), 
   useLLMForDecision: z.boolean().optional().describe("If true, uses an LLM to match conditionVariable's value against edge conditions."),
-  // apiCall
+  conditionExpressions: z.array(z.string()).optional().describe("List of JS/Nunjucks expressions for condition node"),
+
+
+  // apiCall (HTTP Request)
   apiUrl: z.string().optional(),
-  apiMethod: z.enum(['GET', 'POST']).optional(), // etc.
-  apiPayloadVariable: z.string().optional(), // variable from context to use as payload
-  apiOutputVariable: z.string().optional(), // variable to store api response
+  apiMethod: z.enum(['GET', 'POST', 'PUT', 'DELETE', 'PATCH']).optional(), 
+  apiHeaders: z.record(z.string()).optional(),
+  apiBodyVariable: z.string().optional().describe("Variable from context for request body"),
+  apiTimeout: z.number().optional(),
+  apiRetryAttempts: z.number().optional(),
+  apiOutputVariable: z.string().optional(), 
+
+  // end
+  endOutputVariable: z.string().optional().describe("Variable from context to output from the flow"),
+
+  // action
+  actionName: z.string().optional(),
+  actionInputArgs: z.record(z.any()).optional(),
+  actionOutputVarMap: z.record(z.string()).optional(),
+
+  // code
+  codeScript: z.string().optional(),
+  codeReturnVarMap: z.record(z.string()).optional(),
+
+  // qnaLookup
+  qnaKnowledgeBaseId: z.string().optional(),
+  qnaThreshold: z.number().optional(),
+  qnaFallbackText: z.string().optional(),
+
+  // wait
+  waitDurationMs: z.number().optional(),
+
+  // transition
+  transitionTargetFlowId: z.string().optional(),
+  transitionTargetNodeId: z.string().optional(),
+  transitionVariablesToPass: z.record(z.any()).optional(),
+
+  // agentSkill
+  agentSkillId: z.string().optional(),
+  agentSkillsList: z.array(z.string()).optional(),
+  agentContextWindow: z.number().optional(),
+
 });
 export type FlowNode = z.infer<typeof FlowNodeSchema>;
 
@@ -40,8 +97,9 @@ export const FlowEdgeSchema = z.object({
   id: z.string(),
   source: z.string(), // source node id
   target: z.string(), // target node id
-  label: z.string().optional(), // Visual label for the edge
-  condition: z.string().optional(), // Value for conditional branching. If parent node uses LLMForDecision, this is a descriptive category for the LLM. Empty or absent for default path.
+  label: z.string().optional(), // Visual label for the edge (e.g., for conditions or error paths)
+  condition: z.string().optional(), // Value for conditional branching or descriptive category for LLM. Empty/absent for default/unconditional.
+  edgeType: z.enum(['success', 'error', 'invalid', 'default', 'found', 'notFound']).optional().describe("Semantic type for edge, e.g. for HTTP error paths")
 });
 export type FlowEdge = z.infer<typeof FlowEdgeSchema>;
 
@@ -85,3 +143,4 @@ export interface ChatMessage {
   flowNodeId?: string; // ID of the flow node that generated this message
   flowContext?: FlowContext; // Context at the time of this message (for debugging or state)
 }
+
