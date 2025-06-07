@@ -24,9 +24,10 @@ export const FlowNodeSchema = z.object({
   // callLLM
   llmPrompt: z.string().optional(), // Prompt for callLLM
   outputVariable: z.string().optional(), // Variable to store LLM output
-  useKnowledge: z.boolean().optional(), // New: Flag to use agent's knowledge
+  useKnowledge: z.boolean().optional(),
   // condition
   conditionVariable: z.string().optional(), // Name of the variable in context to check for branching
+  useLLMForDecision: z.boolean().optional().describe("If true, uses an LLM to match conditionVariable's value against edge conditions."),
   // apiCall
   apiUrl: z.string().optional(),
   apiMethod: z.enum(['GET', 'POST']).optional(), // etc.
@@ -39,8 +40,8 @@ export const FlowEdgeSchema = z.object({
   id: z.string(),
   source: z.string(), // source node id
   target: z.string(), // target node id
-  label: z.string().optional(),
-  condition: z.string().optional(), // For conditional transitions from a 'condition' node, e.g., "yes", "no", or specific value to match contextVariable's value. Empty or absent for default path.
+  label: z.string().optional(), // Visual label for the edge
+  condition: z.string().optional(), // Value for conditional branching. If parent node uses LLMForDecision, this is a descriptive category for the LLM. Empty or absent for default path.
 });
 export type FlowEdge = z.infer<typeof FlowEdgeSchema>;
 
@@ -84,4 +85,3 @@ export interface ChatMessage {
   flowNodeId?: string; // ID of the flow node that generated this message
   flowContext?: FlowContext; // Context at the time of this message (for debugging or state)
 }
-
