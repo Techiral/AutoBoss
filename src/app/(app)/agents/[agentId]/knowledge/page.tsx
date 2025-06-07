@@ -37,6 +37,8 @@ export default function KnowledgePage() {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       setSelectedFile(event.target.files[0]);
+    } else {
+      setSelectedFile(null);
     }
   };
 
@@ -60,9 +62,10 @@ export default function KnowledgePage() {
             title: "Knowledge Extracted!",
             description: `Successfully processed "${fileName}".`,
         });
-    } catch (extractionError) {
+    } catch (extractionError: any) {
         console.error("Error extracting knowledge:", extractionError);
-        toast({ title: "Extraction Error", description: `Failed to extract knowledge from "${fileName}".`, variant: "destructive" });
+        const errorMessage = extractionError.message || `Failed to extract knowledge from "${fileName}".`;
+        toast({ title: "Extraction Error", description: errorMessage, variant: "destructive" });
     }
   }
 
@@ -78,10 +81,53 @@ export default function KnowledgePage() {
       reader.readAsDataURL(selectedFile);
       
       reader.onload = async () => {
-        const documentDataUri = reader.result as string;
+        let documentDataUri = reader.result as string;
+        const originalFileMimeType = selectedFile.type;
+        let effectiveMimeType = originalFileMimeType;
+        const fileName = selectedFile.name.toLowerCase();
+
+        // If browser provides a generic MIME type, try to infer from extension for common text types
+        if (!effectiveMimeType || effectiveMimeType === 'application/octet-stream') {
+          if (fileName.endsWith('.txt')) {
+            effectiveMimeType = 'text/plain';
+          } else if (fileName.endsWith('.md')) {
+            effectiveMimeType = 'text/markdown';
+          } else if (fileName.endsWith('.json')) {
+            effectiveMimeType = 'application/json'; // Gemini treats this as text
+          } else if (fileName.endsWith('.csv')) {
+            effectiveMimeType = 'text/csv'; // Gemini treats this as text
+          } else if (fileName.endsWith('.html') || fileName.endsWith('.htm')) {
+            effectiveMimeType = 'text/html';
+          }
+          // Add more explicit overrides if needed
+        }
+
+        // Reconstruct data URI if we inferred a better MIME type
+        if (effectiveMimeType && effectiveMimeType !== originalFileMimeType) {
+          const base64Marker = ';base64,';
+          const base64DataIndex = documentDataUri.indexOf(base64Marker);
+          if (base64DataIndex !== -1) {
+            const base64Data = documentDataUri.substring(base64DataIndex + base64Marker.length);
+            documentDataUri = `data:${effectiveMimeType};base64,${base64Data}`;
+          }
+        }
+        
+        // Final check: if it's still application/octet-stream, AI will likely reject it.
+        if (documentDataUri.startsWith('data:application/octet-stream')) {
+            toast({
+                title: "Unsupported File Type",
+                description: `The file "${selectedFile.name}" has a generic type (application/octet-stream) that is not directly supported by the AI. Please try a common text-based format (TXT, MD, PDF) or a supported image format.`,
+                variant: "destructive",
+            });
+            setIsLoading(false);
+            setSelectedFile(null);
+            const fileInput = document.getElementById('document') as HTMLInputElement;
+            if (fileInput) fileInput.value = '';
+            return; 
+        }
+
         await processAndAddKnowledge(documentDataUri, selectedFile.name);
         setSelectedFile(null); 
-        // Clear the file input visually for better UX
         const fileInput = document.getElementById('document') as HTMLInputElement;
         if (fileInput) {
             fileInput.value = '';
@@ -129,7 +175,7 @@ export default function KnowledgePage() {
         <CardContent className="space-y-4">
             <div className="space-y-2">
                 <Label htmlFor="document">Upload Document</Label>
-                <Input id="document" type="file" onChange={handleFileChange} accept=".txt,.pdf,.md,.docx" disabled={isLoading}/>
+                <Input id="document" type="file" onChange={handleFileChange} accept=".txt,.pdf,.md,.docx,.json,.csv,.html,.htm,image/png,image/jpeg" disabled={isLoading}/>
                 {selectedFile && <p className="text-sm text-muted-foreground">Selected: {selectedFile.name}</p>}
             </div>
             <Button onClick={handleSubmitFile} disabled={isLoading || !selectedFile} className="w-full mt-4">
