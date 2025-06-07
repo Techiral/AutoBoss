@@ -42,6 +42,18 @@ function templatize(templateString: string, context: FlowContext): string {
   });
 }
 
+// Helper function to find the next edge based on various criteria
+function findNextEdge(currentNodeId: string, flowDefinition: AgentFlowDefinition, preferredEdgeType?: FlowEdge['edgeType']): FlowEdge | undefined {
+    const outgoingEdges = flowDefinition.edges.filter(edge => edge.source === currentNodeId);
+    if (preferredEdgeType) {
+        const typedEdge = outgoingEdges.find(edge => edge.edgeType === preferredEdgeType);
+        if (typedEdge) return typedEdge;
+    }
+    // Fallback to default or first available edge
+    return outgoingEdges.find(edge => edge.edgeType === 'default' || !edge.edgeType) || outgoingEdges[0];
+}
+
+
 export async function executeAgentFlow(input: ExecuteAgentFlowInput): Promise<ExecuteAgentFlowOutput> {
   const { flowDefinition, currentMessage, knowledgeItems } = input;
   let { currentContext, startNodeId } = input;
@@ -72,12 +84,14 @@ export async function executeAgentFlow(input: ExecuteAgentFlowInput): Promise<Ex
 
       switch (currentNode.type) {
         case 'start':
+          nextEdge = findNextEdge(currentNode.id, flowDefinition);
           break;
 
         case 'sendMessage':
           if (currentNode.message) {
             messagesToSend.push(templatize(currentNode.message, currentContext));
           }
+          nextEdge = findNextEdge(currentNode.id, flowDefinition);
           break;
 
         case 'getUserInput':
@@ -86,8 +100,14 @@ export async function executeAgentFlow(input: ExecuteAgentFlowInput): Promise<Ex
               currentContext[currentNode.variableName] = currentMessage;
             }
             currentContext.waitingForInput = undefined; 
-            // TODO: Add validation logic here based on currentNode.validationRules and currentNode.inputType
-            // If invalid, find an edge with edgeType 'invalid'
+            // Basic validation placeholder (true for now)
+            const isValid = true; // Replace with actual validation logic if currentNode.validationRules
+            if (isValid) {
+                 nextEdge = findNextEdge(currentNode.id, flowDefinition, 'default'); // or 'success' if that's used
+            } else {
+                 nextEdge = findNextEdge(currentNode.id, flowDefinition, 'invalid');
+                 if (!nextEdge) messagesToSend.push(`(System: Input for ${currentNode.id} was invalid, but no 'invalid' path defined.)`);
+            }
           } else if (!currentContext.waitingForInput) {
             if (currentNode.prompt) {
               messagesToSend.push(templatize(currentNode.prompt, currentContext));
@@ -113,8 +133,10 @@ export async function executeAgentFlow(input: ExecuteAgentFlowInput): Promise<Ex
             
             const llmResponse = await ai.generate({ prompt: populatedPrompt });
             currentContext[currentNode.outputVariable] = llmResponse.text;
+            nextEdge = findNextEdge(currentNode.id, flowDefinition);
           } else {
             messagesToSend.push(`(System: LLM node '${currentNode.id}' misconfigured - missing prompt or outputVariable)`);
+            nextEdge = findNextEdge(currentNode.id, flowDefinition);
           }
           break;
         
@@ -124,87 +146,136 @@ export async function executeAgentFlow(input: ExecuteAgentFlowInput): Promise<Ex
 
           if (!variableName || currentContext[variableName] === undefined) {
             messagesToSend.push(`(System: Condition node '${currentNode.id}' - variable '${variableName || 'undefined'}' not found or not set. Attempting default path.)`);
-            nextEdge = outgoingEdges.find(edge => !edge.condition || edge.condition === "" || edge.edgeType === 'default');
+            nextEdge = outgoingEdges.find(edge => edge.edgeType === 'default' || !edge.condition || edge.condition === "");
           } else {
-            const valueToEvaluate = String(currentContext[variableName]);
+            const valueToEvaluate = String(currentContext[variableName]).toLowerCase();
 
             if (currentNode.useLLMForDecision) {
               const edgeConditionLabels = outgoingEdges
                 .map(edge => edge.condition)
-                .filter((condition): condition is string => typeof condition === 'string' && condition !== ""); 
+                .filter((condition): condition is string => typeof condition === 'string' && condition.trim() !== ""); 
               
               if (edgeConditionLabels.length > 0) {
-                const llmPromptForDecision = `User input: "${valueToEvaluate}". Based on this input, which of the following categories or intents best describes it? Categories: ${JSON.stringify(edgeConditionLabels)}. Respond with *only* the text of the chosen category. If none directly match, try to find the closest one or respond with the category for a general or default fallback if available.`;
+                const llmPromptForDecision = `User input: "${valueToEvaluate}". Based on this input, which of the following categories or intents best describes it? Categories: ${JSON.stringify(edgeConditionLabels)}. Respond with *only* the text of the chosen category. If none directly match, respond with the category for a general or default fallback if available (usually the one with an empty condition text).`;
                 try {
                   const decisionResponse = await ai.generate({ prompt: llmPromptForDecision });
-                  const chosenCategory = decisionResponse.text?.trim();
+                  let chosenCategory = decisionResponse.text?.trim().toLowerCase();
                   
-                  nextEdge = outgoingEdges.find(edge => edge.condition === chosenCategory);
+                  nextEdge = outgoingEdges.find(edge => edge.condition?.toLowerCase() === chosenCategory);
                   if (!nextEdge) { 
                      messagesToSend.push(`(System: LLM decision '${chosenCategory}' did not match any edge condition directly for node '${currentNode.id}'. Trying default.)`);
-                    nextEdge = outgoingEdges.find(edge => !edge.condition || edge.condition === "" || edge.edgeType === 'default');
+                    nextEdge = outgoingEdges.find(edge => edge.edgeType === 'default' || !edge.condition || edge.condition === "");
                   }
                 } catch (llmError: any) {
                   messagesToSend.push(`(System: LLM decision error for node '${currentNode.id}': ${llmError.message}. Trying default.)`);
-                  nextEdge = outgoingEdges.find(edge => !edge.condition || edge.condition === "" || edge.edgeType === 'default');
+                  nextEdge = outgoingEdges.find(edge => edge.edgeType === 'default' || !edge.condition || edge.condition === "");
                 }
               } else {
                  messagesToSend.push(`(System: Condition node '${currentNode.id}' set to useLLMForDecision, but no valid edge conditions found. Trying default.)`);
-                nextEdge = outgoingEdges.find(edge => !edge.condition || edge.condition === "" || edge.edgeType === 'default');
+                nextEdge = outgoingEdges.find(edge => edge.edgeType === 'default' || !edge.condition || edge.condition === "");
               }
             } else { 
-              // Standard string matching from expressions (currentNode.conditionExpressions)
-              // This part needs more advanced expression evaluation if using JS/Nunjucks
-              // For now, simple string match on edge.condition
-              nextEdge = outgoingEdges.find(edge => edge.condition === valueToEvaluate);
+              nextEdge = outgoingEdges.find(edge => edge.condition?.toLowerCase() === valueToEvaluate);
               if (!nextEdge) {
-                nextEdge = outgoingEdges.find(edge => !edge.condition || edge.condition === "" || edge.edgeType === 'default');
+                nextEdge = outgoingEdges.find(edge => edge.edgeType === 'default' || !edge.condition || edge.condition === "");
               }
             }
           }
           break;
 
-        case 'apiCall': // HTTP Request
-           messagesToSend.push(`(System: HTTP Request (apiCall) node '${currentNode.id}' - placeholder execution)`);
-           // Placeholder: find success edge or default
-           nextEdge = flowDefinition.edges.find(edge => edge.source === currentNodeId && (edge.edgeType === 'success' || !edge.edgeType));
+        case 'apiCall': // HTTP Request (Placeholder)
+           messagesToSend.push(`(System: HTTP Request (apiCall) node '${currentNode.id}' - Placeholder. Would call ${currentNode.apiMethod || 'GET'} ${templatize(currentNode.apiUrl || '', currentContext)})`);
+           // Placeholder: In a real scenario, make HTTP call, then based on response (success/error):
+           // if (success) { currentContext[currentNode.apiOutputVariable] = response_data; nextEdge = findNextEdge(currentNode.id, flowDefinition, 'success'); }
+           // else { nextEdge = findNextEdge(currentNode.id, flowDefinition, 'error'); }
+           currentContext[currentNode.apiOutputVariable || 'apiResult'] = "Placeholder API Response";
+           nextEdge = findNextEdge(currentNode.id, flowDefinition, 'success');
+           if (!nextEdge) nextEdge = findNextEdge(currentNode.id, flowDefinition, 'default');
           break;
         
-        case 'action':
-          messagesToSend.push(`(System: Action node '${currentNode.id}' - placeholder execution)`);
-          nextEdge = flowDefinition.edges.find(edge => edge.source === currentNodeId);
-          break;
-        case 'code':
-          messagesToSend.push(`(System: Code (JS) node '${currentNode.id}' - placeholder execution)`);
-          // In real implementation: execute currentNode.codeScript
-          // For now, just find the next edge.
-          nextEdge = flowDefinition.edges.find(edge => edge.source === currentNodeId);
-          break;
-        case 'qnaLookup':
-          messagesToSend.push(`(System: Q&A Lookup node '${currentNode.id}' - placeholder execution)`);
-          // Placeholder: find 'found' or 'notFound' edge or default
-          nextEdge = flowDefinition.edges.find(edge => edge.source === currentNodeId && (edge.edgeType === 'found' || !edge.edgeType));
-          break;
-        case 'wait':
-          messagesToSend.push(`(System: Wait node '${currentNode.id}' for ${currentNode.waitDurationMs || 0}ms - placeholder, no actual delay)`);
-          // In real implementation: await new Promise(resolve => setTimeout(resolve, currentNode.waitDurationMs));
-          nextEdge = flowDefinition.edges.find(edge => edge.source === currentNodeId);
-          break;
-        case 'transition':
-          messagesToSend.push(`(System: Transition node '${currentNode.id}' to flow '${currentNode.transitionTargetFlowId}' - placeholder)`);
-          // This would involve a more complex mechanism to switch flow contexts or call another flow executor.
-          // For now, it might act like an end node or proceed if an edge is defined (though typically it wouldn't have one).
-          isFlowFinished = true; // Or treat as end for now
-          currentNodeId = undefined;
-          continue;
-        case 'agentSkill':
-          messagesToSend.push(`(System: Agent Skill node '${currentNode.id}' - placeholder execution)`);
-          nextEdge = flowDefinition.edges.find(edge => edge.source === currentNodeId);
+        case 'action': // Placeholder
+          messagesToSend.push(`(System: Action node '${currentNode.id}' - Placeholder. Action: ${currentNode.actionName || 'N/A'})`);
+          // In real implementation:
+          // const actionResult = await executeRegisteredAction(currentNode.actionName, currentNode.actionInputArgs, currentContext);
+          // Map actionResult to context using currentNode.actionOutputVarMap
+          nextEdge = findNextEdge(currentNode.id, flowDefinition);
           break;
 
+        case 'code': // Placeholder - NO ACTUAL CODE EXECUTION
+            messagesToSend.push(`(System: Code (JS) node '${currentNode.id}' - Placeholder. Script: '${currentNode.codeScript?.substring(0, 50)}...')`);
+            // This is a highly simplified placeholder. Real JS execution is complex and needs sandboxing.
+            if (currentNode.codeScript && currentNode.codeReturnVarMap) {
+                // Extremely basic simulation for a return object: `return { "key": "value" };`
+                const match = currentNode.codeScript.match(/return\s*{\s*["']([^"']+)["']\s*:\s*["']([^"']+)["']\s*};?/);
+                if (match) {
+                    const returnKey = match[1];
+                    const returnValue = match[2];
+                    for (const [contextVar, scriptVar] of Object.entries(currentNode.codeReturnVarMap)) {
+                        if (scriptVar === returnKey) {
+                            currentContext[contextVar] = returnValue;
+                            messagesToSend.push(`(System: Code node simulated setting context.${contextVar} to "${returnValue}")`);
+                        }
+                    }
+                }
+            }
+            nextEdge = findNextEdge(currentNode.id, flowDefinition);
+            break;
+
+        case 'qnaLookup': // Placeholder, basic keyword check
+            messagesToSend.push(`(System: Q&A Lookup node '${currentNode.id}' - Placeholder)`);
+            let found = false;
+            const query = currentNode.qnaQueryVariable ? currentContext[currentNode.qnaQueryVariable] as string : currentMessage;
+
+            if (query && knowledgeItems && knowledgeItems.length > 0) {
+                const lowerQuery = query.toLowerCase();
+                for (const item of knowledgeItems) {
+                    if (item.summary?.toLowerCase().includes(lowerQuery) || item.keywords?.some(k => k.toLowerCase().includes(lowerQuery))) {
+                        found = true;
+                        if (currentNode.qnaOutputVariable) {
+                            currentContext[currentNode.qnaOutputVariable] = item.summary || "Found relevant information.";
+                        }
+                        break;
+                    }
+                }
+            }
+            if (found) {
+                nextEdge = findNextEdge(currentNode.id, flowDefinition, 'found');
+            } else {
+                if (currentNode.qnaOutputVariable) {
+                     currentContext[currentNode.qnaOutputVariable] = currentNode.qnaFallbackText || "No specific answer found in knowledge base.";
+                }
+                nextEdge = findNextEdge(currentNode.id, flowDefinition, 'notFound');
+            }
+            if (!nextEdge) nextEdge = findNextEdge(currentNode.id, flowDefinition, 'default'); // Fallback
+            break;
+
+        case 'wait':
+            messagesToSend.push(`(System: Wait node '${currentNode.id}' starting for ${currentNode.waitDurationMs || 0}ms)`);
+            if (currentNode.waitDurationMs && currentNode.waitDurationMs > 0) {
+                await new Promise(resolve => setTimeout(resolve, currentNode.waitDurationMs));
+            }
+            messagesToSend.push(`(System: Wait node '${currentNode.id}' finished)`);
+            nextEdge = findNextEdge(currentNode.id, flowDefinition);
+            break;
+
+        case 'transition': // Placeholder
+            messagesToSend.push(`(System: Transition node '${currentNode.id}' - Placeholder. Would transition to flow '${currentNode.transitionTargetFlowId}')`);
+            // This would involve a more complex mechanism to switch flow contexts or call another flow executor.
+            // For now, it might act like an end node or proceed if an edge is defined (though typically it wouldn't have one).
+            isFlowFinished = true; // Or treat as end for now
+            currentNodeId = undefined;
+            continue;
+
+        case 'agentSkill': // Placeholder
+            messagesToSend.push(`(System: Agent Skill node '${currentNode.id}' - Placeholder. Skill: ${currentNode.agentSkillId || 'N/A'})`);
+            nextEdge = findNextEdge(currentNode.id, flowDefinition);
+            break;
+
         case 'end':
-          if (currentNode.endOutputVariable && currentContext[currentNode.endOutputVariable]) {
+          if (currentNode.endOutputVariable && currentContext[currentNode.endOutputVariable] !== undefined) {
             messagesToSend.push(`(System: Flow ended. Output from '${currentNode.endOutputVariable}': ${currentContext[currentNode.endOutputVariable]})`);
+          } else if (currentNode.endOutputVariable) {
+            messagesToSend.push(`(System: Flow ended. Output variable '${currentNode.endOutputVariable}' was specified but not found in context.)`);
           } else {
             messagesToSend.push("(System: Flow ended.)");
           }
@@ -214,17 +285,11 @@ export async function executeAgentFlow(input: ExecuteAgentFlowInput): Promise<Ex
 
         default:
           // This is a way to handle unknown node types if FlowNodeType in studio.tsx diverges from lib/types.ts
-          const exhaustiveCheck: never = currentNode.type; 
-          messagesToSend.push(`(System: Unknown node type encountered for node '${currentNode.id}')`);
+          // const exhaustiveCheck: never = currentNode.type; 
+          messagesToSend.push(`(System: Unknown node type '${(currentNode as any).type}' encountered for node '${currentNode.id}')`);
+          nextEdge = findNextEdge(currentNode.id, flowDefinition); // Try to find a default edge
       }
       
-      if (!nextEdge && currentNode.type !== 'condition' && currentNode.type !== 'end') {
-        // For non-conditional, non-end nodes, there should typically be one outgoing edge.
-        // If we didn't find one above (e.g. for new placeholder types), try to find any default edge.
-        nextEdge = flowDefinition.edges.find(edge => edge.source === currentNodeId);
-      }
-
-
       if (nextEdge) {
         currentNodeId = nextEdge.target;
       } else {
