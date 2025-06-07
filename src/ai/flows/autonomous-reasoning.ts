@@ -34,29 +34,33 @@ const prompt = ai.definePrompt({
   name: 'autonomousReasoningPrompt',
   input: {schema: AutonomousReasoningInputSchema},
   output: {schema: AutonomousReasoningOutputSchema},
-  prompt: `You are an AI assistant. Your role is to analyze the context of a conversation, the user's input, and any provided knowledge to generate a helpful and relevant response.
+  prompt: `You are a helpful and conversational AI assistant. Your primary goal is to understand the user's input within the given conversation context and respond naturally and effectively.
 
 {{#if knowledgeItems.length}}
-Relevant Information from Knowledge Base:
+You have access to the following information from a knowledge base. Use it to answer questions or supplement your responses whenever relevant:
 {{#each knowledgeItems}}
 ---
+Source: {{{this.fileName}}}
 Summary: {{{this.summary}}}
-Keywords: {{#each this.keywords}}{{{this}}}{{/each}}
+Keywords: {{#each this.keywords}}{{{this}}}{{/if}}
 ---
 {{/each}}
-
-Based on this knowledge AND the conversation context, proceed with the user's request.
+Always prioritize information from this knowledge base if it directly answers the user's query.
+{{else}}
+You do not have any specific pre-loaded documents for this query, rely on your general knowledge and the conversation context.
 {{/if}}
 
-Conversation Context:
+Conversation Context (previous messages):
 {{{context}}}
 
 User's Latest Input:
 {{{userInput}}}
 
-Based on the full conversation context, the user's latest input, and any relevant information from the knowledge base (if provided), generate a direct conversational "responseToUser". Also, provide a brief "reasoning" for why you chose that response.
+Based on the full conversation context, the user's latest input, and any relevant information from the knowledge base (if provided):
+1. Generate a direct, natural, and conversational "responseToUser".
+2. Provide a brief "reasoning" for why you chose that response. For instance, mention if you used the knowledge base or how the user's input related to the conversation history.
 
-Output in JSON format:
+Your response MUST be a single, valid JSON object adhering to the output schema:
 {
   "responseToUser": "The conversational reply to send to the user.",
   "reasoning": "The reasoning behind the chosen response."
@@ -71,28 +75,15 @@ const autonomousReasoningFlow = ai.defineFlow(
     outputSchema: AutonomousReasoningOutputSchema,
   },
   async (input: AutonomousReasoningInput): Promise<AutonomousReasoningOutput> => {
-    // Prepare knowledge string for the prompt, similar to executeAgentFlow
-    let knowledgeContent = "";
-    if (input.knowledgeItems && input.knowledgeItems.length > 0) {
-      const knowledgeSummaries = input.knowledgeItems
-        .map(item => item.summary)
-        .filter(Boolean)
-        .join("\n\n---\n\n");
-      if (knowledgeSummaries) {
-        knowledgeContent = `Relevant Information from Knowledge Base:\n${knowledgeSummaries}\n\n`;
-      }
-    }
+    // The Handlebars prompt template handles the conditional inclusion of knowledgeItems directly.
+    const modelResponse = await prompt(input); 
     
-    // The Handlebars prompt template handles the conditional inclusion of knowledgeItems
-    // directly from the input object. We don't need to manually construct the prompt string here.
-    // The `prompt` function defined by `ai.definePrompt` will use the `knowledgeItems` from the input object.
-
-    const {output} = await prompt(input); // Pass the full input including knowledgeItems
-    
-    if (!output) {
-        throw new Error("Autonomous reasoning failed to produce an output.");
+    if (!modelResponse.output) {
+        const rawText = modelResponse.response?.text;
+        console.error("Autonomous reasoning failed to produce structured output. Raw response:", rawText);
+        throw new Error(`Autonomous reasoning failed. Model response: ${rawText ? rawText.substring(0,200) : 'No raw text'}`);
     }
-    return output;
+    return modelResponse.output;
   }
 );
 
