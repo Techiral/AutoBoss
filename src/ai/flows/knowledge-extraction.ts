@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -20,7 +21,7 @@ const KnowledgeExtractionInputSchema = z.object({
   documentDataUri: z
     .string()
     .describe(
-      'The document to extract knowledge from, as a data URI that must include a MIME type and use Base64 encoding. Expected format: \'data:<mimetype>;base64,<encoded_data>\'.' 
+      'The document to extract knowledge from, as a data URI that must include a MIME type and use Base64 encoding. Expected format: \'data:<mimetype>;base64,<encoded_data>\'.'
     ),
 });
 export type KnowledgeExtractionInput = z.infer<typeof KnowledgeExtractionInputSchema>;
@@ -55,7 +56,17 @@ const extractKnowledgeFlow = ai.defineFlow(
     outputSchema: KnowledgeExtractionOutputSchema,
   },
   async input => {
-    const {output} = await extractKnowledgePrompt(input);
-    return output!;
+    const modelResponse = await extractKnowledgePrompt(input);
+    if (!modelResponse.output) {
+      const rawText = modelResponse.response?.text;
+      console.error(
+        'Failed to get structured output from extractKnowledgePrompt. Raw model response:',
+        rawText || 'No raw text available'
+      );
+      throw new Error(
+        'AI could not extract knowledge. The model did not return the expected JSON format.'
+      );
+    }
+    return modelResponse.output;
   }
 );
