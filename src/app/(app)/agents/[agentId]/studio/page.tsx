@@ -8,8 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAppContext } from "../../../layout";
-import type { Agent, AgentFlowDefinition, FlowNode, FlowEdge } from "@/lib/types"; // These types come from lib/types
-import { Loader2, Save, FileJson, AlertTriangle } from "lucide-react";
+import type { Agent, AgentFlowDefinition } from "@/lib/types"; // These types come from lib/types
+import { Loader2, Save, FileJson, AlertTriangle, Trash2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertTitle } from "@/components/ui/alert";
 
@@ -37,7 +37,7 @@ const sampleFlow: AgentFlowDefinition = {
 export default function AgentStudioPage() {
   const params = useParams();
   const { toast } = useToast();
-  const { getAgent, updateAgentFlow, getAgentFlow } = useAppContext();
+  const { getAgent, updateAgentFlow } = useAppContext();
   
   const agentId = Array.isArray(params.agentId) ? params.agentId[0] : params.agentId;
   const [currentAgent, setCurrentAgent] = useState<Agent | null | undefined>(undefined);
@@ -56,21 +56,23 @@ export default function AgentStudioPage() {
         setParsedFlow(agent.flow);
         setJsonError(null);
       } else {
-        // Load sample flow if no flow exists for the agent yet
-        // setFlowJson(JSON.stringify(sampleFlow, null, 2));
-        // setParsedFlow(sampleFlow);
-        setFlowJson(""); // Start with empty if no flow
+        setFlowJson(""); 
         setParsedFlow(null);
       }
     }
-  }, [agentId, getAgent]);
+  }, [agentId, getAgent]); // getAgent dependency will refetch agent if context's agent list changes
 
   const handleJsonChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newJson = event.target.value;
     setFlowJson(newJson);
     try {
+      if (newJson.trim() === "") {
+        setParsedFlow(null);
+        setJsonError(null);
+        return;
+      }
       const parsed = JSON.parse(newJson);
-      // Basic validation (can be improved with Zod)
+      // Basic validation (can be improved with Zod schema.parse)
       if (parsed && parsed.nodes && parsed.edges && parsed.flowId) {
         setParsedFlow(parsed);
         setJsonError(null);
@@ -85,20 +87,26 @@ export default function AgentStudioPage() {
   };
 
   const handleSaveFlow = () => {
-    if (!currentAgent || !parsedFlow || jsonError) {
-      toast({
-        title: "Cannot Save Flow",
-        description: jsonError || "No valid flow data to save or agent not loaded.",
-        variant: "destructive",
-      });
+    if (!currentAgent) {
+        toast({ title: "Agent Not Found", description: "Cannot save flow, agent not loaded.", variant: "destructive" });
+        return;
+    }
+    if (jsonError && flowJson.trim() !== "") { // Allow saving an empty flow (effectively deleting it)
+        toast({ title: "Invalid JSON", description: "Cannot save, JSON is invalid.", variant: "destructive"});
+        return;
+    }
+    if (!parsedFlow && flowJson.trim() !== "") { // If JSON is not empty but not parsable to a flow
+      toast({ title: "No Valid Flow Data", description: "Cannot save, flow data is not valid or empty.", variant: "destructive"});
       return;
     }
+
     setIsSaving(true);
     try {
-      updateAgentFlow(currentAgent.id, parsedFlow);
+      // If flowJson is empty, parsedFlow will be null, effectively clearing the flow
+      updateAgentFlow(currentAgent.id, parsedFlow || undefined as any); // Pass undefined if parsedFlow is null
       toast({
         title: "Flow Saved!",
-        description: `Flow "${parsedFlow.name}" has been updated for agent ${currentAgent.generatedName || currentAgent.name}.`,
+        description: parsedFlow ? `Flow "${parsedFlow.name}" has been updated for agent ${currentAgent.generatedName || currentAgent.name}.` : `Flow cleared for agent ${currentAgent.generatedName || currentAgent.name}.`,
       });
     } catch (error) {
       console.error("Error saving flow:", error);
@@ -121,8 +129,9 @@ export default function AgentStudioPage() {
     setParsedFlow(null);
     setJsonError(null);
      if (currentAgent) {
-      // Also remove from context if desired
-      // updateAgentFlow(currentAgent.id, undefined); // Or a way to set it to null/empty
+      updateAgentFlow(currentAgent.id, undefined as any); // Explicitly clear from context
+      toast({ title: "Flow Cleared", description: "Flow editor and agent's flow data have been cleared."});
+    } else {
       toast({ title: "Flow Cleared", description: "Flow editor has been cleared."});
     }
   };
@@ -141,13 +150,13 @@ export default function AgentStudioPage() {
         <CardContent className="space-y-4">
           <div className="flex gap-2">
             <Button onClick={loadSample} variant="outline" size="sm"><FileJson className="mr-2 h-4 w-4" />Load Sample Flow</Button>
-            <Button onClick={clearFlow} variant="outline" size="sm" disabled={!flowJson}>Clear Editor</Button>
+            <Button onClick={clearFlow} variant="destructive" size="sm" disabled={!flowJson && !currentAgent.flow}><Trash2 className="mr-2 h-4 w-4" />Clear Flow & Editor</Button>
           </div>
           <Textarea
             value={flowJson}
             onChange={handleJsonChange}
             rows={25}
-            placeholder="Paste or write your agent flow JSON here..."
+            placeholder="Paste or write your agent flow JSON here, or leave empty to clear the flow..."
             className="font-code text-xs bg-muted/30 border-input focus:border-primary"
           />
           {jsonError && (
@@ -159,7 +168,11 @@ export default function AgentStudioPage() {
           )}
         </CardContent>
         <CardFooter>
-          <Button onClick={handleSaveFlow} disabled={isSaving || !!jsonError || !parsedFlow} className="w-full">
+          <Button 
+            onClick={handleSaveFlow} 
+            disabled={isSaving || (!!jsonError && flowJson.trim() !== "")} 
+            className="w-full"
+          >
             {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
             Save Flow
           </Button>
@@ -207,7 +220,7 @@ export default function AgentStudioPage() {
             </ScrollArea>
           ) : (
             <p className="text-sm text-muted-foreground">
-              {flowJson ? "JSON is invalid or not structured correctly." : "No flow loaded or defined. Paste JSON or load a sample."}
+              {flowJson.trim() ? "JSON is invalid or not structured correctly." : "No flow loaded or defined. Paste JSON or load a sample."}
             </p>
           )}
         </CardContent>
@@ -215,3 +228,5 @@ export default function AgentStudioPage() {
     </div>
   );
 }
+
+    

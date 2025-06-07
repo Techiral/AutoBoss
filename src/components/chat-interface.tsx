@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Send, Bot, User, Loader2, Info, ChevronDown, Zap, Cog } from "lucide-react";
+import { Send, Bot, User, Loader2, Info, Cog, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ChatMessage, Agent, FlowContext, AgentFlowDefinition } from "@/lib/types";
 import { recognizeIntent } from "@/ai/flows/intent-recognition";
@@ -19,7 +19,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { useAppContext } from "@/app/(app)/layout"; // For getting flow definition
+import { useAppContext } from "@/app/(app)/layout";
 
 interface ChatInterfaceProps {
   agent: Agent;
@@ -36,24 +36,23 @@ export function ChatInterface({ agent }: ChatInterfaceProps) {
   const { getAgentFlow } = useAppContext();
 
   const [chatMode, setChatMode] = useState<ChatMode>("autonomous");
-  const [currentFlowContext, setCurrentFlowContext] = useState<FlowContext>({});
+  const [currentFlowContext, setCurrentFlowContext] = useState<FlowContext>({ conversationHistory: [] });
   const [currentAgentFlow, setCurrentAgentFlow] = useState<AgentFlowDefinition | undefined>(undefined);
   const [nextNodeIdToResume, setNextNodeIdToResume] = useState<string | undefined>(undefined);
-
 
   useEffect(() => {
     const flow = getAgentFlow(agent.id);
     setCurrentAgentFlow(flow);
     if (flow) {
-      setChatMode("flow"); // Default to flow mode if agent has a flow
-      // Reset context if agent or flow changes
-      setCurrentFlowContext({ conversationHistory: [] }); 
-      setNextNodeIdToResume(undefined);
+      setChatMode("flow");
     } else {
       setChatMode("autonomous");
     }
+    // Reset context and messages when agent or flow definition might change
+    setCurrentFlowContext({ conversationHistory: [] });
+    setMessages([]);
+    setNextNodeIdToResume(undefined);
   }, [agent.id, getAgentFlow]);
-
 
   const scrollToBottom = () => {
     if (scrollAreaRef.current) {
@@ -67,11 +66,13 @@ export function ChatInterface({ agent }: ChatInterfaceProps) {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-  
-  const initializeChat = useCallback(() => {
-    let initialMessages: ChatMessage[] = [];
-    if (agent.generatedGreeting) {
-      initialMessages.push({
+
+  const initializeChat = useCallback(async () => {
+    setIsLoading(true);
+    let newMessages: ChatMessage[] = [];
+    
+    if (agent.generatedGreeting && chatMode === "autonomous") { // Only show default greeting in autonomous or if flow doesn't send one
+      newMessages.push({
         id: 'agent-greeting',
         sender: 'agent',
         text: agent.generatedGreeting,
@@ -79,17 +80,19 @@ export function ChatInterface({ agent }: ChatInterfaceProps) {
       });
     }
 
+    let tempNextNodeId: string | undefined = undefined;
+    // Use a fresh context copy for initialization, but carry over conversationHistory if needed (though it's empty here)
+    let tempContext = { conversationHistory: [], waitingForInput: undefined }; 
+
     if (chatMode === "flow" && currentAgentFlow) {
-      // If flow mode, try to kick off the flow from the start node (e.g., for an initial message)
-      // This call happens without user input, so currentMessage is undefined.
-      // The flow should handle this, e.g. by sending its first message or prompting if start node is getUserInput
-      setIsLoading(true);
-      executeAgentFlow({
-        flowDefinition: currentAgentFlow,
-        currentContext: { ...currentFlowContext, waitingForInput: undefined }, // Fresh context, ensure waitingForInput is clear
-        currentMessage: undefined, // No user message yet
-        startNodeId: currentAgentFlow.nodes.find(n => n.type === 'start')?.id,
-      }).then(flowResult => {
+      try {
+        const flowResult = await executeAgentFlow({
+          flowDefinition: currentAgentFlow,
+          currentContext: tempContext, // Pass the fresh context
+          currentMessage: undefined,
+          startNodeId: currentAgentFlow.nodes.find(n => n.type === 'start')?.id,
+        });
+
         const agentResponses: ChatMessage[] = flowResult.messagesToSend.map((msg, index) => ({
           id: `flow-init-${Date.now()}-${index}`,
           sender: 'agent',
@@ -97,31 +100,39 @@ export function ChatInterface({ agent }: ChatInterfaceProps) {
           timestamp: Date.now() + index,
           flowNodeId: flowResult.updatedContext.currentNodeId,
         }));
-        setMessages(prev => [...prev, ...agentResponses]);
-        setCurrentFlowContext(flowResult.updatedContext);
-        if (flowResult.nextNodeId) {
-          setNextNodeIdToResume(flowResult.nextNodeId);
-        } else {
-          setNextNodeIdToResume(undefined);
-        }
+        
+        newMessages = [...newMessages, ...agentResponses];
+        tempContext = flowResult.updatedContext; // Capture updated context from flow
+        tempNextNodeId = flowResult.nextNodeId;
+
         if (flowResult.error) {
           toast({ title: "Flow Error", description: flowResult.error, variant: "destructive" });
+          newMessages.push({id: 'flow-error-init', sender: 'agent', text: `Error starting flow: ${flowResult.error}`, timestamp: Date.now()});
         }
-      }).catch(err => {
+      } catch (err: any) {
         console.error("Error initializing flow:", err);
-        toast({ title: "Flow Init Error", description: "Could not start the agent flow.", variant: "destructive" });
-        setMessages(prev => [...prev, {id: 'flow-error-init', sender: 'agent', text: "Error starting my conversation flow.", timestamp: Date.now()}]);
-      }).finally(() => setIsLoading(false));
+        const errorMessage = err.message || "Could not start the agent flow.";
+        toast({ title: "Flow Initialization Error", description: errorMessage, variant: "destructive" });
+        newMessages.push({id: 'flow-error-init-catch', sender: 'agent', text: `System error: ${errorMessage}`, timestamp: Date.now()});
+      }
     }
-     setMessages(initialMessages);
-  }, [agent.generatedGreeting, chatMode, currentAgentFlow, toast, currentFlowContext]);
+    
+    setMessages(newMessages);
+    setCurrentFlowContext(tempContext); // Set the context derived from initialization
+    setNextNodeIdToResume(tempNextNodeId);
+    setIsLoading(false);
+  }, [agent.id, agent.generatedGreeting, chatMode, currentAgentFlow, toast]);
 
 
   useEffect(() => {
-    // Initialize chat when agent or flow definition changes
-    setMessages([]); // Clear previous messages
+    // This effect runs when agent.id or currentAgentFlow (which depends on agent.id via getAgentFlow) changes.
+    // Or when chatMode changes.
+    // It correctly resets messages, context and then calls initializeChat.
+    setMessages([]);
+    setCurrentFlowContext({ conversationHistory: [] });
+    setNextNodeIdToResume(undefined);
     initializeChat();
-  }, [agent, currentAgentFlow, initializeChat]); // Rerun if agent or its flow definition changes
+  }, [agent.id, currentAgentFlow, chatMode, initializeChat]); // initializeChat is now a dependency
 
 
   const handleSendMessage = async () => {
@@ -134,20 +145,22 @@ export function ChatInterface({ agent }: ChatInterfaceProps) {
       timestamp: Date.now(),
     };
     setMessages((prev) => [...prev, userMessage]);
-    const currentInput = input; // Capture input before clearing
+    const currentInput = input;
     setInput("");
     setIsLoading(true);
 
     try {
       if (chatMode === "flow" && currentAgentFlow) {
+        // Add user message to history for the current turn's context
+        const turnContext: FlowContext = {
+          ...currentFlowContext,
+          conversationHistory: [...(currentFlowContext.conversationHistory || []), userMessage],
+          waitingForInput: nextNodeIdToResume || undefined, // Ensure waitingForInput is from state
+        };
+        
         const flowInput: ExecuteAgentFlowInput = {
           flowDefinition: currentAgentFlow,
-          currentContext: { // Pass a fresh copy of context
-            ...currentFlowContext,
-            conversationHistory: [...(currentFlowContext.conversationHistory || []), userMessage],
-             // Ensure waitingForInput is correctly set if resuming
-            waitingForInput: nextNodeIdToResume ? nextNodeIdToResume : undefined,
-          },
+          currentContext: turnContext,
           currentMessage: currentInput,
           startNodeId: nextNodeIdToResume || currentAgentFlow.nodes.find(n => n.type === 'start')?.id,
         };
@@ -160,31 +173,32 @@ export function ChatInterface({ agent }: ChatInterfaceProps) {
           text: msg,
           timestamp: Date.now() + index,
           flowNodeId: result.updatedContext.currentNodeId,
-          flowContext: result.updatedContext, // For debug
+          flowContext: result.updatedContext,
         }));
         setMessages((prev) => [...prev, ...agentResponses]);
-        setCurrentFlowContext(result.updatedContext); // Update context for next turn
+        setCurrentFlowContext(result.updatedContext); 
 
         if (result.nextNodeId) {
-          setNextNodeIdToResume(result.nextNodeId); // Flow is waiting for more input
+          setNextNodeIdToResume(result.nextNodeId); 
         } else {
-          setNextNodeIdToResume(undefined); // Flow completed or ended
+          setNextNodeIdToResume(undefined); 
         }
 
         if (result.error) {
           toast({ title: "Flow Execution Error", description: result.error, variant: "destructive" });
+           setMessages(prev => [...prev, {id: 'flow-error-exec', sender: 'agent', text: `Flow error: ${result.error}`, timestamp: Date.now()}]);
         }
         if (result.isFlowFinished) {
-          // toast({ title: "Flow Finished", description: "The conversation flow has completed."});
-           setNextNodeIdToResume(undefined); // Ensure no resume if flow finished
+           setNextNodeIdToResume(undefined);
         }
 
-      } else { // Autonomous mode
+      } else { 
         const intentResult = await recognizeIntent({ userInput: userMessage.text });
         setMessages(prev => prev.map(m => m.id === userMessage.id ? {...m, intent: intentResult.intent, entities: intentResult.entities } : m));
         
-        const reasoningContext = messages.map(m => `${m.sender}: ${m.text}`).join('\n') + `\nUser: ${userMessage.text}`;
-        const reasoningResult = await autonomousReasoning({ context: reasoningContext, userInput: userMessage.text });
+        const reasoningContextHistory = messages.map(m => `${m.sender}: ${m.text}`).join('\n');
+        const fullContextForReasoning = `${reasoningContextHistory}\nUser: ${userMessage.text}`;
+        const reasoningResult = await autonomousReasoning({ context: fullContextForReasoning, userInput: userMessage.text });
 
         const agentResponse: ChatMessage = {
           id: (Date.now() + 1).toString(),
@@ -196,17 +210,18 @@ export function ChatInterface({ agent }: ChatInterfaceProps) {
         };
         setMessages((prev) => [...prev, agentResponse]);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error processing message:", error);
+      const errorMessage = error.message || "Could not get a response from the agent.";
       toast({
-        title: "Error",
-        description: "Could not get a response from the agent.",
+        title: "Processing Error",
+        description: errorMessage,
         variant: "destructive",
       });
       const errorResponse: ChatMessage = {
         id: (Date.now() + 1).toString(),
         sender: "agent",
-        text: "Sorry, I encountered an error. Please try again.",
+        text: `Sorry, I encountered an error: ${errorMessage}`,
         timestamp: Date.now(),
       };
       setMessages((prev) => [...prev, errorResponse]);
@@ -224,7 +239,7 @@ export function ChatInterface({ agent }: ChatInterfaceProps) {
             size="sm" 
             onClick={() => {
               if (currentAgentFlow) setChatMode('flow');
-              else toast({title: "No Flow", description: "This agent has no flow defined. Create one in the Studio.", variant: "destructive"});
+              else toast({title: "No Flow Defined", description: "This agent does not have a flow. Please define one in the Studio.", variant: "destructive"});
             }}
             disabled={!currentAgentFlow}
             title={!currentAgentFlow ? "No flow defined for this agent" : "Switch to Flow Execution Mode"}
@@ -299,8 +314,18 @@ export function ChatInterface({ agent }: ChatInterfaceProps) {
               )}
             </div>
           ))}
-          {isLoading && (
+          {isLoading && messages.length > 0 && messages[messages.length-1].sender === 'user' && ( // Show loader only if user just sent a message
             <div className="flex items-end gap-2 justify-start">
+               <Avatar className="h-8 w-8">
+                  <AvatarFallback><Bot size={18}/></AvatarFallback>
+                </Avatar>
+              <div className="max-w-[70%] rounded-lg p-3 text-sm shadow bg-muted">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              </div>
+            </div>
+          )}
+           {isLoading && messages.length === 0 && ( // Loader for initial flow execution
+             <div className="flex items-end gap-2 justify-start">
                <Avatar className="h-8 w-8">
                   <AvatarFallback><Bot size={18}/></AvatarFallback>
                 </Avatar>
@@ -335,3 +360,5 @@ export function ChatInterface({ agent }: ChatInterfaceProps) {
     </div>
   );
 }
+
+    
