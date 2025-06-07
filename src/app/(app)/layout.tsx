@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, createContext, useContext, useCallback } from 'react';
+import React, { useState, createContext, useContext, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Logo } from '@/components/logo';
@@ -51,6 +51,10 @@ export function useAppContext() {
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [agents, setAgents] = useState<Agent[]>(initialAgents);
+  // Default open state for SidebarProvider can be controlled here if needed
+  // For now, we let SidebarProvider handle its default based on its props.
+  // const [sidebarOpen, setSidebarOpen] = useState(true);
+
 
   const addAgent = useCallback((agent: Agent) => {
     const agentWithExtras = { ...agent, knowledgeItems: agent.knowledgeItems || [], flow: agent.flow || undefined };
@@ -65,7 +69,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             ...agent, 
             ...updatedAgent, 
             knowledgeItems: updatedAgent.knowledgeItems || agent.knowledgeItems || [],
-            flow: updatedAgent.flow || agent.flow // Preserve or update flow
+            flow: updatedAgent.flow || agent.flow 
           };
         }
         return agent;
@@ -107,7 +111,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <AppContext.Provider value={{ agents, addAgent, updateAgent, getAgent, addKnowledgeItem, updateAgentFlow, getAgentFlow }}>
-      <SidebarProvider defaultOpen>
+      <SidebarProvider defaultOpen={true}> 
         <AppSidebar />
         <div className="flex flex-col flex-1 min-h-screen">
           <AppHeader />
@@ -135,10 +139,26 @@ function AppHeader() {
 
 function AppSidebar() {
   const pathname = usePathname();
-  const { state } = useSidebar();
+  const { state, setOpen, isMobile } = useSidebar(); // Get setOpen from useSidebar
   const collapsed = state === 'collapsed';
+  
   const agentIdMatch = pathname.match(/^\/agents\/([a-zA-Z0-9_-]+)/);
   const currentAgentId = agentIdMatch ? agentIdMatch[1] : null;
+
+  useEffect(() => {
+    if (isMobile) return; // Auto-collapse logic is primarily for desktop
+
+    const onAgentDetailPage = /^\/agents\/[^/]+\/(studio|knowledge|personality|test|export)/.test(pathname);
+
+    if (onAgentDetailPage) {
+      setOpen(false); // Collapse sidebar on agent detail pages
+    } else {
+      setOpen(true);  // Expand sidebar on other pages (e.g., dashboard, create agent)
+    }
+  // currentAgentId is not strictly needed if using regex on pathname only
+  // but if agentNavItems were used for path matching, it would be relevant.
+  }, [pathname, setOpen, isMobile]);
+
 
   const agentNavItems = currentAgentId ? [
     { href: `/agents/${currentAgentId}/studio`, label: 'Studio', icon: Cog },
@@ -202,3 +222,4 @@ function AppSidebar() {
     </Sidebar>
   );
 }
+

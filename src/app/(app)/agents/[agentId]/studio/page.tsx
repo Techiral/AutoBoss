@@ -29,10 +29,7 @@ interface VisualNode extends Omit<JsonFlowNode, 'type' | 'position' | 'message' 
   label: string;
   x: number;
   y: number;
-  // Combined properties for simplicity in VisualNode
-  content?: string; // For message, llmPrompt, codeScript
-  // variableName used for getUserInput (outputVar), callLLM (outputVar), condition (inputVar), qnaLookup (queryVar/outputVar)
-  // specific fields are preferred in JsonFlowNode
+  content?: string; 
 }
 
 
@@ -42,7 +39,7 @@ interface NodeDefinition {
   type: FlowNodeType;
   label: string;
   icon: React.ElementType;
-  defaultProperties?: Partial<VisualNode & JsonFlowNode>; // Allow all properties
+  defaultProperties?: Partial<VisualNode & JsonFlowNode>; 
   docs: {
     purpose: string;
     settings: string;
@@ -52,19 +49,19 @@ interface NodeDefinition {
 }
 
 const NODE_DEFINITIONS: NodeDefinition[] = [
-  { type: 'start', label: 'Start', icon: Play, docs: { purpose: "Marks the entry of a flow. Always first.", settings: "None.", edges: "Exactly 1 outgoing.", rules: "Every flow requires one Start; cannot be downstream of any other node."} },
-  { type: 'sendMessage', label: 'Send Message', icon: MessageSquare, defaultProperties: { message: "New message" }, docs: { purpose: "Delivers text to user. Supports {{variable}} templating.", settings: "Message content with {{variable}} support.", edges: "1 outgoing edge to next node.", rules: "For long text, consider breaking into multiple nodes." } },
-  { type: 'getUserInput', label: 'Ask Question', icon: HelpCircle, defaultProperties: { prompt: "Ask something...", variableName: "userInput" }, docs: { purpose: "Prompts user and captures reply into a variable.", settings: "Prompt text, Variable Name to store input. (Input type/validation are conceptual for now).", edges: "1 happy-path; optional 'invalid' edgeType for future validation.", rules: "Ensure Variable Name is unique if used multiple times." } },
-  { type: 'callLLM', label: 'LLM Call', icon: Zap, defaultProperties: { llmPrompt: "Your LLM prompt for {{variable}}", outputVariable: "llmOutput", useKnowledge: false }, docs: { purpose: "Invokes an LLM with a given prompt. Can use {{variables}} from context.", settings: "LLM Prompt template, Output Variable name to store LLM response, Use Knowledge Base (boolean).", edges: "1 outgoing.", rules: "Prompts must be clear; output stored in Output Variable. Handle potential LLM errors if flow supports error paths from LLM." } },
-  { type: 'condition', label: 'Condition', icon: ChevronsUpDown, defaultProperties: { conditionVariable: "varToCheck", useLLMForDecision: false }, docs: { purpose: "Routes based on a context variable's value or LLM decision.", settings: "Context Variable to check. Use LLM For Decision (boolean) - if true, LLM matches variable against edge `condition` labels. If false, direct string match on edge `condition` labels.", edges: "Multiple outgoing edges, each with a `condition` label (e.g., 'yes', 'no', 'Billing'). One edge can have an empty/default `condition` label for fallback.", rules: "If using LLM, make edge condition labels clear intents. Always have a default path." } },
-  { type: 'action', label: 'Action', icon: SlidersHorizontal, defaultProperties: { actionName: "myCustomAction" }, docs: { purpose: "Runs a registered backend action (e.g., CRM update, DB write). Placeholder execution.", settings: "Action Name, Input Arguments (JSON string or {{var}}), Output Variable Map (JSON string like {\"contextVar\": \"actionResultKey\"}).", edges: "1 outgoing. Errors are logged.", rules: "Backend actions must be defined. Currently a placeholder." } },
-  { type: 'apiCall', label: 'HTTP Request', icon: Network, defaultProperties: { apiUrl: "https://api.example.com/data", apiMethod: 'GET' }, docs: { purpose: "Calls an external REST API. Placeholder execution.", settings: "API URL (can use {{vars}}), Method (GET, POST, etc.), Headers (JSON string), Body Variable (context var for POST/PUT body), Output Variable (to store response).", edges: "'success' edgeType for success, 'error' for failure (conceptual), 'default' as fallback.", rules: "Currently a placeholder. Non-2xx would go to 'error' path in full impl." } },
-  { type: 'code', label: 'Code (JS)', icon: FileCode, defaultProperties: { codeScript: "// Your JS code here\n// return { outputKey: 'value' };" }, docs: { purpose: "Executes inline JavaScript. Placeholder execution - NO ACTUAL EXECUTION.", settings: "JavaScript snippet. Return Variable Map (JSON string like {\"contextVar\": \"returnedKey\"}).", edges: "1 outgoing.", rules: "EXTREME CAUTION: Arbitrary JS execution is unsafe. This is a non-functional placeholder. Real use needs sandboxing." } },
-  { type: 'qnaLookup', label: 'Q&A Lookup', icon: MessageCircleQuestion, defaultProperties: { qnaQueryVariable: "userQuery", qnaOutputVariable: "qnaAnswer" }, docs: { purpose: "Searches knowledge base for an answer to a query. Basic keyword match simulation.", settings: "Query Variable (context var with user's question), Output Variable (to store answer), KB ID (conceptual), Threshold (conceptual).", edges: "'found' edgeType if match, 'notFound' otherwise.", rules: "Requires `knowledgeItems` in flow input. Basic keyword search on summary/keywords." } },
-  { type: 'wait', label: 'Wait / Delay', icon: Timer, defaultProperties: { waitDurationMs: 1000 }, docs: { purpose: "Pauses flow for a specified duration.", settings: "Delay duration in milliseconds.", edges: "1 outgoing.", rules: "Use sparingly to avoid user frustration." } },
-  { type: 'transition', label: 'Transition', icon: ArrowRightLeft, defaultProperties: { transitionTargetFlowId: "another_flow_id" }, docs: { purpose: "Moves execution to another flow. Placeholder execution.", settings: "Target Flow ID, Target Node ID (optional), Variables to Pass (JSON string).", edges: "1 outgoing (usually, or acts as end).", rules: "Avoid infinite loops. Currently a placeholder." } },
-  { type: 'agentSkill', label: 'Agent Skill', icon: BrainCircuit, defaultProperties: { agentSkillId: "booking_skill" }, docs: { purpose: "Invokes a specialized sub-agent or skill. Placeholder execution.", settings: "Agent Skill ID, Skills List (conceptual), Context Window (conceptual).", edges: "1 outgoing.", rules: "Currently a placeholder." } },
-  { type: 'end', label: 'End', icon: StopCircle, defaultProperties: { endOutputVariable: ""}, docs: { purpose: "Terminates the conversation path.", settings: "Optional Output Variable from context to be 'returned' by the flow.", edges: "No outgoing edges.", rules: "Must be reachable from all branches to avoid dead‑ends." } },
+  { type: 'start', label: 'Start', icon: Play, defaultProperties: { label: "Start" }, docs: { purpose: "Marks the entry of a flow. Always first.", settings: "None.", edges: "Exactly 1 outgoing.", rules: "Every flow requires one Start; cannot be downstream of any other node."} },
+  { type: 'sendMessage', label: 'Send Message', icon: MessageSquare, defaultProperties: { message: "New message", label: "Send Message" }, docs: { purpose: "Delivers text to user. Supports {{variable}} templating.", settings: "Message content with {{variable}} support.", edges: "1 outgoing edge to next node.", rules: "For long text, consider breaking into multiple nodes." } },
+  { type: 'getUserInput', label: 'Ask Question', icon: HelpCircle, defaultProperties: { prompt: "Ask something...", variableName: "userInput", label: "Ask Question" }, docs: { purpose: "Prompts user and captures reply into a variable.", settings: "Prompt text, Variable Name to store input. (Input type/validation are conceptual for now).", edges: "1 happy-path; optional 'invalid' edgeType for future validation.", rules: "Ensure Variable Name is unique if used multiple times." } },
+  { type: 'callLLM', label: 'LLM Call', icon: Zap, defaultProperties: { llmPrompt: "Your LLM prompt for {{variable}}", outputVariable: "llmOutput", useKnowledge: false, label: "LLM Call" }, docs: { purpose: "Invokes an LLM with a given prompt. Can use {{variables}} from context.", settings: "LLM Prompt template, Output Variable name to store LLM response, Use Knowledge Base (boolean).", edges: "1 outgoing.", rules: "Prompts must be clear; output stored in Output Variable. Handle potential LLM errors if flow supports error paths from LLM." } },
+  { type: 'condition', label: 'Condition', icon: ChevronsUpDown, defaultProperties: { conditionVariable: "varToCheck", useLLMForDecision: false, label: "Condition" }, docs: { purpose: "Routes based on a context variable's value or LLM decision.", settings: "Context Variable to check. Use LLM For Decision (boolean) - if true, LLM matches variable against edge `condition` labels. If false, direct string match on edge `condition` labels.", edges: "Multiple outgoing edges, each with a `condition` label (e.g., 'yes', 'no', 'Billing'). One edge can have an empty/default `condition` label for fallback.", rules: "If using LLM, make edge condition labels clear intents. Always have a default path." } },
+  { type: 'action', label: 'Action', icon: SlidersHorizontal, defaultProperties: { actionName: "myCustomAction", label: "Action" }, docs: { purpose: "Runs a registered backend action (e.g., CRM update, DB write). Placeholder execution.", settings: "Action Name, Input Arguments (JSON string or {{var}}), Output Variable Map (JSON string like {\"contextVar\": \"actionResultKey\"}).", edges: "1 outgoing. Errors are logged.", rules: "Backend actions must be defined. Currently a placeholder." } },
+  { type: 'apiCall', label: 'HTTP Request', icon: Network, defaultProperties: { apiUrl: "https://api.example.com/data", apiMethod: 'GET', label: "HTTP Request" }, docs: { purpose: "Calls an external REST API. Placeholder execution.", settings: "API URL (can use {{vars}}), Method (GET, POST, etc.), Headers (JSON string), Body Variable (context var for POST/PUT body), Output Variable (to store response).", edges: "'success' edgeType for success, 'error' for failure (conceptual), 'default' as fallback.", rules: "Currently a placeholder. Non-2xx would go to 'error' path in full impl." } },
+  { type: 'code', label: 'Code (JS)', icon: FileCode, defaultProperties: { codeScript: "// Your JS code here\n// return { outputKey: 'value' };", label: "JS Code" }, docs: { purpose: "Executes inline JavaScript. Placeholder execution - NO ACTUAL EXECUTION.", settings: "JavaScript snippet. Return Variable Map (JSON string like {\"contextVar\": \"returnedKey\"}).", edges: "1 outgoing.", rules: "EXTREME CAUTION: Arbitrary JS execution is unsafe. This is a non-functional placeholder. Real use needs sandboxing." } },
+  { type: 'qnaLookup', label: 'Q&A Lookup', icon: MessageCircleQuestion, defaultProperties: { qnaQueryVariable: "userQuery", qnaOutputVariable: "qnaAnswer", label: "Q&A Lookup" }, docs: { purpose: "Searches knowledge base for an answer to a query. Basic keyword match simulation.", settings: "Query Variable (context var with user's question), Output Variable (to store answer), KB ID (conceptual), Threshold (conceptual).", edges: "'found' edgeType if match, 'notFound' otherwise.", rules: "Requires `knowledgeItems` in flow input. Basic keyword search on summary/keywords." } },
+  { type: 'wait', label: 'Wait / Delay', icon: Timer, defaultProperties: { waitDurationMs: 1000, label: "Wait" }, docs: { purpose: "Pauses flow for a specified duration.", settings: "Delay duration in milliseconds.", edges: "1 outgoing.", rules: "Use sparingly to avoid user frustration." } },
+  { type: 'transition', label: 'Transition', icon: ArrowRightLeft, defaultProperties: { transitionTargetFlowId: "another_flow_id", label: "Transition" }, docs: { purpose: "Moves execution to another flow. Placeholder execution.", settings: "Target Flow ID, Target Node ID (optional), Variables to Pass (JSON string).", edges: "1 outgoing (usually, or acts as end).", rules: "Avoid infinite loops. Currently a placeholder." } },
+  { type: 'agentSkill', label: 'Agent Skill', icon: BrainCircuit, defaultProperties: { agentSkillId: "booking_skill", label: "Agent Skill" }, docs: { purpose: "Invokes a specialized sub-agent or skill. Placeholder execution.", settings: "Agent Skill ID, Skills List (conceptual), Context Window (conceptual).", edges: "1 outgoing.", rules: "Currently a placeholder." } },
+  { type: 'end', label: 'End', icon: StopCircle, defaultProperties: { endOutputVariable: "", label: "End"}, docs: { purpose: "Terminates the conversation path.", settings: "Optional Output Variable from context to be 'returned' by the flow.", edges: "No outgoing edges.", rules: "Must be reachable from all branches to avoid dead‑ends." } },
 ];
 
 const WIRING_BEST_PRACTICES_DOCS = {
@@ -79,56 +76,68 @@ const WIRING_BEST_PRACTICES_DOCS = {
   ]
 };
 
-const sampleFlow: AgentFlowDefinition = {
+const minimalInitialFlow: AgentFlowDefinition = {
+  flowId: "new-agent-flow",
+  name: "New Agent Flow",
+  description: "A minimal flow to get started.",
+  nodes: [
+    { id: "start_minimal", type: "start", position: { x: 50, y: 100 }, label: "Start" },
+    { id: "end_minimal", type: "end", position: { x: 300, y: 100 }, label: "End" },
+  ],
+  edges: [
+    { id: "e_minimal_start_end", source: "start_minimal", target: "end_minimal", label: "" },
+  ]
+};
+
+const complexSampleFlow: AgentFlowDefinition = { // Renamed from sampleFlow to avoid conflict
   flowId: "customer-support-agent-flow",
   name: "Customer Support Real-Time Agent",
   description: "A flow-driven assistant that greets the customer, classifies their issue, gathers details, provides an immediate solution, checks resolution, and escalates if needed.",
   nodes: [
-    { id: "start", type: "start", position: { x: 50, y: 50 } },
-    { id: "greet_user_node_1", type: "sendMessage", message: "Hi there! I’m your support agent. What can I help you with today?", position: { x: 50, y: 150 } },
-    { id: "get_issue_category_node_2", type: "getUserInput", prompt: "Please choose your issue category (e.g., Billing, Technical, Other):", variableName: "issueCategory", position: { x: 50, y: 250 } },
-    { id: "check_category_node_3", type: "condition", conditionVariable: "issueCategory", useLLMForDecision: true, position: { x: 50, y: 350 } },
-    { id: "ask_billing_details_node_4", type: "getUserInput", prompt: "Got it—billing issue. Can you share your account ID or invoice number?", variableName: "billingInfo", position: { x: 250, y: 450 } },
-    { id: "resolve_billing_node_5", type: "callLLM", llmPrompt: "You are a billing support agent. User '{{userName}}' has a billing issue regarding '{{billingInfo}}'. Provide a concise, accurate solution or next steps. Knowledge may be available.", outputVariable: "billingSolution", useKnowledge: true, position: { x: 250, y: 550 } },
-    { id: "send_billing_solution_node_6", type: "sendMessage", message: "{{billingSolution}}", position: { x: 250, y: 650 } },
-    { id: "ask_tech_details_node_7", type: "getUserInput", prompt: "Alright—technical issue. Could you describe the error or what’s not working?", variableName: "techDetails", position: { x: 50, y: 450 } },
-    { id: "resolve_technical_node_8", type: "callLLM", llmPrompt: "You’re a technical support agent. User '{{userName}}' is facing: '{{techDetails}}'. Provide step-by-step troubleshooting. Knowledge may be available.", outputVariable: "techSolution", useKnowledge: true, position: { x: 50, y: 550 } },
-    { id: "send_tech_solution_node_9", type: "sendMessage", message: "{{techSolution}}", position: { x: 50, y: 650 } },
-    { id: "ask_general_details_node_10", type: "getUserInput", prompt: "Sure—other issue. Can you give me more details about '{{issueCategory}}'?", variableName: "generalDetails", position: { x: -150, y: 450 } },
-    { id: "resolve_general_node_11", type: "callLLM", llmPrompt: "You’re a customer support agent. User '{{userName}}' has an issue about '{{issueCategory}}' with details '{{generalDetails}}'. Provide a helpful next step or resource. Knowledge may be available.", outputVariable: "generalSolution", useKnowledge: true, position: { x: -150, y: 550 } },
-    { id: "send_general_solution_node_12", type: "sendMessage", message: "{{generalSolution}}", position: { x: -150, y: 650 } },
-    { id: "ask_resolution_node_13", type: "getUserInput", prompt: "Did that solve your problem? (yes/no)", variableName: "resolvedConfirmation", position: { x: 50, y: 750 } },
-    { id: "check_resolution_node_14", type: "condition", conditionVariable: "resolvedConfirmation", useLLMForDecision: true, position: { x: 50, y: 850 } },
-    { id: "resolved_yes_node_15", type: "sendMessage", message: "Awesome! Glad I could help. If there’s anything else, just let me know. 👍", position: { x: 250, y: 950 } },
-    { id: "end_resolved_yes_node_16", type: "end", position: { x: 250, y: 1050 } },
-    { id: "resolved_no_node_17", type: "sendMessage", message: "I’m sorry it’s still not sorted. I’ll escalate this to our specialist team—expect an email or call soon.", position: { x: -150, y: 950 } },
-    { id: "end_resolved_no_node_18", type: "end", position: { x: -150, y: 1050 } },
-    { id: "invalid_category_node_19", type: "sendMessage", message: "Hmm, I didn’t quite catch that category. Let’s try again: Billing, Technical, or Other?", position: { x: 50, y: 500 } }, // Adjusted Y position
-    { id: "end_invalid_cat_node_20", type: "end", position: { x: 50, y: 600 } } // Adjusted Y position
+    { id: "start", type: "start", position: { x: 50, y: 50 }, label: "Start" },
+    { id: "greet_user_node_1", type: "sendMessage", message: "Hi there! I’m your support agent. What can I help you with today?", position: { x: 50, y: 150 }, label: "Greet User" },
+    { id: "get_issue_category_node_2", type: "getUserInput", prompt: "Please choose your issue category (e.g., Billing, Technical, Other):", variableName: "issueCategory", position: { x: 50, y: 250 }, label: "Get Issue Category" },
+    { id: "check_category_node_3", type: "condition", conditionVariable: "issueCategory", useLLMForDecision: true, position: { x: 50, y: 350 }, label: "Check Category (LLM)" },
+    { id: "ask_billing_details_node_4", type: "getUserInput", prompt: "Got it—billing issue. Can you share your account ID or invoice number?", variableName: "billingInfo", position: { x: 250, y: 450 }, label: "Ask Billing Details" },
+    { id: "resolve_billing_node_5", type: "callLLM", llmPrompt: "You are a billing support agent. User '{{userName}}' has a billing issue regarding '{{billingInfo}}'. Provide a concise, accurate solution or next steps. Knowledge may be available.", outputVariable: "billingSolution", useKnowledge: true, position: { x: 250, y: 550 }, label: "Resolve Billing (LLM)" },
+    { id: "send_billing_solution_node_6", type: "sendMessage", message: "{{billingSolution}}", position: { x: 250, y: 650 }, label: "Send Billing Solution" },
+    { id: "ask_tech_details_node_7", type: "getUserInput", prompt: "Alright—technical issue. Could you describe the error or what’s not working?", variableName: "techDetails", position: { x: 50, y: 450 }, label: "Ask Tech Details" },
+    { id: "resolve_technical_node_8", type: "callLLM", llmPrompt: "You’re a technical support agent. User '{{userName}}' is facing: '{{techDetails}}'. Provide step-by-step troubleshooting. Knowledge may be available.", outputVariable: "techSolution", useKnowledge: true, position: { x: 50, y: 550 }, label: "Resolve Tech (LLM)" },
+    { id: "send_tech_solution_node_9", type: "sendMessage", message: "{{techSolution}}", position: { x: 50, y: 650 }, label: "Send Tech Solution" },
+    { id: "ask_general_details_node_10", type: "getUserInput", prompt: "Sure—other issue. Can you give me more details about '{{issueCategory}}'?", variableName: "generalDetails", position: { x: -150, y: 450 }, label: "Ask General Details" },
+    { id: "resolve_general_node_11", type: "callLLM", llmPrompt: "You’re a customer support agent. User '{{userName}}' has an issue about '{{issueCategory}}' with details '{{generalDetails}}'. Provide a helpful next step or resource. Knowledge may be available.", outputVariable: "generalSolution", useKnowledge: true, position: { x: -150, y: 550 }, label: "Resolve General (LLM)" },
+    { id: "send_general_solution_node_12", type: "sendMessage", message: "{{generalSolution}}", position: { x: -150, y: 650 }, label: "Send General Solution" },
+    { id: "ask_resolution_node_13", type: "getUserInput", prompt: "Did that solve your problem? (yes/no)", variableName: "resolvedConfirmation", position: { x: 50, y: 750 }, label: "Ask Resolution" },
+    { id: "check_resolution_node_14", type: "condition", conditionVariable: "resolvedConfirmation", useLLMForDecision: true, position: { x: 50, y: 850 }, label: "Check Resolution (LLM)" },
+    { id: "resolved_yes_node_15", type: "sendMessage", message: "Awesome! Glad I could help. If there’s anything else, just let me know. 👍", position: { x: 250, y: 950 }, label: "Resolved: Yes" },
+    { id: "end_resolved_yes_node_16", type: "end", position: { x: 250, y: 1050 }, label: "End (Yes)" },
+    { id: "resolved_no_node_17", type: "sendMessage", message: "I’m sorry it’s still not sorted. I’ll escalate this to our specialist team—expect an email or call soon.", position: { x: -150, y: 950 }, label: "Resolved: No" },
+    { id: "end_resolved_no_node_18", type: "end", position: { x: -150, y: 1050 }, label: "End (No)" },
+    { id: "invalid_category_node_19", type: "sendMessage", message: "Hmm, I didn’t quite catch that category. Let’s try again: Billing, Technical, or Other?", position: { x: 50, y: 500 }, label: "Invalid Category" }, 
   ],
   edges: [
     { id: "e_start_greet", source: "start", target: "greet_user_node_1", label: "Start" },
     { id: "e_greet_getissue", source: "greet_user_node_1", target: "get_issue_category_node_2" },
     { id: "e_getissue_checkissue", source: "get_issue_category_node_2", target: "check_category_node_3" },
-    { id: "e_check_billing", source: "check_category_node_3", target: "ask_billing_details_node_4", condition: "User has a billing related question or issue." },
+    { id: "e_check_billing", source: "check_category_node_3", target: "ask_billing_details_node_4", condition: "User has a billing related question or issue.", label: "Billing Issue" },
     { id: "e_billing_getdetails", source: "ask_billing_details_node_4", target: "resolve_billing_node_5" },
     { id: "e_getdetails_lookup", source: "resolve_billing_node_5", target: "send_billing_solution_node_6" },
     { id: "e_billing_askresolved", source: "send_billing_solution_node_6", target: "ask_resolution_node_13" },
-    { id: "e_check_technical", source: "check_category_node_3", target: "ask_tech_details_node_7", condition: "User has a technical problem or needs technical support." },
+    { id: "e_check_technical", source: "check_category_node_3", target: "ask_tech_details_node_7", condition: "User has a technical problem or needs technical support.", label: "Technical Issue" },
     { id: "e_technical_getdesc", source: "ask_tech_details_node_7", target: "resolve_technical_node_8" },
     { id: "e_getdesc_resolve", source: "resolve_technical_node_8", target: "send_tech_solution_node_9" },
     { id: "e_technical_askresolved", source: "send_tech_solution_node_9", target: "ask_resolution_node_13" },
-    { id: "e_check_other", source: "check_category_node_3", target: "ask_general_details_node_10", condition: "User issue does not fit billing or technical, or is general." },
+    { id: "e_check_other", source: "check_category_node_3", target: "ask_general_details_node_10", condition: "User issue does not fit billing or technical, or is general.", label: "Other Issue" },
     { id: "e_other_getdetails_other", source: "ask_general_details_node_10", target: "resolve_general_node_11" },
     { id: "e_getdetails_handleother", source: "resolve_general_node_11", target: "send_general_solution_node_12" },
     { id: "e_other_askresolved", source: "send_general_solution_node_12", target: "ask_resolution_node_13" },
     { id: "e_askresolved_check", source: "ask_resolution_node_13", target: "check_resolution_node_14" },
-    { id: "e_check_is_resolved_yes", source: "check_resolution_node_14", target: "resolved_yes_node_15", condition: "User indicates the issue is resolved or problem is solved." },
-    { id: "e_check_is_resolved_no", source: "check_resolution_node_14", target: "resolved_no_node_17", condition: "User indicates the issue is not resolved or problem persists." },
+    { id: "e_check_is_resolved_yes", source: "check_resolution_node_14", target: "resolved_yes_node_15", condition: "User indicates the issue is resolved or problem is solved.", label: "Issue Resolved" },
+    { id: "e_check_is_resolved_no", source: "check_resolution_node_14", target: "resolved_no_node_17", condition: "User indicates the issue is not resolved or problem persists.", label: "Issue Not Resolved" },
     { id: "e_resolved_end", source: "resolved_yes_node_15", target: "end_resolved_yes_node_16" },
     { id: "e_notresolved_end", source: "resolved_no_node_17", target: "end_resolved_no_node_18" },
-    { id: "e_check_invalid_category_default", source: "check_category_node_3", target: "invalid_category_node_19", condition: "" , edgeType: "default"}, // Default for LLM if no other condition matches
-    { id: "e_invalid_cat_to_get_category", source: "invalid_category_node_19", target: "get_issue_category_node_2"}, // Loop back
+    { id: "e_check_invalid_category_default", source: "check_category_node_3", target: "invalid_category_node_19", condition: "" , edgeType: "default", label: "Default/Invalid Category"}, 
+    { id: "e_invalid_cat_to_get_category", source: "invalid_category_node_19", target: "get_issue_category_node_2"}, 
   ]
 };
 
@@ -153,32 +162,29 @@ export default function AgentStudioPage() {
   
   const [edgeDragInfo, setEdgeDragInfo] = useState<{
     sourceNodeId: string;
-    sourceNodeX: number; // X of source node's top-left
-    sourceNodeY: number; // Y of source node's top-left
-    startX: number;      // X of the drag start point (output port center)
-    startY: number;      // Y of the drag start point (output port center)
-    currentX: number;    // Current mouse X on canvas
-    currentY: number;    // Current mouse Y on canvas
+    sourceNodeX: number; 
+    sourceNodeY: number; 
+    startX: number;      
+    startY: number;      
+    currentX: number;    
+    currentY: number;    
   } | null>(null);
 
   const loadFlowToVisual = useCallback((flowDef: AgentFlowDefinition | undefined) => {
-    const flowToLoad = flowDef && flowDef.nodes && flowDef.nodes.length > 0 ? flowDef : sampleFlow;
+    const flowToLoad = flowDef && flowDef.nodes && flowDef.nodes.length > 0 ? flowDef : minimalInitialFlow; // Use minimalInitialFlow as default
     
     const loadedNodes: VisualNode[] = flowToLoad.nodes.map((jsonNode: JsonFlowNode) => ({
-      // Base properties for VisualNode
       id: jsonNode.id,
       type: jsonNode.type as FlowNodeType,
-      label: jsonNode.id, // Default label to ID, user can change
+      label: jsonNode.label || NODE_DEFINITIONS.find(def => def.type === jsonNode.type)?.label || jsonNode.id,
       x: jsonNode.position?.x || Math.random() * 400,
       y: jsonNode.position?.y || Math.random() * 300,
-      // Specific properties from JsonFlowNode are spread in
       ...jsonNode,
-      // content is a convenience for common text fields in VisualNode
       content: jsonNode.message || jsonNode.prompt || jsonNode.llmPrompt || jsonNode.codeScript,
     }));
     const loadedEdges: VisualEdge[] = flowToLoad.edges.map((jsonEdge: JsonFlowEdge) => ({
-      ...jsonEdge, // Spread all properties from JsonFlowEdge
-      label: jsonEdge.label || jsonEdge.condition, // Ensure label is populated for display
+      ...jsonEdge, 
+      label: jsonEdge.label || jsonEdge.condition, 
     }));
     setNodes(loadedNodes);
     setEdges(loadedEdges);
@@ -210,15 +216,15 @@ export default function AgentStudioPage() {
     
     const nodeDef = NODE_DEFINITIONS.find(w => w.type === nodeType);
     const defaultLabel = nodeDef?.label || 'Node';
-    const newNodeId = generateId(nodeType.replace(/\s+/g, '_') + '_'); // Make ID more descriptive
+    const newNodeId = generateId(nodeType.replace(/\s+/g, '_') + '_'); 
     
     const newNode: VisualNode = {
       id: newNodeId,
       type: nodeType,
-      label: `${defaultLabel} ${nodes.filter(n => n.type === nodeType).length + 1}`,
+      label: nodeDef?.defaultProperties?.label || `${defaultLabel} ${nodes.filter(n => n.type === nodeType).length + 1}`,
       x: Math.max(0, x - 75), 
       y: Math.max(0, y - 25),
-      ...(nodeDef?.defaultProperties || {}), // Spread default properties from NODE_DEFINITIONS
+      ...(nodeDef?.defaultProperties || {}), 
     };
     setNodes((nds) => nds.concat(newNode));
     setSelectedNodeId(newNodeId);
@@ -230,9 +236,8 @@ export default function AgentStudioPage() {
   };
 
   const handleNodeMouseDown = (event: React.MouseEvent<HTMLDivElement>, nodeId: string) => {
-    // Check if the mousedown is on a port; if so, don't start node drag
     if ((event.target as HTMLElement).dataset.port === 'out' || (event.target as HTMLElement).dataset.port === 'in') {
-        event.stopPropagation(); // Prevent node drag if port is clicked
+        event.stopPropagation(); 
         return;
     }
     const node = nodes.find(n => n.id === nodeId);
@@ -242,7 +247,7 @@ export default function AgentStudioPage() {
     const offsetX = event.clientX - canvasBounds.left - node.x;
     const offsetY = event.clientY - canvasBounds.top - node.y;
     setDraggingNodeInfo({ id: nodeId, offsetX, offsetY });
-    setEdgeDragInfo(null); // Cancel any pending edge drag
+    setEdgeDragInfo(null); 
     setSelectedNodeId(nodeId);
     event.stopPropagation(); 
   };
@@ -273,22 +278,19 @@ export default function AgentStudioPage() {
     if (draggingNodeInfo) {
         setDraggingNodeInfo(null);
     }
-    // If not dropping on an input port, edgeDragInfo will be cleared here
     if (edgeDragInfo && !(event.target as HTMLElement).dataset.port?.includes('in')) {
         setEdgeDragInfo(null);
-        toast({ title: "Connection Canceled", description: "Edge creation canceled.", variant: "default" });
     }
   };
   
   const handleCanvasClick = (e: React.MouseEvent<HTMLDivElement>) => {
       if (e.target === canvasRef.current) { 
         setSelectedNodeId(null);
-        // Do not clear edgeDragInfo here, handleCanvasMouseUp does it more reliably
       }
   };
 
   const handlePortMouseDown = (event: React.MouseEvent, nodeId: string, portType: 'out') => {
-    event.stopPropagation(); // Prevent node drag
+    event.stopPropagation(); 
     const sourceNode = nodes.find(n => n.id === nodeId);
     if (!sourceNode || portType !== 'out' || sourceNode.type === 'end') {
         if (sourceNode && sourceNode.type === 'end') {
@@ -298,9 +300,8 @@ export default function AgentStudioPage() {
     }
     
     if (!canvasRef.current) return;
-    setDraggingNodeInfo(null); // Ensure no node dragging
+    setDraggingNodeInfo(null); 
     
-    // Calculate port center relative to canvas
     const portElement = event.currentTarget as HTMLDivElement;
     const portRect = portElement.getBoundingClientRect();
     const canvasRect = canvasRef.current.getBoundingClientRect();
@@ -314,16 +315,15 @@ export default function AgentStudioPage() {
         sourceNodeY: sourceNode.y,
         startX: startX,
         startY: startY,
-        currentX: startX, // Initialize currentX/Y to startX/Y
+        currentX: startX, 
         currentY: startY,
     });
-    // toast({title: "Connecting...", description: `Drag from ${sourceNode.label} to an input port.`});
   };
 
   const handlePortMouseUp = (event: React.MouseEvent, targetNodeId: string, portType: 'in') => {
     event.stopPropagation();
     if (!edgeDragInfo || portType !== 'in') {
-        if (edgeDragInfo) setEdgeDragInfo(null); // Cancel if not a valid drop
+        if (edgeDragInfo) setEdgeDragInfo(null); 
         return;
     }
 
@@ -348,13 +348,17 @@ export default function AgentStudioPage() {
     }
 
     const sourceNode = nodes.find(n=>n.id===edgeDragInfo.sourceNodeId);
-    const defaultEdgeLabel = sourceNode?.type === 'condition' ? "Condition" : "";
+    let defaultEdgeLabel = "";
+    if (sourceNode?.type === 'condition') defaultEdgeLabel = "Case";
+    else if (sourceNode?.type === 'qnaLookup') defaultEdgeLabel = "Found";
+    else if (sourceNode?.type === 'apiCall') defaultEdgeLabel = "Success";
+
     const newEdge: VisualEdge = {
         id: generateId('edge_'),
         source: edgeDragInfo.sourceNodeId,
         target: targetNodeId,
         label: defaultEdgeLabel, 
-        condition: defaultEdgeLabel, // Default condition to label
+        condition: defaultEdgeLabel,
         edgeType: 'default'
     };
     setEdges((eds) => eds.concat(newEdge));
@@ -367,7 +371,6 @@ export default function AgentStudioPage() {
     setNodes(nds => nds.map(n => {
         if (n.id === selectedNodeId) {
             const newProps = {...n, ...updatedProps};
-            // Update convenience 'content' field if relevant source prop changes
             if (updatedProps.message !== undefined) newProps.content = updatedProps.message;
             else if (updatedProps.prompt !== undefined) newProps.content = updatedProps.prompt;
             else if (updatedProps.llmPrompt !== undefined) newProps.content = updatedProps.llmPrompt;
@@ -396,13 +399,13 @@ export default function AgentStudioPage() {
   const convertToMermaid = useCallback((): string => {
     let mermaidStr = "graph TD;\n";
     nodes.forEach(node => {
-      const mermaidId = node.id.replace(/[^a-zA-Z0-9_]/g, '_'); // Mermaid safe ID
+      const mermaidId = node.id.replace(/[^a-zA-Z0-9_]/g, '_'); 
       const displayLabel = node.label ? node.label.replace(/"/g, '#quot;') : node.id;
       const nodeDef = NODE_DEFINITIONS.find(d => d.type === node.type);
-      let shapeStart = '["'; // Default rectangle
+      let shapeStart = '["'; 
       let shapeEnd = '"]';
-      if (node.type === 'start' || node.type === 'end') { shapeStart = '(("'; shapeEnd = '"))'; } // Circle for start/end
-      else if (node.type === 'condition') { shapeStart = '{{"'; shapeEnd = '"}}'; } // Diamond for condition
+      if (node.type === 'start' || node.type === 'end') { shapeStart = '(("'; shapeEnd = '"))'; } 
+      else if (node.type === 'condition') { shapeStart = '{{"'; shapeEnd = '"}}'; } 
       
       mermaidStr += `  ${mermaidId}${shapeStart}${displayLabel} (${nodeDef?.label || node.type})${shapeEnd};\n`;
     });
@@ -417,7 +420,6 @@ export default function AgentStudioPage() {
   }, [nodes, edges]);
 
   const convertToAgentFlowDefinition = useCallback((): AgentFlowDefinition | null => {
-    // Basic Validation
     const hasStartNode = nodes.some(n => n.type === 'start');
     const hasEndNode = nodes.some(n => n.type === 'end');
 
@@ -425,11 +427,10 @@ export default function AgentStudioPage() {
         toast({ title: "Invalid Flow", description: "A flow must have at least one 'Start' node.", variant: "destructive"});
         return null;
     }
-    if (!hasEndNode) {
-        toast({ title: "Invalid Flow", description: "A flow must have at least one 'End' node to be executable.", variant: "destructive"});
-        // Allow saving but warn it might not execute fully
+    if (!hasEndNode && nodes.length > 0) { // Only warn if there are nodes but no end node
+        toast({ title: "Incomplete Flow", description: "It's recommended to have at least one 'End' node.", variant: "default"});
     }
-     // Validate node configurations (basic example)
+     
     for (const node of nodes) {
         if (node.type === 'callLLM' && (!node.llmPrompt || !node.outputVariable)) {
             toast({ title: "Invalid Node Config", description: `LLM Call node '${node.label}' is missing a prompt or output variable.`, variant: "destructive"});
@@ -441,16 +442,12 @@ export default function AgentStudioPage() {
         }
     }
 
-
     const jsonNodes: JsonFlowNode[] = nodes.map(node => {
-      // Strip visual-only properties like x, y, label (if different from id) for the JSON
-      const { x, y, label, content, ...restOfNode } = node; // Exclude visual-specifics from base
+      const { x, y, content, ...restOfNode } = node; 
       const jsonNode: JsonFlowNode = {
-        ...restOfNode, // Spread properties from VisualNode that are part of JsonFlowNode
+        ...restOfNode, 
         position: { x: node.x, y: node.y },
       };
-      // Ensure type-specific properties from VisualNode are correctly mapped to JsonFlowNode
-      // This relies on VisualNode having all optional fields from JsonFlowNode
       return jsonNode;
     });
 
@@ -458,7 +455,7 @@ export default function AgentStudioPage() {
       const { ...restOfEdge } = edge;
       return {
         ...restOfEdge,
-        condition: edge.label, // Ensure condition is populated from label if not directly set
+        condition: edge.label, 
       };
     });
     
@@ -480,7 +477,7 @@ export default function AgentStudioPage() {
     
     try {
       const agentFlowDef = convertToAgentFlowDefinition();
-      if (!agentFlowDef) { // Validation failed
+      if (!agentFlowDef) { 
         setIsSaving(false);
         return;
       }
@@ -494,8 +491,8 @@ export default function AgentStudioPage() {
     }
   }, [currentAgent, convertToMermaid, convertToAgentFlowDefinition, updateAgentFlow, toast]);
   
-  const resetToSampleFlow = () => {
-    loadFlowToVisual(sampleFlow); 
+  const resetToComplexSampleFlow = () => {
+    loadFlowToVisual(complexSampleFlow); 
     setSelectedNodeId(null);
     setMermaidCode("");
      if (currentAgent) {
@@ -518,7 +515,6 @@ export default function AgentStudioPage() {
   if (!currentAgent) return <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>Agent Not Found</AlertTitle></Alert>;
 
   const portSize = 10; 
-  const portOffset = 5; // Distance from node edge
 
   return (
     <TooltipProvider>
@@ -550,7 +546,7 @@ export default function AgentStudioPage() {
         </CardContent>
         </ScrollArea>
          <CardFooter className="p-2 border-t mt-auto">
-            <Button onClick={resetToSampleFlow} variant="outline" size="sm" className="w-full"><Trash2 className="mr-2 h-4 w-4" />Reset to Sample</Button>
+            <Button onClick={resetToComplexSampleFlow} variant="outline" size="sm" className="w-full"><Trash2 className="mr-2 h-4 w-4" />Reset to Sample</Button>
         </CardFooter>
       </Card>
 
@@ -586,10 +582,10 @@ export default function AgentStudioPage() {
             const arrowPoint2Y = y2 - arrowLength * Math.sin(angle + Math.PI / 6);
 
             return (
-              <g key={edge.id} className="cursor-pointer group/edge" onClick={(e) => { /* Future: select edge */ e.stopPropagation(); }}>
+              <g key={edge.id} className="cursor-pointer group/edge" onClick={(e) => { e.stopPropagation(); }}>
                 <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="hsl(var(--primary)/0.5)" strokeWidth="1.5" className="group-hover/edge:stroke-primary transition-colors" />
                 <polygon points={`${x2},${y2} ${arrowPoint1X},${arrowPoint1Y} ${arrowPoint2X},${arrowPoint2Y}`} fill="hsl(var(--primary)/0.5)" className="group-hover/edge:fill-primary transition-colors"/>
-                {(edge.label || edge.edgeType !== 'default') && (
+                {(edge.label || (edge.edgeType && edge.edgeType !== 'default')) && (
                   <text x={midX} y={midY - 5} fill="hsl(var(--foreground))" fontSize="10px" textAnchor="middle" className="pointer-events-none select-none bg-background/50 px-1 rounded">
                     {edge.label || edge.edgeType}
                   </text>
@@ -650,7 +646,7 @@ export default function AgentStudioPage() {
                 node.type === 'action' ? (node.actionName || 'Action') :
                 node.type === 'apiCall' ? (node.apiUrl ? node.apiUrl.substring(0,20)+'...' : 'HTTP Req') :
                 node.type === 'code' ? 'JS Code' :
-                node.type === 'qnaLookup' ? (node.qnaQueryVariable || 'Q&A') :
+                node.type === 'qnaLookup' ? (node.qnaOutputVariable || 'Q&A') :
                 node.type === 'wait' ? `${node.waitDurationMs || 0}ms Wait` :
                 node.type === 'transition' ? (node.transitionTargetFlowId || 'Transition') :
                 node.type === 'agentSkill' ? (node.agentSkillId || 'Agent Skill') :
@@ -724,7 +720,7 @@ export default function AgentStudioPage() {
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div><Label htmlFor="apiHeaders" className="text-xs">Headers (JSON)</Label><Textarea id="apiHeaders" placeholder='{ "Content-Type": "application/json" }' value={typeof selectedNodeDetails.apiHeaders === 'string' ? selectedNodeDetails.apiHeaders : JSON.stringify(selectedNodeDetails.apiHeaders || {})} onChange={e => { try { updateSelectedNodeProperties({ apiHeaders: JSON.parse(e.target.value) })} catch { /* ignore parse error during typing */}}} rows={2} className="text-sm font-code"/></div>
+                        <div><Label htmlFor="apiHeaders" className="text-xs">Headers (JSON String)</Label><Textarea id="apiHeaders" placeholder='{ "Content-Type": "application/json" }' value={selectedNodeDetails.apiHeaders ? (typeof selectedNodeDetails.apiHeaders === 'string' ? selectedNodeDetails.apiHeaders : JSON.stringify(selectedNodeDetails.apiHeaders)) : ""} onChange={e => updateSelectedNodeProperties({ apiHeaders: e.target.value })} rows={2} className="text-sm font-code"/></div>
                         <div><Label htmlFor="apiBodyVar" className="text-xs">Body Variable (from context)</Label><Input id="apiBodyVar" value={selectedNodeDetails.apiBodyVariable || ""} onChange={e => updateSelectedNodeProperties({ apiBodyVariable: e.target.value })} className="h-8 text-sm"/></div>
                         <div><Label htmlFor="apiOutputVar" className="text-xs">Output Variable (for response)</Label><Input id="apiOutputVar" value={selectedNodeDetails.apiOutputVariable || ""} onChange={e => updateSelectedNodeProperties({ apiOutputVariable: e.target.value })} className="h-8 text-sm"/></div>
                     </>
@@ -732,20 +728,21 @@ export default function AgentStudioPage() {
                  { selectedNodeDetails.type === 'action' && (
                     <>
                         <div><Label htmlFor="actionName" className="text-xs">Action Name</Label><Input id="actionName" value={selectedNodeDetails.actionName || ""} onChange={e => updateSelectedNodeProperties({ actionName: e.target.value })} className="h-8 text-sm"/></div>
-                        <div><Label htmlFor="actionInputs" className="text-xs">Input Arguments (JSON string or {{vars}})</Label><Textarea id="actionInputs" placeholder='{ "param1": "{{contextVar}}" }' value={typeof selectedNodeDetails.actionInputArgs === 'string' ? selectedNodeDetails.actionInputArgs : JSON.stringify(selectedNodeDetails.actionInputArgs || {})} onChange={e => updateSelectedNodeProperties({ actionInputArgs: e.target.value })} rows={2} className="text-sm font-code"/></div>
-                        <div><Label htmlFor="actionOutputMap" className="text-xs">Output Variable Map (JSON string)</Label><Input id="actionOutputMap" placeholder='{ "contextVar": "actionResultKey" }' value={typeof selectedNodeDetails.actionOutputVarMap === 'string' ? selectedNodeDetails.actionOutputVarMap : JSON.stringify(selectedNodeDetails.actionOutputVarMap || {})} onChange={e => updateSelectedNodeProperties({ actionOutputVarMap: e.target.value })} className="h-8 text-sm font-code"/></div>
+                        <div><Label htmlFor="actionInputs" className="text-xs">Input Arguments (JSON string or {{vars}})</Label><Textarea id="actionInputs" placeholder='{ "param1": "{{contextVar}}" }' value={selectedNodeDetails.actionInputArgs ? (typeof selectedNodeDetails.actionInputArgs === 'string' ? selectedNodeDetails.actionInputArgs : JSON.stringify(selectedNodeDetails.actionInputArgs)) : ""} onChange={e => updateSelectedNodeProperties({ actionInputArgs: e.target.value })} rows={2} className="text-sm font-code"/></div>
+                        <div><Label htmlFor="actionOutputMap" className="text-xs">Output Variable Map (JSON string)</Label><Textarea id="actionOutputMap" placeholder='{ "contextVar": "actionResultKey" }' value={selectedNodeDetails.actionOutputVarMap ? (typeof selectedNodeDetails.actionOutputVarMap === 'string' ? selectedNodeDetails.actionOutputVarMap : JSON.stringify(selectedNodeDetails.actionOutputVarMap)) : ""} onChange={e => updateSelectedNodeProperties({ actionOutputVarMap: e.target.value })} className="text-sm font-code h-8"/></div>
                     </>
                 )}
                  { selectedNodeDetails.type === 'code' && (
                     <>
                         <div><Label htmlFor="codeScript" className="text-xs">JavaScript Code (Placeholder - Not Executed)</Label><Textarea id="codeScript" value={selectedNodeDetails.codeScript || ""} onChange={e => updateSelectedNodeProperties({ codeScript: e.target.value })} rows={3} className="text-sm font-code"/></div>
-                        <div><Label htmlFor="codeReturnMap" className="text-xs">Return Variable Map (JSON string)</Label><Input id="codeReturnMap" placeholder='{ "contextVar": "returnedObjectKey" }' value={typeof selectedNodeDetails.codeReturnVarMap === 'string' ? selectedNodeDetails.codeReturnVarMap : JSON.stringify(selectedNodeDetails.codeReturnVarMap || {})} onChange={e => updateSelectedNodeProperties({ codeReturnVarMap: e.target.value })} className="h-8 text-sm font-code"/></div>
+                        <div><Label htmlFor="codeReturnMap" className="text-xs">Return Variable Map (JSON string)</Label><Textarea id="codeReturnMap" placeholder='{ "contextVar": "returnedObjectKey" }' value={selectedNodeDetails.codeReturnVarMap ? (typeof selectedNodeDetails.codeReturnVarMap === 'string' ? selectedNodeDetails.codeReturnVarMap : JSON.stringify(selectedNodeDetails.codeReturnVarMap)) : ""} onChange={e => updateSelectedNodeProperties({ codeReturnVarMap: e.target.value })} className="text-sm font-code h-8"/></div>
                     </>
                 )}
                 { selectedNodeDetails.type === 'qnaLookup' && (
                    <>
                     <div><Label htmlFor="qnaQueryVar" className="text-xs">Query Variable (from context)</Label><Input id="qnaQueryVar" value={selectedNodeDetails.qnaQueryVariable || ""} onChange={e => updateSelectedNodeProperties({ qnaQueryVariable: e.target.value })} className="h-8 text-sm"/></div>
                     <div><Label htmlFor="qnaOutputVar" className="text-xs">Output Variable (for answer)</Label><Input id="qnaOutputVar" value={selectedNodeDetails.qnaOutputVariable || ""} onChange={e => updateSelectedNodeProperties({ qnaOutputVariable: e.target.value })} className="h-8 text-sm"/></div>
+                    <div><Label htmlFor="qnaFallbackText" className="text-xs">Fallback Text</Label><Textarea id="qnaFallbackText" value={selectedNodeDetails.qnaFallbackText || ""} onChange={e => updateSelectedNodeProperties({ qnaFallbackText: e.target.value })} rows={2} className="text-sm"/></div>
                    </>
                 )}
                 { selectedNodeDetails.type === 'wait' && (
@@ -754,7 +751,7 @@ export default function AgentStudioPage() {
                 { selectedNodeDetails.type === 'transition' && (
                     <>
                       <div><Label htmlFor="transitionFlowId" className="text-xs">Target Flow ID</Label><Input id="transitionFlowId" value={selectedNodeDetails.transitionTargetFlowId || ""} onChange={e => updateSelectedNodeProperties({ transitionTargetFlowId: e.target.value })} className="h-8 text-sm"/></div>
-                      <div><Label htmlFor="transitionVars" className="text-xs">Variables to Pass (JSON string)</Label><Textarea id="transitionVars" placeholder='{ "targetVar": "{{currentVar}}" }' value={typeof selectedNodeDetails.transitionVariablesToPass === 'string' ? selectedNodeDetails.transitionVariablesToPass : JSON.stringify(selectedNodeDetails.transitionVariablesToPass || {})} onChange={e => updateSelectedNodeProperties({ transitionVariablesToPass: e.target.value })} rows={2} className="text-sm font-code"/></div>
+                      <div><Label htmlFor="transitionVars" className="text-xs">Variables to Pass (JSON string)</Label><Textarea id="transitionVars" placeholder='{ "targetVar": "{{currentVar}}" }' value={selectedNodeDetails.transitionVariablesToPass ? (typeof selectedNodeDetails.transitionVariablesToPass === 'string' ? selectedNodeDetails.transitionVariablesToPass : JSON.stringify(selectedNodeDetails.transitionVariablesToPass)) : ""} onChange={e => updateSelectedNodeProperties({ transitionVariablesToPass: e.target.value })} rows={2} className="text-sm font-code"/></div>
                     </>
                 )}
                  { selectedNodeDetails.type === 'agentSkill' && (
@@ -803,7 +800,11 @@ export default function AgentStudioPage() {
                 <Accordion type="single" collapsible className="w-full mt-4">
                   <AccordionItem value="docs">
                     <AccordionTrigger className="text-base hover:no-underline">
-                      <Info className="mr-2 h-4 w-4"/> Node Documentation: {selectedNodeDefinition.label}
+                      <Tooltip>
+                        <TooltipTrigger asChild><Info className="mr-2 h-4 w-4 text-blue-500"/></TooltipTrigger>
+                        <TooltipContent><p>Node Documentation</p></TooltipContent>
+                      </Tooltip>
+                       Documentation: {selectedNodeDefinition.label}
                     </AccordionTrigger>
                     <AccordionContent className="space-y-2 text-xs p-2 border-t bg-muted/30 rounded-b-md">
                       <div><strong className="block text-primary">Purpose:</strong> {selectedNodeDefinition.docs.purpose}</div>
@@ -823,7 +824,13 @@ export default function AgentStudioPage() {
                 </div>
                 <Accordion type="single" collapsible className="w-full">
                   <AccordionItem value="wiring-practices">
-                    <AccordionTrigger className="text-base hover:no-underline"><Sigma className="mr-2 h-4 w-4"/> {WIRING_BEST_PRACTICES_DOCS.title}</AccordionTrigger>
+                    <AccordionTrigger className="text-base hover:no-underline">
+                       <Tooltip>
+                        <TooltipTrigger asChild><Sigma className="mr-2 h-4 w-4 text-blue-500"/></TooltipTrigger>
+                        <TooltipContent><p>General Wiring Guide</p></TooltipContent>
+                      </Tooltip>
+                      {WIRING_BEST_PRACTICES_DOCS.title}
+                    </AccordionTrigger>
                     <AccordionContent className="space-y-1 text-xs p-2 border-t bg-muted/30 rounded-b-md">
                       {WIRING_BEST_PRACTICES_DOCS.points.map((point, index) => (
                         <p key={index}>• {point}</p>
