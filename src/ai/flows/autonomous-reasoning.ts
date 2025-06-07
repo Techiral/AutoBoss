@@ -13,14 +13,14 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const AutonomousReasoningInputSchema = z.object({
-  context: z.string().describe('The current context of the conversation.'),
-  userInput: z.string().describe('The user input to analyze.'),
+  context: z.string().describe('The current context of the conversation, including past messages.'),
+  userInput: z.string().describe('The user input to analyze and respond to.'),
 });
 export type AutonomousReasoningInput = z.infer<typeof AutonomousReasoningInputSchema>;
 
 const AutonomousReasoningOutputSchema = z.object({
-  nextAction: z.string().describe('The next action to take based on the context and user input.'),
-  reasoning: z.string().describe('The reasoning behind the chosen action.'),
+  responseToUser: z.string().describe('A direct, conversational reply to the user based on the context and their input.'),
+  reasoning: z.string().describe('The reasoning behind the generated response.'),
 });
 export type AutonomousReasoningOutput = z.infer<typeof AutonomousReasoningOutputSchema>;
 
@@ -32,17 +32,20 @@ const prompt = ai.definePrompt({
   name: 'autonomousReasoningPrompt',
   input: {schema: AutonomousReasoningInputSchema},
   output: {schema: AutonomousReasoningOutputSchema},
-  prompt: `You are an autonomous reasoning AI agent. Your role is to analyze the context of a conversation and the user input to determine the next best action to take.
+  prompt: `You are an AI assistant. Your role is to analyze the context of a conversation and the user's input to generate a helpful and relevant response.
 
-Context: {{{context}}}
-User Input: {{{userInput}}}
+Conversation Context:
+{{{context}}}
 
-Based on the context and user input, determine the next action to take. Provide a brief explanation of your reasoning.
+User's Latest Input:
+{{{userInput}}}
+
+Based on the full conversation context and the user's latest input, generate a direct conversational "responseToUser". Also, provide a brief "reasoning" for why you chose that response.
 
 Output in JSON format:
 {
-  "nextAction": "The next action to take",
-  "reasoning": "The reasoning behind the chosen action"
+  "responseToUser": "The conversational reply to send to the user.",
+  "reasoning": "The reasoning behind the chosen response."
 }
 `,
 });

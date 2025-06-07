@@ -49,8 +49,6 @@ export function ChatInterface({ agent }: ChatInterfaceProps) {
     } else {
       setChatMode("autonomous");
     }
-    // Reset context and messages when agent or flow definition might change
-    // This will be handled by the main re-initialization effect.
   }, [agent.id, getAgentFlow]);
 
   const scrollToBottom = () => {
@@ -67,12 +65,13 @@ export function ChatInterface({ agent }: ChatInterfaceProps) {
   }, [messages]);
 
   const initializeChat = useCallback(async (isManualRestart = false) => {
-    setIsLoading(true);
-    let newMessages: ChatMessage[] = [];
-    
-    // Only show default greeting if not in flow mode or if flow doesn't send initial messages
+    setIsLoading(true); // Set loading at the very beginning
+    let aggregatedMessages: ChatMessage[] = [];
+    let tempContext: FlowContext = { conversationHistory: [], waitingForInput: undefined, currentNodeId: undefined };
+    let tempNextNodeId: string | undefined = undefined;
+
     if (agent.generatedGreeting && (chatMode === "autonomous" || !currentAgentFlow)) {
-      newMessages.push({
+      aggregatedMessages.push({
         id: 'agent-greeting',
         sender: 'agent',
         text: agent.generatedGreeting,
@@ -80,14 +79,11 @@ export function ChatInterface({ agent }: ChatInterfaceProps) {
       });
     }
 
-    let tempNextNodeId: string | undefined = undefined;
-    let tempContext: FlowContext = { conversationHistory: [], waitingForInput: undefined, currentNodeId: undefined }; 
-
     if (chatMode === "flow" && currentAgentFlow) {
       try {
         const flowResult = await executeAgentFlow({
           flowDefinition: currentAgentFlow,
-          currentContext: { ...tempContext }, // Pass a fresh context for initialization
+          currentContext: { ...tempContext },
           currentMessage: undefined,
           startNodeId: currentAgentFlow.nodes.find(n => n.type === 'start')?.id,
         });
@@ -101,26 +97,26 @@ export function ChatInterface({ agent }: ChatInterfaceProps) {
           flowContext: { ...flowResult.updatedContext }
         }));
         
-        newMessages = [...newMessages, ...agentResponses];
-        tempContext = { ...flowResult.updatedContext }; // Capture updated context from flow
+        aggregatedMessages = [...aggregatedMessages, ...agentResponses];
+        tempContext = { ...flowResult.updatedContext };
         tempNextNodeId = flowResult.nextNodeId;
 
         if (flowResult.error) {
           toast({ title: "Flow Error", description: flowResult.error, variant: "destructive" });
-          newMessages.push({id: 'flow-error-init', sender: 'agent', text: `Error starting flow: ${flowResult.error}`, timestamp: Date.now()});
+          aggregatedMessages.push({id: 'flow-error-init', sender: 'agent', text: `Error starting flow: ${flowResult.error}`, timestamp: Date.now()});
         }
       } catch (err: any) {
         console.error("Error initializing flow:", err);
         const errorMessage = err.message || "Could not start the agent flow.";
         toast({ title: "Flow Initialization Error", description: errorMessage, variant: "destructive" });
-        newMessages.push({id: 'flow-error-init-catch', sender: 'agent', text: `System error: ${errorMessage}`, timestamp: Date.now()});
+        aggregatedMessages.push({id: 'flow-error-init-catch', sender: 'agent', text: `System error: ${errorMessage}`, timestamp: Date.now()});
       }
     }
     
-    setMessages(newMessages);
-    setCurrentFlowContext(tempContext); 
+    setMessages(aggregatedMessages);
+    setCurrentFlowContext(tempContext);
     setNextNodeIdToResume(tempNextNodeId);
-    setIsLoading(false);
+    setIsLoading(false); // Reset loading after all operations
     if (isManualRestart) {
         toast({ title: "Conversation Restarted", description: "The chat has been reset." });
     }
@@ -129,14 +125,14 @@ export function ChatInterface({ agent }: ChatInterfaceProps) {
 
   useEffect(() => {
     setMessages([]);
-    setCurrentFlowContext({ conversationHistory: [] });
+    setCurrentFlowContext({ conversationHistory: [], waitingForInput: undefined, currentNodeId: undefined });
     setNextNodeIdToResume(undefined);
     initializeChat();
-  }, [agent.id, currentAgentFlow, chatMode, initializeChat]);
+  }, [agent.id, currentAgentFlow, chatMode, initializeChat]); // initializeChat is stable due to useCallback
 
 
   const handleSendMessage = async () => {
-    if (input.trim() === "" || isLoading) return;
+    if (input.trim() === "" || isLoading || isRestarting) return;
 
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
@@ -193,20 +189,22 @@ export function ChatInterface({ agent }: ChatInterfaceProps) {
 
       } else { 
         const intentResult = await recognizeIntent({ userInput: userMessage.text });
+        // Update the user message with intent and entities for debug display
         setMessages(prev => prev.map(m => m.id === userMessage.id ? {...m, intent: intentResult.intent, entities: intentResult.entities } : m));
         
-        // For autonomous, use the full message history as context string
-        const contextHistoryForReasoning = messages.map(m => `${m.sender === 'user' ? 'User' : 'Agent'}: ${m.text}`).join('\n');
-        const fullContextForReasoning = `${contextHistoryForReasoning}\nUser: ${userMessage.text}`;
-        const reasoningResult = await autonomousReasoning({ context: fullContextForReasoning, userInput: userMessage.text });
+        const currentConversationHistory = [...messages, userMessage]; // Include the latest user message for context
+        const contextStringForReasoning = currentConversationHistory.map(m => `${m.sender === 'user' ? 'User' : 'Agent'}: ${m.text}`).join('\n');
+        
+        const reasoningResult = await autonomousReasoning({ context: contextStringForReasoning, userInput: userMessage.text });
 
         const agentResponse: ChatMessage = {
           id: (Date.now() + 1).toString(),
           sender: "agent",
-          text: reasoningResult.nextAction,
+          text: reasoningResult.responseToUser, // Use the direct conversational reply
           timestamp: Date.now(),
           reasoning: reasoningResult.reasoning,
-          intent: intentResult.intent, // Include intent from intent recognition
+          intent: intentResult.intent, // Retain for debugging
+          entities: intentResult.entities, // Retain for debugging
         };
         setMessages((prev) => [...prev, agentResponse]);
       }
@@ -234,12 +232,8 @@ export function ChatInterface({ agent }: ChatInterfaceProps) {
     if (isLoading || isRestarting) return;
     setIsRestarting(true);
     setInput(""); 
-    setMessages([]);
-    setCurrentFlowContext({ conversationHistory: [] });
-    setNextNodeIdToResume(undefined);
-    await initializeChat(true); // Pass true to indicate manual restart for toast message
+    await initializeChat(true); // Pass true to indicate manual restart, this already handles state reset
     setIsRestarting(false);
-    // Toast is handled by initializeChat when isManualRestart is true
   };
 
 
@@ -307,7 +301,7 @@ export function ChatInterface({ agent }: ChatInterfaceProps) {
                 )}
               >
                 <p className="whitespace-pre-wrap">{message.text}</p>
-                {(message.intent || message.reasoning || message.flowNodeId || message.flowContext) && (
+                {(message.intent || message.reasoning || message.flowNodeId || message.flowContext || message.entities) && (
                   <Accordion type="single" collapsible className="mt-2 text-xs w-full">
                     <AccordionItem value="item-1" className="border-b-0">
                       <AccordionTrigger className="py-1 hover:no-underline text-muted-foreground [&[data-state=open]>svg]:text-foreground">
@@ -350,7 +344,7 @@ export function ChatInterface({ agent }: ChatInterfaceProps) {
               </div>
             </div>
           )}
-           {isLoading && messages.length === 0 && ( 
+           {isLoading && messages.length === 0 && ( // Initial loading state for greetings or flow start
              <div className="flex items-end gap-2 justify-start">
                <Avatar className="h-8 w-8">
                   <AvatarFallback><Bot size={18}/></AvatarFallback>
