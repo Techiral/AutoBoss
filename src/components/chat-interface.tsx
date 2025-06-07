@@ -8,7 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Send, Bot, User, Loader2, Info, Cog, Zap, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { ChatMessage, Agent, FlowContext, AgentFlowDefinition } from "@/lib/types";
+import type { ChatMessage, Agent, FlowContext, AgentFlowDefinition, KnowledgeItem } from "@/lib/types";
 import { recognizeIntent } from "@/ai/flows/intent-recognition";
 import { autonomousReasoning } from "@/ai/flows/autonomous-reasoning";
 import { executeAgentFlow, ExecuteAgentFlowInput } from "@/ai/flows/execute-agent-flow";
@@ -19,35 +19,42 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { useAppContext } from "@/app/(app)/layout";
+import { useAppContext } from "@/app/(app)/layout"; // Assuming this path is correct if used within (app)
+                                                  // For public chat page, this context won't be available.
 
 interface ChatInterfaceProps {
   agent: Agent;
+  // Allow AppContext to be optional, as public chat page won't have it
+  appContext?: ReturnType<typeof useAppContext>; 
 }
 
 type ChatMode = "autonomous" | "flow";
 
-export function ChatInterface({ agent }: ChatInterfaceProps) {
+export function ChatInterface({ agent: initialAgent, appContext }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false); // General loading for send message or init
-  const [isInitializing, setIsInitializing] = useState(true); // Specifically for initial chat setup/reset
-  const [isRestarting, setIsRestarting] = useState(false); // For restart button state
+  const [isLoading, setIsLoading] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [isRestarting, setIsRestarting] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-  const { getAgentFlow } = useAppContext();
+  
+  // Use internal state for agent data, initialized from prop
+  // This allows the component to function even if appContext is not available (e.g. public page)
+  const [currentAgent, setCurrentAgent] = useState<Agent>(initialAgent);
+  
+  const getAgentFlowFromAppContext = appContext?.getAgentFlow;
 
   const [chatMode, setChatMode] = useState<ChatMode>("autonomous");
   const [currentFlowContext, setCurrentFlowContext] = useState<FlowContext>({ conversationHistory: [] });
   const [currentAgentFlow, setCurrentAgentFlow] = useState<AgentFlowDefinition | undefined>(undefined);
   const [nextNodeIdToResume, setNextNodeIdToResume] = useState<string | undefined>(undefined);
 
-  // Refs to hold the latest state for use in event handlers
   const currentFlowContextRef = useRef(currentFlowContext);
   const nextNodeIdToResumeRef = useRef(nextNodeIdToResume);
   const currentAgentFlowRef = useRef(currentAgentFlow);
-  const agentKnowledgeItemsRef = useRef(agent.knowledgeItems);
-  const agentRef = useRef(agent); // Ref for the agent object itself
+  const agentKnowledgeItemsRef = useRef(currentAgent.knowledgeItems);
+  const agentRef = useRef(currentAgent);
 
   useEffect(() => {
     currentFlowContextRef.current = currentFlowContext;
@@ -62,31 +69,31 @@ export function ChatInterface({ agent }: ChatInterfaceProps) {
   }, [currentAgentFlow]);
 
   useEffect(() => {
-    agentKnowledgeItemsRef.current = agent.knowledgeItems;
-    agentRef.current = agent; // Keep agent ref updated
-  }, [agent]);
+    // Update internal agent state if the prop changes (e.g. from AppContext)
+    setCurrentAgent(initialAgent);
+    agentRef.current = initialAgent;
+    agentKnowledgeItemsRef.current = initialAgent.knowledgeItems;
+  }, [initialAgent]);
 
 
-  // Effect to initialize/reset chat when agent or core flow properties change
    useEffect(() => {
-    const flow = getAgentFlow(agentRef.current.id);
-    setCurrentAgentFlow(flow); 
+    const flowToUse = getAgentFlowFromAppContext ? getAgentFlowFromAppContext(agentRef.current.id) : agentRef.current.flow;
+    setCurrentAgentFlow(flowToUse); 
     
-    if (flow) {
+    if (flowToUse) {
       setChatMode("flow");
     } else {
       setChatMode("autonomous");
     }
     setMessages([]);
-    // Critical: Reset context before initialization call that will populate it
     const initialEmptyContext = { conversationHistory: [], waitingForInput: undefined, currentNodeId: undefined };
     setCurrentFlowContext(initialEmptyContext);
-    currentFlowContextRef.current = initialEmptyContext; // Direct ref update
+    currentFlowContextRef.current = initialEmptyContext;
     setNextNodeIdToResume(undefined);
-    nextNodeIdToResumeRef.current = undefined; // Direct ref update
+    nextNodeIdToResumeRef.current = undefined;
 
     setIsInitializing(true); 
-  }, [agentRef.current.id, getAgentFlow]); // Depends on agent.id via agentRef
+  }, [agentRef.current.id, agentRef.current.flow, getAgentFlowFromAppContext]);
 
   const scrollToBottom = () => {
     if (scrollAreaRef.current) {
@@ -136,7 +143,7 @@ export function ChatInterface({ agent }: ChatInterfaceProps) {
           id: `flow-init-${Date.now()}-${index}`,
           sender: 'agent',
           text: msg,
-          timestamp: Date.now() + index,
+          timestamp: Date.now() + index, // Stagger timestamps slightly
           flowNodeId: flowResult.updatedContext.currentNodeId,
           flowContext: { ...flowResult.updatedContext }
         }));
@@ -158,7 +165,6 @@ export function ChatInterface({ agent }: ChatInterfaceProps) {
     }
     
     setMessages(aggregatedMessages);
-    // Directly update refs along with state to ensure they are immediately current
     currentFlowContextRef.current = tempContextForInit;
     setCurrentFlowContext(tempContextForInit); 
     nextNodeIdToResumeRef.current = tempNextNodeIdForInit;
@@ -169,12 +175,9 @@ export function ChatInterface({ agent }: ChatInterfaceProps) {
     if (isManualRestart) {
         toast({ title: "Conversation Restarted", description: "The chat has been reset." });
     }
-  // Use refs for dependencies that don't need to trigger re-creation of initializeChat itself
-  // agent.id changes trigger the outer useEffect, which then calls initializeChat via isInitializing flag
   }, [toast]);
 
 
-  // Effect to run initializeChat when isInitializing is true
   useEffect(() => {
     if (isInitializing) {
         initializeChat();
@@ -197,11 +200,13 @@ export function ChatInterface({ agent }: ChatInterfaceProps) {
     setIsLoading(true);
 
     try {
+      // Refresh knowledge items from ref before using them
+      const currentKnowledge: KnowledgeItem[] = agentKnowledgeItemsRef.current || [];
       const determinedChatMode = currentAgentFlowRef.current ? "flow" : "autonomous";
 
       if (determinedChatMode === "flow" && currentAgentFlowRef.current) {
         const turnContext: FlowContext = {
-          ...currentFlowContextRef.current, // Use ref for latest context
+          ...currentFlowContextRef.current, 
           conversationHistory: [...(currentFlowContextRef.current.conversationHistory || []), userMessage],
         };
         
@@ -209,8 +214,8 @@ export function ChatInterface({ agent }: ChatInterfaceProps) {
           flowDefinition: currentAgentFlowRef.current,
           currentContext: turnContext,
           currentMessage: currentInput,
-          startNodeId: nextNodeIdToResumeRef.current || currentAgentFlowRef.current.nodes.find(n => n.type === 'start')?.id, // Use ref
-          knowledgeItems: agentKnowledgeItemsRef.current || [],
+          startNodeId: nextNodeIdToResumeRef.current || currentAgentFlowRef.current.nodes.find(n => n.type === 'start')?.id, 
+          knowledgeItems: currentKnowledge,
         };
         
         const result = await executeAgentFlow(flowInput);
@@ -225,7 +230,6 @@ export function ChatInterface({ agent }: ChatInterfaceProps) {
         }));
         setMessages((prev) => [...prev, ...agentResponses]);
         
-        // Directly update refs along with state
         currentFlowContextRef.current = { ...result.updatedContext };
         setCurrentFlowContext({ ...result.updatedContext }); 
         nextNodeIdToResumeRef.current = result.nextNodeId ? result.nextNodeId : undefined;
@@ -235,22 +239,23 @@ export function ChatInterface({ agent }: ChatInterfaceProps) {
           toast({ title: "Flow Execution Error", description: result.error, variant: "destructive" });
            setMessages(prev => [...prev, {id: 'flow-error-exec', sender: 'agent', text: `Flow error: ${result.error}`, timestamp: Date.now()}]);
         }
-        if (result.isFlowFinished) {
+        if (result.isFlowFinished && !result.nextNodeId) { // Ensure flow is truly finished if no next node
            setMessages(prev => [...prev, {id: 'flow-finished-msg', sender: 'agent', text: "(Flow has finished)", timestamp: Date.now()}]);
-           nextNodeIdToResumeRef.current = undefined; // Clear ref
-           setNextNodeIdToResume(undefined); // Clear state
+           nextNodeIdToResumeRef.current = undefined; 
+           setNextNodeIdToResume(undefined); 
         }
 
       } else { 
         const currentConversationHistory = [...messages, userMessage]; 
         const contextStringForReasoning = currentConversationHistory.map(m => `${m.sender === 'user' ? 'User' : 'Agent'}: ${m.text}`).join('\n');
         
-        const intentResult = await recognizeIntent({ userInput: userMessage.text });
+        // Intent recognition can be optional or used to augment reasoning
+        // const intentResult = await recognizeIntent({ userInput: userMessage.text });
         
         const reasoningResult = await autonomousReasoning({ 
             context: contextStringForReasoning, 
             userInput: userMessage.text,
-            knowledgeItems: agentKnowledgeItemsRef.current || []
+            knowledgeItems: currentKnowledge
         });
 
         const agentResponse: ChatMessage = {
@@ -259,8 +264,8 @@ export function ChatInterface({ agent }: ChatInterfaceProps) {
           text: reasoningResult.responseToUser,
           timestamp: Date.now(),
           reasoning: reasoningResult.reasoning,
-          intent: intentResult.intent, 
-          entities: intentResult.entities, 
+          // intent: intentResult.intent, 
+          // entities: intentResult.entities, 
         };
         setMessages((prev) => [...prev, agentResponse]);
       }
@@ -285,27 +290,25 @@ export function ChatInterface({ agent }: ChatInterfaceProps) {
   };
   
   const handleRestartConversation = async () => {
-    if (isRestarting) return; // Prevent multiple restart calls
+    if (isRestarting || isInitializing) return; 
     setIsRestarting(true);
     setInput(""); 
     setMessages([]); 
     
     const initialEmptyContext = { conversationHistory: [], waitingForInput: undefined, currentNodeId: undefined };
     setCurrentFlowContext(initialEmptyContext);
-    currentFlowContextRef.current = initialEmptyContext; // Direct ref update
+    currentFlowContextRef.current = initialEmptyContext; 
     
     setNextNodeIdToResume(undefined);
-    nextNodeIdToResumeRef.current = undefined; // Direct ref update
+    nextNodeIdToResumeRef.current = undefined; 
     
-    // isInitializing will trigger initializeChat effect
-    // No need to await initializeChat here, let the effect handle it
     setIsInitializing(true); 
     setIsRestarting(false); 
   };
 
 
   return (
-    <div className="flex flex-col h-[calc(100vh-250px)] max-h-[700px] border rounded-lg shadow-lg bg-card">
+    <div className="flex flex-col h-full border rounded-lg shadow-lg bg-card">
       <div className="p-2 border-b flex justify-between items-center gap-2 text-xs">
         <Button 
             variant="outline" 
@@ -325,8 +328,6 @@ export function ChatInterface({ agent }: ChatInterfaceProps) {
                 onClick={() => {
                   if (currentAgentFlowRef.current) { 
                     setChatMode('flow');
-                    // Trigger re-initialization for the new mode by setting isInitializing
-                    // Reset context before to ensure clean start for new mode
                     const initialEmptyContext = { conversationHistory: [], waitingForInput: undefined, currentNodeId: undefined };
                     setCurrentFlowContext(initialEmptyContext);
                     currentFlowContextRef.current = initialEmptyContext;
@@ -348,7 +349,6 @@ export function ChatInterface({ agent }: ChatInterfaceProps) {
                 size="sm" 
                 onClick={() => {
                   setChatMode('autonomous');
-                  // Trigger re-initialization for the new mode
                   const initialEmptyContext = { conversationHistory: [], waitingForInput: undefined, currentNodeId: undefined };
                   setCurrentFlowContext(initialEmptyContext);
                   currentFlowContextRef.current = initialEmptyContext;
@@ -456,7 +456,7 @@ export function ChatInterface({ agent }: ChatInterfaceProps) {
             onChange={(e) => setInput(e.target.value)}
             placeholder={nextNodeIdToResumeRef.current ? "Response awaited by flow..." : "Type your message..."}
             className="flex-1"
-            disabled={isLoading || isRestarting || isInitializing} // General loading check
+            disabled={isLoading || isRestarting || isInitializing} 
           />
           <Button type="submit" size="icon" disabled={isLoading || isRestarting || isInitializing || input.trim() === ""}>
             { (isLoading && !isInitializing && !isRestarting) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
@@ -467,4 +467,5 @@ export function ChatInterface({ agent }: ChatInterfaceProps) {
     </div>
   );
 }
-
+    
+    

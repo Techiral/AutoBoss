@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation";
 import { useAppContext } from "../../layout"; 
 import type { Agent } from "@/lib/types";
 import { Loader2 } from "lucide-react";
+import { minimalInitialFlow } from "@/app/(app)/agents/[agentId]/studio/page"; // Import minimal flow
 
 const formSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
@@ -45,29 +46,31 @@ export default function CreateAgentPage() {
       setGeneratedAgent(result);
       
       const newAgent: Agent = {
-        id: Date.now().toString(), // Simple ID generation
-        name: data.name, // This is the user-defined name/concept
-        description: `Role: ${data.role}. Personality: ${data.personality}.`, // A composite description
+        id: Date.now().toString(), 
+        name: data.name, 
+        description: `Role: ${data.role}. Personality: ${data.personality}.`, 
         role: data.role,
         personality: data.personality,
         generatedName: result.agentName,
         generatedPersona: result.agentPersona,
         generatedGreeting: result.agentGreeting,
         createdAt: new Date().toISOString(),
-        knowledgeItems: [], // Initialize with empty knowledge items
+        knowledgeItems: [], 
+        flow: minimalInitialFlow, // Assign minimal flow to new agents
       };
       addAgent(newAgent);
 
       toast({
         title: "Agent Configured!",
-        description: `Agent "${result.agentName}" has been successfully configured.`,
+        description: `Agent "${result.agentName}" has been successfully configured. Redirecting to Studio...`,
       });
       router.push(`/agents/${newAgent.id}/studio`);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating agent:", error);
+      const errorMessage = error.message || "Failed to create agent. Please try again.";
       toast({
         title: "Error",
-        description: "Failed to create agent. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -83,7 +86,7 @@ export default function CreateAgentPage() {
           <CardDescription>
             Define the core characteristics of your new agent. The AI will help refine its persona.
             <br />
-            <span className="text-xs text-muted-foreground">Note: Agent data is stored for the current session only and is not persisted.</span>
+            <span className="text-xs text-muted-foreground">Agent data is stored in your browser's local storage for this session.</span>
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
@@ -137,3 +140,5 @@ export default function CreateAgentPage() {
     </div>
   );
 }
+    
+    

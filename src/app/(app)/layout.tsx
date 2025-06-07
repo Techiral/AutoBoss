@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Logo } from '@/components/logo';
 import { UserNav } from '@/components/user-nav';
-import { Button } from '@/components/ui/button';
+// Removed Button import as it's not directly used here
 import {
   SidebarProvider,
   Sidebar,
@@ -18,16 +18,13 @@ import {
   SidebarMenuButton,
   SidebarTrigger,
   SidebarInset,
-  useSidebar,
+  useSidebar, // Added useSidebar
 } from '@/components/ui/sidebar';
 import { Home, PlusCircle, Bot, Settings, BookOpen, MessageSquare, Share2, Cog } from 'lucide-react';
 import type { Agent, KnowledgeItem, AgentFlowDefinition } from '@/lib/types';
+import { minimalInitialFlow } from '@/app/(app)/agents/[agentId]/studio/page'; // Assuming minimalInitialFlow is exported
 
-// Mock initial agents data with static dates and empty knowledgeItems
-const initialAgents: Agent[] = [
-  { id: '1', name: 'Support Bot Alpha', description: 'Handles customer support queries.', createdAt: '2024-01-15T10:00:00.000Z', generatedName: 'Support Bot Alpha', knowledgeItems: [], flow: undefined },
-  { id: '2', name: 'Sales Assistant Beta', description: 'Assists with sales questions.', createdAt: '2024-01-16T11:30:00.000Z', generatedName: 'Sales Assistant Beta', knowledgeItems: [], flow: undefined },
-];
+const LOCAL_STORAGE_AGENTS_KEY = 'agentVerseAgents';
 
 interface AppContextType {
   agents: Agent[];
@@ -37,6 +34,7 @@ interface AppContextType {
   addKnowledgeItem: (agentId: string, item: KnowledgeItem) => void;
   updateAgentFlow: (agentId: string, flow: AgentFlowDefinition) => void;
   getAgentFlow: (agentId: string) => AgentFlowDefinition | undefined;
+  deleteAgent: (agentId: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -50,11 +48,41 @@ export function useAppContext() {
 }
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const [agents, setAgents] = useState<Agent[]>(initialAgents);
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [isContextInitialized, setIsContextInitialized] = useState(false);
+
+  useEffect(() => {
+    try {
+      const storedAgents = localStorage.getItem(LOCAL_STORAGE_AGENTS_KEY);
+      if (storedAgents) {
+        setAgents(JSON.parse(storedAgents));
+      }
+    } catch (error) {
+      console.error("Failed to load agents from localStorage:", error);
+      // Optionally, clear corrupted storage
+      // localStorage.removeItem(LOCAL_STORAGE_AGENTS_KEY);
+    }
+    setIsContextInitialized(true);
+  }, []);
+
+  useEffect(() => {
+    if (isContextInitialized) { // Only save if context has been initialized
+        try {
+            localStorage.setItem(LOCAL_STORAGE_AGENTS_KEY, JSON.stringify(agents));
+        } catch (error) {
+            console.error("Failed to save agents to localStorage:", error);
+        }
+    }
+  }, [agents, isContextInitialized]);
 
 
   const addAgent = useCallback((agent: Agent) => {
-    const agentWithExtras = { ...agent, knowledgeItems: agent.knowledgeItems || [], flow: agent.flow || undefined };
+    const agentWithExtras: Agent = { 
+      ...agent, 
+      knowledgeItems: agent.knowledgeItems || [], 
+      flow: agent.flow || minimalInitialFlow, // Ensure new agents have a minimal flow
+      createdAt: agent.createdAt || new Date().toISOString() // Ensure createdAt is set
+    };
     setAgents((prevAgents) => [...prevAgents, agentWithExtras]);
   }, []);
 
@@ -106,8 +134,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return agent?.flow;
   }, [agents]);
 
+  const deleteAgent = useCallback((agentId: string) => {
+    setAgents(prevAgents => prevAgents.filter(agent => agent.id !== agentId));
+  }, []);
+
+  if (!isContextInitialized) {
+    // Optional: return a loading spinner or null while context is initializing
+    return null; 
+  }
+
   return (
-    <AppContext.Provider value={{ agents, addAgent, updateAgent, getAgent, addKnowledgeItem, updateAgentFlow, getAgentFlow }}>
+    <AppContext.Provider value={{ agents, addAgent, updateAgent, getAgent, addKnowledgeItem, updateAgentFlow, getAgentFlow, deleteAgent }}>
       <SidebarProvider defaultOpen={true}> 
         <AppSidebar />
         <div className="flex flex-col flex-1 min-h-screen">
@@ -126,14 +163,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 function AppHeader() {
   return (
     <header className="sticky top-0 z-50 flex h-16 items-center gap-4 border-b bg-card px-4 md:px-6">
-      {/* Sidebar Trigger - visible on all screen sizes now */}
-      {/* It will be on the left due to flex order */}
       <div>
         <SidebarTrigger />
       </div>
-      {/* Spacer to push UserNav to the right */}
       <div className="flex-grow" />
-      {/* UserNav remains on the right */}
       <div>
          <UserNav />
       </div>
@@ -143,14 +176,13 @@ function AppHeader() {
 
 function AppSidebar() {
   const pathname = usePathname();
-  const { state, isMobile } = useSidebar(); // Removed setOpen from here
+  const { state, open, setOpen, isMobile } = useSidebar(); // Get open and setOpen from context
   const collapsed = state === 'collapsed';
   
   const agentIdMatch = pathname.match(/^\/agents\/([a-zA-Z0-9_-]+)/);
   const currentAgentId = agentIdMatch ? agentIdMatch[1] : null;
 
-  // Removed useEffect that auto-collapses/expands sidebar based on pathname
-  // The sidebar state will now be primarily user-controlled via the SidebarTrigger
+  // Removed auto-collapsing logic to give user full control via SidebarTrigger
 
   const agentNavItems = currentAgentId ? [
     { href: `/agents/${currentAgentId}/studio`, label: 'Studio', icon: Cog },
@@ -214,3 +246,5 @@ function AppSidebar() {
     </Sidebar>
   );
 }
+    
+    

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAppContext } from "../../../layout";
 import type { Agent, AgentFlowDefinition, FlowNode as JsonFlowNode, FlowEdge as JsonFlowEdge } from "@/lib/types";
-import { Loader2, Save, AlertTriangle, Trash2, MousePointer, ArrowRight, MessageSquare, Zap, HelpCircle, Play, ChevronsUpDown, Settings2, Link2, Cog, BookOpen, Bot, Share2, Network, SlidersHorizontal, FileCode, MessageCircleQuestion, Timer, ArrowRightLeft, Users, BrainCircuit, StopCircle, Info, Sigma, GripVertical } from "lucide-react";
+import { Loader2, Save, AlertTriangle, Trash2, MousePointer, ArrowRight, MessageSquare, Zap, HelpCircle, Play, ChevronsUpDown, Settings2, Link2, Cog, BookOpen, Bot as BotIcon, Share2, Network, SlidersHorizontal, FileCode, MessageCircleQuestion, Timer, ArrowRightLeft, Users, BrainCircuit, StopCircle, Info, Sigma, GripVertical } from "lucide-react"; // Renamed Bot to BotIcon
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
@@ -29,37 +29,39 @@ interface VisualNode extends Omit<JsonFlowNode, 'type' | 'position' | 'message' 
   label: string;
   x: number;
   y: number;
-  content?: string;
+  content?: string; // Generic content for display, derived from specific fields
+  // Specific fields from JsonFlowNode that might be directly edited or used
   message?: string;
   prompt?: string;
+  variableName?: string; // For getUserInput
   llmPrompt?: string;
-  outputVariable?: string;
+  outputVariable?: string; // For callLLM, apiCall, qnaLookup
   conditionVariable?: string;
   useLLMForDecision?: boolean;
   actionName?: string;
-  actionInputArgs?: Record<string, any> | string;
-  actionOutputVarMap?: Record<string, string> | string;
+  actionInputArgs?: Record<string, any> | string; // Stored as string if JSON
+  actionOutputVarMap?: Record<string, string> | string; // Stored as string if JSON
   apiUrl?: string;
   apiMethod?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
-  apiHeaders?: Record<string, string> | string;
+  apiHeaders?: Record<string, string> | string; // Stored as string if JSON
   apiBodyVariable?: string;
   apiOutputVariable?: string;
   codeScript?: string;
-  codeReturnVarMap?: Record<string, string> | string;
-  qnaKnowledgeBaseId?: string;
+  codeReturnVarMap?: Record<string, string> | string; // Stored as string if JSON
+  qnaKnowledgeBaseId?: string; // Conceptual
   qnaQueryVariable?: string;
-  qnaOutputVariable?: string;
+  // qnaOutputVariable already in outputVariable
   qnaFallbackText?: string;
   qnaThreshold?: number;
   waitDurationMs?: number;
   transitionTargetFlowId?: string;
-  transitionVariablesToPass?: Record<string, any> | string;
-  agentSkillId?: string;
-  agentSkillsList?: string[];
-  endOutputVariable?: string;
-  useKnowledge?: boolean;
-  inputType?: string;
-  validationRules?: string;
+  transitionVariablesToPass?: Record<string, any> | string; // Stored as string if JSON
+  agentSkillId?: string; // Conceptual
+  agentSkillsList?: string[]; // Conceptual
+  endOutputVariable?: string; // For end node
+  useKnowledge?: boolean; // For callLLM
+  inputType?: string; // For getUserInput (conceptual)
+  validationRules?: string; // For getUserInput (conceptual)
 }
 
 
@@ -69,7 +71,7 @@ interface NodeDefinition {
   type: FlowNodeType;
   label: string;
   icon: React.ElementType;
-  defaultProperties?: Partial<VisualNode & JsonFlowNode>;
+  defaultProperties?: Partial<VisualNode & JsonFlowNode>; // Ensure JsonFlowNode properties can also be defaulted
   docs: {
     purpose: string;
     settings: string;
@@ -80,18 +82,18 @@ interface NodeDefinition {
 
 const NODE_DEFINITIONS: NodeDefinition[] = [
   { type: 'start', label: 'Start', icon: Play, defaultProperties: { label: "Start" }, docs: { purpose: "Marks the entry of a flow. Always first.", settings: "None.", edges: "Exactly 1 outgoing.", rules: "Every flow requires one Start; cannot be downstream of any other node."} },
-  { type: 'sendMessage', label: 'Send Message', icon: MessageSquare, defaultProperties: { message: "New message", label: "Send Message" }, docs: { purpose: "Delivers text, cards, quick replies, or carousels to user.", settings: "Channel selector, typing simulation, templates (`{{var}}`).", edges: "1 outgoing edge to next node.", rules: "For long text (>640 chars) split across nodes; ensure channel compatibility." } },
-  { type: 'getUserInput', label: 'Ask Question', icon: HelpCircle, defaultProperties: { prompt: "Ask something...", variableName: "userInput", label: "Ask Question" }, docs: { purpose: "Prompts user and captures reply.", settings: "Input type (text, number, email, choice, date), validation (regex, ranges), variable name.", edges: "1 happy-path; optional invalid path.", rules: "If validation on, wire both valid & invalid outputs; otherwise fallback can drop." } },
-  { type: 'callLLM', label: 'LLM Call', icon: Zap, defaultProperties: { llmPrompt: "Your LLM prompt for {{variable}}", outputVariable: "llmOutput", useKnowledge: false, label: "LLM Call" }, docs: { purpose: "Invokes an LLM prompt (openAI, etc.) inline.", settings: "Prompt template, `useKnowledge` flag, output var.", edges: "1 outgoing.", rules: "Prompts must be clear; beware latency (200–1000ms). Handle missing or malformed responses with fallback." } },
-  { type: 'condition', label: 'Condition', icon: ChevronsUpDown, defaultProperties: { conditionVariable: "varToCheck", useLLMForDecision: false, label: "Condition" }, docs: { purpose: "Routes based on expressions (`{{state.age}} > 18`) or LLM decision.", settings: "Variable to check or List of JS/Nunjucks expressions, default branch. Use LLM For Decision (boolean).", edges: "One per branch + default.", rules: "Evaluated in order; always include default to catch unmatched cases. If using LLM, edge `condition` labels act as intents." } },
-  { type: 'action', label: 'Action', icon: SlidersHorizontal, defaultProperties: { actionName: "myCustomAction", label: "Action" }, docs: { purpose: "Runs a registered action (CRM update, DB write, custom logic).", settings: "Action name, input args, output map.", edges: "1 outgoing; errors bubble to global fallback.", rules: "Custom actions must exist in code; handle errors via fallback flow. Placeholder execution." } },
-  { type: 'apiCall', label: 'HTTP Request', icon: Network, defaultProperties: { apiUrl: "https://api.example.com/data", apiMethod: 'GET', label: "HTTP Request" }, docs: { purpose: "Calls external REST endpoint.", settings: "URL (templated), method, headers, body, timeout, retry.", edges: "Success + error.", rules: "Non-2xx → error edge; account for rate limits and retries. Placeholder execution." } },
-  { type: 'code', label: 'Code (JS)', icon: FileCode, defaultProperties: { codeScript: "// Your JS code here\n// return { outputKey: 'value' };", label: "JS Code" }, docs: { purpose: "Executes inline JavaScript with access to `state`, `temp`, `event.payload`.", settings: "Script editor, return var mapping.", edges: "1 outgoing; exceptions → flow error.", rules: "Keep snippets synchronous and concise; heavy logic belongs in actions. Placeholder execution - NO ACTUAL EXECUTION." } },
-  { type: 'qnaLookup', label: 'Q&A Lookup', icon: MessageCircleQuestion, defaultProperties: { qnaQueryVariable: "userQuery", qnaOutputVariable: "qnaAnswer", qnaFallbackText: "No answer found.", label: "Q&A Lookup" }, docs: { purpose: "Hits a Q&A (KB) for best match to user input.", settings: "KB ID (conceptual), query variable, threshold, fallback text.", edges: "Found (≥ threshold) + Not found.", rules: "Always wire both edges or user can get stuck without response. Basic keyword match simulation." } },
-  { type: 'wait', label: 'Wait / Delay', icon: Timer, defaultProperties: { waitDurationMs: 1000, label: "Wait" }, docs: { purpose: "Pauses flow to simulate typing or timing.", settings: "Delay duration (ms/sec).", edges: "1 outgoing.", rules: "Use sparingly (<2s) to avoid user frustration." } },
-  { type: 'transition', label: 'Transition', icon: ArrowRightLeft, defaultProperties: { transitionTargetFlowId: "another_flow_id", label: "Transition" }, docs: { purpose: "Moves execution to another flow.", settings: "Target flow ID, entry node, variables to pass.", edges: "1 outgoing.", rules: "Avoid infinite loops; ensure variables exist upstream. Placeholder execution." } },
-  { type: 'agentSkill', label: 'Agent Skill', icon: BrainCircuit, defaultProperties: { agentSkillId: "booking_skill", label: "Agent Skill" }, docs: { purpose: "Spins up an AI agent with a predefined persona & toolset (e.g., booking agent, troubleshooting agent).", settings: "Agent ID, skills list (search, memory, external API connectors), context window.", edges: "Typically single outgoing to resume flow after agent completes.", rules: "Define clear handoff points; manage token/context limits; chain only when agent response needed. Placeholder execution." } },
-  { type: 'end', label: 'End', icon: StopCircle, defaultProperties: { label: "End"}, docs: { purpose: "Terminates the conversation path.", settings: "Optional `output` variable (`endOutputVariable`) to return data to parent flow.", edges: "No outgoing edges.", rules: "Must be reachable from all branches to avoid dead‑ends." } },
+  { type: 'sendMessage', label: 'Send Message', icon: MessageSquare, defaultProperties: { label: "Send Message", message: "New message" }, docs: { purpose: "Delivers text, cards, quick replies, or carousels to user.", settings: "Channel selector, typing simulation, templates (`{{var}}`).", edges: "1 outgoing edge to next node.", rules: "For long text (>640 chars) split across nodes; ensure channel compatibility." } },
+  { type: 'getUserInput', label: 'Ask Question', icon: HelpCircle, defaultProperties: { label: "Ask Question", prompt: "Ask something...", variableName: "userInput" }, docs: { purpose: "Prompts user and captures reply.", settings: "Input type (text, number, email, choice, date), validation (regex, ranges), variable name.", edges: "1 happy-path; optional invalid path (edgeType 'invalid').", rules: "If validation on, wire both valid & invalid outputs; otherwise fallback can drop." } },
+  { type: 'callLLM', label: 'LLM Call', icon: Zap, defaultProperties: { label: "LLM Call", llmPrompt: "Your LLM prompt for {{variable}}", outputVariable: "llmOutput", useKnowledge: false }, docs: { purpose: "Invokes an LLM prompt (e.g., Gemini) inline.", settings: "Prompt template, `useKnowledge` flag, output var.", edges: "1 outgoing.", rules: "Prompts must be clear; beware latency. Handle missing or malformed responses with fallback." } },
+  { type: 'condition', label: 'Condition', icon: ChevronsUpDown, defaultProperties: { label: "Condition", conditionVariable: "varToCheck", useLLMForDecision: false }, docs: { purpose: "Routes based on expressions (`{{state.age}} > 18`) or LLM decision.", settings: "Variable to check. Edge conditions (labels) act as intents if using LLM. `useLLMForDecision` flag.", edges: "One per branch (with condition label) + optional default (empty condition label).", rules: "Evaluated in order if not LLM; always include default to catch unmatched cases. If using LLM, edge `condition` labels act as intents." } },
+  { type: 'action', label: 'Action', icon: SlidersHorizontal, defaultProperties: { label: "Action", actionName: "myCustomAction" }, docs: { purpose: "Runs a registered action (CRM update, DB write, custom logic). Conceptual placeholder.", settings: "Action name, input args (JSON string or {{vars}}), output map (JSON string).", edges: "1 outgoing; errors bubble to global fallback.", rules: "Custom actions must exist in code; handle errors via fallback flow. Placeholder execution." } },
+  { type: 'apiCall', label: 'HTTP Request', icon: Network, defaultProperties: { label: "HTTP Request", apiUrl: "https://api.example.com/data", apiMethod: 'GET' }, docs: { purpose: "Calls external REST endpoint. Conceptual placeholder.", settings: "URL (templated), method, headers (JSON string), body variable, output variable, timeout, retry.", edges: "Success (edgeType 'success') + error (edgeType 'error').", rules: "Non-2xx → error edge; account for rate limits and retries. Placeholder execution." } },
+  { type: 'code', label: 'Code (JS)', icon: FileCode, defaultProperties: { label: "JS Code", codeScript: "// Your JS code here\n// return { outputKey: 'value' };" }, docs: { purpose: "Executes inline JavaScript. Conceptual placeholder - NO ACTUAL EXECUTION.", settings: "Script editor, return var mapping (JSON string: `{\"contextVar\": \"returnedKey\"}`).", edges: "1 outgoing; exceptions → flow error.", rules: "Highly simplified simulation. Real JS execution is complex and needs sandboxing." } },
+  { type: 'qnaLookup', label: 'Q&A Lookup', icon: MessageCircleQuestion, defaultProperties: { label: "Q&A Lookup", qnaQueryVariable: "userQuery", qnaOutputVariable: "qnaAnswer", qnaFallbackText: "No answer found." }, docs: { purpose: "Hits a Q&A (KB) for best match to user input. Basic keyword match simulation.", settings: "KB ID (conceptual), query variable, threshold, fallback text, output variable.", edges: "Found (edgeType 'found') + Not found (edgeType 'notFound').", rules: "Always wire both edges or user can get stuck without response." } },
+  { type: 'wait', label: 'Wait / Delay', icon: Timer, defaultProperties: { label: "Wait", waitDurationMs: 1000 }, docs: { purpose: "Pauses flow to simulate typing or timing.", settings: "Delay duration (ms).", edges: "1 outgoing.", rules: "Use sparingly (<2s) to avoid user frustration." } },
+  { type: 'transition', label: 'Transition', icon: ArrowRightLeft, defaultProperties: { label: "Transition", transitionTargetFlowId: "another_flow_id" }, docs: { purpose: "Moves execution to another flow. Conceptual placeholder.", settings: "Target flow ID, entry node, variables to pass (JSON string: `{\"targetVar\": \"{{currentVar}}\"}`).", edges: "1 outgoing.", rules: "Avoid infinite loops; ensure variables exist upstream. Placeholder execution." } },
+  { type: 'agentSkill', label: 'Agent Skill', icon: BrainCircuit, defaultProperties: { label: "Agent Skill", agentSkillId: "booking_skill" }, docs: { purpose: "Spins up an AI agent with a predefined persona & toolset. Conceptual placeholder.", settings: "Agent ID, skills list (comma-sep), context window.", edges: "Typically single outgoing to resume flow after agent completes.", rules: "Define clear handoff points; manage token/context limits. Placeholder execution." } },
+  { type: 'end', label: 'End', icon: StopCircle, defaultProperties: { label: "End"}, docs: { purpose: "Terminates the conversation path.", settings: "Optional `endOutputVariable` from context to return data.", edges: "No outgoing edges.", rules: "Must be reachable from all branches to avoid dead‑ends." } },
 ];
 
 const WIRING_BEST_PRACTICES_DOCS = {
@@ -106,13 +108,13 @@ const WIRING_BEST_PRACTICES_DOCS = {
   ]
 };
 
-const minimalInitialFlow: AgentFlowDefinition = {
+export const minimalInitialFlow: AgentFlowDefinition = { // Export for use in CreateAgentPage
   flowId: "new-agent-flow",
   name: "New Agent Flow",
   description: "A minimal flow to get started.",
   nodes: [
-    { id: "start_minimal", type: "start", position: { x: 50, y: 100 }, label: "Start" },
-    { id: "end_minimal", type: "end", position: { x: 300, y: 100 }, label: "End" },
+    { id: "start_minimal", type: "start", label: "Start", position: { x: 50, y: 100 } },
+    { id: "end_minimal", type: "end", label: "End", position: { x: 300, y: 100 } },
   ],
   edges: [
     { id: "e_minimal_start_end", source: "start_minimal", target: "end_minimal", label: "" },
@@ -166,8 +168,8 @@ const complexSampleFlow: AgentFlowDefinition = {
     { id: "e_check_is_resolved_no", source: "check_resolution_node_14", target: "resolved_no_node_17", condition: "User indicates the issue is not resolved or problem persists.", label: "Issue Not Resolved" },
     { id: "e_resolved_end", source: "resolved_yes_node_15", target: "end_resolved_yes_node_16" },
     { id: "e_notresolved_end", source: "resolved_no_node_17", target: "end_resolved_no_node_18" },
-    { id: "e_check_invalid_category_default", source: "check_category_node_3", target: "invalid_category_node_19", condition: "" , edgeType: "default", label: "Default/Invalid Category"},
-    { id: "e_invalid_cat_to_get_category", source: "invalid_category_node_19", target: "get_issue_category_node_2"},
+    { id: "e_check_invalid_category_default", source: "check_category_node_3", target: "invalid_category_node_19", condition: "" , edgeType: "default", label: "Default/Invalid"}, // Added label
+    { id: "e_invalid_cat_to_get_category", source: "invalid_category_node_19", target: "get_issue_category_node_2"}, // Loop back
   ]
 };
 
@@ -208,21 +210,20 @@ export default function AgentStudioPage() {
     const flowToLoad = flowDef && flowDef.nodes && flowDef.nodes.length > 0 ? flowDef : minimalInitialFlow;
 
     const loadedNodes: VisualNode[] = flowToLoad.nodes.map((jsonNode: JsonFlowNode) => ({
-      id: jsonNode.id,
+      ...jsonNode, // Spread all properties from JsonFlowNode
       type: jsonNode.type as FlowNodeType,
       label: jsonNode.label || NODE_DEFINITIONS.find(def => def.type === jsonNode.type)?.defaultProperties?.label || jsonNode.id,
       x: jsonNode.position?.x || Math.random() * 400,
       y: jsonNode.position?.y || Math.random() * 300,
-      ...jsonNode,
       content: jsonNode.message || jsonNode.prompt || jsonNode.llmPrompt || jsonNode.codeScript,
     }));
-    const loadedEdges: VisualEdge[] = flowToLoad.edges.map((jsonEdge: JsonFlowEdge) => ({
+    const loadedEdges: VisualEdge[] = (flowToLoad.edges || []).map((jsonEdge: JsonFlowEdge) => ({
       ...jsonEdge,
-      label: jsonEdge.label || jsonEdge.condition,
+      label: jsonEdge.label || jsonEdge.condition, // Ensure label is populated for display
     }));
     setNodes(loadedNodes);
     setEdges(loadedEdges);
-    setCanvasOffset({ x: 0, y: 0 });
+    setCanvasOffset({ x: 0, y: 0 }); // Reset pan on load
   }, []);
 
   useEffect(() => {
@@ -254,15 +255,15 @@ export default function AgentStudioPage() {
 
     const nodeDef = NODE_DEFINITIONS.find(w => w.type === nodeType);
     const defaultLabel = nodeDef?.defaultProperties?.label || nodeDef?.label || 'Node';
-    const newNodeId = generateId(nodeType.replace(/\s+/g, '_') + '_');
+    const newNodeId = generateId(nodeType.replace(/\s+/g, '_').toLowerCase() + '_');
 
     const newNode: VisualNode = {
       id: newNodeId,
       type: nodeType,
-      label: defaultLabel,
-      x: Math.max(0, virtualX - 75),
-      y: Math.max(0, virtualY - 25),
-      ...(nodeDef?.defaultProperties || {}),
+      label: defaultLabel, // Use the specific default label from NODE_DEFINITIONS
+      x: Math.max(0, virtualX - 75), // Adjust for typical node width/2
+      y: Math.max(0, virtualY - 25), // Adjust for typical node height/2
+      ...(nodeDef?.defaultProperties || {}), // Spread default properties
     };
     setNodes((nds) => nds.concat(newNode));
     setSelectedNodeId(newNodeId);
@@ -274,34 +275,42 @@ export default function AgentStudioPage() {
   };
 
   const handleNodeMouseDown = (event: React.MouseEvent<HTMLDivElement>, nodeId: string) => {
-    if ((event.target as HTMLElement).dataset.port === 'out' || (event.target as HTMLElement).dataset.port === 'in') {
-        event.stopPropagation();
+     // If click is on a port, let port handlers manage it
+    const targetIsPort = (event.target as HTMLElement).dataset.port === 'out' || (event.target as HTMLElement).dataset.port === 'in';
+    if (targetIsPort) {
+        event.stopPropagation(); // Prevent node drag if port is clicked
         return;
     }
+
     const node = nodes.find(n => n.id === nodeId);
     if (!node || !canvasRef.current) return;
 
     const nodeElement = event.currentTarget;
     const nodeRect = nodeElement.getBoundingClientRect();
+    const canvasRect = canvasRef.current.getBoundingClientRect();
 
-    const offsetX = event.clientX - nodeRect.left;
-    const offsetY = event.clientY - nodeRect.top;
 
-    setDraggingNodeInfo({ id: nodeId, offsetX, offsetY });
-    setEdgeDragInfo(null);
+    // Calculate offset relative to the node's top-left corner on the *viewport*
+    const offsetX_viewport = event.clientX - nodeRect.left;
+    const offsetY_viewport = event.clientY - nodeRect.top;
+
+
+    setDraggingNodeInfo({ id: nodeId, offsetX: offsetX_viewport, offsetY: offsetY_viewport });
+    setEdgeDragInfo(null); // Cancel any pending edge drag
     setSelectedNodeId(nodeId);
-    event.stopPropagation();
+    event.stopPropagation(); // Prevent canvas panning when dragging a node
   };
 
-  const nodeWidth = 180;
-  const nodeHeight = 70;
+  const nodeWidth = 180; // Approximate width for display
+  const nodeHeight = 70; // Approximate height for display
 
   const handleCanvasMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
+    // Only pan if clicking directly on the canvas or canvas content background
     if (event.target === canvasRef.current || event.target === canvasContentRef.current ) {
         setIsPanning(true);
         setPanStartCoords({ x: event.clientX, y: event.clientY });
-        setSelectedNodeId(null);
-        if (edgeDragInfo) {
+        setSelectedNodeId(null); // Deselect node when clicking canvas
+        if (edgeDragInfo) { // Cancel pending edge drag
             setEdgeDragInfo(null);
         }
         event.preventDefault();
@@ -322,6 +331,7 @@ export default function AgentStudioPage() {
         setPanStartCoords({ x: event.clientX, y: event.clientY });
         event.preventDefault();
     } else if (draggingNodeInfo) {
+        // New position is mouse viewport position - offset within node + current canvas offset
         const newVirtualX = mouseX_viewport - draggingNodeInfo.offsetX + canvasOffset.x;
         const newVirtualY = mouseY_viewport - draggingNodeInfo.offsetY + canvasOffset.y;
 
@@ -329,6 +339,7 @@ export default function AgentStudioPage() {
         nds.map((n) => (n.id === draggingNodeInfo.id ? { ...n, x: newVirtualX, y: newVirtualY } : n))
         );
     } else if (edgeDragInfo) {
+        // Update current end of edge drag line in virtual coordinates
         const currentVirtualX = mouseX_viewport + canvasOffset.x;
         const currentVirtualY = mouseY_viewport + canvasOffset.y;
         setEdgeDragInfo(prev => prev ? {...prev, currentX: currentVirtualX, currentY: currentVirtualY} : null);
@@ -343,12 +354,17 @@ export default function AgentStudioPage() {
     if (draggingNodeInfo) {
         setDraggingNodeInfo(null);
     }
+    // If edge drag is active and mouse is released not on an input port, cancel it.
+    // The onMouseUp on the input port itself will handle successful connection.
     if (edgeDragInfo && !(event.target as HTMLElement).dataset.port?.includes('in')) {
         const targetElement = event.target as HTMLElement;
-        const isInputPort = targetElement.dataset.port === 'in';
+        // Check if the mouse up target is an input port. If not, cancel.
+        // This check might need refinement based on exact event target structure.
+        const isTargetInputPort = targetElement.dataset.port === 'in';
+        const parentNodeIsTarget = targetElement.closest('[data-node-id]')?.dataset.port === 'in';
 
-        if (!isInputPort) {
-             setEdgeDragInfo(null);
+        if (!isTargetInputPort && !parentNodeIsTarget) { // More robust check
+             setEdgeDragInfo(null); // Cancel edge drag
         }
     }
   };
@@ -360,7 +376,7 @@ export default function AgentStudioPage() {
   };
 
   const handlePortMouseDown = (event: React.MouseEvent, nodeId: string, portType: 'out') => {
-    event.stopPropagation();
+    event.stopPropagation(); // Prevent node drag or canvas pan
     const sourceNode = nodes.find(n => n.id === nodeId);
     if (!sourceNode || portType !== 'out' || sourceNode.type === 'end') {
         if (sourceNode && sourceNode.type === 'end') {
@@ -369,29 +385,27 @@ export default function AgentStudioPage() {
         return;
     }
 
-    if (!canvasRef.current) return;
-    setDraggingNodeInfo(null);
+    if (!canvasRef.current || !canvasContentRef.current) return;
+    setDraggingNodeInfo(null); // Ensure no node dragging
 
-    const portElement = event.currentTarget as HTMLDivElement;
-    const portRect = portElement.getBoundingClientRect();
-    const canvasViewportRect = canvasRef.current.getBoundingClientRect();
-
-    const startX_virtual = (portRect.left + portRect.width / 2 - canvasViewportRect.left) + canvasOffset.x;
-    const startY_virtual = (portRect.top + portRect.height / 2 - canvasViewportRect.top) + canvasOffset.y;
+    // Calculate start position relative to canvasContentRef (virtual coordinates)
+    // Port is centered on the node's edge.
+    const startX_virtual = sourceNode.x + nodeWidth; // Right edge of source node
+    const startY_virtual = sourceNode.y + nodeHeight / 2; // Vertically centered
 
     setEdgeDragInfo({
         sourceNodeId: nodeId,
         startX: startX_virtual,
         startY: startY_virtual,
-        currentX: startX_virtual,
+        currentX: startX_virtual, // Initially, current is same as start
         currentY: startY_virtual,
     });
   };
 
   const handlePortMouseUp = (event: React.MouseEvent, targetNodeId: string, portType: 'in') => {
-    event.stopPropagation();
+    event.stopPropagation(); // Prevent other canvas/node events
     if (!edgeDragInfo || portType !== 'in') {
-        if (edgeDragInfo) setEdgeDragInfo(null);
+        if (edgeDragInfo) setEdgeDragInfo(null); // Cancel if not a valid drop target
         return;
     }
 
@@ -419,34 +433,37 @@ export default function AgentStudioPage() {
     let defaultEdgeLabel = "";
     let defaultEdgeType: JsonFlowEdge['edgeType'] = 'default';
 
-    if (sourceNode?.type === 'condition') defaultEdgeLabel = "Case";
+    // Set default label/type based on source node type
+    if (sourceNode?.type === 'condition') { defaultEdgeLabel = "Case"; /* No default edgeType needed, handled by empty condition */ }
     else if (sourceNode?.type === 'qnaLookup') { defaultEdgeLabel = "Found"; defaultEdgeType = "found"; }
     else if (sourceNode?.type === 'apiCall') { defaultEdgeLabel = "Success"; defaultEdgeType = "success"; }
-    else if (sourceNode?.type === 'getUserInput') { defaultEdgeLabel = "Valid"; defaultEdgeType = "default"; }
+    else if (sourceNode?.type === 'getUserInput') { defaultEdgeLabel = "Valid"; /* defaultEdgeType = 'default' is fine */ }
 
 
     const newEdge: VisualEdge = {
         id: generateId('edge_'),
         source: edgeDragInfo.sourceNodeId,
         target: targetNodeId,
-        label: defaultEdgeLabel,
-        condition: defaultEdgeLabel,
+        label: defaultEdgeLabel, // Default label
+        condition: sourceNode?.type === 'condition' ? defaultEdgeLabel : "", // Condition only for condition nodes
         edgeType: defaultEdgeType,
     };
     setEdges((eds) => eds.concat(newEdge));
-    toast({ title: "Edge Created!", description: `Connected ${sourceNode?.label} to ${targetNode.label}.`});
-    setEdgeDragInfo(null);
+    toast({ title: "Edge Created!", description: `Connected ${sourceNode?.label || 'source'} to ${targetNode.label}. Configure edge in properties panel.`});
+    setEdgeDragInfo(null); // Finalize edge drag
   };
 
-  const updateSelectedNodeProperties = (updatedProps: Partial<JsonFlowNode>) => {
+  const updateSelectedNodeProperties = (updatedProps: Partial<VisualNode>) => {
     if (!selectedNodeId) return;
     setNodes(nds => nds.map(n => {
         if (n.id === selectedNodeId) {
             const newProps = {...n, ...updatedProps};
+            // Update generic 'content' based on specific fields for display consistency
             if (updatedProps.message !== undefined) newProps.content = updatedProps.message;
             else if (updatedProps.prompt !== undefined) newProps.content = updatedProps.prompt;
             else if (updatedProps.llmPrompt !== undefined) newProps.content = updatedProps.llmPrompt;
             else if (updatedProps.codeScript !== undefined) newProps.content = updatedProps.codeScript;
+            // Add more specific content updates if needed
             return newProps;
         }
         return n;
@@ -458,7 +475,9 @@ export default function AgentStudioPage() {
     setEdges(eds => eds.map(e => {
       if (e.id === edgeId) {
         const newEdge = {...e, ...updatedProps};
-        if (updatedProps.label !== undefined) {
+        // If label is updated, and it's a condition edge, also update condition property
+        const sourceNode = nodes.find(n => n.id === newEdge.source);
+        if (sourceNode?.type === 'condition' && updatedProps.label !== undefined) {
           newEdge.condition = updatedProps.label;
         }
         return newEdge;
@@ -480,13 +499,13 @@ export default function AgentStudioPage() {
   const convertToMermaid = useCallback((): string => {
     let mermaidStr = "graph TD;\n";
     nodes.forEach(node => {
-      const mermaidId = node.id.replace(/[^a-zA-Z0-9_]/g, '_');
-      const displayLabel = node.label ? node.label.replace(/"/g, '#quot;') : node.id;
+      const mermaidId = node.id.replace(/[^a-zA-Z0-9_]/g, '_'); // Mermaid ID needs to be simple
+      const displayLabel = node.label ? node.label.replace(/"/g, '#quot;') : node.id; // Escape quotes for Mermaid label
       const nodeDef = NODE_DEFINITIONS.find(d => d.type === node.type);
-      let shapeStart = '["';
+      let shapeStart = '["'; // Default rectangle
       let shapeEnd = '"]';
-      if (node.type === 'start' || node.type === 'end') { shapeStart = '(("'; shapeEnd = '"))'; }
-      else if (node.type === 'condition') { shapeStart = '{{"'; shapeEnd = '"}}'; }
+      if (node.type === 'start' || node.type === 'end') { shapeStart = '(("'; shapeEnd = '"))'; } // Stadium shape
+      else if (node.type === 'condition') { shapeStart = '{{"'; shapeEnd = '"}}'; } // Rhombus
 
       mermaidStr += `  ${mermaidId}${shapeStart}${displayLabel} (${nodeDef?.label || node.type})${shapeEnd};\n`;
     });
@@ -502,21 +521,20 @@ export default function AgentStudioPage() {
 
   const convertToAgentFlowDefinition = useCallback((): AgentFlowDefinition | null => {
     const hasStartNode = nodes.some(n => n.type === 'start');
-    const hasEndNode = nodes.some(n => n.type === 'end');
+    // It's good practice to have an end node, but not strictly validated here for saving drafts.
+    // const hasEndNode = nodes.some(n => n.type === 'end');
 
-    if (!hasStartNode && nodes.length > 0) {
-        toast({ title: "Invalid Flow", description: "A flow must have at least one 'Start' node if it has any nodes.", variant: "destructive"});
+    if (!hasStartNode && nodes.length > 0) { // Only error if there are nodes but no start node
+        toast({ title: "Invalid Flow", description: "A flow must have at least one 'Start' node.", variant: "destructive"});
         return null;
     }
-    if (!hasEndNode && nodes.length > 0) {
-        toast({ title: "Incomplete Flow", description: "It's recommended to have at least one 'End' node for all paths.", variant: "default"});
-    }
-
+    
+    // Basic validation example: Check if LLM nodes have prompts and output variables
     for (const node of nodes) {
         const nodeDef = NODE_DEFINITIONS.find(d => d.type === node.type);
         if (!nodeDef) {
              toast({ title: "Invalid Node Type", description: `Node '${node.label}' has an unrecognized type '${node.type}'.`, variant: "destructive"});
-            return null;
+            return null; // Critical error, stop conversion
         }
         if (node.type === 'callLLM' && (!node.llmPrompt || !node.outputVariable)) {
             toast({ title: "Invalid Node Config", description: `LLM Call node '${node.label}' is missing a prompt or output variable.`, variant: "destructive"});
@@ -526,14 +544,18 @@ export default function AgentStudioPage() {
             toast({ title: "Invalid Node Config", description: `Ask Question node '${node.label}' is missing a prompt or variable name.`, variant: "destructive"});
             return null;
         }
-        if (node.type === 'condition' && !node.conditionVariable) {
+         if (node.type === 'condition' && !node.conditionVariable) {
              toast({ title: "Invalid Node Config", description: `Condition node '${node.label}' is missing a 'Variable to Check'.`, variant: "destructive"});
             return null;
         }
+        // Add more validation rules here as needed
     }
 
     const jsonNodes: JsonFlowNode[] = nodes.map(node => {
-      const { x, y, content, ...restOfVisualNode } = node;
+      // Destructure all known VisualNode specific properties, then spread JsonFlowNode compatible ones
+      const { x, y, content, ...restOfVisualNode } = node; 
+      
+      // Start with common properties
       const baseJsonNode: Partial<JsonFlowNode> = {
           id: restOfVisualNode.id,
           type: restOfVisualNode.type,
@@ -541,94 +563,100 @@ export default function AgentStudioPage() {
           position: { x: node.x, y: node.y },
       };
 
+      // Add type-specific properties from VisualNode to JsonFlowNode
       if (node.type === 'sendMessage') baseJsonNode.message = node.message;
       if (node.type === 'getUserInput') { baseJsonNode.prompt = node.prompt; baseJsonNode.variableName = node.variableName; baseJsonNode.inputType = node.inputType; baseJsonNode.validationRules = node.validationRules; }
       if (node.type === 'callLLM') { baseJsonNode.llmPrompt = node.llmPrompt; baseJsonNode.outputVariable = node.outputVariable; baseJsonNode.useKnowledge = node.useKnowledge; }
       if (node.type === 'condition') { baseJsonNode.conditionVariable = node.conditionVariable; baseJsonNode.useLLMForDecision = node.useLLMForDecision; }
-      if (node.type === 'apiCall') { baseJsonNode.apiUrl = node.apiUrl; baseJsonNode.apiMethod = node.apiMethod; baseJsonNode.apiHeaders = node.apiHeaders; baseJsonNode.apiBodyVariable = node.apiBodyVariable; baseJsonNode.apiOutputVariable = node.apiOutputVariable;}
-      if (node.type === 'action') { baseJsonNode.actionName = node.actionName; baseJsonNode.actionInputArgs = node.actionInputArgs; baseJsonNode.actionOutputVarMap = node.actionOutputVarMap; }
-      if (node.type === 'code') { baseJsonNode.codeScript = node.codeScript; baseJsonNode.codeReturnVarMap = node.codeReturnVarMap; }
-      if (node.type === 'qnaLookup') { baseJsonNode.qnaKnowledgeBaseId = node.qnaKnowledgeBaseId; baseJsonNode.qnaQueryVariable = node.qnaQueryVariable; baseJsonNode.qnaOutputVariable = node.qnaOutputVariable; baseJsonNode.qnaFallbackText = node.qnaFallbackText; baseJsonNode.qnaThreshold = node.qnaThreshold; }
+      if (node.type === 'apiCall') { baseJsonNode.apiUrl = node.apiUrl; baseJsonNode.apiMethod = node.apiMethod; baseJsonNode.apiHeaders = typeof node.apiHeaders === 'string' ? JSON.parse(node.apiHeaders || '{}') : node.apiHeaders; baseJsonNode.apiBodyVariable = node.apiBodyVariable; baseJsonNode.apiOutputVariable = node.apiOutputVariable || node.outputVariable;} // Fallback for apiOutputVariable
+      if (node.type === 'action') { baseJsonNode.actionName = node.actionName; baseJsonNode.actionInputArgs = typeof node.actionInputArgs === 'string' ? JSON.parse(node.actionInputArgs || '{}') : node.actionInputArgs; baseJsonNode.actionOutputVarMap = typeof node.actionOutputVarMap === 'string' ? JSON.parse(node.actionOutputVarMap || '{}') : node.actionOutputVarMap; }
+      if (node.type === 'code') { baseJsonNode.codeScript = node.codeScript; baseJsonNode.codeReturnVarMap = typeof node.codeReturnVarMap === 'string' ? JSON.parse(node.codeReturnVarMap || '{}') : node.codeReturnVarMap; }
+      if (node.type === 'qnaLookup') { baseJsonNode.qnaKnowledgeBaseId = node.qnaKnowledgeBaseId; baseJsonNode.qnaQueryVariable = node.qnaQueryVariable; baseJsonNode.qnaOutputVariable = node.qnaOutputVariable || node.outputVariable; baseJsonNode.qnaFallbackText = node.qnaFallbackText; baseJsonNode.qnaThreshold = node.qnaThreshold; } // Fallback for qnaOutputVariable
       if (node.type === 'wait') { baseJsonNode.waitDurationMs = node.waitDurationMs; }
-      if (node.type === 'transition') { baseJsonNode.transitionTargetFlowId = node.transitionTargetFlowId; baseJsonNode.transitionVariablesToPass = node.transitionVariablesToPass; }
+      if (node.type === 'transition') { baseJsonNode.transitionTargetFlowId = node.transitionTargetFlowId; baseJsonNode.transitionVariablesToPass = typeof node.transitionVariablesToPass === 'string' ? JSON.parse(node.transitionVariablesToPass || '{}') : node.transitionVariablesToPass; }
       if (node.type === 'agentSkill') { baseJsonNode.agentSkillId = node.agentSkillId; baseJsonNode.agentSkillsList = node.agentSkillsList; }
       if (node.type === 'end') { baseJsonNode.endOutputVariable = node.endOutputVariable; }
-
-      return baseJsonNode as JsonFlowNode;
+      
+      return baseJsonNode as JsonFlowNode; // Assert as JsonFlowNode after adding all properties
     });
 
     const jsonEdges: JsonFlowEdge[] = edges.map(edge => {
-      const { ...restOfEdge } = edge;
+      // Simply take all properties from VisualEdge that are compatible with JsonFlowEdge
+      const { ...restOfEdge } = edge; 
       return {
         id: restOfEdge.id,
         source: restOfEdge.source,
         target: restOfEdge.target,
-        label: restOfEdge.label,
-        condition: restOfEdge.condition,
+        label: restOfEdge.label, // Keep visual label for potential future use or debugging
+        condition: restOfEdge.condition, // This is the crucial part for conditional logic
         edgeType: restOfEdge.edgeType,
       };
     });
 
+    // Use existing flow details if available, or generate new ones
     const flowId = currentAgent?.flow?.flowId || generateId('flow_');
     const flowName = currentAgent?.flow?.name || "My Visual Flow";
     const flowDescription = currentAgent?.flow?.description || "A flow created with the visual editor.";
 
     return { flowId, name: flowName, description: flowDescription, nodes: jsonNodes, edges: jsonEdges };
-  }, [nodes, edges, currentAgent, toast]);
+  }, [nodes, edges, currentAgent, toast]); // Dependencies for useCallback
 
   const handleSaveFlow = useCallback(() => {
     if (!currentAgent) {
-      toast({ title: "Agent Not Found", description: "Cannot save flow.", variant: "destructive" });
+      toast({ title: "Agent Not Found", description: "Cannot save flow as current agent is not loaded.", variant: "destructive" });
       return;
     }
     setIsSaving(true);
 
-    setMermaidCode(convertToMermaid());
+    setMermaidCode(convertToMermaid()); // Update Mermaid code display
 
     try {
       const agentFlowDef = convertToAgentFlowDefinition();
-      if (!agentFlowDef) {
+      if (!agentFlowDef) { // If validation failed in convertToAgentFlowDefinition
         setIsSaving(false);
-        return;
+        return; // Stop saving
       }
       updateAgentFlow(currentAgent.id, agentFlowDef);
-      toast({ title: "Flow Saved!", description: `Flow "${agentFlowDef.name}" visually designed and updated.` });
+      toast({ title: "Flow Saved!", description: `Flow "${agentFlowDef.name}" for agent "${currentAgent.generatedName || currentAgent.name}" has been updated.` });
     } catch (error: any) {
       console.error("Error saving flow:", error);
-      toast({ title: "Save Error", description: error.message || "Could not save the flow.", variant: "destructive" });
+      toast({ title: "Save Error", description: error.message || "Could not save the flow due to an unexpected error.", variant: "destructive" });
     } finally {
       setIsSaving(false);
     }
   }, [currentAgent, convertToMermaid, convertToAgentFlowDefinition, updateAgentFlow, toast]);
 
   const resetToComplexSampleFlow = () => {
-    loadFlowToVisual(complexSampleFlow);
+    loadFlowToVisual(complexSampleFlow); // Load the detailed sample flow
     setSelectedNodeId(null);
-    setMermaidCode("");
+    setMermaidCode(""); // Clear any existing mermaid code
      if (currentAgent) {
-      toast({ title: "Flow Reset", description: "Visual flow editor reset to sample flow."});
+      toast({ title: "Flow Reset", description: "Visual flow editor reset to complex sample flow."});
     }
   };
 
   const selectedNodeDetails = selectedNodeId ? nodes.find(n => n.id === selectedNodeId) : null;
   const selectedNodeDefinition = selectedNodeDetails ? NODE_DEFINITIONS.find(def => def.type === selectedNodeDetails.type) : null;
 
+  // Regenerate Mermaid code whenever nodes or edges change
   useEffect(() => {
-    if(nodes.length > 0 || edges.length > 0) {
+    if(nodes.length > 0 || edges.length > 0) { // Only generate if there's something to show
         setMermaidCode(convertToMermaid());
     } else {
-        setMermaidCode("");
+        setMermaidCode(""); // Clear if canvas is empty
     }
   }, [nodes, edges, convertToMermaid]);
 
+  // Render loading state or "Agent Not Found"
   if (currentAgent === undefined) return <Card><CardHeader><CardTitle>Loading Studio...</CardTitle></CardHeader><CardContent><Loader2 className="mx-auto h-10 w-10 animate-spin text-primary" /></CardContent></Card>;
-  if (!currentAgent) return <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>Agent Not Found</AlertTitle><AlertDescription>The agent could not be loaded.</AlertDescription></Alert>;
+  if (!currentAgent) return <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>Agent Not Found</AlertTitle><AlertDescription>The agent could not be loaded. Please select an agent from the dashboard.</AlertDescription></Alert>;
 
-  const portSize = 10;
+  const portSize = 10; // Visual size of connection ports
 
   return (
     <TooltipProvider>
-    <div className="grid grid-cols-12 gap-4 h-[calc(100vh-200px)]">
+    <div className="grid grid-cols-12 gap-4 h-[calc(100vh-200px)]"> {/* Main layout grid */}
+      {/* Node Tools Sidebar (Left) */}
       <Card className="col-span-2 h-full flex flex-col">
         <CardHeader className="pb-2">
           <CardTitle className="text-lg">Node Tools</CardTitle>
@@ -660,6 +688,7 @@ export default function AgentStudioPage() {
         </CardFooter>
       </Card>
 
+      {/* Canvas Area (Center) */}
       <Card
         className="col-span-6 xl:col-span-7 h-full relative overflow-hidden bg-muted/20 border-dashed border-input cursor-grab"
         ref={canvasRef}
@@ -667,29 +696,32 @@ export default function AgentStudioPage() {
         onDragOver={handleDragOverCanvas}
         onMouseMove={handleCanvasMouseMove}
         onMouseDown={handleCanvasMouseDown}
-        onMouseUp={handleCanvasMouseUp}
-        onMouseLeave={handleCanvasMouseUp}
-        onClick={handleCanvasClick}
+        onMouseUp={handleCanvasMouseUp} // General mouse up for cancelling pan/drag
+        onMouseLeave={handleCanvasMouseUp} // Also cancel if mouse leaves canvas
+        onClick={handleCanvasClick} // For deselecting nodes
       >
         <div
-            ref={canvasContentRef}
-            className="absolute top-0 left-0 w-full h-full pointer-events-none"
+            ref={canvasContentRef} // This is the pannable container
+            className="absolute top-0 left-0 w-full h-full pointer-events-none" // Initially no pointer events for background
             style={{ transform: `translate(${-canvasOffset.x}px, ${-canvasOffset.y}px)` }}
         >
-            <svg className="absolute top-0 left-0 w-full h-full pointer-events-none">
+            {/* SVG for drawing edges */}
+            <svg className="absolute top-0 left-0 w-full h-full pointer-events-none"> {/* Edges don't catch mouse events */}
             {edges.map(edge => {
                 const sourceNode = nodes.find(n => n.id === edge.source);
                 const targetNode = nodes.find(n => n.id === edge.target);
-                if (!sourceNode || !targetNode) return null;
+                if (!sourceNode || !targetNode) return null; // Edge is invalid if nodes don't exist
 
-                const x1 = sourceNode.x + nodeWidth;
+                // Calculate connection points (center of ports)
+                const x1 = sourceNode.x + nodeWidth; // Right port of source
                 const y1 = sourceNode.y + nodeHeight / 2;
-                const x2 = targetNode.x;
+                const x2 = targetNode.x;             // Left port of target
                 const y2 = targetNode.y + nodeHeight / 2;
 
                 const midX = (x1 + x2) / 2;
                 const midY = (y1 + y2) / 2;
 
+                // Arrowhead logic
                 const angle = Math.atan2(y2 - y1, x2 - x1);
                 const arrowLength = 8;
                 const arrowPoint1X = x2 - arrowLength * Math.cos(angle - Math.PI / 6);
@@ -709,6 +741,7 @@ export default function AgentStudioPage() {
                 </g>
                 );
             })}
+            {/* Temporary line for edge dragging */}
             {edgeDragInfo && (
                     <line
                         x1={edgeDragInfo.startX}
@@ -721,10 +754,12 @@ export default function AgentStudioPage() {
                     />
                 )}
             </svg>
+
+            {/* Render nodes on the canvas */}
             {nodes.map(node => (
             <div
                 key={node.id}
-                data-node-id={node.id}
+                data-node-id={node.id} // For event delegation or testing
                 onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
                 className="absolute p-2 border rounded bg-card shadow cursor-grab select-none flex flex-col justify-center group/node pointer-events-auto"
                 style={{
@@ -734,12 +769,13 @@ export default function AgentStudioPage() {
                     height: `${nodeHeight}px`,
                     borderColor: selectedNodeId === node.id ? 'hsl(var(--ring))' : 'hsl(var(--border))',
                     boxShadow: selectedNodeId === node.id ? '0 0 0 2px hsl(var(--ring))' : '0 1px 3px rgba(0,0,0,0.1)',
-                    zIndex: draggingNodeInfo?.id === node.id || edgeDragInfo?.sourceNodeId === node.id ? 10 : 1,
+                    zIndex: draggingNodeInfo?.id === node.id || edgeDragInfo?.sourceNodeId === node.id ? 10 : 1, // Bring active node to front
                 }}
             >
+                {/* Input Port (Left) - Not for 'start' type */}
                 {node.type !== 'start' && (
                     <div
-                        data-port="in"
+                        data-port="in" // Custom attribute to identify port
                         onMouseUp={(e) => handlePortMouseUp(e, node.id, 'in')}
                         title={`Connect to ${node.label}`}
                         className="absolute -left-[6px] top-1/2 -translate-y-1/2 cursor-crosshair pointer-events-auto bg-background rounded-full"
@@ -749,8 +785,9 @@ export default function AgentStudioPage() {
                     </div>
                 )}
 
+                {/* Node Content */}
                 <div className="flex items-center gap-1 mb-0.5 w-full">
-                    {(() => {
+                    {(() => { // Dynamically render icon
                         const WidgetIcon = NODE_DEFINITIONS.find(w=>w.type === node.type)?.icon;
                         return WidgetIcon ? <WidgetIcon className="w-3 h-3 text-primary shrink-0" /> : <GripVertical className="w-3 h-3 text-muted-foreground shrink-0"/>;
                     })()}
@@ -772,9 +809,10 @@ export default function AgentStudioPage() {
                 }
                 </p>
 
+                {/* Output Port (Right) - Not for 'end' type */}
                 {node.type !== 'end' && (
                     <div
-                        data-port="out"
+                        data-port="out" // Custom attribute to identify port
                         onMouseDown={(e) => handlePortMouseDown(e, node.id, 'out')}
                         title={`Connect from ${node.label}`}
                         className="absolute -right-[6px] top-1/2 -translate-y-1/2 cursor-crosshair pointer-events-auto bg-background rounded-full"
@@ -788,6 +826,7 @@ export default function AgentStudioPage() {
         </div>
       </Card>
 
+      {/* Properties Panel (Right) */}
       <Card className="col-span-4 xl:col-span-3 h-full flex flex-col">
         <CardHeader className="pb-2">
           <CardTitle className="text-lg flex items-center gap-2">
@@ -842,22 +881,22 @@ export default function AgentStudioPage() {
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div><Label htmlFor="apiHeaders" className="text-xs">Headers (JSON String)</Label><Textarea id="apiHeaders" placeholder='{ "Content-Type": "application/json" }' value={selectedNodeDetails.apiHeaders ? (typeof selectedNodeDetails.apiHeaders === 'string' ? selectedNodeDetails.apiHeaders : JSON.stringify(selectedNodeDetails.apiHeaders)) : ""} onChange={e => updateSelectedNodeProperties({ apiHeaders: e.target.value as any })} rows={2} className="text-sm font-code"/></div>
+                        <div><Label htmlFor="apiHeaders" className="text-xs">Headers (JSON String)</Label><Textarea id="apiHeaders" placeholder='{ "Content-Type": "application/json" }' value={typeof selectedNodeDetails.apiHeaders === 'string' ? selectedNodeDetails.apiHeaders : JSON.stringify(selectedNodeDetails.apiHeaders || {})} onChange={e => updateSelectedNodeProperties({ apiHeaders: e.target.value })} rows={2} className="text-sm font-code"/></div>
                         <div><Label htmlFor="apiBodyVar" className="text-xs">Body Variable (from context)</Label><Input id="apiBodyVar" value={selectedNodeDetails.apiBodyVariable || ""} onChange={e => updateSelectedNodeProperties({ apiBodyVariable: e.target.value })} className="h-8 text-sm"/></div>
-                        <div><Label htmlFor="apiOutputVar" className="text-xs">Output Variable (for response)</Label><Input id="apiOutputVar" value={selectedNodeDetails.apiOutputVariable || ""} onChange={e => updateSelectedNodeProperties({ apiOutputVariable: e.target.value })} className="h-8 text-sm"/></div>
+                        <div><Label htmlFor="apiOutputVar" className="text-xs">Output Variable (for response)</Label><Input id="apiOutputVar" value={selectedNodeDetails.apiOutputVariable || selectedNodeDetails.outputVariable || ""} onChange={e => updateSelectedNodeProperties({ apiOutputVariable: e.target.value, outputVariable: e.target.value })} className="h-8 text-sm"/></div>
                     </>
                 )}
                  { selectedNodeDetails.type === 'action' && (
                     <>
                         <div><Label htmlFor="actionName" className="text-xs">Action Name</Label><Input id="actionName" value={selectedNodeDetails.actionName || ""} onChange={e => updateSelectedNodeProperties({ actionName: e.target.value })} className="h-8 text-sm"/></div>
-                        <div><Label htmlFor="actionInputs" className="text-xs">Input Arguments (JSON string or {{vars}})</Label><Textarea id="actionInputs" placeholder='{ "param1": "{{contextVar}}" }' value={selectedNodeDetails.actionInputArgs ? (typeof selectedNodeDetails.actionInputArgs === 'string' ? selectedNodeDetails.actionInputArgs : JSON.stringify(selectedNodeDetails.actionInputArgs)) : ""} onChange={e => updateSelectedNodeProperties({ actionInputArgs: e.target.value as any })} rows={2} className="text-sm font-code"/></div>
-                        <div><Label htmlFor="actionOutputMap" className="text-xs">Output Variable Map (JSON string)</Label><Textarea id="actionOutputMap" placeholder='{ "contextVar": "actionResultKey" }' value={selectedNodeDetails.actionOutputVarMap ? (typeof selectedNodeDetails.actionOutputVarMap === 'string' ? selectedNodeDetails.actionOutputVarMap : JSON.stringify(selectedNodeDetails.actionOutputVarMap)) : ""} onChange={e => updateSelectedNodeProperties({ actionOutputVarMap: e.target.value as any })} className="text-sm font-code h-8"/></div>
+                        <div><Label htmlFor="actionInputs" className="text-xs">Input Arguments (JSON string)</Label><Textarea id="actionInputs" placeholder='{ "param1": "{{contextVar}}" }' value={typeof selectedNodeDetails.actionInputArgs === 'string' ? selectedNodeDetails.actionInputArgs : JSON.stringify(selectedNodeDetails.actionInputArgs || {})} onChange={e => updateSelectedNodeProperties({ actionInputArgs: e.target.value })} rows={2} className="text-sm font-code"/></div>
+                        <div><Label htmlFor="actionOutputMap" className="text-xs">Output Variable Map (JSON string)</Label><Textarea id="actionOutputMap" placeholder='{ "contextVar": "actionResultKey" }' value={typeof selectedNodeDetails.actionOutputVarMap === 'string' ? selectedNodeDetails.actionOutputVarMap : JSON.stringify(selectedNodeDetails.actionOutputVarMap || {})} onChange={e => updateSelectedNodeProperties({ actionOutputVarMap: e.target.value })} className="text-sm font-code h-8"/></div>
                     </>
                 )}
                  { selectedNodeDetails.type === 'code' && (
                     <>
-                        <div><Label htmlFor="codeScript" className="text-xs">JavaScript Code (Placeholder - Not Executed)</Label><Textarea id="codeScript" value={selectedNodeDetails.codeScript || ""} onChange={e => updateSelectedNodeProperties({ codeScript: e.target.value })} rows={3} className="text-sm font-code"/></div>
-                        <div><Label htmlFor="codeReturnMap" className="text-xs">Return Variable Map (JSON string)</Label><Textarea id="codeReturnMap" placeholder='{ "contextVar": "returnedObjectKey" }' value={selectedNodeDetails.codeReturnVarMap ? (typeof selectedNodeDetails.codeReturnVarMap === 'string' ? selectedNodeDetails.codeReturnVarMap : JSON.stringify(selectedNodeDetails.codeReturnVarMap)) : ""} onChange={e => updateSelectedNodeProperties({ codeReturnVarMap: e.target.value as any })} className="text-sm font-code h-8"/></div>
+                        <div><Label htmlFor="codeScript" className="text-xs">JavaScript Code (Simulated - Not Executed)</Label><Textarea id="codeScript" value={selectedNodeDetails.codeScript || ""} onChange={e => updateSelectedNodeProperties({ codeScript: e.target.value })} rows={3} className="text-sm font-code"/></div>
+                        <div><Label htmlFor="codeReturnMap" className="text-xs">Return Variable Map (JSON string)</Label><Textarea id="codeReturnMap" placeholder='{ "contextVar": "returnedObjectKey" }' value={typeof selectedNodeDetails.codeReturnVarMap === 'string' ? selectedNodeDetails.codeReturnVarMap : JSON.stringify(selectedNodeDetails.codeReturnVarMap || {})} onChange={e => updateSelectedNodeProperties({ codeReturnVarMap: e.target.value })} className="text-sm font-code h-8"/></div>
                     </>
                 )}
                 { selectedNodeDetails.type === 'qnaLookup' && (
@@ -865,7 +904,7 @@ export default function AgentStudioPage() {
                     <div><Label htmlFor="qnaQueryVar" className="text-xs">Query Variable (from context)</Label><Input id="qnaQueryVar" value={selectedNodeDetails.qnaQueryVariable || ""} onChange={e => updateSelectedNodeProperties({ qnaQueryVariable: e.target.value })} className="h-8 text-sm"/></div>
                     <div><Label htmlFor="qnaKBID" className="text-xs">Knowledge Base ID (Conceptual)</Label><Input id="qnaKBID" value={selectedNodeDetails.qnaKnowledgeBaseId || ""} onChange={e => updateSelectedNodeProperties({ qnaKnowledgeBaseId: e.target.value })} className="h-8 text-sm"/></div>
                      <div><Label htmlFor="qnaThreshold" className="text-xs">Threshold (0.0-1.0)</Label><Input id="qnaThreshold" type="number" step="0.1" min="0" max="1" value={selectedNodeDetails.qnaThreshold || 0.7} onChange={e => updateSelectedNodeProperties({ qnaThreshold: parseFloat(e.target.value) })} className="h-8 text-sm"/></div>
-                    <div><Label htmlFor="qnaOutputVar" className="text-xs">Output Variable (for answer)</Label><Input id="qnaOutputVar" value={selectedNodeDetails.qnaOutputVariable || ""} onChange={e => updateSelectedNodeProperties({ qnaOutputVariable: e.target.value })} className="h-8 text-sm"/></div>
+                    <div><Label htmlFor="qnaOutputVar" className="text-xs">Output Variable (for answer)</Label><Input id="qnaOutputVar" value={selectedNodeDetails.qnaOutputVariable || selectedNodeDetails.outputVariable || ""} onChange={e => updateSelectedNodeProperties({ qnaOutputVariable: e.target.value, outputVariable: e.target.value })} className="h-8 text-sm"/></div>
                     <div><Label htmlFor="qnaFallbackText" className="text-xs">Fallback Text</Label><Textarea id="qnaFallbackText" value={selectedNodeDetails.qnaFallbackText || ""} onChange={e => updateSelectedNodeProperties({ qnaFallbackText: e.target.value })} rows={2} className="text-sm"/></div>
                    </>
                 )}
@@ -875,7 +914,7 @@ export default function AgentStudioPage() {
                 { selectedNodeDetails.type === 'transition' && (
                     <>
                       <div><Label htmlFor="transitionFlowId" className="text-xs">Target Flow ID</Label><Input id="transitionFlowId" value={selectedNodeDetails.transitionTargetFlowId || ""} onChange={e => updateSelectedNodeProperties({ transitionTargetFlowId: e.target.value })} className="h-8 text-sm"/></div>
-                      <div><Label htmlFor="transitionVars" className="text-xs">Variables to Pass (JSON string)</Label><Textarea id="transitionVars" placeholder='{ "targetVar": "{{currentVar}}" }' value={selectedNodeDetails.transitionVariablesToPass ? (typeof selectedNodeDetails.transitionVariablesToPass === 'string' ? selectedNodeDetails.transitionVariablesToPass : JSON.stringify(selectedNodeDetails.transitionVariablesToPass)) : ""} onChange={e => updateSelectedNodeProperties({ transitionVariablesToPass: e.target.value as any })} rows={2} className="text-sm font-code"/></div>
+                      <div><Label htmlFor="transitionVars" className="text-xs">Variables to Pass (JSON string)</Label><Textarea id="transitionVars" placeholder='{ "targetVar": "{{currentVar}}" }' value={typeof selectedNodeDetails.transitionVariablesToPass === 'string' ? selectedNodeDetails.transitionVariablesToPass : JSON.stringify(selectedNodeDetails.transitionVariablesToPass || {})} onChange={e => updateSelectedNodeProperties({ transitionVariablesToPass: e.target.value })} rows={2} className="text-sm font-code"/></div>
                     </>
                 )}
                  { selectedNodeDetails.type === 'agentSkill' && (
@@ -904,7 +943,7 @@ export default function AgentStudioPage() {
                     {(selectedNodeDetails.type === 'condition' || selectedNodeDetails.type === 'apiCall' || selectedNodeDetails.type === 'qnaLookup' || selectedNodeDetails.type === 'getUserInput') && (
                         <div>
                             <Label htmlFor={`edgeLabel-${edge.id}`} className="text-[10px]">{selectedNodeDetails.type === 'condition' ? 'Condition/Case Label' : 'Edge Label'}</Label>
-                            <Input id={`edgeLabel-${edge.id}`} placeholder="Edge Label / Condition" value={edge.label || ""} onChange={e => updateEdgeProperty(edge.id, { label: e.target.value })} className="h-7 text-xs mt-1"/>
+                            <Input id={`edgeLabel-${edge.id}`} placeholder="Edge Label / Condition Value" value={edge.label || ""} onChange={e => updateEdgeProperty(edge.id, { label: e.target.value })} className="h-7 text-xs mt-1"/>
                         </div>
                     )}
                      {(selectedNodeDetails.type === 'apiCall' || selectedNodeDetails.type === 'qnaLookup' || selectedNodeDetails.type === 'getUserInput' ) && (
@@ -914,11 +953,17 @@ export default function AgentStudioPage() {
                                 <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="default">Default</SelectItem>
-                                    <SelectItem value="success">Success (apiCall)</SelectItem>
-                                    <SelectItem value="error">Error (apiCall)</SelectItem>
-                                    <SelectItem value="invalid">Invalid Input (getUserInput)</SelectItem>
-                                    <SelectItem value="found">Found (qnaLookup)</SelectItem>
-                                    <SelectItem value="notFound">Not Found (qnaLookup)</SelectItem>
+                                    {selectedNodeDetails.type === 'apiCall' && <>
+                                      <SelectItem value="success">Success</SelectItem>
+                                      <SelectItem value="error">Error</SelectItem>
+                                    </>}
+                                    {selectedNodeDetails.type === 'getUserInput' && <>
+                                      <SelectItem value="invalid">Invalid Input</SelectItem>
+                                    </>}
+                                    {selectedNodeDetails.type === 'qnaLookup' && <>
+                                       <SelectItem value="found">Found</SelectItem>
+                                       <SelectItem value="notFound">Not Found</SelectItem>
+                                    </>}
                                 </SelectContent>
                             </Select>
                         </div>
@@ -991,4 +1036,5 @@ export default function AgentStudioPage() {
     </TooltipProvider>
   );
 }
-
+    
+    

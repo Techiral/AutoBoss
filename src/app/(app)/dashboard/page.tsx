@@ -1,22 +1,34 @@
+
 "use client";
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { AgentCard } from "@/components/agent-card";
 import { PlusCircle, Info } from "lucide-react";
-import { useAppContext } from "../layout"; // Adjust path as necessary
+import { useAppContext } from "../layout"; 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useState } from "react";
 
 export default function DashboardPage() {
-  const { agents, addAgent } = useAppContext(); // Using addAgent to potentially remove agents for now.
+  const { agents, deleteAgent } = useAppContext();
+  const [agentToDelete, setAgentToDelete] = useState<string | null>(null);
 
-  // Placeholder for delete functionality
-  const handleDeleteAgent = (agentId: string) => {
-    // In a real app, this would call an API. For now, filter out from local state.
-    // For simplicity, this example won't implement deletion to keep context usage straightforward.
-    // A proper implementation would require `setAgents` in the context.
-    console.log("Delete agent:", agentId);
-    alert("Delete functionality is a placeholder.");
+  const handleDeleteConfirm = () => {
+    if (agentToDelete) {
+      deleteAgent(agentToDelete);
+      setAgentToDelete(null); 
+    }
   };
 
   return (
@@ -41,10 +53,32 @@ export default function DashboardPage() {
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {agents.map((agent) => (
-            <AgentCard key={agent.id} agent={agent} onDelete={handleDeleteAgent} />
+            <AgentCard key={agent.id} agent={agent} onDelete={() => setAgentToDelete(agent.id)} />
           ))}
         </div>
+      )}
+
+      {agentToDelete && (
+        <AlertDialog open={!!agentToDelete} onOpenChange={() => setAgentToDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the agent
+                "{agents.find(a => a.id === agentToDelete)?.generatedName || agents.find(a => a.id === agentToDelete)?.name}".
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setAgentToDelete(null)}>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       )}
     </div>
   );
 }
+    
+    
