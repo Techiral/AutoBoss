@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Copy, Check, Link as LinkIcon, Code, Globe, AlertTriangle } from "lucide-react";
+import { Copy, Check, Link as LinkIcon, Code, Globe, AlertTriangle, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAppContext } from "../../../layout";
 import type { Agent } from "@/lib/types";
@@ -25,11 +25,10 @@ export default function ExportAgentPage() {
   const agentId = Array.isArray(params.agentId) ? params.agentId[0] : params.agentId;
 
   useEffect(() => {
-    // Ensure this runs only on the client where window is available
     if (typeof window !== "undefined") {
       setBaseUrl(window.location.origin);
     }
-  }, []); // Empty dependency array: runs once on mount
+  }, []); 
 
   useEffect(() => {
     if (agentId) {
@@ -61,6 +60,17 @@ export default function ExportAgentPage() {
   title="AutoBoss Chatbot: ${agent.generatedName || agent.name}"
 ></iframe>
 ` : "";
+
+  const apiRequestExample = `{
+  "message": "Hello, what can you do?",
+  // Optional: To continue a flow-based conversation
+  // "flowState": {
+  //   "context": { /* FlowContext object from previous response */ },
+  //   "nextNodeId": "node_id_to_resume_from_previous_response"
+  // },
+  // Optional: For autonomous mode with history
+  // "conversationHistoryString": "User: Previous message\\nAgent: Previous reply"
+}`;
 
 
   if (!agent) {
@@ -100,13 +110,13 @@ export default function ExportAgentPage() {
 
           <div>
             <Label htmlFor="apiEndpoint" className="flex items-center mb-1">
-              <LinkIcon className="w-4 h-4 mr-2 text-primary" /> API Endpoint
+              <LinkIcon className="w-4 h-4 mr-2 text-primary" /> API Endpoint (POST)
             </Label>
-             <Alert variant="destructive" className="mb-2">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Development API</AlertTitle>
-                <AlertDescription>
-                This API endpoint is illustrative and uses a simplified, non-persistent agent interaction model. It's not suitable for production use without secure agent data storage, retrieval, and authentication.
+             <Alert variant="default" className="mb-2 bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700">
+                <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <AlertTitle className="text-blue-700 dark:text-blue-300">Enhanced API Capabilities</AlertTitle>
+                <AlertDescription className="text-blue-600 dark:text-blue-400">
+                This API endpoint can now interact with your agent's defined flows or provide autonomous responses. For flow-based interactions, your client will need to manage and send back `flowState` (context and nextNodeId) received from previous API responses. See example request body below.
                 </AlertDescription>
             </Alert>
             <div className="flex items-center gap-2">
@@ -115,8 +125,23 @@ export default function ExportAgentPage() {
                 {copied === "API Endpoint" ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Use this API endpoint to integrate with external systems. (POST: {`{"message": "your message"}`})</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Use this API endpoint to integrate with external systems. 
+            </p>
              {!baseUrl && <p className="text-xs text-destructive mt-1">Base URL not yet available. This will populate on client-side.</p>}
+            
+            <Label htmlFor="apiRequestExample" className="flex items-center mt-3 mb-1 text-sm">
+               Example Request Body:
+            </Label>
+            <div className="relative">
+                <Textarea id="apiRequestExample" value={apiRequestExample} readOnly rows={10} className="font-code text-xs bg-muted/50"/>
+                <Button variant="outline" size="icon" className="absolute top-2 right-2" onClick={() => handleCopy(apiRequestExample, "API Request Example")} aria-label="Copy API Request Example" disabled={!apiRequestExample}>
+                    {copied === "API Request Example" ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                </Button>
+            </div>
+             <p className="text-xs text-muted-foreground mt-1">
+              Response will be JSON, with `type: 'flow'` or `type: 'autonomous'`. See API route file for full response details.
+            </p>
           </div>
           
           <div>
