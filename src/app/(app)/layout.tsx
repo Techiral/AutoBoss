@@ -17,7 +17,7 @@ import {
   SidebarMenuButton,
   SidebarTrigger,
   SidebarInset,
-  useSidebar, // Import useSidebar
+  useSidebar,
 } from '@/components/ui/sidebar';
 import { Home, PlusCircle, Bot, Settings, BookOpen, MessageSquare, Share2, Cog, LifeBuoy, Loader2, LogIn } from 'lucide-react';
 import type { Agent, KnowledgeItem, AgentFlowDefinition } from '@/lib/types';
@@ -37,6 +37,8 @@ import {
 } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/contexts/AuthContext';
+import { cn } from "@/lib/utils";
+
 
 const LOCAL_STORAGE_THEME_KEY = 'autoBossTheme';
 const AGENTS_COLLECTION = 'agents';
@@ -87,7 +89,7 @@ const convertTimestampsToISO = (agent: any): Agent => {
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [agents, setAgents] = useState<Agent[]>([]);
-  const [theme, setTheme] = useState<Theme>('dark'); // Default to dark, useEffect will check localStorage
+  const [theme, setTheme] = useState<Theme>('dark'); 
   const [isContextInitialized, setIsContextInitialized] = useState(false);
   const [isLoadingAgents, setIsLoadingAgents] = useState(true);
   const { toast } = useToast();
@@ -100,8 +102,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     if (storedTheme && (storedTheme === 'light' || storedTheme === 'dark')) {
       setTheme(storedTheme);
     } else {
-      // If no theme in local storage, or it's invalid, use system preference or default to dark
-      // For simplicity, we just default to dark if nothing stored. System preference detection is more complex.
       setTheme('dark');
     }
   }, []);
@@ -342,9 +342,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [currentUser, toast]);
 
-
-  // Render the main app structure consistently.
-  // Loading and redirect logic will be handled inside the `main` content area.
   return (
     <AppContext.Provider value={{
         agents,
@@ -368,13 +365,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <main className="flex-1 p-4 sm:p-6 lg:p-8 bg-background text-foreground">
               {authLoading || (!isContextInitialized && currentUser) ? (
                  <div className="flex items-center justify-center h-full">
-                    <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                    <Loader2 className="h-10 w-10 sm:h-12 sm:w-12 animate-spin text-primary" />
                  </div>
               ) : !currentUser && !(pathname === '/login' || pathname === '/signup' || pathname.startsWith('/chat/')) ? (
-                <div className="flex flex-col items-center justify-center h-full">
-                    <LogIn className="h-16 w-16 text-primary mb-4" />
-                    <p className="text-lg">Redirecting to login...</p>
-                    {/* useEffect in this layout already handles router.push for redirect */}
+                <div className="flex flex-col items-center justify-center h-full text-center">
+                    <LogIn className="h-12 w-12 sm:h-16 sm:w-16 text-primary mb-3 sm:mb-4" />
+                    <p className="text-md sm:text-lg">Redirecting to login...</p>
                 </div>
               ) : (
                 children
@@ -388,10 +384,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 }
 
 function AppHeader() {
+  const { state: sidebarState } = useSidebar();
   return (
-    <header className="sticky top-0 z-50 flex h-16 items-center gap-4 border-b bg-card px-4 md:px-6">
-      <div>
+    <header className={cn(
+      "sticky top-0 z-30 flex h-14 sm:h-16 items-center gap-2 sm:gap-4 border-b bg-card px-3 sm:px-4 md:px-6",
+      sidebarState === "collapsed" ? "md:pl-[calc(var(--sidebar-width-icon)_+_1rem)]" : "md:pl-[calc(var(--sidebar-width)_+_1rem)]",
+      "transition-all duration-300 ease-in-out" // Added transition for padding
+    )}>
+      <div className="md:hidden"> {/* Only show trigger on mobile/tablet */}
         <SidebarTrigger />
+      </div>
+      <div className="hidden md:block"> {/* Placeholder for desktop trigger if needed or for spacing */}
+         <SidebarTrigger />
       </div>
       <div className="flex-grow" />
       <div>
@@ -403,8 +407,8 @@ function AppHeader() {
 
 function AppSidebar() {
   const pathname = usePathname();
-  const { state: sidebarState } = useSidebar();
-  const collapsed = sidebarState === 'collapsed';
+  const { state: sidebarState, isMobile } = useSidebar(); // use isMobile from context
+  const collapsed = !isMobile && sidebarState === 'collapsed'; // collapsed is only true on desktop when state is collapsed
   const { currentUser } = useAuth();
 
   const agentIdMatch = pathname.match(/^\/agents\/([a-zA-Z0-9_-]+)/);
@@ -418,15 +422,15 @@ function AppSidebar() {
     { href: `/agents/${currentAgentId}/export`, label: 'Export', icon: Share2 },
   ] : [];
 
-  if (!currentUser && !(pathname.startsWith('/chat/'))) { // Also allow sidebar for public chat for consistency
-    return <Sidebar><SidebarHeader className="p-4"><Link href="/" aria-label="Go to AutoBoss Homepage" className="hover:opacity-80 transition-opacity"><Logo collapsed={collapsed} className="px-2 py-1"/></Link></SidebarHeader></Sidebar>;
+  if (!currentUser && !(pathname.startsWith('/chat/'))) { 
+    return <Sidebar><SidebarHeader className="p-3 sm:p-4"><Link href="/" aria-label="Go to AutoBoss Homepage" className="hover:opacity-80 transition-opacity"><Logo collapsed={collapsed} className="h-7 sm:h-8 px-1 sm:px-2 py-1"/></Link></SidebarHeader></Sidebar>;
   }
 
   return (
     <Sidebar>
-      <SidebarHeader className="p-4">
+      <SidebarHeader className="p-3 sm:p-4">
         <Link href="/dashboard" className="hover:opacity-80 transition-opacity" aria-label="Go to dashboard">
-            <Logo collapsed={collapsed} className="px-2 py-1"/>
+            <Logo collapsed={collapsed} className="h-7 sm:h-8 px-1 sm:px-2 py-1"/>
         </Link>
       </SidebarHeader>
       <SidebarContent>
@@ -450,7 +454,7 @@ function AppSidebar() {
 
           {currentAgentId && (
             <>
-              <SidebarMenuItem className="mt-4 mb-1 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <SidebarMenuItem className="mt-3 sm:mt-4 mb-1 px-2 sm:px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 <span className={collapsed ? 'hidden' : ''}>Agent Menu</span>
               </SidebarMenuItem>
               {agentNavItems.map((item) => (
@@ -467,7 +471,7 @@ function AppSidebar() {
           )}
         </SidebarMenu>
       </SidebarContent>
-      <SidebarFooter className="p-4 space-y-2">
+      <SidebarFooter className="p-3 sm:p-4 space-y-1 sm:space-y-2">
         <Link href="/support">
           <SidebarMenuButton tooltip={collapsed ? 'Support' : undefined} isActive={pathname === '/support'}>
             <LifeBuoy />
@@ -484,3 +488,5 @@ function AppSidebar() {
     </Sidebar>
   );
 }
+
+    

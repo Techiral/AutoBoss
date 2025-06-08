@@ -9,12 +9,12 @@ import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { extractKnowledge } from "@/ai/flows/knowledge-extraction";
-import { processUrl } from "@/ai/flows/url-processor"; // Import the new flow
+import { processUrl } from "@/ai/flows/url-processor"; 
 import { Upload, Loader2, FileText, Tag, AlertTriangle, Link as LinkIcon } from "lucide-react";
 import type { KnowledgeItem, Agent } from "@/lib/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAppContext } from "../../../layout";
-import { Alert, AlertTitle } from "@/components/ui/alert";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 export default function KnowledgePage() {
   const [isLoadingFile, setIsLoadingFile] = useState(false);
@@ -40,7 +40,7 @@ export default function KnowledgePage() {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       setSelectedFile(event.target.files[0]);
-      setUrlInput(""); // Clear URL input if a file is selected
+      setUrlInput(""); 
     } else {
       setSelectedFile(null);
     }
@@ -49,7 +49,7 @@ export default function KnowledgePage() {
   const handleUrlInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setUrlInput(event.target.value);
     if (event.target.value) {
-        setSelectedFile(null); // Clear file input if URL is typed
+        setSelectedFile(null); 
         const fileInput = document.getElementById('document') as HTMLInputElement;
         if (fileInput) fileInput.value = '';
     }
@@ -152,7 +152,6 @@ export default function KnowledgePage() {
         return;
     }
     try {
-        // Basic URL validation (browser also does some, but good to have)
         new URL(urlInput); 
     } catch (_) {
         toast({ title: "Invalid URL", description: "Please enter a valid URL (e.g., https://example.com).", variant: "destructive"});
@@ -162,15 +161,14 @@ export default function KnowledgePage() {
     setIsProcessingUrl(true);
     try {
         const result = await processUrl({ url: urlInput });
-        // Use the URL itself or a sanitized version as the "fileName"
         let displayUrl = urlInput;
         try {
             const parsedUrl = new URL(urlInput);
             displayUrl = parsedUrl.hostname + (parsedUrl.pathname === '/' ? '' : parsedUrl.pathname);
-        } catch { /* ignore if parsing fails, use original urlInput */ }
+        } catch { /* ignore */ }
 
-        addKnowledgeToAgent(displayUrl.substring(0,100), result.summary, result.keywords); // Truncate long URLs for display
-        setUrlInput(""); // Clear input after successful processing
+        addKnowledgeToAgent(displayUrl.substring(0,100), result.summary, result.keywords); 
+        setUrlInput(""); 
     } catch (error: any) {
         console.error("Error processing URL:", error);
         const errorMessage = error.message || "Failed to process the URL. The URL might be inaccessible or the content unsuitable.";
@@ -184,8 +182,8 @@ export default function KnowledgePage() {
   if (currentAgent === undefined) {
     return (
       <Card>
-        <CardHeader><CardTitle>Loading Knowledge...</CardTitle></CardHeader>
-        <CardContent><Loader2 className="mx-auto h-10 w-10 animate-spin text-primary" /></CardContent>
+        <CardHeader><CardTitle className="text-lg sm:text-xl">Loading Knowledge...</CardTitle></CardHeader>
+        <CardContent className="flex justify-center items-center min-h-[200px]"><Loader2 className="h-8 w-8 sm:h-10 sm:w-10 animate-spin text-primary" /></CardContent>
       </Card>
     )
   }
@@ -200,24 +198,24 @@ export default function KnowledgePage() {
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-3">
+    <div className="grid gap-4 md:gap-6 grid-cols-1 lg:grid-cols-3">
       <Card className="lg:col-span-1">
-        <CardHeader>
-          <CardTitle className="font-headline text-2xl">Add Knowledge</CardTitle>
-          <CardDescription>Upload documents or process URLs to build agent <span className="font-semibold">{currentAgent.generatedName || currentAgent.name}</span>'s knowledge.</CardDescription>
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="font-headline text-lg sm:text-2xl">Add Knowledge</CardTitle>
+          <CardDescription className="text-sm">Upload documents or process URLs to build agent <span className="font-semibold">{currentAgent.generatedName || currentAgent.name}</span>'s knowledge.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-            <div className="space-y-2">
+        <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
+            <div className="space-y-1.5">
                 <Label htmlFor="document">Upload Document</Label>
                 <Input id="document" type="file" onChange={handleFileChange} accept=".txt,.pdf,.md,.docx,.json,.csv,.html,.htm,image/png,image/jpeg" disabled={isLoadingFile || isProcessingUrl}/>
-                {selectedFile && <p className="text-sm text-muted-foreground">Selected: {selectedFile.name}</p>}
+                {selectedFile && <p className="text-xs sm:text-sm text-muted-foreground">Selected: {selectedFile.name}</p>}
             </div>
             <Button onClick={handleSubmitFile} disabled={isLoadingFile || !selectedFile || isProcessingUrl} className="w-full">
                 {isLoadingFile ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
                 {isLoadingFile ? "Processing File..." : "Extract from File"}
             </Button>
 
-            <div className="relative my-4">
+            <div className="relative my-3 sm:my-4">
               <div className="absolute inset-0 flex items-center">
                 <span className="w-full border-t" />
               </div>
@@ -226,7 +224,7 @@ export default function KnowledgePage() {
               </div>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1.5">
                 <Label htmlFor="url">Process URL</Label>
                 <Input id="url" type="url" placeholder="https://example.com/article" value={urlInput} onChange={handleUrlInputChange} disabled={isProcessingUrl || isLoadingFile}/>
             </div>
@@ -239,34 +237,34 @@ export default function KnowledgePage() {
 
       {knowledgeItems.length > 0 && (
         <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="font-headline">Knowledge Base for {currentAgent.generatedName || currentAgent.name}</CardTitle>
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="font-headline text-lg sm:text-xl">Knowledge Base for {currentAgent.generatedName || currentAgent.name}</CardTitle>
           </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-[calc(100vh-300px)] max-h-[600px] pr-4"> {/* Adjusted height */}
-              <div className="space-y-4">
+          <CardContent className="p-4 sm:p-6 pt-0">
+            <ScrollArea className="h-[calc(100vh-350px)] sm:h-[calc(100vh-300px)] max-h-[500px] sm:max-h-[600px] pr-3 sm:pr-4"> 
+              <div className="space-y-3 sm:space-y-4">
               {knowledgeItems.map(item => (
                 <Card key={item.id} className="bg-muted/50">
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center">
-                        {item.fileName.startsWith('http') ? <LinkIcon className="mr-2 h-5 w-5 text-primary"/> : <FileText className="mr-2 h-5 w-5 text-primary"/>} 
-                        <span className="truncate" title={item.fileName}>{item.fileName}</span>
+                  <CardHeader className="p-3 sm:p-4">
+                    <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                        {item.fileName.startsWith('http') ? <LinkIcon className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0"/> : <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0"/>} 
+                        <span className="truncate text-sm sm:text-base" title={item.fileName}>{item.fileName}</span>
                     </CardTitle>
-                    <CardDescription>Added: {new Date(item.uploadedAt).toLocaleString()}</CardDescription>
+                    <CardDescription className="text-xs">Added: {new Date(item.uploadedAt).toLocaleString()}</CardDescription>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="p-3 sm:p-4 pt-0">
                     {item.summary && (
                       <div>
-                        <h4 className="font-semibold mb-1">Summary:</h4>
-                        <p className="text-sm text-muted-foreground mb-2">{item.summary}</p>
+                        <h4 className="font-semibold text-xs sm:text-sm mb-1">Summary:</h4>
+                        <p className="text-xs sm:text-sm text-muted-foreground mb-2">{item.summary}</p>
                       </div>
                     )}
                     {item.keywords && item.keywords.length > 0 && (
                       <div>
-                        <h4 className="font-semibold mb-1">Keywords:</h4>
-                        <div className="flex flex-wrap gap-2">
+                        <h4 className="font-semibold text-xs sm:text-sm mb-1">Keywords:</h4>
+                        <div className="flex flex-wrap gap-1.5 sm:gap-2">
                           {item.keywords.map(keyword => (
-                            <span key={keyword} className="text-xs bg-primary/20 text-primary-foreground px-2 py-1 rounded-full flex items-center">
+                            <span key={keyword} className="text-xs bg-primary/20 text-primary-foreground px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full flex items-center">
                               <Tag className="mr-1 h-3 w-3"/>{keyword}
                             </span>
                           ))}
@@ -283,12 +281,12 @@ export default function KnowledgePage() {
       )}
        {knowledgeItems.length === 0 && (
          <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="font-headline">Knowledge Base Empty</CardTitle>
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="font-headline text-lg sm:text-xl">Knowledge Base Empty</CardTitle>
           </CardHeader>
-           <CardContent className="flex flex-col items-center justify-center min-h-[300px]">
-            <FileText className="w-12 h-12 text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">No documents or URLs processed yet for this agent.</p>
+           <CardContent className="flex flex-col items-center justify-center min-h-[200px] sm:min-h-[300px] p-4 sm:p-6">
+            <FileText className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground mb-3 sm:mb-4" />
+            <p className="text-sm sm:text-base text-muted-foreground">No documents or URLs processed yet.</p>
             <p className="text-xs text-muted-foreground mt-1">Use the panel on the left to add knowledge.</p>
           </CardContent>
         </Card>
@@ -296,3 +294,5 @@ export default function KnowledgePage() {
     </div>
   );
 }
+
+    

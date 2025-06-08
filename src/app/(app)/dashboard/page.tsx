@@ -16,8 +16,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+} from "@/components/ui/alert-dialog"; // Removed AlertDialogTrigger
 import { useState } from "react";
 
 export default function DashboardPage() {
@@ -32,26 +31,26 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <h1 className="font-headline text-3xl font-bold">Your Agents</h1>
-        <Button asChild>
+    <div className="space-y-6 sm:space-y-8">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+        <h1 className="font-headline text-2xl sm:text-3xl font-bold">Your Agents</h1>
+        <Button asChild size="sm" className="w-full sm:w-auto">
           <Link href="/agents/create">
-            <PlusCircle className="mr-2 h-5 w-5" /> Create New Agent
+            <PlusCircle className="mr-2 h-4 w-4 sm:h-5 sm:w-5" /> Create New Agent
           </Link>
         </Button>
       </div>
 
       {agents.length === 0 ? (
-         <Alert>
+         <Alert className="mt-4">
             <Info className="h-4 w-4" />
             <AlertTitle>No Agents Yet!</AlertTitle>
-            <AlertDescription>
+            <AlertDescription className="text-sm">
               You haven't created any AI agents. Click the "Create New Agent" button to get started.
             </AlertDescription>
           </Alert>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {agents.map((agent) => (
             <AgentCard key={agent.id} agent={agent} onDelete={() => setAgentToDelete(agent.id)} />
           ))}
@@ -59,7 +58,7 @@ export default function DashboardPage() {
       )}
 
       {agentToDelete && (
-        <AlertDialog open={!!agentToDelete} onOpenChange={() => setAgentToDelete(null)}>
+        <AlertDialog open={!!agentToDelete} onOpenChange={(isOpen) => !isOpen && setAgentToDelete(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Are you sure?</AlertDialogTitle>
@@ -80,5 +79,5 @@ export default function DashboardPage() {
     </div>
   );
 }
-    
+
     

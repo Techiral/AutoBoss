@@ -16,12 +16,12 @@ import { useRouter } from "next/navigation";
 import { useAppContext } from "../../layout"; 
 import type { Agent } from "@/lib/types"; 
 import { Loader2 } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext"; // Import useAuth
+import { useAuth } from "@/contexts/AuthContext"; 
 
 const formSchema = z.object({
-  name: z.string().min(3, "Name must be at least 3 characters"),
-  role: z.string().min(10, "Role description must be at least 10 characters"),
-  personality: z.string().min(10, "Personality description must be at least 10 characters"),
+  name: z.string().min(3, "Name must be at least 3 characters").max(100, "Name too long"),
+  role: z.string().min(10, "Role description must be at least 10 characters").max(500, "Role too long"),
+  personality: z.string().min(10, "Personality description must be at least 10 characters").max(500, "Personality too long"),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -32,7 +32,7 @@ export default function CreateAgentPage() {
   const { toast } = useToast();
   const router = useRouter();
   const { addAgent: addAgentToContext } = useAppContext();
-  const { currentUser } = useAuth(); // Get current user
+  const { currentUser } = useAuth(); 
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -51,7 +51,6 @@ export default function CreateAgentPage() {
       const aiResult = await createAgent({ agentDescription });
       setGeneratedAgentDetails(aiResult);
       
-      // Prepare data for Firestore, AppContext will handle `id`, `createdAt`, `userId`
       const agentDataForContext: Omit<Agent, 'id' | 'createdAt' | 'knowledgeItems' | 'flow' | 'userId'> = {
         name: data.name, 
         description: `Role: ${data.role}. Personality: ${data.personality}.`, 
@@ -62,7 +61,7 @@ export default function CreateAgentPage() {
         generatedGreeting: aiResult.agentGreeting,
       };
       
-      const newAgent = await addAgentToContext(agentDataForContext); // AppContext now adds userId
+      const newAgent = await addAgentToContext(agentDataForContext);
 
       if (newAgent) {
         toast({
@@ -70,8 +69,6 @@ export default function CreateAgentPage() {
           description: `Agent "${aiResult.agentName}" saved. Redirecting to Studio...`,
         });
         router.push(`/agents/${newAgent.id}/studio`);
-      } else {
-        // Error already toasted by AppContext if addAgentToContext returns null
       }
     } catch (error: any) {
       console.error("Error creating agent:", error);
@@ -89,33 +86,33 @@ export default function CreateAgentPage() {
   return (
     <div className="max-w-2xl mx-auto">
       <Card>
-        <CardHeader>
-          <CardTitle className="font-headline text-2xl">Configure New AI Agent</CardTitle>
-          <CardDescription>
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="font-headline text-xl sm:text-2xl">Configure New AI Agent</CardTitle>
+          <CardDescription className="text-sm">
             Define the core characteristics of your new agent. The AI will help refine its persona.
             <br />
             <span className="text-xs text-muted-foreground">Agent data will be stored in Firestore, associated with your account.</span>
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
+          <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
+            <div className="space-y-1.5">
               <Label htmlFor="name">Agent Name / Concept</Label>
-              <Input id="name" placeholder="e.g., Helpful Support Bot, Sassy Tour Guide" {...register("name")} />
-              {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
+              <Input id="name" placeholder="e.g., Helpful Support Bot" {...register("name")} />
+              {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="role">Role & Objectives</Label>
-              <Textarea id="role" placeholder="Describe the agent's primary function and goals. e.g., 'To answer customer questions about our products and help them troubleshoot common issues.'" {...register("role")} />
-              {errors.role && <p className="text-sm text-destructive">{errors.role.message}</p>}
+              <Textarea id="role" placeholder="Describe the agent's primary function and goals..." {...register("role")} rows={3} />
+              {errors.role && <p className="text-xs text-destructive">{errors.role.message}</p>}
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="personality">Personality & Tone</Label>
-              <Textarea id="personality" placeholder="Describe the desired personality. e.g., 'Friendly, patient, and slightly humorous. Avoids technical jargon.'" {...register("personality")} />
-              {errors.personality && <p className="text-sm text-destructive">{errors.personality.message}</p>}
+              <Textarea id="personality" placeholder="Describe the desired personality..." {...register("personality")} rows={3} />
+              {errors.personality && <p className="text-xs text-destructive">{errors.personality.message}</p>}
             </div>
           </CardContent>
-          <CardFooter>
+          <CardFooter className="p-4 sm:p-6">
             <Button type="submit" disabled={isLoading} className="w-full">
               {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               {isLoading ? "Configuring Agent..." : "Configure Agent & Generate Details"}
@@ -125,22 +122,22 @@ export default function CreateAgentPage() {
       </Card>
 
       {generatedAgentDetails && (
-        <Card className="mt-8">
-          <CardHeader>
-            <CardTitle className="font-headline">AI Generated Details</CardTitle>
+        <Card className="mt-6 sm:mt-8">
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="font-headline text-lg sm:text-xl">AI Generated Details</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6">
             <div>
-              <Label>Generated Name</Label>
-              <p className="text-sm p-2 bg-muted rounded-md">{generatedAgentDetails.agentName}</p>
+              <Label className="text-xs font-semibold">Generated Name</Label>
+              <p className="text-sm p-2 bg-muted rounded-md mt-1">{generatedAgentDetails.agentName}</p>
             </div>
             <div>
-              <Label>Generated Persona</Label>
-              <p className="text-sm p-2 bg-muted rounded-md whitespace-pre-wrap">{generatedAgentDetails.agentPersona}</p>
+              <Label className="text-xs font-semibold">Generated Persona</Label>
+              <p className="text-sm p-2 bg-muted rounded-md whitespace-pre-wrap mt-1">{generatedAgentDetails.agentPersona}</p>
             </div>
             <div>
-              <Label>Sample Greeting</Label>
-              <p className="text-sm p-2 bg-muted rounded-md">{generatedAgentDetails.agentGreeting}</p>
+              <Label className="text-xs font-semibold">Sample Greeting</Label>
+              <p className="text-sm p-2 bg-muted rounded-md mt-1">{generatedAgentDetails.agentGreeting}</p>
             </div>
           </CardContent>
         </Card>
@@ -148,3 +145,5 @@ export default function CreateAgentPage() {
     </div>
   );
 }
+
+    

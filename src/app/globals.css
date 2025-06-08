@@ -121,13 +121,13 @@
     letter-spacing: -0.03em;
   }
   .marketing-h2 {
-     @apply text-3xl sm:text-4xl font-bold tracking-tight text-center mb-3 md:mb-4;
+     @apply text-2xl sm:text-3xl font-bold tracking-tight text-center mb-2 md:mb-3;
     letter-spacing: -0.02em;
   }
   h3 { @apply text-lg sm:text-xl font-semibold font-headline; }
 
   .section-description {
-      @apply text-muted-foreground text-sm md:text-base max-w-lg mx-auto mb-6 md:mb-8 text-center;
+      @apply text-muted-foreground text-xs sm:text-sm md:text-base max-w-md mx-auto mb-6 md:mb-8 text-center;
   }
 
 
@@ -163,7 +163,7 @@
   margin: 0 auto;
   letter-spacing: .03em;
   animation:
-    typing 1.5s steps(31, end) forwards, /* Ensure 31 steps for "AutoBoss builds AI teammates." */
+    typing 1.5s steps(31, end) forwards,
     blink-caret .75s step-end infinite;
   animation-delay: 0.2s;
   width: 0%;
@@ -211,7 +211,7 @@
     @apply p-2 rounded-lg bg-primary/10 text-primary mb-2 inline-block;
 }
 .simple-feature-card-title {
-    @apply font-headline text-lg font-bold text-foreground mb-1;
+    @apply font-headline text-base sm:text-lg font-bold text-foreground mb-1;
     @apply relative pt-1;
 }
 .simple-feature-card-title::before {
@@ -251,7 +251,7 @@
   @apply absolute inset-0 flex flex-col items-center justify-center text-center text-foreground/80 bg-black/50 p-4;
 }
 .video-placeholder-text svg {
- @apply w-10 h-10 opacity-70 mb-1 text-primary;
+ @apply w-8 h-8 sm:w-10 sm:h-10 opacity-70 mb-1 text-primary;
 }
 
 /* Ensure placeholder images show their data-ai-hint clearly but are not obtrusive */
@@ -259,14 +259,14 @@ div[data-ai-hint] {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.65rem;
-    color: hsl(var(--muted-foreground) / 0.5);
-    background-color: hsl(var(--muted) / 0.2);
-    border: 1px dashed hsl(var(--border) / 0.2);
-    min-height: 2.5rem;
+    font-size: 0.6rem; /* Smaller font size */
+    color: hsl(var(--muted-foreground) / 0.4); /* More subtle color */
+    background-color: hsl(var(--muted) / 0.1); /* More subtle background */
+    border: 1px dashed hsl(var(--border) / 0.1); /* More subtle border */
+    min-height: 2rem; /* Reduced min-height */
     text-align: center;
-    padding: 0.2rem;
-    border-radius: calc(var(--radius) - 2px);
+    padding: 0.15rem; /* Reduced padding */
+    border-radius: calc(var(--radius) - 3px); /* Slightly adjusted radius */
 }
 
 /* Enhanced button active states & general transitions */
@@ -298,5 +298,15 @@ div[data-ai-hint] {
 .dashed-connector.left::before { @apply left-0 w-1/2; }
 .dashed-connector.right::after { @apply right-0 w-1/2; }
 
+/* Hide connectors on mobile where steps stack */
+@media (max-width: 767px) { /* md breakpoint */
+  .step-card-container .dashed-connector::before,
+  .step-card-container .dashed-connector::after {
+    @apply content-none;
+  }
+}
+
 .step-card-container > :nth-child(1) .dashed-connector::before { @apply content-none; }
 .step-card-container > :nth-child(3) .dashed-connector::after { @apply content-none; }
+
+    

@@ -4,7 +4,7 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { LifeBuoy, MessageCircleQuestion, AlertTriangle, Mail } from "lucide-react";
-import { Button } from "@/components/ui/button"; // Added Button import
+import { Button } from "@/components/ui/button";
 
 export default function SupportPage() {
   const faqs = [
@@ -14,7 +14,7 @@ export default function SupportPage() {
     },
     {
       question: "Where is my agent data stored?",
-      answer: "Agent configurations (personality, knowledge items, flows) are stored in Firebase Firestore. This allows your data to be persistent and accessible.",
+      answer: "Agent configurations (personality, knowledge items, flows) are stored in Firebase Firestore. This allows your data to be persistent and accessible, associated with your user account.",
     },
     {
       question: "How does the Knowledge Base work?",
@@ -26,27 +26,27 @@ export default function SupportPage() {
     },
     {
         question: "Can I export my agent to use elsewhere?",
-        answer: "Yes, the 'Export' tab for each agent provides a direct chatbot link (opens a public chat page), an illustrative API endpoint, and an iframe embed code for the chat widget."
+        answer: "Yes, the 'Export' tab for each agent provides a direct chatbot link (opens a public chat page), an illustrative API endpoint, and an iframe embed code for the chat widget, allowing integration into external websites or systems."
     }
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <Card>
-        <CardHeader>
-          <CardTitle className="font-headline text-2xl flex items-center gap-2">
-            <LifeBuoy className="w-6 h-6" /> Support & Help Center
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="font-headline text-xl sm:text-2xl flex items-center gap-2">
+            <LifeBuoy className="w-5 h-5 sm:w-6 sm:h-6" /> Support & Help Center
           </CardTitle>
-          <CardDescription>Find answers to common questions and get help with AutoBoss.</CardDescription>
+          <CardDescription className="text-sm">Find answers to common questions and get help with AutoBoss.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-8">
+        <CardContent className="space-y-6 sm:space-y-8 p-4 sm:p-6">
           <section>
-            <h2 className="text-xl font-semibold mb-3 flex items-center gap-2"><MessageCircleQuestion className="w-5 h-5 text-primary"/>Frequently Asked Questions</h2>
+            <h2 className="text-lg sm:text-xl font-semibold mb-2 sm:mb-3 flex items-center gap-2"><MessageCircleQuestion className="w-4 h-4 sm:w-5 sm:w-5 text-primary"/>Frequently Asked Questions</h2>
             <Accordion type="single" collapsible className="w-full">
               {faqs.map((faq, index) => (
                 <AccordionItem value={`item-${index + 1}`} key={index}>
-                  <AccordionTrigger className="text-left hover:no-underline">{faq.question}</AccordionTrigger>
-                  <AccordionContent className="text-muted-foreground leading-relaxed">
+                  <AccordionTrigger className="text-left hover:no-underline text-sm sm:text-base py-3 sm:py-4">{faq.question}</AccordionTrigger>
+                  <AccordionContent className="text-muted-foreground leading-relaxed text-xs sm:text-sm pb-3 sm:pb-4">
                     {faq.answer}
                   </AccordionContent>
                 </AccordionItem>
@@ -54,26 +54,27 @@ export default function SupportPage() {
             </Accordion>
           </section>
 
-          <section className="p-4 border rounded-lg bg-muted/30">
-            <h2 className="text-xl font-semibold mb-3 flex items-center gap-2"><AlertTriangle className="w-5 h-5 text-primary"/>Basic Troubleshooting</h2>
-            <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+          <section className="p-3 sm:p-4 border rounded-lg bg-muted/30">
+            <h2 className="text-lg sm:text-xl font-semibold mb-2 sm:mb-3 flex items-center gap-2"><AlertTriangle className="w-4 h-4 sm:w-5 sm:w-5 text-primary"/>Basic Troubleshooting</h2>
+            <ul className="list-disc list-inside space-y-1 text-xs sm:text-sm text-muted-foreground">
               <li>If you encounter unexpected behavior, try refreshing the page.</li>
               <li>Ensure your internet connection is stable, especially when interacting with AI features.</li>
-              <li>If you suspect data issues, you can clear all agent data from the 'Settings' page (this will remove all your agents from Firestore).</li>
+              <li>If you suspect data issues, you can clear all agent data from the 'Settings' page.</li>
               <li>Make sure your web browser is up to date for the best compatibility.</li>
             </ul>
           </section>
 
-          <section className="p-4 border rounded-lg bg-muted/30">
-            <h2 className="text-xl font-semibold mb-3 flex items-center gap-2"><Mail className="w-5 h-5 text-primary"/>Contact Us</h2>
-            <p className="text-sm text-muted-foreground">
-              For further assistance or to report a bug, please reach out to our support team (placeholder for contact method).
-              In a real application, this would link to a support portal, email address, or contact form.
+          <section className="p-3 sm:p-4 border rounded-lg bg-muted/30">
+            <h2 className="text-lg sm:text-xl font-semibold mb-2 sm:mb-3 flex items-center gap-2"><Mail className="w-4 h-4 sm:w-5 sm:w-5 text-primary"/>Contact Us</h2>
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              For further assistance or to report a bug, please reach out to our support team.
             </p>
-            <Button variant="outline" className="mt-3" disabled>Contact Support (Coming Soon)</Button>
+            <Button variant="outline" className="mt-2 sm:mt-3 text-xs sm:text-sm" disabled>Contact Support (Coming Soon)</Button>
           </section>
         </CardContent>
       </Card>
     </div>
   );
 }
+
+    

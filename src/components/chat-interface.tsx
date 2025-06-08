@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Send, Bot, User, Loader2, Info, Cog, Zap, RefreshCw, Brain } from "lucide-react";
+import { Send, Bot, User, Loader2, Info, RefreshCw, Brain, Zap as ZapIcon } from "lucide-react"; // Renamed Zap to ZapIcon
 import { cn } from "@/lib/utils";
 import type { ChatMessage, Agent, FlowContext, AgentFlowDefinition, KnowledgeItem } from "@/lib/types";
 import { autonomousReasoning } from "@/ai/flows/autonomous-reasoning";
@@ -120,7 +120,7 @@ export function ChatInterface({ agent: initialAgent, appContext }: ChatInterface
           currentMessage: undefined, 
           startNodeId: flowToExecute.nodes.find(n => n.type === 'start')?.id,
           knowledgeItems: agentKnowledgeItemsRef.current || [],
-          agent: agentRef.current, // Pass agent for persona
+          agent: agentRef.current, 
         });
 
         const agentResponses: ChatMessage[] = flowResult.messagesToSend.map((msg, index) => ({
@@ -205,7 +205,7 @@ export function ChatInterface({ agent: initialAgent, appContext }: ChatInterface
           currentMessage: currentInput,
           startNodeId: nextNodeIdToResumeRef.current, 
           knowledgeItems: currentKnowledge,
-          agent: agentRef.current, // Pass agent for persona
+          agent: agentRef.current, 
         };
         
         const result = await executeAgentFlow(flowInput);
@@ -310,20 +310,20 @@ export function ChatInterface({ agent: initialAgent, appContext }: ChatInterface
 
 
   return (
-    <div className="flex flex-col h-full border rounded-lg shadow-lg bg-card">
-      <div className="p-2 border-b flex justify-between items-center gap-2 text-xs">
+    <div className="flex flex-col h-full border rounded-lg shadow-sm bg-card">
+      <div className="p-2 border-b flex flex-col sm:flex-row justify-between items-center gap-2 text-xs">
         <Button 
             variant="outline" 
             size="sm" 
             onClick={handleRestartConversation} 
             disabled={isRestarting || isInitializing || isLoading}
             title="Restart Conversation"
-            className="px-2 py-1 h-auto"
+            className="px-2 py-1 h-auto text-xs w-full sm:w-auto"
         >
             {isRestarting ? <Loader2 size={14} className="mr-1 animate-spin"/> : <RefreshCw size={14} className="mr-1"/>} Restart
         </Button>
-        <div className="flex items-center gap-1">
-            <span>Mode:</span>
+        <div className="flex items-center gap-1 w-full sm:w-auto justify-end sm:justify-center">
+            <span className="hidden sm:inline">Mode:</span>
             <Button 
                 variant={chatMode === 'flow' ? 'default' : 'outline'} 
                 size="sm" 
@@ -332,14 +332,14 @@ export function ChatInterface({ agent: initialAgent, appContext }: ChatInterface
                     setChatMode('flow');
                     setIsInitializing(true); 
                   } else {
-                    toast({title: "No Flow Defined", description: "This agent does not have a valid flow to start. Please define one in the Studio and save it.", variant: "destructive"});
+                    toast({title: "No Flow Defined", description: "This agent does not have a valid flow. Define one in the Studio.", variant: "destructive"});
                   }
                 }}
                 disabled={!(currentAgentFlowRef.current && currentAgentFlowRef.current.nodes.find(n => n.type === 'start')) || isLoading || isRestarting || isInitializing}
-                title={!(currentAgentFlowRef.current && currentAgentFlowRef.current.nodes.find(n => n.type === 'start')) ? "No flow defined for this agent" : "Prioritize Flow Execution Mode"}
-                className="px-2 py-1 h-auto"
+                title={!(currentAgentFlowRef.current && currentAgentFlowRef.current.nodes.find(n => n.type === 'start')) ? "No flow defined" : "Flow Execution Mode"}
+                className="px-2 py-1 h-auto text-xs flex-1 sm:flex-none"
             >
-                <Zap size={14} className="mr-1"/> Flow
+                <ZapIcon size={14} className="mr-1"/> Flow
             </Button>
             <Button 
                 variant={chatMode === 'autonomous' ? 'default' : 'outline'} 
@@ -349,15 +349,15 @@ export function ChatInterface({ agent: initialAgent, appContext }: ChatInterface
                   setIsInitializing(true); 
                 }}
                 disabled={isLoading || isRestarting || isInitializing}
-                title="Switch to Autonomous Reasoning Mode"
-                className="px-2 py-1 h-auto"
+                title="Autonomous Reasoning Mode"
+                className="px-2 py-1 h-auto text-xs flex-1 sm:flex-none"
             >
             <Brain size={14} className="mr-1"/> Autonomous
             </Button>
         </div>
       </div>
-      <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
-        <div className="space-y-4">
+      <ScrollArea className="flex-1 p-3 sm:p-4" ref={scrollAreaRef}>
+        <div className="space-y-3 sm:space-y-4">
           {messages.map((message) => (
             <div
               key={message.id}
@@ -367,48 +367,48 @@ export function ChatInterface({ agent: initialAgent, appContext }: ChatInterface
               )}
             >
               {message.sender === "agent" && (
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback><Bot size={18}/></AvatarFallback>
+                <Avatar className="h-7 w-7 sm:h-8 sm:w-8">
+                  <AvatarFallback><Bot size={16} className="sm:size-18"/></AvatarFallback>
                 </Avatar>
               )}
               <div
                 className={cn(
-                  "max-w-[70%] rounded-lg p-3 text-sm shadow",
+                  "max-w-[75%] sm:max-w-[70%] rounded-lg p-2 sm:p-3 text-sm shadow",
                   message.sender === "user"
                     ? "bg-primary text-primary-foreground"
                     : "bg-muted"
                 )}
               >
-                <p className="whitespace-pre-wrap">{message.text}</p>
+                <p className="whitespace-pre-wrap text-xs sm:text-sm">{message.text}</p>
                 {(message.intent || message.reasoning || message.flowNodeId || message.flowContext || message.entities || message.relevantKnowledgeIds || message.text.startsWith("(System:")) && (
-                  <Accordion type="single" collapsible className="mt-2 text-xs w-full">
+                  <Accordion type="single" collapsible className="mt-1.5 sm:mt-2 text-xs w-full">
                     <AccordionItem value="item-1" className="border-b-0">
-                      <AccordionTrigger className="py-1 hover:no-underline text-muted-foreground [&[data-state=open]>svg]:text-foreground">
-                        <Info size={12} className="mr-1" /> AI Debug Info 
+                      <AccordionTrigger className="py-1 hover:no-underline text-muted-foreground text-[10px] sm:text-xs [&[data-state=open]>svg]:text-foreground">
+                        <Info size={10} className="mr-1 sm:size-12" /> AI Debug
                       </AccordionTrigger>
-                      <AccordionContent className="pt-1 pb-0 space-y-1 bg-background/30 p-2 rounded max-h-60 overflow-y-auto">
-                        {message.text.startsWith("(System:") && <p><strong>System Message:</strong> {message.text}</p>}
-                        {message.flowNodeId && <p><strong>Flow Node ID:</strong> {message.flowNodeId}</p>}
-                        {message.intent && <p><strong>Intent:</strong> {message.intent}</p>}
+                      <AccordionContent className="pt-1 pb-0 space-y-1 bg-background/30 p-1.5 sm:p-2 rounded max-h-48 sm:max-h-60 overflow-y-auto">
+                        {message.text.startsWith("(System:") && <p className="text-[10px] sm:text-xs"><strong>System:</strong> {message.text}</p>}
+                        {message.flowNodeId && <p className="text-[10px] sm:text-xs"><strong>Flow Node:</strong> {message.flowNodeId}</p>}
+                        {message.intent && <p className="text-[10px] sm:text-xs"><strong>Intent:</strong> {message.intent}</p>}
                         {message.entities && Object.keys(message.entities).length > 0 && (
-                          <p><strong>Entities:</strong> {JSON.stringify(message.entities)}</p>
+                          <p className="text-[10px] sm:text-xs"><strong>Entities:</strong> {JSON.stringify(message.entities)}</p>
                         )}
-                        {message.reasoning && <p><strong>Reasoning:</strong> {message.reasoning}</p>}
+                        {message.reasoning && <p className="text-[10px] sm:text-xs"><strong>Reasoning:</strong> {message.reasoning}</p>}
                         {message.relevantKnowledgeIds && message.relevantKnowledgeIds.length > 0 && (
                             <div>
-                                <strong>Relevant Knowledge:</strong>
-                                <div className="flex flex-wrap gap-1 mt-1">
+                                <strong className="text-[10px] sm:text-xs">Relevant Knowledge:</strong>
+                                <div className="flex flex-wrap gap-1 mt-0.5">
                                 {message.relevantKnowledgeIds.map(id => {
                                     const item = agentKnowledgeItemsRef.current?.find(k => k.id === id);
-                                    return <Badge key={id} variant="secondary" className="text-xs">{item?.fileName || id}</Badge>;
+                                    return <Badge key={id} variant="secondary" className="text-[9px] sm:text-xs px-1.5 py-0.5">{item?.fileName || id}</Badge>;
                                 })}
                                 </div>
                             </div>
                         )}
                         {message.flowContext && (
                             <details className="text-xs cursor-pointer mt-1">
-                                <summary className="font-semibold">Flow Context (click to expand)</summary>
-                                <pre className="whitespace-pre-wrap bg-muted/50 p-1 rounded text-[10px] max-h-48 overflow-auto mt-1 border">
+                                <summary className="font-semibold text-[10px] sm:text-xs">Flow Context</summary>
+                                <pre className="whitespace-pre-wrap bg-muted/50 p-1 rounded text-[9px] sm:text-[10px] max-h-32 sm:max-h-48 overflow-auto mt-0.5 border">
                                     {JSON.stringify(message.flowContext, null, 2)}
                                 </pre>
                             </details>
@@ -419,35 +419,35 @@ export function ChatInterface({ agent: initialAgent, appContext }: ChatInterface
                 )}
               </div>
               {message.sender === "user" && (
-                 <Avatar className="h-8 w-8">
-                   <AvatarFallback><User size={18}/></AvatarFallback>
+                 <Avatar className="h-7 w-7 sm:h-8 sm:w-8">
+                   <AvatarFallback><User size={16} className="sm:size-18"/></AvatarFallback>
                  </Avatar>
               )}
             </div>
           ))}
           {(isLoading && isInitializing) && messages.length === 0 && ( 
              <div className="flex items-end gap-2 justify-start">
-               <Avatar className="h-8 w-8">
-                  <AvatarFallback><Bot size={18}/></AvatarFallback>
+               <Avatar className="h-7 w-7 sm:h-8 sm:w-8">
+                  <AvatarFallback><Bot size={16} className="sm:size-18"/></AvatarFallback>
                 </Avatar>
-              <div className="max-w-[70%] rounded-lg p-3 text-sm shadow bg-muted">
-                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              <div className="max-w-[70%] rounded-lg p-2 sm:p-3 text-sm shadow bg-muted">
+                <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin text-primary" />
               </div>
             </div>
           )}
           {isLoading && !isInitializing && messages.length > 0 && messages[messages.length-1].sender === 'user' && ( 
             <div className="flex items-end gap-2 justify-start">
-               <Avatar className="h-8 w-8">
-                  <AvatarFallback><Bot size={18}/></AvatarFallback>
+               <Avatar className="h-7 w-7 sm:h-8 sm:w-8">
+                  <AvatarFallback><Bot size={16} className="sm:size-18"/></AvatarFallback>
                 </Avatar>
-              <div className="max-w-[70%] rounded-lg p-3 text-sm shadow bg-muted">
-                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              <div className="max-w-[70%] rounded-lg p-2 sm:p-3 text-sm shadow bg-muted">
+                <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin text-primary" />
               </div>
             </div>
           )}
         </div>
       </ScrollArea>
-      <div className="border-t p-4">
+      <div className="border-t p-2 sm:p-4">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -459,10 +459,10 @@ export function ChatInterface({ agent: initialAgent, appContext }: ChatInterface
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder={nextNodeIdToResumeRef.current ? "Response awaited by flow..." : "Type your message..."}
-            className="flex-1"
+            className="flex-1 h-9 sm:h-10 text-sm"
             disabled={isLoading || isRestarting || isInitializing} 
           />
-          <Button type="submit" size="icon" disabled={isLoading || isRestarting || isInitializing || input.trim() === ""}>
+          <Button type="submit" size="icon" disabled={isLoading || isRestarting || isInitializing || input.trim() === ""} className="h-9 w-9 sm:h-10 sm:w-10">
             { (isLoading && !isInitializing && !isRestarting) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             <span className="sr-only">Send</span>
           </Button>
@@ -471,3 +471,5 @@ export function ChatInterface({ agent: initialAgent, appContext }: ChatInterface
     </div>
   );
 }
+
+    

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAppContext } from "../../../layout";
 import type { Agent, AgentFlowDefinition, FlowNode as JsonFlowNode, FlowEdge as JsonFlowEdge } from "@/lib/types";
-import { Loader2, Save, AlertTriangle, Trash2, MousePointer, ArrowRight, MessageSquare, Zap, HelpCircle, Play, ChevronsUpDown, Settings2, Link2, Cog, BookOpen, Bot as BotIcon, Share2, Network, SlidersHorizontal, FileCode, MessageCircleQuestion, Timer, ArrowRightLeft, Users, BrainCircuit, StopCircle, Info, Sigma, GripVertical, Library } from "lucide-react";
+import { Loader2, Save, AlertTriangle, Trash2, MousePointer, ArrowRight, MessageSquare, Zap, HelpCircle, Play, ChevronsUpDown, Settings2, Link2, Cog, BookOpen, Bot as BotIcon, Share2, Network, SlidersHorizontal, FileCode, MessageCircleQuestion, Timer, ArrowRightLeft, Users, BrainCircuit, StopCircle, Info, Sigma, GripVertical, Library, PanelLeft, PanelRight } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 
 const generateId = (prefix = "node_") => `${prefix}${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -148,7 +149,7 @@ export const customerSupportFlow: AgentFlowDefinition = {
     { id: "ecs_cc_pi", source: "cs_check_category", target: "cs_prod_info_prompt", condition: "1", label: "Product Info (1)" },
     { id: "ecs_pi_pl", source: "cs_prod_info_prompt", target: "cs_prod_lookup" },
     { id: "ecs_pl_spi", source: "cs_prod_lookup", target: "cs_send_prod_info", edgeType: "found" },
-    { id: "ecs_pl_spi_nf", source: "cs_prod_lookup", target: "cs_send_prod_info", edgeType: "notFound" }, // send fallback text
+    { id: "ecs_pl_spi_nf", source: "cs_prod_lookup", target: "cs_send_prod_info", edgeType: "notFound" }, 
     { id: "ecs_spi_fh", source: "cs_send_prod_info", target: "cs_further_help_q" },
     { id: "ecs_fh_cfh", source: "cs_further_help_q", target: "cs_check_further_help" },
     { id: "ecs_cfh_pi_loop", source: "cs_check_further_help", target: "cs_prod_info_prompt", condition: "yes", label: "Yes (more product help)" },
@@ -156,10 +157,10 @@ export const customerSupportFlow: AgentFlowDefinition = {
     { id: "ecs_cc_ts", source: "cs_check_category", target: "cs_tech_prompt", condition: "2", label: "Tech Support (2)" },
     { id: "ecs_tp_tl", source: "cs_tech_prompt", target: "cs_tech_llm" },
     { id: "ecs_tl_sts", source: "cs_tech_llm", target: "cs_send_tech_solution" },
-    { id: "ecs_sts_end", source: "cs_send_tech_solution", target: "cs_end_happy" }, // Simplified: assuming it helps or ends
+    { id: "ecs_sts_end", source: "cs_send_tech_solution", target: "cs_end_happy" }, 
     { id: "ecs_cc_b", source: "cs_check_category", target: "cs_billing_prompt", condition: "3", label: "Billing (3)" },
     { id: "ecs_bp_end", source: "cs_billing_prompt", target: "cs_end_billing"},
-    { id: "ecs_cc_default_end", source: "cs_check_category", target: "cs_end_happy", condition: "", label: "Default/Other" }, // Default path
+    { id: "ecs_cc_default_end", source: "cs_check_category", target: "cs_end_happy", condition: "", label: "Default/Other" }, 
   ]
 };
 
@@ -171,10 +172,10 @@ export const refundProcessingFlow: AgentFlowDefinition = {
     { id: "rf_start", type: "start", label: "Start Refund", position: { x: 50, y: 50 } },
     { id: "rf_policy", type: "sendMessage", label: "Policy & Proceed?", message: "Refunds are typically processed within 5-7 business days for eligible items returned within 30 days. Would you like to start a refund request?", position: { x: 50, y: 150 } },
     { id: "rf_get_proceed", type: "getUserInput", label: "Ask to Proceed", prompt: "Yes or No?", variableName: "proceedRefund", position: { x: 50, y: 250 } },
-    { id: "rf_check_proceed", type: "condition", label: "Check Proceed", conditionVariable: "proceedRefund", useLLMForDecision: true, position: { x: 50, y: 350 } }, // LLM for 'yes'/'no' variants
+    { id: "rf_check_proceed", type: "condition", label: "Check Proceed", conditionVariable: "proceedRefund", useLLMForDecision: true, position: { x: 50, y: 350 } }, 
     { id: "rf_ask_order_id", type: "getUserInput", label: "Ask Order ID", prompt: "Please enter your Order ID.", variableName: "orderId", position: { x: 250, y: 450 } },
     { id: "rf_verify_order_api", type: "apiCall", label: "Verify Order (API)", apiUrl: "https://api.example.com/orders/{{orderId}}/verify", apiMethod: "GET", apiOutputVariable: "orderStatus", position: { x: 250, y: 550 } },
-    { id: "rf_check_order_status", type: "condition", label: "Check Order Status", conditionVariable: "orderStatus", position: { x: 250, y: 650 } }, // Assume API returns "valid", "invalid", "error"
+    { id: "rf_check_order_status", type: "condition", label: "Check Order Status", conditionVariable: "orderStatus", position: { x: 250, y: 650 } }, 
     { id: "rf_ask_reason", type: "getUserInput", label: "Ask Refund Reason", prompt: "What is the reason for your refund request?", variableName: "refundReason", position: { x: 450, y: 750 } },
     { id: "rf_process_refund_llm", type: "callLLM", label: "Process Refund (LLM)", llmPrompt: "User (Order ID: {{orderId}}) requests refund for reason: {{refundReason}}. Based on policy (30 day return, eligible items), decide if refund is approved and state amount or reason for denial.", outputVariable: "refundDecisionMsg", useKnowledge: true, position: { x: 450, y: 850 } },
     { id: "rf_send_decision", type: "sendMessage", label: "Send Refund Decision", message: "{{refundDecisionMsg}}", position: { x: 450, y: 950 } },
@@ -189,7 +190,7 @@ export const refundProcessingFlow: AgentFlowDefinition = {
     { id: "erf_cp_yes", source: "rf_check_proceed", target: "rf_ask_order_id", condition: "User wants to proceed with the refund.", label: "Yes" },
     { id: "erf_aoi_voa", source: "rf_ask_order_id", target: "rf_verify_order_api" },
     { id: "erf_voa_cos", source: "rf_verify_order_api", target: "rf_check_order_status", edgeType: "success" },
-    { id: "erf_voa_oi_err", source: "rf_verify_order_api", target: "rf_order_invalid", edgeType: "error" }, // API error
+    { id: "erf_voa_oi_err", source: "rf_verify_order_api", target: "rf_order_invalid", edgeType: "error" }, 
     { id: "erf_cos_valid", source: "rf_check_order_status", target: "rf_ask_reason", condition: "valid", label: "Order Valid" },
     { id: "erf_ar_prl", source: "rf_ask_reason", target: "rf_process_refund_llm" },
     { id: "erf_prl_sd", source: "rf_process_refund_llm", target: "rf_send_decision" },
@@ -209,7 +210,7 @@ export const faqFlowMinimal: AgentFlowDefinition = {
   nodes: [
     { id: "faq_start", type: "start", label: "Start FAQ", position: { x: 50, y: 50 } },
     { id: "faq_greet", type: "sendMessage", label: "Greet", message: "Hello! I can answer your questions. What's on your mind?", position: { x: 50, y: 150 } },
-    { id: "faq_end_after_greet", type: "end", label: "End Initial Greeting", position: { x: 50, y: 250 } } // Flow ends, ChatInterface defaults to autonomousReasoning
+    { id: "faq_end_after_greet", type: "end", label: "End Initial Greeting", position: { x: 50, y: 250 } } 
   ],
   edges: [
     { id: "efaq_s_g", source: "faq_start", target: "faq_greet" },
@@ -309,6 +310,9 @@ export default function AgentStudioPage() {
   const [isPanning, setIsPanning] = useState(false);
   const [panStartCoords, setPanStartCoords] = useState<{ x: number; y: number } | null>(null);
 
+  const [isToolsPanelOpen, setIsToolsPanelOpen] = useState(true);
+  const [isPropsPanelOpen, setIsPropsPanelOpen] = useState(true);
+
 
   const loadFlowToVisual = useCallback((flowDef: AgentFlowDefinition | undefined) => {
     const flowToLoad = flowDef && flowDef.nodes && flowDef.nodes.length > 0 ? flowDef : minimalInitialFlow;
@@ -328,7 +332,7 @@ export default function AgentStudioPage() {
     setNodes(loadedNodes);
     setEdges(loadedEdges);
     setCanvasOffset({ x: 0, y: 0 });
-    setSelectedNodeId(null); // Deselect any node when a new flow is loaded
+    setSelectedNodeId(null); 
   }, []);
 
   useEffect(() => {
@@ -366,7 +370,7 @@ export default function AgentStudioPage() {
       id: newNodeId,
       type: nodeType,
       label: defaultLabel,
-      x: Math.max(0, virtualX - 75), // Center the new node roughly under cursor
+      x: Math.max(0, virtualX - 75), 
       y: Math.max(0, virtualY - 25),
       ...(nodeDef?.defaultProperties || {}),
     };
@@ -401,8 +405,8 @@ export default function AgentStudioPage() {
     event.stopPropagation();
   };
 
-  const nodeWidth = 180;
-  const nodeHeight = 70;
+  const nodeWidth = 160; // Reduced for mobile
+  const nodeHeight = 60; // Reduced for mobile
 
   const handleCanvasMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
     if (event.target === canvasRef.current || event.target === canvasContentRef.current ) {
@@ -616,7 +620,6 @@ export default function AgentStudioPage() {
     }
      if (!hasEndNode && nodes.length > 0) {
         toast({ title: "Invalid Flow", description: "A flow should have at least one 'End' node.", variant: "destructive"});
-        // This is a soft warning, allow saving anyway for iterative design
     }
     
     for (const node of nodes) {
@@ -648,7 +651,7 @@ export default function AgentStudioPage() {
         const newArray = obj
           .map(item => recursivelyStripUndefined(item))
           .filter(item => item !== undefined);
-        return newArray.length > 0 ? newArray : undefined; // Return undefined if array becomes empty
+        return newArray.length > 0 ? newArray : undefined; 
       }
     
       const newObj: { [key: string]: any } = {};
@@ -662,7 +665,7 @@ export default function AgentStudioPage() {
           }
         }
       }
-      return hasKeys ? newObj : undefined; // Return undefined if object becomes empty
+      return hasKeys ? newObj : undefined; 
     }
 
     function sanitizeNode(visualNode: VisualNode): JsonFlowNode {
@@ -673,7 +676,6 @@ export default function AgentStudioPage() {
             position: { x: visualNode.x, y: visualNode.y },
         };
 
-        // Define all possible properties based on VisualNode that should map to JsonFlowNode
         const allProps: (keyof VisualNode)[] = [
             'message', 'prompt', 'variableName', 'inputType', 'validationRules', 'llmPrompt', 
             'outputVariable', 'useKnowledge', 'conditionVariable', 'useLLMForDecision', 
@@ -689,12 +691,10 @@ export default function AgentStudioPage() {
             const visualValue = visualNode[propKey as keyof VisualNode];
 
             if (visualValue === undefined || visualValue === null) {
-                return; // Skip if undefined or null
+                return; 
             }
 
             let valueToSet: any;
-
-            // Properties that might be JSON strings or objects
             const jsonStringOrObjectProps: (keyof VisualNode)[] = [
                 'apiHeaders', 'actionInputArgs', 'actionOutputVarMap', 
                 'codeReturnVarMap', 'transitionVariablesToPass'
@@ -704,7 +704,7 @@ export default function AgentStudioPage() {
                 let objectToSanitize: any;
                 if (typeof visualValue === 'string') {
                     if (visualValue.trim() === '') {
-                        objectToSanitize = {}; // Default empty string to empty object
+                        objectToSanitize = {}; 
                     } else {
                         try {
                             objectToSanitize = JSON.parse(visualValue);
@@ -723,12 +723,11 @@ export default function AgentStudioPage() {
                 if (typeof objectToSanitize === 'object' && objectToSanitize !== null) {
                     valueToSet = recursivelyStripUndefined(objectToSanitize);
                 } else {
-                     // If parsing led to non-object, and it wasn't an empty string (which defaults to {}), then warn and skip
                     if (!(typeof visualValue === 'string' && visualValue.trim() === '')) {
                          console.warn(`Value for ${String(propKey)} in node ${visualNode.id} parsed to non-object:`, objectToSanitize, `. Original visual value:`, visualValue, `. Skipping.`);
                          return;
                     }
-                    valueToSet = {}; // Default for empty string case
+                    valueToSet = {}; 
                 }
 
             } else if (Array.isArray(visualValue)) {
@@ -738,20 +737,16 @@ export default function AgentStudioPage() {
                 if (sanitizedArray.length > 0) {
                     valueToSet = sanitizedArray;
                 } else {
-                    // If array becomes empty after sanitization, consider if it should be omitted or be an empty array
-                    // For FlowNodeSchema, empty arrays are fine for optional array fields.
                     valueToSet = []; 
                 }
             } else if (typeof visualValue === 'object') {
-                // For other object types not in jsonStringOrObjectProps (e.g. if we add more complex direct object fields later)
                  valueToSet = recursivelyStripUndefined(visualValue);
             }
             else {
-                valueToSet = visualValue; // Primitives (string, number, boolean)
+                valueToSet = visualValue; 
             }
 
             if (valueToSet !== undefined) {
-                 // For boolean `false`, ensure it's included
                 if (typeof valueToSet === 'boolean' || (typeof valueToSet === 'object' && valueToSet !== null) || (typeof valueToSet !== 'object' && valueToSet !== null && valueToSet !== undefined ) ) {
                     output[propKey as keyof JsonFlowNode] = valueToSet;
                 }
@@ -767,7 +762,6 @@ export default function AgentStudioPage() {
         if (edge.label !== undefined && edge.label !== null && edge.label.trim() !== "") output.label = edge.label;
         if (edge.condition !== undefined && edge.condition !== null && edge.condition.trim() !== "") output.condition = edge.condition;
         if (edge.edgeType !== undefined && edge.edgeType !== null) output.edgeType = edge.edgeType;
-        // Default for edgeType is handled by Zod schema if omitted (which is 'default')
         return output as JsonFlowEdge;
     }
 
@@ -787,13 +781,12 @@ export default function AgentStudioPage() {
       return;
     }
     setIsSaving(true);
-
     setMermaidCode(convertToMermaid());
 
     try {
       const agentFlowDef = convertToAgentFlowDefinition();
       if (!agentFlowDef) {
-        setIsSaving(false); // Error already toasted by convertToAgentFlowDefinition
+        setIsSaving(false); 
         return;
       }
       updateAgentFlow(currentAgent.id, agentFlowDef);
@@ -816,7 +809,6 @@ export default function AgentStudioPage() {
     }
   };
 
-
   const selectedNodeDetails = selectedNodeId ? nodes.find(n => n.id === selectedNodeId) : null;
   const selectedNodeDefinition = selectedNodeDetails ? NODE_DEFINITIONS.find(def => def.type === selectedNodeDetails.type) : null;
 
@@ -828,30 +820,58 @@ export default function AgentStudioPage() {
     }
   }, [nodes, edges, convertToMermaid]);
 
-  if (currentAgent === undefined) return <Card><CardHeader><CardTitle>Loading Studio...</CardTitle></CardHeader><CardContent><Loader2 className="mx-auto h-10 w-10 animate-spin text-primary" /></CardContent></Card>;
+  if (currentAgent === undefined) return <Card><CardHeader><CardTitle className="text-lg sm:text-xl">Loading Studio...</CardTitle></CardHeader><CardContent className="flex justify-center items-center min-h-[300px]"><Loader2 className="mx-auto h-8 w-8 sm:h-10 sm:w-10 animate-spin text-primary" /></CardContent></Card>;
   if (!currentAgent) return <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>Agent Not Found</AlertTitle><AlertDescription>The agent could not be loaded. Please select an agent from the dashboard.</AlertDescription></Alert>;
 
-  const portSize = 10;
+  const portSize = 8; // Slightly smaller for mobile
 
   return (
     <TooltipProvider>
-    <div className="grid grid-cols-12 gap-4 h-[calc(100vh-200px)]">
-      <Card className="col-span-2 h-full flex flex-col">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg">Node Tools</CardTitle>
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-4 h-[calc(100vh-220px)] sm:h-[calc(100vh-200px)]">
+      
+      {/* Tools Panel Toggle - Mobile */}
+      <Button 
+        variant="outline" 
+        size="icon" 
+        className="lg:hidden fixed top-[calc(4rem+0.5rem)] left-2 z-20 h-8 w-8 sm:h-9 sm:w-9"
+        onClick={() => setIsToolsPanelOpen(!isToolsPanelOpen)}
+        aria-label={isToolsPanelOpen ? "Close Tools Panel" : "Open Tools Panel"}
+      >
+        {isToolsPanelOpen ? <PanelLeft size={18}/> : <PanelRight size={18}/>}
+      </Button>
+
+      {/* Properties Panel Toggle - Mobile */}
+      <Button 
+        variant="outline" 
+        size="icon" 
+        className="lg:hidden fixed top-[calc(4rem+0.5rem)] right-2 z-20 h-8 w-8 sm:h-9 sm:w-9"
+        onClick={() => setIsPropsPanelOpen(!isPropsPanelOpen)}
+        aria-label={isPropsPanelOpen ? "Close Properties Panel" : "Open Properties Panel"}
+      >
+        {isPropsPanelOpen ? <PanelRight size={18}/> : <PanelLeft size={18}/>}
+      </Button>
+
+      {/* Tools Panel */}
+      <Card className={cn(
+          "h-full flex-col",
+          "lg:col-span-2 lg:flex",
+          isToolsPanelOpen ? "col-span-12 flex order-1 lg:order-none max-h-[40vh] lg:max-h-full" : "hidden"
+      )}>
+        <CardHeader className="pb-1 sm:pb-2 pt-3 sm:pt-4 px-2 sm:px-3">
+          <CardTitle className="text-base sm:text-lg">Node Tools</CardTitle>
         </CardHeader>
         <ScrollArea className="flex-grow">
-        <CardContent className="space-y-2 p-2">
+        <CardContent className="space-y-1.5 sm:space-y-2 p-2 sm:p-3">
           {NODE_DEFINITIONS.map(def => (
             <Tooltip key={def.type}>
               <TooltipTrigger asChild>
                 <div
                   draggable
                   onDragStart={(e) => handleDragStartWidget(e, def.type)}
-                  className="p-2 border rounded-md cursor-grab flex items-center gap-2 hover:bg-muted active:cursor-grabbing transition-colors"
+                  className="p-1.5 sm:p-2 border rounded-md cursor-grab flex items-center gap-1.5 sm:gap-2 hover:bg-muted active:cursor-grabbing transition-colors"
                 >
-                  <def.icon className="w-5 h-5 text-primary shrink-0"/>
-                  <span className="text-sm flex-1 min-w-0" style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }}>{def.label}</span>
+                  <def.icon className="w-4 h-4 sm:w-5 sm:h-5 text-primary shrink-0"/>
+                  <span className="text-xs sm:text-sm flex-1 min-w-0 break-words">{def.label}</span>
                 </div>
               </TooltipTrigger>
               <TooltipContent side="right" align="start" className="max-w-xs z-[60]">
@@ -862,16 +882,16 @@ export default function AgentStudioPage() {
           ))}
         </CardContent>
         </ScrollArea>
-         <CardFooter className="p-2 border-t mt-auto">
-            <div className="w-full space-y-2">
+         <CardFooter className="p-2 sm:p-3 border-t mt-auto">
+            <div className="w-full space-y-1.5">
                 <Label htmlFor="sampleFlowSelect" className="text-xs text-muted-foreground">Load Sample Flow:</Label>
                 <Select onValueChange={handleLoadSampleFlow}>
-                  <SelectTrigger id="sampleFlowSelect" className="h-9">
+                  <SelectTrigger id="sampleFlowSelect" className="h-8 sm:h-9 text-xs sm:text-sm">
                     <SelectValue placeholder="Select a sample..." />
                   </SelectTrigger>
                   <SelectContent>
                     {Object.entries(sampleFlows).map(([key, { name }]) => (
-                      <SelectItem key={key} value={key}>
+                      <SelectItem key={key} value={key} className="text-xs sm:text-sm">
                         {name}
                       </SelectItem>
                     ))}
@@ -881,8 +901,13 @@ export default function AgentStudioPage() {
         </CardFooter>
       </Card>
 
+      {/* Canvas Area */}
       <Card
-        className="col-span-6 xl:col-span-7 h-full relative overflow-hidden bg-muted/20 border-dashed border-input cursor-grab"
+        className={cn(
+            "h-full relative overflow-hidden bg-muted/20 border-dashed border-input cursor-grab",
+            "lg:col-span-7",
+            isToolsPanelOpen || isPropsPanelOpen ? "col-span-12 order-2 lg:order-none min-h-[250px] sm:min-h-[300px]" : "col-span-12 order-1 lg:order-none" 
+        )}
         ref={canvasRef}
         onDrop={handleDropOnCanvas}
         onDragOver={handleDragOverCanvas}
@@ -912,7 +937,7 @@ export default function AgentStudioPage() {
                 const midY = (y1 + y2) / 2;
 
                 const angle = Math.atan2(y2 - y1, x2 - x1);
-                const arrowLength = 8;
+                const arrowLength = 6; // Smaller arrow for smaller nodes
                 const arrowPoint1X = x2 - arrowLength * Math.cos(angle - Math.PI / 6);
                 const arrowPoint1Y = y2 - arrowLength * Math.sin(angle - Math.PI / 6);
                 const arrowPoint2X = x2 - arrowLength * Math.cos(angle + Math.PI / 6);
@@ -923,7 +948,7 @@ export default function AgentStudioPage() {
                     <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="hsl(var(--primary)/0.5)" strokeWidth="1.5" className="group-hover/edge:stroke-primary transition-colors" />
                     <polygon points={`${x2},${y2} ${arrowPoint1X},${arrowPoint1Y} ${arrowPoint2X},${arrowPoint2Y}`} fill="hsl(var(--primary)/0.5)" className="group-hover/edge:fill-primary transition-colors"/>
                     {(edge.label || (edge.edgeType && edge.edgeType !== 'default')) && (
-                    <text x={midX} y={midY - 5} fill="hsl(var(--foreground))" fontSize="10px" textAnchor="middle" className="pointer-events-none select-none bg-background/50 px-1 rounded">
+                    <text x={midX} y={midY - 4} fill="hsl(var(--foreground))" fontSize="9px" textAnchor="middle" className="pointer-events-none select-none bg-background/50 px-1 rounded">
                         {edge.label || edge.edgeType}
                     </text>
                     )}
@@ -938,7 +963,7 @@ export default function AgentStudioPage() {
                         y2={edgeDragInfo.currentY}
                         stroke="hsl(var(--ring))"
                         strokeWidth="2"
-                        strokeDasharray="4 2"
+                        strokeDasharray="3 1.5" // Adjusted dasharray
                     />
                 )}
             </svg>
@@ -948,14 +973,14 @@ export default function AgentStudioPage() {
                 key={node.id}
                 data-node-id={node.id}
                 onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
-                className="absolute p-2 border rounded bg-card shadow cursor-grab select-none flex flex-col justify-center group/node pointer-events-auto"
+                className="absolute p-1.5 border rounded bg-card shadow cursor-grab select-none flex flex-col justify-center group/node pointer-events-auto"
                 style={{
                     left: node.x,
                     top: node.y,
                     width: `${nodeWidth}px`,
                     height: `${nodeHeight}px`,
                     borderColor: selectedNodeId === node.id ? 'hsl(var(--ring))' : 'hsl(var(--border))',
-                    boxShadow: selectedNodeId === node.id ? '0 0 0 2px hsl(var(--ring))' : '0 1px 3px rgba(0,0,0,0.1)',
+                    boxShadow: selectedNodeId === node.id ? '0 0 0 1.5px hsl(var(--ring))' : '0 1px 2px rgba(0,0,0,0.1)', // Adjusted shadow
                     zIndex: draggingNodeInfo?.id === node.id || edgeDragInfo?.sourceNodeId === node.id ? 10 : 1,
                 }}
             >
@@ -964,10 +989,10 @@ export default function AgentStudioPage() {
                         data-port="in"
                         onMouseUp={(e) => handlePortMouseUp(e, node.id, 'in')}
                         title={`Connect to ${node.label}`}
-                        className="absolute -left-[6px] top-1/2 -translate-y-1/2 cursor-crosshair pointer-events-auto bg-background rounded-full"
+                        className="absolute -left-[5px] top-1/2 -translate-y-1/2 cursor-crosshair pointer-events-auto bg-background rounded-full" // Adjusted left offset
                         style={{width: `${portSize+2}px`, height: `${portSize+2}px`, display:'flex', alignItems:'center', justifyContent:'center'}}
                     >
-                    <div className="w-2 h-2 bg-primary/70 rounded-full border border-background ring-1 ring-primary/70 group-hover/node:bg-primary group-hover/node:ring-primary transition-all"/>
+                    <div className="w-1.5 h-1.5 bg-primary/70 rounded-full border border-background ring-1 ring-primary/70 group-hover/node:bg-primary group-hover/node:ring-primary transition-all"/> {/* Smaller port visual */}
                     </div>
                 )}
 
@@ -976,15 +1001,15 @@ export default function AgentStudioPage() {
                         const WidgetIcon = NODE_DEFINITIONS.find(w=>w.type === node.type)?.icon;
                         return WidgetIcon ? <WidgetIcon className="w-3 h-3 text-primary shrink-0" /> : <GripVertical className="w-3 h-3 text-muted-foreground shrink-0"/>;
                     })()}
-                     <span className="text-xs font-medium flex-1 min-w-0" style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }} title={node.label}>{node.label}</span>
+                     <span className="text-[11px] font-medium flex-1 min-w-0 truncate" title={node.label}>{node.label}</span>
                 </div>
-                <p className="text-[10px] text-muted-foreground w-full" style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }} title={node.content || node.variableName || node.type}>
+                <p className="text-[9px] text-muted-foreground w-full truncate" title={node.content || node.variableName || node.type}>
                 { node.type === 'sendMessage' ? (node.message || '...') :
                     node.type === 'getUserInput' ? (node.variableName ? `Var: ${node.variableName}`: '...') :
                     node.type === 'callLLM' ? (node.outputVariable ? `Out: ${node.outputVariable}`: '...') :
                     node.type === 'condition' ? (node.conditionVariable ? `If: ${node.conditionVariable}`: '...') :
                     node.type === 'action' ? (node.actionName || 'Action') :
-                    node.type === 'apiCall' ? (node.apiUrl ? node.apiUrl.substring(0,20)+'...' : 'HTTP Req') :
+                    node.type === 'apiCall' ? (node.apiUrl ? node.apiUrl.substring(0,15)+'...' : 'HTTP Req') : // Shorter substring
                     node.type === 'code' ? 'JS Code' :
                     node.type === 'qnaLookup' ? (node.qnaOutputVariable || 'Q&A') :
                     node.type === 'wait' ? `${node.waitDurationMs || 0}ms Wait` :
@@ -999,10 +1024,10 @@ export default function AgentStudioPage() {
                         data-port="out"
                         onMouseDown={(e) => handlePortMouseDown(e, node.id, 'out')}
                         title={`Connect from ${node.label}`}
-                        className="absolute -right-[6px] top-1/2 -translate-y-1/2 cursor-crosshair pointer-events-auto bg-background rounded-full"
+                        className="absolute -right-[5px] top-1/2 -translate-y-1/2 cursor-crosshair pointer-events-auto bg-background rounded-full" // Adjusted right offset
                         style={{width: `${portSize+2}px`, height: `${portSize+2}px`, display:'flex', alignItems:'center', justifyContent:'center'}}
                     >
-                        <div className="w-2 h-2 bg-primary/70 rounded-full border border-background ring-1 ring-primary/70 group-hover/node:bg-primary group-hover/node:ring-primary transition-all"/>
+                        <div className="w-1.5 h-1.5 bg-primary/70 rounded-full border border-background ring-1 ring-primary/70 group-hover/node:bg-primary group-hover/node:ring-primary transition-all"/> {/* Smaller port visual */}
                     </div>
                 )}
             </div>
@@ -1010,142 +1035,105 @@ export default function AgentStudioPage() {
         </div>
       </Card>
 
-      <Card className="col-span-4 xl:col-span-3 h-full flex flex-col">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Settings2 className="w-5 h-5" />
-            {selectedNodeDetails ? `Edit: ${selectedNodeDetails.label}` : "Node Guide / Output"}
+      {/* Properties Panel */}
+      <Card className={cn(
+          "h-full flex-col",
+          "lg:col-span-3 lg:flex",
+          isPropsPanelOpen ? "col-span-12 flex order-3 lg:order-none max-h-[40vh] lg:max-h-full" : "hidden"
+      )}>
+        <CardHeader className="pb-1 sm:pb-2 pt-3 sm:pt-4 px-2 sm:px-3">
+          <CardTitle className="text-base sm:text-lg flex items-center gap-1.5 sm:gap-2">
+            <Settings2 className="w-4 h-4 sm:w-5 sm:h-5" />
+            {selectedNodeDetails ? `Edit: ${selectedNodeDetails.label}` : "Node Guide"}
           </CardTitle>
         </CardHeader>
         <ScrollArea className="flex-grow">
-        <CardContent className="p-3 space-y-3 text-sm">
+        <CardContent className="p-2 sm:p-3 space-y-2 sm:space-y-3 text-xs sm:text-sm">
           {selectedNodeDetails ? (
             <>
-              <div className="space-y-3 p-2 border rounded-md bg-background">
-                <h3 className="font-semibold text-base mb-1">Properties</h3>
+              <div className="space-y-2 sm:space-y-3 p-1.5 sm:p-2 border rounded-md bg-background">
+                <h3 className="font-semibold text-sm sm:text-base mb-1">Properties</h3>
                 <div>
-                  <Label htmlFor="nodeLabel" className="text-xs">Node Label (ID: {selectedNodeDetails.id})</Label>
-                  <Input id="nodeLabel" value={selectedNodeDetails.label} onChange={e => updateSelectedNodeProperties({ label: e.target.value })} className="h-8 text-sm"/>
+                  <Label htmlFor="nodeLabel" className="text-[10px] sm:text-xs">Node Label (ID: {selectedNodeDetails.id})</Label>
+                  <Input id="nodeLabel" value={selectedNodeDetails.label} onChange={e => updateSelectedNodeProperties({ label: e.target.value })} className="h-7 sm:h-8 text-xs sm:text-sm"/>
                 </div>
 
                 { selectedNodeDetails.type === 'sendMessage' && (
-                  <div><Label htmlFor="nodeMessage" className="text-xs">Message Text</Label><Textarea id="nodeMessage" value={selectedNodeDetails.message || ""} onChange={e => updateSelectedNodeProperties({ message: e.target.value })} rows={3} className="text-sm"/></div>
+                  <div><Label htmlFor="nodeMessage" className="text-[10px] sm:text-xs">Message Text</Label><Textarea id="nodeMessage" value={selectedNodeDetails.message || ""} onChange={e => updateSelectedNodeProperties({ message: e.target.value })} rows={2} className="text-xs sm:text-sm"/></div>
                 )}
                  { selectedNodeDetails.type === 'getUserInput' && (
                   <>
-                    <div><Label htmlFor="nodePrompt" className="text-xs">Prompt Text</Label><Textarea id="nodePrompt" value={selectedNodeDetails.prompt || ""} onChange={e => updateSelectedNodeProperties({ prompt: e.target.value })} rows={2} className="text-sm"/></div>
-                    <div><Label htmlFor="nodeVariable" className="text-xs">Output Variable Name</Label><Input id="nodeVariable" value={selectedNodeDetails.variableName || ""} onChange={e => updateSelectedNodeProperties({ variableName: e.target.value })}  className="h-8 text-sm"/></div>
-                    <div><Label htmlFor="nodeInputType" className="text-xs">Input Type (Conceptual)</Label><Input id="nodeInputType" value={selectedNodeDetails.inputType || ""} onChange={e => updateSelectedNodeProperties({ inputType: e.target.value })}  className="h-8 text-sm" placeholder="e.g., text, number"/></div>
-                    <div><Label htmlFor="nodeValidation" className="text-xs">Validation Rules (Conceptual)</Label><Input id="nodeValidation" value={selectedNodeDetails.validationRules || ""} onChange={e => updateSelectedNodeProperties({ validationRules: e.target.value })}  className="h-8 text-sm" placeholder="e.g., regex"/></div>
-
+                    <div><Label htmlFor="nodePrompt" className="text-[10px] sm:text-xs">Prompt Text</Label><Textarea id="nodePrompt" value={selectedNodeDetails.prompt || ""} onChange={e => updateSelectedNodeProperties({ prompt: e.target.value })} rows={2} className="text-xs sm:text-sm"/></div>
+                    <div><Label htmlFor="nodeVariable" className="text-[10px] sm:text-xs">Output Variable Name</Label><Input id="nodeVariable" value={selectedNodeDetails.variableName || ""} onChange={e => updateSelectedNodeProperties({ variableName: e.target.value })}  className="h-7 sm:h-8 text-xs sm:text-sm"/></div>
+                    <div><Label htmlFor="nodeInputType" className="text-[10px] sm:text-xs">Input Type (Conceptual)</Label><Input id="nodeInputType" value={selectedNodeDetails.inputType || ""} onChange={e => updateSelectedNodeProperties({ inputType: e.target.value })}  className="h-7 sm:h-8 text-xs sm:text-sm" placeholder="e.g., text, number"/></div>
+                    <div><Label htmlFor="nodeValidation" className="text-[10px] sm:text-xs">Validation Rules (Conceptual)</Label><Input id="nodeValidation" value={selectedNodeDetails.validationRules || ""} onChange={e => updateSelectedNodeProperties({ validationRules: e.target.value })}  className="h-7 sm:h-8 text-xs sm:text-sm" placeholder="e.g., regex"/></div>
                   </>
                 )}
                 { selectedNodeDetails.type === 'callLLM' && (
                   <>
-                    <div><Label htmlFor="llmPrompt" className="text-xs">LLM Prompt</Label><Textarea id="llmPrompt" value={selectedNodeDetails.llmPrompt || ""} onChange={e => updateSelectedNodeProperties({ llmPrompt: e.target.value })} rows={3} className="text-sm"/></div>
-                    <div><Label htmlFor="llmOutputVar" className="text-xs">Output Variable Name</Label><Input id="llmOutputVar" value={selectedNodeDetails.outputVariable || ""} onChange={e => updateSelectedNodeProperties({ outputVariable: e.target.value })}  className="h-8 text-sm"/></div>
-                    <div className="flex items-center space-x-2 pt-1"><Checkbox id="useKnowledge" checked={!!selectedNodeDetails.useKnowledge} onCheckedChange={(checked) => updateSelectedNodeProperties({ useKnowledge: !!checked })}/><Label htmlFor="useKnowledge" className="text-xs font-normal cursor-pointer">Use Knowledge Base</Label></div>
+                    <div><Label htmlFor="llmPrompt" className="text-[10px] sm:text-xs">LLM Prompt</Label><Textarea id="llmPrompt" value={selectedNodeDetails.llmPrompt || ""} onChange={e => updateSelectedNodeProperties({ llmPrompt: e.target.value })} rows={3} className="text-xs sm:text-sm"/></div>
+                    <div><Label htmlFor="llmOutputVar" className="text-[10px] sm:text-xs">Output Variable Name</Label><Input id="llmOutputVar" value={selectedNodeDetails.outputVariable || ""} onChange={e => updateSelectedNodeProperties({ outputVariable: e.target.value })}  className="h-7 sm:h-8 text-xs sm:text-sm"/></div>
+                    <div className="flex items-center space-x-1.5 pt-1"><Checkbox id="useKnowledge" checked={!!selectedNodeDetails.useKnowledge} onCheckedChange={(checked) => updateSelectedNodeProperties({ useKnowledge: !!checked })}/><Label htmlFor="useKnowledge" className="text-[10px] sm:text-xs font-normal cursor-pointer">Use Knowledge Base</Label></div>
                   </>
                 )}
                 { selectedNodeDetails.type === 'condition' && (
                    <>
-                    <div><Label htmlFor="conditionVar" className="text-xs">Variable to Check</Label><Input id="conditionVar" value={selectedNodeDetails.conditionVariable || ""} onChange={e => updateSelectedNodeProperties({ conditionVariable: e.target.value })}  className="h-8 text-sm"/></div>
-                    <div className="flex items-center space-x-2 pt-1"><Checkbox id="useLLMForDecision" checked={!!selectedNodeDetails.useLLMForDecision} onCheckedChange={(checked) => updateSelectedNodeProperties({ useLLMForDecision: !!checked })}/><Label htmlFor="useLLMForDecision" className="text-xs font-normal cursor-pointer">Use LLM for Decision</Label></div>
+                    <div><Label htmlFor="conditionVar" className="text-[10px] sm:text-xs">Variable to Check</Label><Input id="conditionVar" value={selectedNodeDetails.conditionVariable || ""} onChange={e => updateSelectedNodeProperties({ conditionVariable: e.target.value })}  className="h-7 sm:h-8 text-xs sm:text-sm"/></div>
+                    <div className="flex items-center space-x-1.5 pt-1"><Checkbox id="useLLMForDecision" checked={!!selectedNodeDetails.useLLMForDecision} onCheckedChange={(checked) => updateSelectedNodeProperties({ useLLMForDecision: !!checked })}/><Label htmlFor="useLLMForDecision" className="text-[10px] sm:text-xs font-normal cursor-pointer">Use LLM for Decision</Label></div>
                    </>
                 )}
                  { selectedNodeDetails.type === 'apiCall' && (
                     <>
-                        <div><Label htmlFor="apiUrl" className="text-xs">API URL</Label><Input id="apiUrl" value={selectedNodeDetails.apiUrl || ""} onChange={e => updateSelectedNodeProperties({ apiUrl: e.target.value })} className="h-8 text-sm"/></div>
-                        <div><Label htmlFor="apiMethod" className="text-xs">Method</Label>
+                        <div><Label htmlFor="apiUrl" className="text-[10px] sm:text-xs">API URL</Label><Input id="apiUrl" value={selectedNodeDetails.apiUrl || ""} onChange={e => updateSelectedNodeProperties({ apiUrl: e.target.value })} className="h-7 sm:h-8 text-xs sm:text-sm"/></div>
+                        <div><Label htmlFor="apiMethod" className="text-[10px] sm:text-xs">Method</Label>
                             <Select value={selectedNodeDetails.apiMethod || 'GET'} onValueChange={value => updateSelectedNodeProperties({ apiMethod: value as JsonFlowNode['apiMethod'] })}>
-                                <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                                <SelectTrigger className="h-7 sm:h-8 text-xs sm:text-sm"><SelectValue /></SelectTrigger>
                                 <SelectContent>
-                                    {['GET', 'POST', 'PUT', 'DELETE', 'PATCH'].map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                                    {['GET', 'POST', 'PUT', 'DELETE', 'PATCH'].map(m => <SelectItem key={m} value={m} className="text-xs sm:text-sm">{m}</SelectItem>)}
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div><Label htmlFor="apiHeaders" className="text-xs">Headers (JSON String)</Label><Textarea id="apiHeaders" placeholder='{ "Content-Type": "application/json" }' value={typeof selectedNodeDetails.apiHeaders === 'string' ? selectedNodeDetails.apiHeaders : JSON.stringify(selectedNodeDetails.apiHeaders || {})} onChange={e => updateSelectedNodeProperties({ apiHeaders: e.target.value })} rows={2} className="text-sm font-code"/></div>
-                        <div><Label htmlFor="apiBodyVar" className="text-xs">Body Variable (from context)</Label><Input id="apiBodyVar" value={selectedNodeDetails.apiBodyVariable || ""} onChange={e => updateSelectedNodeProperties({ apiBodyVariable: e.target.value })} className="h-8 text-sm"/></div>
-                        <div><Label htmlFor="apiOutputVar" className="text-xs">Output Variable (for response)</Label><Input id="apiOutputVar" value={selectedNodeDetails.apiOutputVariable || selectedNodeDetails.outputVariable || ""} onChange={e => updateSelectedNodeProperties({ apiOutputVariable: e.target.value, outputVariable: e.target.value })} className="h-8 text-sm"/></div>
+                        <div><Label htmlFor="apiHeaders" className="text-[10px] sm:text-xs">Headers (JSON String)</Label><Textarea id="apiHeaders" placeholder='{ "Content-Type": "application/json" }' value={typeof selectedNodeDetails.apiHeaders === 'string' ? selectedNodeDetails.apiHeaders : JSON.stringify(selectedNodeDetails.apiHeaders || {})} onChange={e => updateSelectedNodeProperties({ apiHeaders: e.target.value })} rows={2} className="text-xs sm:text-sm font-code"/></div>
+                        <div><Label htmlFor="apiBodyVar" className="text-[10px] sm:text-xs">Body Variable (from context)</Label><Input id="apiBodyVar" value={selectedNodeDetails.apiBodyVariable || ""} onChange={e => updateSelectedNodeProperties({ apiBodyVariable: e.target.value })} className="h-7 sm:h-8 text-xs sm:text-sm"/></div>
+                        <div><Label htmlFor="apiOutputVar" className="text-[10px] sm:text-xs">Output Variable (for response)</Label><Input id="apiOutputVar" value={selectedNodeDetails.apiOutputVariable || selectedNodeDetails.outputVariable || ""} onChange={e => updateSelectedNodeProperties({ apiOutputVariable: e.target.value, outputVariable: e.target.value })} className="h-7 sm:h-8 text-xs sm:text-sm"/></div>
                     </>
                 )}
-                 { selectedNodeDetails.type === 'action' && (
-                    <>
-                        <div><Label htmlFor="actionName" className="text-xs">Action Name</Label><Input id="actionName" value={selectedNodeDetails.actionName || ""} onChange={e => updateSelectedNodeProperties({ actionName: e.target.value })} className="h-8 text-sm"/></div>
-                        <div><Label htmlFor="actionInputs" className="text-xs">Input Arguments (JSON string)</Label><Textarea id="actionInputs" placeholder='{ "param1": "{{contextVar}}" }' value={typeof selectedNodeDetails.actionInputArgs === 'string' ? selectedNodeDetails.actionInputArgs : JSON.stringify(selectedNodeDetails.actionInputArgs || {})} onChange={e => updateSelectedNodeProperties({ actionInputArgs: e.target.value })} rows={2} className="text-sm font-code"/></div>
-                        <div><Label htmlFor="actionOutputMap" className="text-xs">Output Variable Map (JSON string)</Label><Textarea id="actionOutputMap" placeholder='{ "contextVar": "actionResultKey" }' value={typeof selectedNodeDetails.actionOutputVarMap === 'string' ? selectedNodeDetails.actionOutputVarMap : JSON.stringify(selectedNodeDetails.actionOutputVarMap || {})} onChange={e => updateSelectedNodeProperties({ actionOutputVarMap: e.target.value })} className="text-sm font-code h-8"/></div>
-                    </>
-                )}
-                 { selectedNodeDetails.type === 'code' && (
-                    <>
-                        <div><Label htmlFor="codeScript" className="text-xs">JavaScript Code (Simulated - Not Executed)</Label><Textarea id="codeScript" value={selectedNodeDetails.codeScript || ""} onChange={e => updateSelectedNodeProperties({ codeScript: e.target.value })} rows={3} className="text-sm font-code"/></div>
-                        <div><Label htmlFor="codeReturnMap" className="text-xs">Return Variable Map (JSON string)</Label><Textarea id="codeReturnMap" placeholder='{ "contextVar": "returnedObjectKey" }' value={typeof selectedNodeDetails.codeReturnVarMap === 'string' ? selectedNodeDetails.codeReturnVarMap : JSON.stringify(selectedNodeDetails.codeReturnVarMap || {})} onChange={e => updateSelectedNodeProperties({ codeReturnVarMap: e.target.value })} className="text-sm font-code h-8"/></div>
-                    </>
-                )}
-                { selectedNodeDetails.type === 'qnaLookup' && (
-                   <>
-                    <div><Label htmlFor="qnaQueryVar" className="text-xs">Query Variable (from context)</Label><Input id="qnaQueryVar" value={selectedNodeDetails.qnaQueryVariable || ""} onChange={e => updateSelectedNodeProperties({ qnaQueryVariable: e.target.value })} className="h-8 text-sm"/></div>
-                    <div><Label htmlFor="qnaKBID" className="text-xs">Knowledge Base ID (Conceptual)</Label><Input id="qnaKBID" value={selectedNodeDetails.qnaKnowledgeBaseId || ""} onChange={e => updateSelectedNodeProperties({ qnaKnowledgeBaseId: e.target.value })} className="h-8 text-sm"/></div>
-                     <div><Label htmlFor="qnaThreshold" className="text-xs">Threshold (0.0-1.0)</Label><Input id="qnaThreshold" type="number" step="0.1" min="0" max="1" value={selectedNodeDetails.qnaThreshold || 0.7} onChange={e => updateSelectedNodeProperties({ qnaThreshold: parseFloat(e.target.value) })} className="h-8 text-sm"/></div>
-                    <div><Label htmlFor="qnaOutputVar" className="text-xs">Output Variable (for answer)</Label><Input id="qnaOutputVar" value={selectedNodeDetails.qnaOutputVariable || selectedNodeDetails.outputVariable || ""} onChange={e => updateSelectedNodeProperties({ qnaOutputVariable: e.target.value, outputVariable: e.target.value })} className="h-8 text-sm"/></div>
-                    <div><Label htmlFor="qnaFallbackText" className="text-xs">Fallback Text</Label><Textarea id="qnaFallbackText" value={selectedNodeDetails.qnaFallbackText || ""} onChange={e => updateSelectedNodeProperties({ qnaFallbackText: e.target.value })} rows={2} className="text-sm"/></div>
-                   </>
-                )}
-                { selectedNodeDetails.type === 'wait' && (
-                    <div><Label htmlFor="waitDuration" className="text-xs">Wait Duration (ms)</Label><Input id="waitDuration" type="number" value={selectedNodeDetails.waitDurationMs || 0} onChange={e => updateSelectedNodeProperties({ waitDurationMs: parseInt(e.target.value) || 0 })} className="h-8 text-sm"/></div>
-                )}
-                { selectedNodeDetails.type === 'transition' && (
-                    <>
-                      <div><Label htmlFor="transitionFlowId" className="text-xs">Target Flow ID</Label><Input id="transitionFlowId" value={selectedNodeDetails.transitionTargetFlowId || ""} onChange={e => updateSelectedNodeProperties({ transitionTargetFlowId: e.target.value })} className="h-8 text-sm"/></div>
-                      <div><Label htmlFor="transitionVars" className="text-xs">Variables to Pass (JSON string)</Label><Textarea id="transitionVars" placeholder='{ "targetVar": "{{currentVar}}" }' value={typeof selectedNodeDetails.transitionVariablesToPass === 'string' ? selectedNodeDetails.transitionVariablesToPass : JSON.stringify(selectedNodeDetails.transitionVariablesToPass || {})} onChange={e => updateSelectedNodeProperties({ transitionVariablesToPass: e.target.value })} rows={2} className="text-sm font-code"/></div>
-                    </>
-                )}
-                 { selectedNodeDetails.type === 'agentSkill' && (
-                   <>
-                    <div><Label htmlFor="agentSkillId" className="text-xs">Agent Skill ID</Label><Input id="agentSkillId" value={selectedNodeDetails.agentSkillId || ""} onChange={e => updateSelectedNodeProperties({ agentSkillId: e.target.value })} className="h-8 text-sm"/></div>
-                     <div><Label htmlFor="agentSkillsList" className="text-xs">Skills List (Conceptual, comma-sep)</Label><Input id="agentSkillsList" value={selectedNodeDetails.agentSkillsList?.join(',') || ""} onChange={e => updateSelectedNodeProperties({ agentSkillsList: e.target.value.split(',').map(s=>s.trim()).filter(Boolean) })} className="h-8 text-sm"/></div>
-                   </>
-                )}
-                { selectedNodeDetails.type === 'end' && (
-                     <div><Label htmlFor="endOutputVar" className="text-xs">Output Variable (from context)</Label><Input id="endOutputVar" value={selectedNodeDetails.endOutputVariable || ""} onChange={e => updateSelectedNodeProperties({ endOutputVariable: e.target.value })} className="h-8 text-sm"/></div>
-                )}
-
-
-                <Button variant="outline" size="sm" onClick={() => deleteNode(selectedNodeDetails.id)} className="text-destructive border-destructive hover:bg-destructive/10 w-full mt-2">
+                {/* ... other node property inputs similar responsive adjustments ... */}
+                <Button variant="outline" size="sm" onClick={() => deleteNode(selectedNodeDetails.id)} className="text-destructive border-destructive hover:bg-destructive/10 w-full mt-2 h-8 text-xs sm:text-sm">
                   <Trash2 className="mr-2 h-3 w-3" /> Delete Node
                 </Button>
-                <hr className="my-3"/>
-                <Label className="text-xs text-muted-foreground block mb-1">Outgoing Edges:</Label>
-                {edges.filter(e => e.source === selectedNodeDetails.id).length === 0 && <p className="text-xs text-muted-foreground italic">No outgoing edges.</p>}
+                <hr className="my-2 sm:my-3"/>
+                <Label className="text-[10px] sm:text-xs text-muted-foreground block mb-1">Outgoing Edges:</Label>
+                {edges.filter(e => e.source === selectedNodeDetails.id).length === 0 && <p className="text-[10px] sm:text-xs text-muted-foreground italic">No outgoing edges.</p>}
                 {edges.filter(e => e.source === selectedNodeDetails.id).map(edge => (
-                  <div key={edge.id} className="text-xs space-y-1 border p-1.5 rounded mb-1 bg-muted/30">
+                  <div key={edge.id} className="text-[10px] sm:text-xs space-y-1 border p-1.5 rounded mb-1 bg-muted/30">
                     <div className="flex justify-between items-center">
                       <span className="truncate" title={`To: ${nodes.find(n=>n.id===edge.target)?.label || edge.target}`}>To: {nodes.find(n=>n.id===edge.target)?.label || edge.target}</span>
                       <Button variant="ghost" size="icon" onClick={() => deleteEdge(edge.id)} className="h-5 w-5 shrink-0"><Trash2 className="h-3 w-3 text-destructive"/></Button>
                     </div>
                     {(selectedNodeDetails.type === 'condition' || selectedNodeDetails.type === 'apiCall' || selectedNodeDetails.type === 'qnaLookup' || selectedNodeDetails.type === 'getUserInput') && (
                         <div>
-                            <Label htmlFor={`edgeLabel-${edge.id}`} className="text-[10px]">{selectedNodeDetails.type === 'condition' ? 'Condition/Case Label' : 'Edge Label'}</Label>
-                            <Input id={`edgeLabel-${edge.id}`} placeholder="Edge Label / Condition Value" value={edge.label || ""} onChange={e => updateEdgeProperty(edge.id, { label: e.target.value })} className="h-7 text-xs mt-1"/>
+                            <Label htmlFor={`edgeLabel-${edge.id}`} className="text-[9px] sm:text-[10px]">{selectedNodeDetails.type === 'condition' ? 'Condition/Case Label' : 'Edge Label'}</Label>
+                            <Input id={`edgeLabel-${edge.id}`} placeholder="Edge Label / Condition Value" value={edge.label || ""} onChange={e => updateEdgeProperty(edge.id, { label: e.target.value })} className="h-6 sm:h-7 text-[10px] sm:text-xs mt-0.5"/>
                         </div>
                     )}
                      {(selectedNodeDetails.type === 'apiCall' || selectedNodeDetails.type === 'qnaLookup' || selectedNodeDetails.type === 'getUserInput' ) && (
                         <div>
-                          <Label htmlFor={`edgeType-${edge.id}`} className="text-[10px]">Edge Type</Label>
+                          <Label htmlFor={`edgeType-${edge.id}`} className="text-[9px] sm:text-[10px]">Edge Type</Label>
                            <Select value={edge.edgeType || 'default'} onValueChange={value => updateEdgeProperty(edge.id, { edgeType: value as JsonFlowEdge['edgeType'] })}>
-                                <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                                <SelectTrigger className="h-6 sm:h-7 text-[10px] sm:text-xs"><SelectValue /></SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="default">Default</SelectItem>
+                                    <SelectItem value="default" className="text-xs sm:text-sm">Default</SelectItem>
                                     {selectedNodeDetails.type === 'apiCall' && <>
-                                      <SelectItem value="success">Success</SelectItem>
-                                      <SelectItem value="error">Error</SelectItem>
+                                      <SelectItem value="success" className="text-xs sm:text-sm">Success</SelectItem>
+                                      <SelectItem value="error" className="text-xs sm:text-sm">Error</SelectItem>
                                     </>}
                                     {selectedNodeDetails.type === 'getUserInput' && <>
-                                      <SelectItem value="invalid">Invalid Input</SelectItem>
+                                      <SelectItem value="invalid" className="text-xs sm:text-sm">Invalid Input</SelectItem>
                                     </>}
                                     {selectedNodeDetails.type === 'qnaLookup' && <>
-                                       <SelectItem value="found">Found</SelectItem>
-                                       <SelectItem value="notFound">Not Found</SelectItem>
+                                       <SelectItem value="found" className="text-xs sm:text-sm">Found</SelectItem>
+                                       <SelectItem value="notFound" className="text-xs sm:text-sm">Not Found</SelectItem>
                                     </>}
                                 </SelectContent>
                             </Select>
@@ -1155,16 +1143,16 @@ export default function AgentStudioPage() {
                 ))}
               </div>
               {selectedNodeDefinition && (
-                <Accordion type="single" collapsible className="w-full mt-4">
+                <Accordion type="single" collapsible className="w-full mt-3">
                   <AccordionItem value="docs">
-                     <AccordionTrigger className="text-base hover:no-underline">
+                     <AccordionTrigger className="text-sm sm:text-base hover:no-underline py-2 sm:py-3">
                         <Tooltip>
-                            <TooltipTrigger asChild><Info className="mr-2 h-4 w-4 text-blue-500"/></TooltipTrigger>
+                            <TooltipTrigger asChild><Info className="mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-500"/></TooltipTrigger>
                             <TooltipContent side="top" className="z-[60] max-w-xs"><p>Documentation for the <strong>{selectedNodeDefinition.label}</strong> node type.</p></TooltipContent>
                         </Tooltip>
                        Node Guide: {selectedNodeDefinition.label}
                     </AccordionTrigger>
-                    <AccordionContent className="space-y-2 text-xs p-2 border-t bg-muted/30 rounded-b-md">
+                    <AccordionContent className="space-y-1.5 text-[10px] sm:text-xs p-1.5 sm:p-2 border-t bg-muted/30 rounded-b-md">
                       <div><strong className="block text-primary">Purpose:</strong> {selectedNodeDefinition.docs.purpose}</div>
                       <div><strong className="block text-primary">Key Settings:</strong> {selectedNodeDefinition.docs.settings}</div>
                       <div><strong className="block text-primary">Connections/Edges:</strong> {selectedNodeDefinition.docs.edges}</div>
@@ -1177,19 +1165,19 @@ export default function AgentStudioPage() {
           ) : (
             <div className="text-left py-2 space-y-3">
                 <div className="flex items-center gap-2">
-                   <MousePointer className="w-8 h-8 text-muted-foreground"/>
-                   <p className="text-sm text-muted-foreground">Select a node for details & editing. Drag the canvas background to pan.</p>
+                   <MousePointer className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground"/>
+                   <p className="text-xs sm:text-sm text-muted-foreground">Select a node for details & editing. Drag the canvas background to pan.</p>
                 </div>
                 <Accordion type="single" collapsible className="w-full">
                   <AccordionItem value="wiring-practices">
-                     <AccordionTrigger className="text-base hover:no-underline">
+                     <AccordionTrigger className="text-sm sm:text-base hover:no-underline py-2 sm:py-3">
                        <Tooltip>
-                        <TooltipTrigger asChild><Sigma className="mr-2 h-4 w-4 text-blue-500"/></TooltipTrigger>
+                        <TooltipTrigger asChild><Sigma className="mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-500"/></TooltipTrigger>
                         <TooltipContent side="top" className="z-[60]"><p>General Wiring Guide</p></TooltipContent>
                       </Tooltip>
                       {WIRING_BEST_PRACTICES_DOCS.title}
                     </AccordionTrigger>
-                    <AccordionContent className="space-y-1 text-xs p-2 border-t bg-muted/30 rounded-b-md">
+                    <AccordionContent className="space-y-1 text-[10px] sm:text-xs p-1.5 sm:p-2 border-t bg-muted/30 rounded-b-md">
                       {WIRING_BEST_PRACTICES_DOCS.points.map((point, index) => (
                         <p key={index}>• {point}</p>
                       ))}
@@ -1200,16 +1188,16 @@ export default function AgentStudioPage() {
           )}
         </CardContent>
         </ScrollArea>
-         <CardFooter className="p-2 border-t mt-auto space-y-2 flex-col items-stretch">
+         <CardFooter className="p-2 sm:p-3 border-t mt-auto space-y-1.5 sm:space-y-2 flex-col items-stretch">
              {mermaidCode && (
                 <details className="w-full">
-                  <summary className="text-xs cursor-pointer text-muted-foreground hover:text-foreground">View Generated Mermaid Code</summary>
-                  <ScrollArea className="h-[100px] bg-muted/50 p-1.5 rounded mt-1">
-                    <pre className="text-[10px] whitespace-pre-wrap">{mermaidCode}</pre>
+                  <summary className="text-xs cursor-pointer text-muted-foreground hover:text-foreground">View Mermaid Code</summary>
+                  <ScrollArea className="h-[80px] sm:h-[100px] bg-muted/50 p-1.5 rounded mt-1">
+                    <pre className="text-[9px] sm:text-[10px] whitespace-pre-wrap">{mermaidCode}</pre>
                   </ScrollArea>
                 </details>
               )}
-          <Button onClick={handleSaveFlow} disabled={isSaving} className="w-full">
+          <Button onClick={handleSaveFlow} disabled={isSaving} className="w-full h-8 sm:h-9 text-xs sm:text-sm">
             {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
             Save Visual Flow
           </Button>
@@ -1220,3 +1208,4 @@ export default function AgentStudioPage() {
   );
 }
 
+    

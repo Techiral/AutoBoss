@@ -12,22 +12,22 @@ import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { createAgent, CreateAgentOutput } from "@/ai/flows/agent-creation";
-import { useParams } from "next/navigation"; // Removed useRouter
+import { useParams } from "next/navigation"; 
 import { useAppContext } from "../../../layout"; 
 import type { Agent } from "@/lib/types";
 import { Loader2 } from "lucide-react";
 
 const formSchema = z.object({
-  name: z.string().min(3, "Name must be at least 3 characters"),
-  role: z.string().min(10, "Role description must be at least 10 characters"),
-  personality: z.string().min(10, "Personality description must be at least 10 characters"),
+  name: z.string().min(3, "Name must be at least 3 characters").max(100, "Name too long"),
+  role: z.string().min(10, "Role description must be at least 10 characters").max(500, "Role too long"),
+  personality: z.string().min(10, "Personality description must be at least 10 characters").max(500, "Personality too long"),
 });
 
 type FormData = z.infer<typeof formSchema>;
 
 export default function PersonalityPage() {
   const [isLoading, setIsLoading] = useState(false);
-  const [currentAgent, setCurrentAgent] = useState<Agent | null | undefined>(undefined); // undefined for loading
+  const [currentAgent, setCurrentAgent] = useState<Agent | null | undefined>(undefined); 
   const [generatedDetails, setGeneratedDetails] = useState<CreateAgentOutput | null>(null);
 
   const { toast } = useToast();
@@ -35,9 +35,9 @@ export default function PersonalityPage() {
   const agentId = Array.isArray(params.agentId) ? params.agentId[0] : params.agentId;
   const { getAgent, updateAgent } = useAppContext();
 
-  const { register, handleSubmit, formState: { errors }, setValue } = useForm<FormData>({ // Removed reset
+  const { register, handleSubmit, formState: { errors }, setValue } = useForm<FormData>({ 
     resolver: zodResolver(formSchema),
-    defaultValues: { // Set default values to prevent uncontrolled to controlled warning
+    defaultValues: { 
         name: "",
         role: "",
         personality: "",
@@ -47,7 +47,7 @@ export default function PersonalityPage() {
   useEffect(() => {
     if (agentId) {
       const agent = getAgent(agentId as string);
-      setCurrentAgent(agent); // Will be undefined if still loading, null if not found by getAgent
+      setCurrentAgent(agent); 
       if (agent) {
         setValue("name", agent.name);
         setValue("role", agent.role || '');
@@ -60,7 +60,6 @@ export default function PersonalityPage() {
             });
         }
       }
-      // Removed router.push logic, AgentDetailLayout will handle "not found" display
     }
   }, [agentId, getAgent, setValue]);
 
@@ -69,13 +68,12 @@ export default function PersonalityPage() {
     if (!currentAgent) return;
 
     setIsLoading(true);
-    // setGeneratedDetails(null); // Keep previous details visible during AI call for better UX
     try {
       const agentDescription = `Name: ${data.name}\nRole: ${data.role}\nPersonality: ${data.personality}`;
       const result = await createAgent({ agentDescription });
       setGeneratedDetails(result);
       
-      const updatedAgentData: Partial<Agent> = { // Only update relevant fields
+      const updatedAgentData: Partial<Agent> = { 
         name: data.name,
         description: `Role: ${data.role}. Personality: ${data.personality}.`,
         role: data.role,
@@ -84,9 +82,7 @@ export default function PersonalityPage() {
         generatedPersona: result.agentPersona,
         generatedGreeting: result.agentGreeting,
       };
-      // Pass only the ID and the fields to update to preserve other agent properties like knowledgeItems
       updateAgent({ ...currentAgent, ...updatedAgentData });
-
 
       toast({
         title: "Personality Updated!",
@@ -104,67 +100,63 @@ export default function PersonalityPage() {
     }
   };
   
-  // Rely on AgentDetailLayout for loading/not found state beyond this basic check
   if (currentAgent === undefined && agentId) { 
     return (
       <Card>
-        <CardHeader><CardTitle>Loading Agent Personality...</CardTitle></CardHeader>
-        <CardContent><Loader2 className="mx-auto h-10 w-10 animate-spin text-primary" /></CardContent>
+        <CardHeader className="p-4 sm:p-6"><CardTitle className="text-lg sm:text-xl">Loading Agent Personality...</CardTitle></CardHeader>
+        <CardContent className="p-4 sm:p-6 flex justify-center items-center min-h-[200px]"><Loader2 className="h-8 w-8 sm:h-10 sm:w-10 animate-spin text-primary" /></CardContent>
       </Card>
     )
   }
-  // If currentAgent is null (after getAgent tried and failed), AgentDetailLayout will show its message.
-  // This page should only render its form if currentAgent is an actual agent object.
   if (!currentAgent) {
-      return null; // AgentDetailLayout handles the "not found" UI
+      return null; 
   }
-
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="font-headline text-2xl">Edit Agent Personality</CardTitle>
-        <CardDescription>
+      <CardHeader className="p-4 sm:p-6">
+        <CardTitle className="font-headline text-xl sm:text-2xl">Edit Agent Personality</CardTitle>
+        <CardDescription className="text-sm">
           Refine your agent's name, role, personality, and how it introduces itself.
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit(onSubmit)}>
-        <CardContent className="space-y-6">
-          <div className="space-y-2">
+        <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
+          <div className="space-y-1.5">
             <Label htmlFor="name">Agent Name / Concept</Label>
             <Input id="name" placeholder="e.g., Helpful Support Bot" {...register("name")} />
-            {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
+            {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
           </div>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="role">Role & Objectives</Label>
-            <Textarea id="role" placeholder="Describe the agent's primary function." {...register("role")} />
-            {errors.role && <p className="text-sm text-destructive">{errors.role.message}</p>}
+            <Textarea id="role" placeholder="Describe the agent's primary function." {...register("role")} rows={3} />
+            {errors.role && <p className="text-xs text-destructive">{errors.role.message}</p>}
           </div>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="personality">Personality & Tone</Label>
-            <Textarea id="personality" placeholder="Describe the desired personality." {...register("personality")} />
-            {errors.personality && <p className="text-sm text-destructive">{errors.personality.message}</p>}
+            <Textarea id="personality" placeholder="Describe the desired personality." {...register("personality")} rows={3} />
+            {errors.personality && <p className="text-xs text-destructive">{errors.personality.message}</p>}
           </div>
-           {(generatedDetails || (currentAgent.generatedName && currentAgent.generatedPersona)) && ( // Show current if available
-            <div className="space-y-4 pt-4 border-t">
-                <h3 className="font-headline text-lg">Current AI Generated Details</h3>
+           {(generatedDetails || (currentAgent.generatedName && currentAgent.generatedPersona)) && (
+            <div className="space-y-3 sm:space-y-4 pt-3 sm:pt-4 border-t">
+                <h3 className="font-headline text-md sm:text-lg">Current AI Generated Details</h3>
                 <div>
-                    <Label>Generated Name</Label>
-                    <p className="text-sm p-2 bg-muted rounded-md">{generatedDetails?.agentName || currentAgent.generatedName}</p>
+                    <Label className="text-xs font-semibold">Generated Name</Label>
+                    <p className="text-sm p-2 bg-muted rounded-md mt-1">{generatedDetails?.agentName || currentAgent.generatedName}</p>
                 </div>
                 <div>
-                    <Label>Generated Persona</Label>
-                    <p className="text-sm p-2 bg-muted rounded-md whitespace-pre-wrap">{generatedDetails?.agentPersona || currentAgent.generatedPersona}</p>
+                    <Label className="text-xs font-semibold">Generated Persona</Label>
+                    <p className="text-sm p-2 bg-muted rounded-md whitespace-pre-wrap mt-1">{generatedDetails?.agentPersona || currentAgent.generatedPersona}</p>
                 </div>
                 <div>
-                    <Label>Sample Greeting</Label>
-                    <p className="text-sm p-2 bg-muted rounded-md">{generatedDetails?.agentGreeting || currentAgent.generatedGreeting}</p>
+                    <Label className="text-xs font-semibold">Sample Greeting</Label>
+                    <p className="text-sm p-2 bg-muted rounded-md mt-1">{generatedDetails?.agentGreeting || currentAgent.generatedGreeting}</p>
                 </div>
             </div>
           )}
         </CardContent>
-        <CardFooter>
-          <Button type="submit" disabled={isLoading} className="w-full">
+        <CardFooter className="p-4 sm:p-6">
+          <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
             {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             {isLoading ? "Updating Personality..." : "Update Personality & Regenerate Details"}
           </Button>
@@ -173,3 +165,5 @@ export default function PersonalityPage() {
     </Card>
   );
 }
+
+    

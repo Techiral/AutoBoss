@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useState } from 'react';
@@ -12,7 +13,7 @@ export default function AgentDetailLayout({ children }: { children: React.ReactN
   const params = useParams();
   const router = useRouter();
   const { getAgent } = useAppContext();
-  const [agent, setAgent] = useState<Agent | null | undefined>(undefined); // undefined for loading, null for not found
+  const [agent, setAgent] = useState<Agent | null | undefined>(undefined); 
 
   const agentId = Array.isArray(params.agentId) ? params.agentId[0] : params.agentId;
 
@@ -20,19 +21,16 @@ export default function AgentDetailLayout({ children }: { children: React.ReactN
     if (agentId) {
       const foundAgent = getAgent(agentId);
       setAgent(foundAgent);
-      // If agent is not found initially, it will render the "Agent Not Found" message.
-      // The setTimeout logic for a delayed check/redirect is removed for simplification.
-      // If redirection is strictly needed after a delay, this might need a different approach.
     }
-  }, [agentId, getAgent]); // Removed router and agent from dependencies as setTimeout is removed
+  }, [agentId, getAgent]); 
 
   if (agent === undefined) {
     return (
-      <div className="space-y-4">
-        <Skeleton className="h-10 w-1/2" />
-        <Skeleton className="h-8 w-1/3" />
-        <div className="p-4 border rounded-lg">
-          <Skeleton className="h-64 w-full" />
+      <div className="space-y-3 sm:space-y-4">
+        <Skeleton className="h-8 sm:h-10 w-3/4 sm:w-1/2" />
+        <Skeleton className="h-6 sm:h-8 w-full sm:w-2/3" />
+        <div className="p-4 border rounded-lg mt-4">
+          <Skeleton className="h-48 sm:h-64 w-full" />
         </div>
       </div>
     );
@@ -51,12 +49,14 @@ export default function AgentDetailLayout({ children }: { children: React.ReactN
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="font-headline text-3xl font-bold">{agent.generatedName || agent.name}</h1>
-        <p className="text-muted-foreground">{agent.description}</p>
+        <h1 className="font-headline text-2xl sm:text-3xl font-bold break-words">{agent.generatedName || agent.name}</h1>
+        <p className="text-sm sm:text-base text-muted-foreground break-words">{agent.description}</p>
       </div>
       {children}
     </div>
   );
 }
+
+    

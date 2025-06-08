@@ -28,23 +28,23 @@ export function UserNav() {
 
   if (loading) {
     return (
-        <Button variant="ghost" className="relative h-10 w-10 rounded-full" disabled>
-             <Avatar className="h-10 w-10 animate-pulse bg-muted" />
+        <Button variant="ghost" className="relative h-8 w-8 sm:h-10 sm:w-10 rounded-full p-0" disabled>
+             <Avatar className="h-8 w-8 sm:h-10 sm:w-10 animate-pulse bg-muted" />
         </Button>
     );
   }
 
   if (!currentUser) {
     return (
-      <div className="flex items-center gap-2">
-        <Button variant="outline" size="sm" asChild>
+      <div className="flex items-center gap-1.5 sm:gap-2">
+        <Button variant="outline" size="sm" asChild className="text-xs px-2 py-1 sm:px-3 sm:py-1.5 h-auto">
           <Link href="/login">
-            <LogIn className="mr-2 h-4 w-4" /> Login
+            <LogIn className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" /> Login
           </Link>
         </Button>
-        <Button size="sm" asChild>
+        <Button size="sm" asChild className="text-xs px-2 py-1 sm:px-3 sm:py-1.5 h-auto">
           <Link href="/signup">
-           <UserPlus className="mr-2 h-4 w-4" /> Sign Up
+           <UserPlus className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" /> Sign Up
           </Link>
         </Button>
       </div>
@@ -59,12 +59,12 @@ export function UserNav() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-          <Avatar className="h-10 w-10">
+        <Button variant="ghost" className="relative h-8 w-8 sm:h-10 sm:w-10 rounded-full p-0">
+          <Avatar className="h-8 w-8 sm:h-10 sm:w-10">
             {currentUser.photoURL ? (
                 <AvatarImage src={currentUser.photoURL} alt={userDisplayName} />
             ) : (
-                <AvatarImage src={`https://placehold.co/100x100.png?text=${avatarFallback}`} alt={userDisplayName} data-ai-hint="user avatar placeholder"/>
+                <AvatarImage src={`https://placehold.co/40x40.png?text=${avatarFallback}`} alt={userDisplayName} data-ai-hint="user avatar placeholder"/>
             )}
             <AvatarFallback>{avatarFallback}</AvatarFallback>
           </Avatar>
@@ -72,9 +72,9 @@ export function UserNav() {
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
-          <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{userDisplayName}</p>
-            <p className="text-xs leading-none text-muted-foreground">
+          <div className="flex flex-col space-y-0.5">
+            <p className="text-sm font-medium leading-none truncate">{userDisplayName}</p>
+            <p className="text-xs leading-none text-muted-foreground truncate">
               {userEmail}
             </p>
           </div>
@@ -110,3 +110,5 @@ export function UserNav() {
     </DropdownMenu>
   );
 }
+
+    

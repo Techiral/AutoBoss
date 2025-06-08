@@ -20,7 +20,6 @@ const displayNameFormSchema = z.object({
 type DisplayNameFormData = z.infer<typeof displayNameFormSchema>;
 
 const phoneFormSchema = z.object({
-  // Basic validation, can be enhanced (e.g., with a library like libphonenumber-js for stricter E.164 format)
   phoneNumber: z.string().min(10, "Phone number seems too short").max(15, "Phone number seems too long").regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number format (e.g., +12223334444)"),
 });
 type PhoneFormData = z.infer<typeof phoneFormSchema>;
@@ -99,8 +98,8 @@ export default function ProfilePage() {
 
   if (authLoading || (currentUser && isLoadingPhoneNumber)) {
     return (
-      <div className="flex justify-center items-center min-h-[300px]">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      <div className="flex justify-center items-center min-h-[300px] p-4">
+        <Loader2 className="h-10 w-10 sm:h-12 sm:w-12 animate-spin text-primary" />
       </div>
     );
   }
@@ -108,42 +107,42 @@ export default function ProfilePage() {
   if (!currentUser) {
     return (
       <Card>
-        <CardHeader><CardTitle>Profile Not Available</CardTitle></CardHeader>
-        <CardContent><p>Please log in to view your profile.</p></CardContent>
+        <CardHeader className="p-4 sm:p-6"><CardTitle className="text-lg sm:text-xl">Profile Not Available</CardTitle></CardHeader>
+        <CardContent className="p-4 sm:p-6"><p className="text-sm">Please log in to view your profile.</p></CardContent>
       </Card>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8">
+    <div className="max-w-2xl mx-auto space-y-6 sm:space-y-8">
       <Card>
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <UserCircle className="w-10 h-10 text-primary" />
+        <CardHeader className="p-4 sm:p-6">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <UserCircle className="w-8 h-8 sm:w-10 sm:h-10 text-primary" />
             <div>
-              <CardTitle className="font-headline text-2xl">Your Profile</CardTitle>
-              <CardDescription>Manage your account settings and personal information.</CardDescription>
+              <CardTitle className="font-headline text-xl sm:text-2xl">Your Profile</CardTitle>
+              <CardDescription className="text-sm">Manage your account settings.</CardDescription>
             </div>
           </div>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-5 sm:space-y-6 p-4 sm:p-6">
           <div>
-            <Label htmlFor="email" className="flex items-center text-sm font-medium text-muted-foreground">
-              <Mail className="w-4 h-4 mr-2" /> Email Address
+            <Label htmlFor="email" className="flex items-center text-xs sm:text-sm font-medium text-muted-foreground">
+              <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2" /> Email Address
             </Label>
-            <Input id="email" type="email" value={currentUser.email || "Not available"} readOnly disabled className="mt-1 bg-muted/50"/>
+            <Input id="email" type="email" value={currentUser.email || "Not available"} readOnly disabled className="mt-1 bg-muted/50 text-sm"/>
           </div>
 
           <Separator />
 
-          <form onSubmit={handleSubmitDisplayName(onDisplayNameSubmit)} className="space-y-4">
+          <form onSubmit={handleSubmitDisplayName(onDisplayNameSubmit)} className="space-y-3 sm:space-y-4">
             <div>
-              <Label htmlFor="displayName" className="text-base font-semibold">Display Name</Label>
+              <Label htmlFor="displayName" className="text-sm sm:text-base font-semibold">Display Name</Label>
               <p className="text-xs text-muted-foreground mb-1">This name is displayed in the application.</p>
-              <Input id="displayName" placeholder="Enter your display name" {...registerDisplayName("displayName")} />
-              {displayNameErrors.displayName && <p className="text-sm text-destructive mt-1">{displayNameErrors.displayName.message}</p>}
+              <Input id="displayName" placeholder="Enter your display name" {...registerDisplayName("displayName")} className="text-sm"/>
+              {displayNameErrors.displayName && <p className="text-xs text-destructive mt-1">{displayNameErrors.displayName.message}</p>}
             </div>
-            <Button type="submit" disabled={isUpdatingName} className="w-full sm:w-auto">
+            <Button type="submit" disabled={isUpdatingName} className="w-full sm:w-auto text-sm py-2">
               {isUpdatingName ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               {isUpdatingName ? "Saving..." : "Save Display Name"}
             </Button>
@@ -151,22 +150,23 @@ export default function ProfilePage() {
 
           <Separator />
 
-          <form onSubmit={handleSubmitPhone(onPhoneSubmit)} className="space-y-4">
+          <form onSubmit={handleSubmitPhone(onPhoneSubmit)} className="space-y-3 sm:space-y-4">
             <div>
-              <Label htmlFor="phoneNumber" className="text-base font-semibold flex items-center">
-                <Phone className="w-4 h-4 mr-2"/> Phone Number
+              <Label htmlFor="phoneNumber" className="text-sm sm:text-base font-semibold flex items-center">
+                <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2"/> Phone Number
               </Label>
-              <p className="text-xs text-muted-foreground mb-1">Provide your phone number (e.g., for account recovery or notifications in the future).</p>
+              <p className="text-xs text-muted-foreground mb-1">Optional: for account recovery or notifications.</p>
               <Input
                 id="phoneNumber"
                 type="tel"
                 placeholder="e.g., +11234567890"
                 {...registerPhone("phoneNumber")}
                 defaultValue={currentPhoneNumber || ""}
+                className="text-sm"
               />
-              {phoneErrors.phoneNumber && <p className="text-sm text-destructive mt-1">{phoneErrors.phoneNumber.message}</p>}
+              {phoneErrors.phoneNumber && <p className="text-xs text-destructive mt-1">{phoneErrors.phoneNumber.message}</p>}
             </div>
-            <Button type="submit" disabled={isUpdatingPhone} className="w-full sm:w-auto">
+            <Button type="submit" disabled={isUpdatingPhone} className="w-full sm:w-auto text-sm py-2">
               {isUpdatingPhone ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               {isUpdatingPhone ? "Saving..." : "Save Phone Number"}
             </Button>
@@ -175,18 +175,18 @@ export default function ProfilePage() {
           <Separator />
 
           <div>
-            <h3 className="text-base font-semibold flex items-center">
-              <ShieldCheck className="w-5 h-5 mr-2 text-primary"/> Security
+            <h3 className="text-sm sm:text-base font-semibold flex items-center">
+              <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary"/> Security
             </h3>
             <p className="text-xs text-muted-foreground mb-2">Manage your account security settings.</p>
-            <Button variant="outline" onClick={handleSendPasswordReset} disabled={isSendingResetEmail} className="w-full sm:w-auto">
+            <Button variant="outline" onClick={handleSendPasswordReset} disabled={isSendingResetEmail} className="w-full sm:w-auto text-sm py-2">
               {isSendingResetEmail ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               {isSendingResetEmail ? "Sending..." : "Send Password Reset Email"}
             </Button>
-            <p className="text-xs text-muted-foreground mt-1">A link to reset your password will be sent to your registered email address.</p>
+            <p className="text-xs text-muted-foreground mt-1">A link to reset your password will be sent to your email.</p>
           </div>
         </CardContent>
-        <CardFooter>
+        <CardFooter className="p-4 sm:p-6">
           <p className="text-xs text-muted-foreground">
             User since: {currentUser.metadata.creationTime ? new Date(currentUser.metadata.creationTime).toLocaleDateString() : 'N/A'}
           </p>
@@ -195,3 +195,5 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+    
