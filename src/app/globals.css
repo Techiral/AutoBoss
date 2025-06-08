@@ -81,7 +81,7 @@
     --accent-gradient: linear-gradient(to right, hsl(var(--electric-teal)), hsl(var(--neon-lime)));
 
     --accent: var(--electric-teal);
-    --accent-foreground: 220 17% 8%; 
+    --accent-foreground: 220 17% 8%; /* Dark text for light accent bg in dark mode */
 
     --destructive: 0 62% 50%; 
     --destructive-foreground: 0 0% 98%;
@@ -121,14 +121,16 @@
     @apply font-headline text-foreground;
   }
   /* Specific font sizes for hierarchy */
-  h1 { @apply text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight; } /* Hero headline: tightened tracking */
-  h2 { @apply text-3xl sm:text-4xl font-bold tracking-tight; } /* Section titles */
-  h3 { @apply text-xl sm:text-2xl font-semibold; } /* Feature titles, sub-section titles */
+  h1 { @apply text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight; } 
+  h2 { @apply text-3xl sm:text-4xl font-bold tracking-tight; } 
+  h3 { @apply text-xl sm:text-2xl font-semibold; }
 
   .scroll-reveal {
     opacity: 0;
-    transform: translateY(20px); /* Start slightly lower */
-    transition: opacity 0.8s cubic-bezier(0.645, 0.045, 0.355, 1), transform 0.8s cubic-bezier(0.645, 0.045, 0.355, 1); /* Slower, smoother transition */
+    transform: translateY(20px);
+    transition-property: opacity, transform;
+    transition-duration: 0.8s; /* Slower, smoother transition duration */
+    transition-timing-function: cubic-bezier(0.645, 0.045, 0.355, 1);
   }
   .scroll-reveal.visible {
     opacity: 1;
@@ -145,14 +147,15 @@
   margin: 0 auto;
   letter-spacing: .03em; 
   animation: 
-    typing 3.5s steps(35, end) forwards,
+    typing 3.5s steps(40, end) forwards, /* Adjusted steps */
     blink-caret .75s step-end infinite;
   animation-delay: 0.2s; 
+  width: 0; /* Start with width 0 for re-trigger */
 }
-.typewriter-text-restart.typewriter-text {
-  animation: none; 
-  width: 0; 
-  border-right-color: transparent; 
+
+/* This class will be toggled by JS to restart animation */
+.typewriter-text-active {
+  width: 100%; /* Ensure it fills after animation */
 }
 
 
@@ -201,15 +204,15 @@
 @keyframes pulse-cta {
   0%, 100% {
     transform: scale(1);
-    box-shadow: 0 0 0 0 hsla(var(--electric-teal), 0.5);
+    box-shadow: 0 0 0 0 hsla(var(--electric-teal), 0.4); /* Slightly less transparent shadow */
   }
   50% {
     transform: scale(1.03); 
-    box-shadow: 0 0 0 8px hsla(var(--electric-teal), 0);
+    box-shadow: 0 0 0 10px hsla(var(--electric-teal), 0); /* Wider transparent part */
   }
 }
 .pulse-cta-btn {
-  animation: pulse-cta 2.5s infinite;
+  animation: pulse-cta 3s infinite ease-in-out; /* Slower, smoother pulse */
 }
 
 /* Sticky Header */
@@ -242,28 +245,28 @@
     @apply hover:shadow-2xl hover:border-primary/50 hover:scale-[1.02]; 
 }
 .simple-feature-card-icon {
-    @apply p-3 rounded-lg bg-primary/10 text-primary mb-3 inline-block; /* Adjusted margin */
+    @apply p-3 rounded-lg bg-primary/10 text-primary mb-2 inline-block; 
 }
 .simple-feature-card-title {
-    @apply font-headline text-xl font-bold text-foreground mb-2; /* Adjusted font size for better balance */
+    @apply font-headline text-lg font-bold text-foreground mb-1; /* Slightly smaller title for card */
     @apply relative pt-2; 
 }
 .simple-feature-card-title::before {
     content: '';
-    @apply absolute top-0 left-0 h-1 w-10 rounded-full bg-gradient-to-r from-electric-teal to-neon-lime; /* Slightly shorter line */
+    @apply absolute top-0 left-0 h-0.5 w-8 rounded-full bg-gradient-to-r from-electric-teal to-neon-lime; /* Shorter line for smaller title */
 }
 
 .simple-feature-card-description {
-    @apply text-muted-foreground text-sm leading-relaxed; /* Adjusted font size for readability */
+    @apply text-muted-foreground text-sm leading-relaxed; 
 }
 .simple-feature-card-case-study {
-    @apply mt-3 pt-3 border-t border-border/30 text-sm; 
+    @apply mt-2 pt-2 border-t border-border/30 text-xs; /* Smaller font for case study */
 }
 .simple-feature-card-quote {
      @apply italic text-muted-foreground/90; 
 }
 .simple-feature-card-metric {
-    @apply font-semibold text-primary mt-1;
+    @apply font-semibold text-primary mt-0.5;
 }
 
 
@@ -284,7 +287,7 @@
   @apply absolute inset-0 flex flex-col items-center justify-center text-center text-foreground/80 bg-black/50 p-4; 
 }
 .video-placeholder-text svg {
- @apply w-16 h-16 opacity-70 mb-4 text-primary; 
+ @apply w-12 h-12 opacity-70 mb-2 text-primary; /* Smaller icon, less margin */
 }
 
 /* Ensure placeholder images show their data-ai-hint clearly but are not obtrusive */
@@ -293,20 +296,29 @@ div[data-ai-hint] {
     align-items: center;
     justify-content: center;
     font-size: 0.7rem; /* Smaller text */
-    color: hsl(var(--muted-foreground)/0.7);
-    background-color: hsl(var(--muted)/0.5);
-    border: 1px dashed hsl(var(--border)/0.5);
-    min-height: 4rem; /* Reduced min-height */
+    color: hsl(var(--muted-foreground)/0.6); /* More muted */
+    background-color: hsl(var(--muted)/0.3); /* More transparent */
+    border: 1px dashed hsl(var(--border)/0.3); /* More transparent */
+    min-height: 3rem; /* Reduced min-height further */
     text-align: center;
-    padding: 0.25rem; /* Reduced padding */
+    padding: 0.2rem; /* Reduced padding further */
     border-radius: var(--radius);
 }
 
-/* Enhanced button active states */
-.button-active-feedback {
-  @apply active:scale-95 active:brightness-90 transition-transform duration-100 ease-out;
+/* Enhanced button active states & general transitions */
+.button-active-feedback, .btn-interactive {
+  @apply active:scale-95 active:brightness-90 transition-all duration-200 ease-out; /* Added transition-all */
 }
-.btn-interactive {
-  @apply button-active-feedback;
+
+/* Ensure outline button hover text has good contrast */
+.btn-outline-themed:hover {
+    @apply bg-accent text-accent-foreground;
 }
+.dark .btn-outline-themed:hover {
+    @apply text-[hsl(var(--accent-foreground))]; /* Explicitly use dark theme accent foreground */
+}
+.light .btn-outline-themed:hover {
+    @apply text-[hsl(var(--accent-foreground))]; /* Explicitly use light theme accent foreground */
+}
+
 
