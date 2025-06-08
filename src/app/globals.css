@@ -26,7 +26,6 @@
     
     --electric-teal: 175 80% 45%;
     --neon-lime: 90 85% 55%;
-    --accent-gradient: linear-gradient(to right, hsl(var(--electric-teal)), hsl(var(--neon-lime)));
 
     --accent: var(--electric-teal); /* Default accent to teal for single color use */
     --accent-foreground: 0 0% 100%; /* White */
@@ -58,30 +57,29 @@
 
   .dark {
     /* Dark Theme (Primary) */
-    --background: 224 24% 10%; /* Slightly bluer very dark gray */
-    --foreground: 210 25% 96%; /* Off-white */
+    --background: 224 24% 10%; 
+    --foreground: 210 25% 96%; 
 
-    --card: 223 20% 14%; /* Darker card */
+    --card: 223 20% 14%; 
     --card-foreground: 210 25% 96%;
 
     --popover: 223 20% 14%;
     --popover-foreground: 210 25% 96%;
 
-    --primary: 217 91% 60%; /* Kept vibrant blue */
+    --primary: 217 91% 60%; 
     --primary-foreground: 210 100% 98%;
 
-    --secondary: 220 15% 22%; /* Medium-dark gray */
+    --secondary: 220 15% 22%; 
     --secondary-foreground: 210 20% 85%;
 
-    --muted: 220 15% 18%; /* Darker muted gray */
-    --muted-foreground: 210 15% 60%; /* Lighter muted text */
+    --muted: 220 15% 18%; 
+    --muted-foreground: 210 15% 60%; 
 
     --electric-teal: 175 80% 50%; 
     --neon-lime: 90 85% 60%;  
-    --accent-gradient: linear-gradient(to right, hsl(var(--electric-teal)), hsl(var(--neon-lime)));
 
     --accent: var(--electric-teal);
-    --accent-foreground: 220 17% 8%; /* Dark text for light accent bg in dark mode */
+    --accent-foreground: 220 17% 8%; 
 
     --destructive: 0 62% 50%; 
     --destructive-foreground: 0 0% 98%;
@@ -117,20 +115,18 @@
     -webkit-font-smoothing: antialiased; 
     -moz-osx-font-smoothing: grayscale; 
   }
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-headline text-foreground;
-  }
-  /* Specific font sizes for hierarchy */
-  h1 { @apply text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight; } 
-  h2 { @apply text-3xl sm:text-4xl font-bold tracking-tight; } 
-  h3 { @apply text-xl sm:text-2xl font-semibold; }
+  
+  h1 { @apply text-3xl sm:text-4xl font-bold tracking-tight font-headline; }
+  h2 { @apply text-2xl sm:text-3xl font-bold tracking-tight font-headline; }
+  h3 { @apply text-xl sm:text-2xl font-semibold font-headline; }
+
 
   .scroll-reveal {
     opacity: 0;
     transform: translateY(20px);
     transition-property: opacity, transform;
-    transition-duration: 0.8s; /* Slower, smoother transition duration */
-    transition-timing-function: cubic-bezier(0.645, 0.045, 0.355, 1);
+    transition-duration: 0.8s; 
+    transition-timing-function: cubic-bezier(0.645, 0.045, 0.355, 1); 
   }
   .scroll-reveal.visible {
     opacity: 1;
@@ -147,20 +143,21 @@
   margin: 0 auto;
   letter-spacing: .03em; 
   animation: 
-    typing 3.5s steps(40, end) forwards, /* Adjusted steps */
+    typing 1.5s steps(30, end) forwards,
     blink-caret .75s step-end infinite;
   animation-delay: 0.2s; 
-  width: 0; /* Start with width 0 for re-trigger */
+  width: 0%; 
 }
 
-/* This class will be toggled by JS to restart animation */
-.typewriter-text-active {
-  width: 100%; /* Ensure it fills after animation */
+.typewriter-text.finished-typing {
+  border-right-color: hsl(var(--electric-teal)); /* Keep cursor blinking */
+  animation: blink-caret .75s step-end infinite;
+  animation-delay: 5s; /* Start blinking cursor after text is visible and a delay */
 }
 
 
 @keyframes typing {
-  from { width: 0 }
+  from { width: 0% }
   to { width: 100% }
 }
 
@@ -178,7 +175,7 @@
 .marquee-content {
   display: inline-block;
   padding-left: 100%; 
-  animation: marquee 40s linear infinite; 
+  animation: marquee 30s linear infinite; 
 }
 .marquee-content:hover {
   animation-play-state: paused;
@@ -193,34 +190,34 @@
   @apply bg-background text-foreground;
 }
 .section-light-accent {
-  @apply bg-card text-card-foreground; 
+  @apply bg-card/30 dark:bg-card/50 text-card-foreground; 
 }
 .section-cta-final { 
-  @apply bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 text-foreground; 
+  @apply bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 text-foreground dark:from-slate-800 dark:via-gray-900 dark:to-slate-900;
 }
 
-
-/* CTA Button Pulse */
-@keyframes pulse-cta {
+/* CTA Button Pulse - Slow and Smooth */
+@keyframes pulse-cta-slow {
   0%, 100% {
     transform: scale(1);
-    box-shadow: 0 0 0 0 hsla(var(--electric-teal), 0.4); /* Slightly less transparent shadow */
+    box-shadow: 0 0 0 0 hsla(var(--electric-teal), 0.3);
   }
   50% {
-    transform: scale(1.03); 
-    box-shadow: 0 0 0 10px hsla(var(--electric-teal), 0); /* Wider transparent part */
+    transform: scale(1.05);
+    box-shadow: 0 0 0 8px hsla(var(--electric-teal), 0);
   }
 }
 .pulse-cta-btn {
-  animation: pulse-cta 3s infinite ease-in-out; /* Slower, smoother pulse */
+  animation: pulse-cta-slow 2.4s ease-in-out infinite;
 }
+
 
 /* Sticky Header */
 .sticky-header {
     @apply sticky top-0 z-50 transition-all duration-300 ease-in-out;
 }
 .sticky-header-scrolled {
-    @apply bg-background/90 backdrop-blur-md shadow-lg;
+    @apply bg-background/95 backdrop-blur-sm shadow-lg; 
 }
 
 /* Gradient Text Helpers */
@@ -234,36 +231,33 @@
 .gradient-text-on-light { 
      @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-electric-teal to-neon-lime;
 }
-.light .gradient-text-on-light {
-     @apply bg-gradient-to-r from-[hsl(var(--primary))] via-[hsl(var(--electric-teal))] to-[hsl(var(--neon-lime))];
-}
 
 
 /* Styles for simple feature card presentation */
 .simple-feature-card {
-    @apply bg-card/70 p-6 rounded-xl border border-border/50 shadow-lg text-left transition-all duration-300 ease-out;
+    @apply bg-card/70 dark:bg-card/50 p-5 rounded-xl border border-border/30 shadow-lg text-left transition-all duration-300 ease-out;
     @apply hover:shadow-2xl hover:border-primary/50 hover:scale-[1.02]; 
 }
 .simple-feature-card-icon {
-    @apply p-3 rounded-lg bg-primary/10 text-primary mb-2 inline-block; 
+    @apply p-2 rounded-lg bg-primary/10 text-primary mb-1 inline-block;
 }
 .simple-feature-card-title {
-    @apply font-headline text-lg font-bold text-foreground mb-1; /* Slightly smaller title for card */
-    @apply relative pt-2; 
+    @apply font-headline text-base font-bold text-foreground mb-0.5;
+    @apply relative pt-1; 
 }
 .simple-feature-card-title::before {
     content: '';
-    @apply absolute top-0 left-0 h-0.5 w-8 rounded-full bg-gradient-to-r from-electric-teal to-neon-lime; /* Shorter line for smaller title */
+    @apply absolute top-0 left-0 h-[3px] w-5 rounded-full bg-gradient-to-r from-electric-teal to-neon-lime;
 }
 
 .simple-feature-card-description {
-    @apply text-muted-foreground text-sm leading-relaxed; 
+    @apply text-muted-foreground text-xs leading-relaxed;
 }
 .simple-feature-card-case-study {
-    @apply mt-2 pt-2 border-t border-border/30 text-xs; /* Smaller font for case study */
+    @apply mt-1 pt-1 border-t border-border/20 text-xs; 
 }
 .simple-feature-card-quote {
-     @apply italic text-muted-foreground/90; 
+     @apply italic text-muted-foreground/80; 
 }
 .simple-feature-card-metric {
     @apply font-semibold text-primary mt-0.5;
@@ -275,6 +269,7 @@
     transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
     opacity: 0;
     pointer-events: none;
+    @apply bg-card shadow-xl; 
 }
 #mobile-menu.translate-x-0 { 
     opacity: 1;
@@ -284,10 +279,10 @@
 
 /* Helper to ensure video placeholder text is visible */
 .video-placeholder-text {
-  @apply absolute inset-0 flex flex-col items-center justify-center text-center text-foreground/80 bg-black/50 p-4; 
+  @apply absolute inset-0 flex flex-col items-center justify-center text-center text-foreground/80 bg-black/50 p-2; 
 }
 .video-placeholder-text svg {
- @apply w-12 h-12 opacity-70 mb-2 text-primary; /* Smaller icon, less margin */
+ @apply w-10 h-10 opacity-60 mb-1 text-primary; 
 }
 
 /* Ensure placeholder images show their data-ai-hint clearly but are not obtrusive */
@@ -295,30 +290,41 @@ div[data-ai-hint] {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.7rem; /* Smaller text */
-    color: hsl(var(--muted-foreground)/0.6); /* More muted */
-    background-color: hsl(var(--muted)/0.3); /* More transparent */
-    border: 1px dashed hsl(var(--border)/0.3); /* More transparent */
-    min-height: 3rem; /* Reduced min-height further */
+    font-size: 0.75rem; 
+    color: hsl(var(--muted-foreground) / 0.6); 
+    background-color: hsl(var(--muted) / 0.3); 
+    border: 1px dashed hsl(var(--border) / 0.3); 
+    min-height: 3rem;
     text-align: center;
-    padding: 0.2rem; /* Reduced padding further */
+    padding: 0.25rem; 
     border-radius: var(--radius);
 }
 
 /* Enhanced button active states & general transitions */
 .button-active-feedback, .btn-interactive {
-  @apply active:scale-95 active:brightness-90 transition-all duration-200 ease-out; /* Added transition-all */
+  transition-property: background-color, border-color, color, transform, box-shadow, opacity;
+  @apply active:scale-95 active:brightness-90 duration-200 ease-out;
 }
 
 /* Ensure outline button hover text has good contrast */
+.btn-outline-themed {
+    @apply border-primary/60 text-primary; 
+}
 .btn-outline-themed:hover {
-    @apply bg-accent text-accent-foreground;
-}
-.dark .btn-outline-themed:hover {
-    @apply text-[hsl(var(--accent-foreground))]; /* Explicitly use dark theme accent foreground */
-}
-.light .btn-outline-themed:hover {
-    @apply text-[hsl(var(--accent-foreground))]; /* Explicitly use light theme accent foreground */
+    @apply bg-accent text-accent-foreground border-accent;
 }
 
+/* Make sure all buttons have transition for smooth hover/active states */
+.button, [type="button"], [type="reset"], [type="submit"], button, .btn {
+    @apply transition-all duration-200 ease-in-out;
+}
 
+/* Specific styling for h1, h2 for marketing page from feedback */
+.marketing-h1 {
+  @apply text-4xl sm:text-5xl font-bold tracking-tight leading-tight text-center; 
+  letter-spacing: -0.025em; 
+}
+.marketing-h2 {
+  @apply text-3xl sm:text-4xl font-bold tracking-tight text-center; 
+  letter-spacing: -0.02em;
+}
