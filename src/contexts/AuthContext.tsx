@@ -87,13 +87,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signOut,
   };
 
-  if (loading && typeof window !== 'undefined' && (window.location.pathname.startsWith('/dashboard') || window.location.pathname.startsWith('/agents') || window.location.pathname.startsWith('/settings') || window.location.pathname.startsWith('/support')) ) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <Loader2 className="h-16 w-16 animate-spin text-primary" />
-      </div>
-    );
-  }
-
+  // AuthProvider should always render its children.
+  // The AppLayout (or other consumers) will use the `loading` state
+  // from the context to decide whether to show a loading UI.
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
