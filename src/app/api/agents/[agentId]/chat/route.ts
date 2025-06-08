@@ -1,20 +1,28 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { autonomousReasoning, AutonomousReasoningInput } from '@/ai/flows/autonomous-reasoning';
-// import { executeAgentFlow, ExecuteAgentFlowInput } from '@/ai/flows/execute-agent-flow'; 
-// executeAgentFlow requires full agent definition (flow, knowledge) which is not available server-side without a DB.
+import { db } from '@/lib/firebase';
+import { doc, getDoc, Timestamp } from 'firebase/firestore';
+import type { Agent, KnowledgeItem } from '@/lib/types';
 
-// IMPORTANT: This API endpoint is ILLUSTRATIVE due to the lack of a backend database.
-// In a real application, you would:
-// 1. Secure this endpoint (e.g., with API keys or user authentication).
-// 2. Fetch the specific agent's definition (flow, knowledge items, personality) from a database
-//    using the `agentId` from the URL.
-// 3. Potentially manage conversation context/session state server-side or pass it back and forth.
+// Helper to convert Firestore Timestamps in agent data to ISO strings for consistency if needed by flows
+// For knowledgeItems, ensuring uploadedAt is string for the flow.
+const convertAgentForFlow = (agentData: any): Agent => {
+  const newAgent = { ...agentData };
+  if (newAgent.createdAt && newAgent.createdAt.toDate) {
+    newAgent.createdAt = newAgent.createdAt.toDate().toISOString();
+  }
+  if (newAgent.knowledgeItems) {
+    newAgent.knowledgeItems = newAgent.knowledgeItems.map((item: any) => {
+      if (item.uploadedAt && item.uploadedAt.toDate) {
+        return { ...item, uploadedAt: item.uploadedAt.toDate().toISOString() };
+      }
+      return item;
+    });
+  }
+  return newAgent as Agent;
+};
 
-// For this prototype, we'll use a simplified approach:
-// - It will primarily use `autonomousReasoning` as it's more self-contained.
-// - It will not be able to execute specific flows designed in the Studio for arbitrary agents.
-// - It will use a generic persona or a hardcoded one for demonstration.
 
 export async function POST(
   request: NextRequest,
@@ -25,32 +33,35 @@ export async function POST(
   try {
     const body = await request.json();
     const userInput = body.message;
-    // const conversationHistory = body.history || []; // If you want to pass history
+    const conversationHistoryString = body.history; // Assuming history is passed as a string "User: Hi\nAgent: Hello"
 
     if (!userInput) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
     }
 
-    // --- Placeholder for fetching agent data ---
-    // In a real app, you'd fetch agent data here:
-    // const agentData = await getAgentFromDatabase(agentId);
-    // if (!agentData) {
-    //   return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
-    // }
-    // const agentFlow = agentData.flow;
-    // const knowledgeItems = agentData.knowledgeItems;
-    // const agentPersona = agentData.generatedPersona || "a helpful AI assistant";
-    // -----------------------------------------
+    // Fetch agent definition from Firestore
+    const agentRef = doc(db, 'agents', agentId as string);
+    const agentSnap = await getDoc(agentRef);
 
-    // Simplified logic for this prototype:
-    // We'll use autonomousReasoning. A real implementation might choose based on agentData.
+    if (!agentSnap.exists()) {
+      return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
+    }
     
+    const agentDataFromDb = agentSnap.data();
+    const agent = convertAgentForFlow({ id: agentSnap.id, ...agentDataFromDb });
+
+    // For this API, we'll primarily use autonomousReasoning.
+    // A more advanced version could attempt to execute the agent's specific flow.
+    // For simplicity, the API provides a direct line to autonomous reasoning with the agent's knowledge.
+
+    const context = conversationHistoryString ? 
+      `${conversationHistoryString}\nUser: ${userInput}` : 
+      `User: ${userInput}`;
+      
     const reasoningInput: AutonomousReasoningInput = {
-      // For simplicity, we're not managing multi-turn context deeply here.
-      // A real app would build context from `conversationHistory` or a server-side session.
-      context: `User asked about agent ID: ${agentId}.`, 
+      context: context,
       userInput: userInput,
-      knowledgeItems: [], // Since we can't load dynamic knowledge here without a DB
+      knowledgeItems: agent.knowledgeItems || [],
     };
     
     const result = await autonomousReasoning(reasoningInput);
@@ -58,7 +69,7 @@ export async function POST(
     return NextResponse.json({ 
       reply: result.responseToUser,
       reasoning: result.reasoning,
-      // In a stateful conversation, you'd also return/manage context here
+      // agentPersona: agent.generatedPersona // Could be useful for client to know
     });
 
   } catch (error: any) {
@@ -66,5 +77,3 @@ export async function POST(
     return NextResponse.json({ error: error.message || 'Failed to process message' }, { status: 500 });
   }
 }
-    
-    

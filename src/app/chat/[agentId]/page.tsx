@@ -2,19 +2,37 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { ChatInterface } from "@/components/chat-interface";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import type { Agent } from "@/lib/types";
 import { Loader2, AlertTriangle } from "lucide-react";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Logo } from "@/components/logo";
+import { db } from '@/lib/firebase';
+import { doc, getDoc, Timestamp } from 'firebase/firestore';
 
-const LOCAL_STORAGE_AGENTS_KEY = 'agentVerseAgents';
+// Helper to convert Firestore Timestamps in agent data to ISO strings
+const convertTimestampsToISOForChat = (agentData: any): Agent => {
+  const newAgent = { ...agentData };
+  if (newAgent.createdAt && newAgent.createdAt.toDate) {
+    newAgent.createdAt = newAgent.createdAt.toDate().toISOString();
+  }
+  if (newAgent.knowledgeItems) {
+    newAgent.knowledgeItems = newAgent.knowledgeItems.map((item: any) => {
+      if (item.uploadedAt && item.uploadedAt.toDate) {
+        return { ...item, uploadedAt: item.uploadedAt.toDate().toISOString() };
+      }
+      return item;
+    });
+  }
+  return newAgent as Agent;
+};
+
 
 export default function PublicChatPage() {
   const params = useParams();
-  const [agent, setAgent] = useState<Agent | null | undefined>(undefined); // undefined for loading
+  const router = useRouter();
+  const [agent, setAgent] = useState<Agent | null | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,30 +40,36 @@ export default function PublicChatPage() {
 
   useEffect(() => {
     if (!agentId) {
-      setError("Agent ID is missing.");
+      setError("Agent ID is missing in the URL.");
       setIsLoading(false);
       return;
     }
 
-    try {
-      const storedAgentsString = localStorage.getItem(LOCAL_STORAGE_AGENTS_KEY);
-      if (storedAgentsString) {
-        const storedAgents: Agent[] = JSON.parse(storedAgentsString);
-        const foundAgent = storedAgents.find(a => a.id === agentId);
-        if (foundAgent) {
-          setAgent(foundAgent);
+    const fetchAgent = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const agentRef = doc(db, 'agents', agentId as string);
+        const agentSnap = await getDoc(agentRef);
+
+        if (agentSnap.exists()) {
+          const agentData = agentSnap.data();
+          // Convert Firestore Timestamps to ISO strings before setting state
+          setAgent(convertTimestampsToISOForChat({ id: agentSnap.id, ...agentData }));
         } else {
           setError(`Agent with ID "${agentId}" not found.`);
+          setAgent(null);
         }
-      } else {
-        setError("No agent data found. This chat may not work correctly outside of the main application.");
+      } catch (e: any) {
+        console.error("Error loading agent for public chat:", e);
+        setError(`Could not load agent data: ${e.message}`);
+        setAgent(null);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (e) {
-      console.error("Error loading agent for public chat:", e);
-      setError("Could not load agent data. The stored data might be corrupted.");
-    } finally {
-      setIsLoading(false);
-    }
+    };
+
+    fetchAgent();
   }, [agentId]);
 
   if (isLoading) {
@@ -68,12 +92,12 @@ export default function PublicChatPage() {
          <div className="mt-8">
             <Logo collapsed={false}/>
          </div>
+          <Button onClick={() => router.push('/dashboard')} className="mt-4">Go to Dashboard</Button>
       </div>
     );
   }
 
   if (!agent) {
-    // This case should ideally be caught by the error state from useEffect
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4">
          <Alert variant="destructive" className="max-w-md text-center">
@@ -84,6 +108,7 @@ export default function PublicChatPage() {
          <div className="mt-8">
             <Logo collapsed={false}/>
          </div>
+         <Button onClick={() => router.push('/dashboard')} className="mt-4">Go to Dashboard</Button>
       </div>
     );
   }
@@ -98,7 +123,7 @@ export default function PublicChatPage() {
            </div>
         </header>
         <main className="flex-1 p-2 sm:p-4 md:p-6 flex justify-center items-center">
-            <div className="w-full max-w-2xl h-[calc(100vh-150px)]"> {/* Adjust height as needed */}
+            <div className="w-full max-w-2xl h-[calc(100vh-150px)]">
                  <ChatInterface agent={agent} />
             </div>
         </main>
@@ -108,5 +133,3 @@ export default function PublicChatPage() {
     </div>
   );
 }
-    
-    

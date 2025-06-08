@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Settings as SettingsIcon, Trash2, Moon, Sun, InfoIcon } from "lucide-react";
+import { Settings as SettingsIcon, Trash2, Moon, Sun, InfoIcon, Loader2 } from "lucide-react";
 import { useAppContext } from "../layout";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -22,16 +22,15 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export default function SettingsPage() {
-  const { theme, toggleTheme, clearAllLocalData } = useAppContext();
+  const { theme, toggleTheme, clearAllFirebaseData, isLoadingAgents } = useAppContext();
   const { toast } = useToast();
   const [isClearDataDialogOpen, setIsClearDataDialogOpen] = useState(false);
+  const [isClearingData, setIsClearingData] = useState(false);
 
-  const handleClearData = () => {
-    clearAllLocalData();
-    toast({
-      title: "Data Cleared",
-      description: "All local agent data has been successfully cleared.",
-    });
+  const handleClearData = async () => {
+    setIsClearingData(true);
+    await clearAllFirebaseData(); // AppContext now handles toasting for success/failure
+    setIsClearingData(false);
     setIsClearDataDialogOpen(false);
   };
 
@@ -70,16 +69,17 @@ export default function SettingsPage() {
              <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                     <Label className="text-base font-medium">
-                        Manage Local Data
+                        Manage Firestore Data
                     </Label>
                     <p className="text-sm text-muted-foreground">
-                        Clear all agents and associated data stored in your browser.
+                        Clear all agents and associated data stored in Firestore.
                     </p>
                 </div>
                 <AlertDialog open={isClearDataDialogOpen} onOpenChange={setIsClearDataDialogOpen}>
                     <AlertDialogTrigger asChild>
-                        <Button variant="destructive" size="sm">
-                        <Trash2 className="mr-2 h-4 w-4" /> Clear All Agent Data
+                        <Button variant="destructive" size="sm" disabled={isLoadingAgents || isClearingData}>
+                          {isClearingData ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />} 
+                          {isClearingData ? "Clearing..." : "Clear All Agent Data"}
                         </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
@@ -87,13 +87,13 @@ export default function SettingsPage() {
                         <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                         <AlertDialogDescription>
                             This action cannot be undone. This will permanently delete all agent configurations,
-                            knowledge bases, and flow definitions stored in your browser.
+                            knowledge bases, and flow definitions stored in Firestore for this project.
                         </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleClearData} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
-                            Yes, delete all data
+                        <AlertDialogAction onClick={handleClearData} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground" disabled={isClearingData}>
+                            {isClearingData ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Yes, delete all data" }
                         </AlertDialogAction>
                         </AlertDialogFooter>
                     </AlertDialogContent>
@@ -104,8 +104,8 @@ export default function SettingsPage() {
           <div className="p-4 border rounded-lg bg-muted/30">
             <Label className="text-base font-medium block mb-1">Application Information</Label>
              <div className="text-sm text-muted-foreground space-y-1">
-                <p><InfoIcon className="inline h-4 w-4 mr-1" /><strong>Version:</strong> 1.0.0 (Prototype)</p>
-                <p><InfoIcon className="inline h-4 w-4 mr-1" /><strong>Data Storage:</strong> Browser Local Storage</p>
+                <p><InfoIcon className="inline h-4 w-4 mr-1" /><strong>Version:</strong> 1.1.0 (Firestore Integrated)</p>
+                <p><InfoIcon className="inline h-4 w-4 mr-1" /><strong>Data Storage:</strong> Firebase Firestore</p>
                 <p><InfoIcon className="inline h-4 w-4 mr-1" /><strong>AI Provider:</strong> Google Gemini via Genkit</p>
              </div>
           </div>

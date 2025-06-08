@@ -14,9 +14,9 @@ import { useToast } from "@/hooks/use-toast";
 import { createAgent, CreateAgentOutput } from "@/ai/flows/agent-creation";
 import { useRouter } from "next/navigation";
 import { useAppContext } from "../../layout"; 
-import type { Agent } from "@/lib/types";
+import type { Agent } from "@/lib/types"; // Omit type for addAgent call
 import { Loader2 } from "lucide-react";
-import { minimalInitialFlow } from "@/app/(app)/agents/[agentId]/studio/page"; // Import minimal flow
+// minimalInitialFlow is not directly needed here, AppContext handles it.
 
 const formSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
@@ -28,10 +28,10 @@ type FormData = z.infer<typeof formSchema>;
 
 export default function CreateAgentPage() {
   const [isLoading, setIsLoading] = useState(false);
-  const [generatedAgent, setGeneratedAgent] = useState<CreateAgentOutput | null>(null);
+  const [generatedAgentDetails, setGeneratedAgentDetails] = useState<CreateAgentOutput | null>(null);
   const { toast } = useToast();
   const router = useRouter();
-  const { addAgent } = useAppContext();
+  const { addAgent: addAgentToContext } = useAppContext(); // Renamed for clarity
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -39,32 +39,34 @@ export default function CreateAgentPage() {
 
   const onSubmit: SubmitHandler<FormData> = async (data) => {
     setIsLoading(true);
-    setGeneratedAgent(null);
+    setGeneratedAgentDetails(null);
     try {
       const agentDescription = `Name: ${data.name}\nRole: ${data.role}\nPersonality: ${data.personality}`;
-      const result = await createAgent({ agentDescription });
-      setGeneratedAgent(result);
+      const aiResult = await createAgent({ agentDescription });
+      setGeneratedAgentDetails(aiResult);
       
-      const newAgent: Agent = {
-        id: Date.now().toString(), 
+      // Prepare data for Firestore, AppContext will handle `id` and `createdAt`
+      const agentDataForContext: Omit<Agent, 'id' | 'createdAt' | 'knowledgeItems' | 'flow'> = {
         name: data.name, 
         description: `Role: ${data.role}. Personality: ${data.personality}.`, 
         role: data.role,
         personality: data.personality,
-        generatedName: result.agentName,
-        generatedPersona: result.agentPersona,
-        generatedGreeting: result.agentGreeting,
-        createdAt: new Date().toISOString(),
-        knowledgeItems: [], 
-        flow: minimalInitialFlow, // Assign minimal flow to new agents
+        generatedName: aiResult.agentName,
+        generatedPersona: aiResult.agentPersona,
+        generatedGreeting: aiResult.agentGreeting,
       };
-      addAgent(newAgent);
+      
+      const newAgent = await addAgentToContext(agentDataForContext);
 
-      toast({
-        title: "Agent Configured!",
-        description: `Agent "${result.agentName}" has been successfully configured. Redirecting to Studio...`,
-      });
-      router.push(`/agents/${newAgent.id}/studio`);
+      if (newAgent) {
+        toast({
+          title: "Agent Configured!",
+          description: `Agent "${aiResult.agentName}" saved to Firestore. Redirecting to Studio...`,
+        });
+        router.push(`/agents/${newAgent.id}/studio`);
+      } else {
+        // Error already toasted by AppContext
+      }
     } catch (error: any) {
       console.error("Error creating agent:", error);
       const errorMessage = error.message || "Failed to create agent. Please try again.";
@@ -86,7 +88,7 @@ export default function CreateAgentPage() {
           <CardDescription>
             Define the core characteristics of your new agent. The AI will help refine its persona.
             <br />
-            <span className="text-xs text-muted-foreground">Agent data is stored in your browser's local storage for this session.</span>
+            <span className="text-xs text-muted-foreground">Agent data will be stored in Firestore.</span>
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
@@ -116,7 +118,7 @@ export default function CreateAgentPage() {
         </form>
       </Card>
 
-      {generatedAgent && (
+      {generatedAgentDetails && (
         <Card className="mt-8">
           <CardHeader>
             <CardTitle className="font-headline">AI Generated Details</CardTitle>
@@ -124,15 +126,15 @@ export default function CreateAgentPage() {
           <CardContent className="space-y-4">
             <div>
               <Label>Generated Name</Label>
-              <p className="text-sm p-2 bg-muted rounded-md">{generatedAgent.agentName}</p>
+              <p className="text-sm p-2 bg-muted rounded-md">{generatedAgentDetails.agentName}</p>
             </div>
             <div>
               <Label>Generated Persona</Label>
-              <p className="text-sm p-2 bg-muted rounded-md whitespace-pre-wrap">{generatedAgent.agentPersona}</p>
+              <p className="text-sm p-2 bg-muted rounded-md whitespace-pre-wrap">{generatedAgentDetails.agentPersona}</p>
             </div>
             <div>
               <Label>Sample Greeting</Label>
-              <p className="text-sm p-2 bg-muted rounded-md">{generatedAgent.agentGreeting}</p>
+              <p className="text-sm p-2 bg-muted rounded-md">{generatedAgentDetails.agentGreeting}</p>
             </div>
           </CardContent>
         </Card>
@@ -140,5 +142,3 @@ export default function CreateAgentPage() {
     </div>
   );
 }
-    
-    
