@@ -29,6 +29,9 @@ export default function ExportAgentPage() {
     if (typeof window !== "undefined") {
       setBaseUrl(window.location.origin);
     }
+  }, []); // Empty dependency array: runs once on mount
+
+  useEffect(() => {
     if (agentId) {
       const foundAgent = getAgent(agentId as string);
       setAgent(foundAgent || null);
@@ -55,7 +58,7 @@ export default function ExportAgentPage() {
   height="500"
   frameborder="0"
   style="border: 1px solid #ccc; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);"
-  title="AgentVerse Chatbot: ${agent.generatedName || agent.name}"
+  title="AutoBoss Chatbot: ${agent.generatedName || agent.name}"
 ></iframe>
 ` : "";
 
@@ -92,7 +95,7 @@ export default function ExportAgentPage() {
               </Button>
             </div>
             <p className="text-xs text-muted-foreground mt-1">Share this link directly with users to chat with your agent.</p>
-             {!chatbotLink && <p className="text-xs text-destructive mt-1">Base URL not yet available. Try refreshing if this persists.</p>}
+             {!baseUrl && <p className="text-xs text-destructive mt-1">Base URL not yet available. This will populate on client-side.</p>}
           </div>
 
           <div>
@@ -103,8 +106,7 @@ export default function ExportAgentPage() {
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>Development API</AlertTitle>
                 <AlertDescription>
-                This API endpoint is illustrative and uses a simplified, non-persistent agent interaction model due to the lack of a backend database. It's not suitable for production use.
-                A production API would require secure agent data storage and retrieval, and authentication.
+                This API endpoint is illustrative and uses a simplified, non-persistent agent interaction model. It's not suitable for production use without secure agent data storage, retrieval, and authentication.
                 </AlertDescription>
             </Alert>
             <div className="flex items-center gap-2">
@@ -114,7 +116,7 @@ export default function ExportAgentPage() {
               </Button>
             </div>
             <p className="text-xs text-muted-foreground mt-1">Use this API endpoint to integrate with external systems. (POST: {`{"message": "your message"}`})</p>
-             {!apiEndpoint && <p className="text-xs text-destructive mt-1">Base URL not yet available. Try refreshing if this persists.</p>}
+             {!baseUrl && <p className="text-xs text-destructive mt-1">Base URL not yet available. This will populate on client-side.</p>}
           </div>
           
           <div>

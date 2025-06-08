@@ -17,8 +17,11 @@ export function AgentCard({ agent, onDelete }: AgentCardProps) {
   const [formattedDate, setFormattedDate] = useState('');
 
   useEffect(() => {
+    // This effect runs only on the client, after initial hydration
     if (agent.createdAt) {
-      setFormattedDate(new Date(agent.createdAt).toLocaleDateString());
+      // Ensure createdAt is a string (ISO format) before creating a new Date object
+      const dateToFormat = typeof agent.createdAt === 'string' ? new Date(agent.createdAt) : agent.createdAt.toDate();
+      setFormattedDate(dateToFormat.toLocaleDateString());
     }
   }, [agent.createdAt]);
 
@@ -37,6 +40,7 @@ export function AgentCard({ agent, onDelete }: AgentCardProps) {
             Created: {formattedDate}
           </p>
         ) : (
+          // Render a placeholder or nothing during SSR / before client-side effect runs
           <p className="text-xs text-muted-foreground">Loading date...</p>
         )}
       </CardContent>

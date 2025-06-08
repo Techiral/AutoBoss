@@ -36,8 +36,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 
 
-const LOCAL_STORAGE_THEME_KEY = 'autoBossTheme'; // Updated theme key
-const AGENTS_COLLECTION = 'agents'; // Top-level collection for agents
+const LOCAL_STORAGE_THEME_KEY = 'autoBossTheme';
 
 type Theme = 'dark' | 'light';
 
@@ -86,35 +85,26 @@ const convertTimestampsToISO = (agent: any): Agent => {
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [agents, setAgents] = useState<Agent[]>([]);
-  const [theme, setTheme] = useState<Theme>('dark');
-  const [isContextInitialized, setIsContextInitialized] = useState(false);
+  const [theme, setTheme] = useState<Theme>('dark'); // Default theme
+  const [isContextInitialized, setIsContextInitialized] = useState(false); // Tracks if initial client-side setup is done
   const [isLoadingAgents, setIsLoadingAgents] = useState(true);
   const { toast } = useToast();
 
-  // Load theme from localStorage
+  // Effect for client-side theme initialization and updates
   useEffect(() => {
     const storedTheme = localStorage.getItem(LOCAL_STORAGE_THEME_KEY) as Theme | null;
     if (storedTheme && (storedTheme === 'light' || storedTheme === 'dark')) {
       setTheme(storedTheme);
     }
-    if (storedTheme === 'dark') {
-        document.documentElement.classList.add('dark');
-    } else {
-        document.documentElement.classList.remove('dark');
+    // This ensures document.documentElement.classList is only manipulated on client
+    if (typeof window !== 'undefined') {
+        if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
     }
-  }, []);
-
-  // Save theme to localStorage and apply to HTML tag
-  useEffect(() => {
-    if (isContextInitialized) { // Only run after initial theme load
-      localStorage.setItem(LOCAL_STORAGE_THEME_KEY, theme);
-      if (theme === 'dark') {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-    }
-  }, [theme, isContextInitialized]);
+  }, [theme]); // Rerun when theme state changes
 
   // Fetch agents from Firestore on initial load
   useEffect(() => {
@@ -142,18 +132,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const addAgent = useCallback(async (agentData: Omit<Agent, 'id' | 'createdAt' | 'knowledgeItems' | 'flow'>): Promise<Agent | null> => {
     try {
-      const newAgentId = doc(collection(db, AGENTS_COLLECTION)).id; // Generate ID client-side for immediate use
+      const newAgentId = doc(collection(db, AGENTS_COLLECTION)).id; 
       const newAgent: Agent = {
         ...agentData,
         id: newAgentId,
-        createdAt: Timestamp.now(), // Use Firestore Timestamp
+        createdAt: Timestamp.now(), 
         knowledgeItems: [],
         flow: minimalInitialFlow,
       };
       
       await setDoc(doc(db, AGENTS_COLLECTION, newAgent.id), {
-        ...agentData, // exclude id from data being set
-        createdAt: newAgent.createdAt, // ensure it's the Timestamp object
+        ...agentData, 
+        createdAt: newAgent.createdAt, 
         knowledgeItems: newAgent.knowledgeItems,
         flow: newAgent.flow
       });
@@ -171,9 +161,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const updateAgent = useCallback(async (updatedAgent: Agent) => {
     try {
       const agentRef = doc(db, AGENTS_COLLECTION, updatedAgent.id);
-      // Ensure createdAt and uploadedAt are converted back to Timestamps if they are strings
       const dataToUpdate: any = { ...updatedAgent };
-      delete dataToUpdate.id; // Don't store id in the document data itself
+      delete dataToUpdate.id; 
 
       if (typeof dataToUpdate.createdAt === 'string') {
         dataToUpdate.createdAt = Timestamp.fromDate(new Date(dataToUpdate.createdAt));
@@ -187,7 +176,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         });
       }
 
-      await setDoc(agentRef, dataToUpdate, { merge: true }); // Use setDoc with merge for full update semantics
+      await setDoc(agentRef, dataToUpdate, { merge: true }); 
       
       setAgents((prevAgents) =>
         prevAgents.map((agent) =>
@@ -213,7 +202,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     try {
       const agentRef = doc(db, AGENTS_COLLECTION, agentId);
       
-      // Prepare knowledge items for Firestore, ensuring timestamps
       const existingKnowledgeItemsFirestore = (agent.knowledgeItems || []).map(ki => ({
         ...ki, 
         uploadedAt: typeof ki.uploadedAt === 'string' ? Timestamp.fromDate(new Date(ki.uploadedAt)) : ki.uploadedAt,
@@ -228,11 +216,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         knowledgeItems: [...existingKnowledgeItemsFirestore, newKnowledgeItemFirestore]
       });
       
-      // Update local state with string timestamps for consistency
       setAgents(prevAgents =>
         prevAgents.map(a => {
           if (a.id === agentId) {
-            const updatedKnowledgeItems = [...(a.knowledgeItems || []), item]; // item already has string date for state
+            const updatedKnowledgeItems = [...(a.knowledgeItems || []), item]; 
             return { ...a, knowledgeItems: updatedKnowledgeItems };
           }
           return a;
@@ -281,7 +268,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [toast]);
 
   const toggleTheme = useCallback(() => {
-    setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
+    setTheme(prevTheme => {
+        const newTheme = prevTheme === 'light' ? 'dark' : 'light';
+        localStorage.setItem(LOCAL_STORAGE_THEME_KEY, newTheme);
+        if (typeof window !== 'undefined') { // Ensure this only runs on client
+            if (newTheme === 'dark') {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        }
+        return newTheme;
+    });
   }, []);
 
   const clearAllFirebaseData = useCallback(async () => {
@@ -305,7 +303,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [toast]);
 
 
-  if (!isContextInitialized && isLoadingAgents) { // Show loader until initial fetch is done
+  if (!isContextInitialized && isLoadingAgents) { 
     return (
         <div className="flex items-center justify-center min-h-screen bg-background">
             <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -334,7 +332,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <AppHeader />
           <SidebarInset>
             <main className="flex-1 p-4 sm:p-6 lg:p-8 bg-background text-foreground">
-              {isLoadingAgents && !isContextInitialized ? ( // Still show loader if initial load isn't complete even if context thinks it's init
+              {isLoadingAgents && !isContextInitialized ? ( 
                  <div className="flex items-center justify-center h-full">
                     <Loader2 className="h-12 w-12 animate-spin text-primary" />
                  </div>
@@ -363,8 +361,9 @@ function AppHeader() {
 
 function AppSidebar() {
   const pathname = usePathname();
-  const { theme } = useAppContext();
-  const collapsed = false; // Sidebar state is now primarily managed by SidebarProvider, keeping this simple
+  // theme is managed by AppContext, no need to access directly here for 'collapsed' logic
+  const { state: sidebarState } = useSidebar(); // Use useSidebar hook
+  const collapsed = sidebarState === 'collapsed';
   
   const agentIdMatch = pathname.match(/^\/agents\/([a-zA-Z0-9_-]+)/);
   const currentAgentId = agentIdMatch ? agentIdMatch[1] : null;
