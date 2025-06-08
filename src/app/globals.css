@@ -121,13 +121,13 @@
     letter-spacing: -0.03em;
   }
   .marketing-h2 {
-     @apply text-2xl sm:text-3xl font-bold tracking-tight text-center mb-2 md:mb-3; /* Shortened titles, slightly smaller */
+     @apply text-3xl sm:text-4xl font-bold tracking-tight text-center mb-3 md:mb-4;
     letter-spacing: -0.02em;
   }
   h3 { @apply text-lg sm:text-xl font-semibold font-headline; }
 
   .section-description {
-      @apply text-muted-foreground text-xs md:text-sm max-w-lg mx-auto mb-5 md:mb-6 lg:mb-8 text-center; /* Shorter, more concise */
+      @apply text-muted-foreground text-sm md:text-base max-w-lg mx-auto mb-6 md:mb-8 text-center;
   }
 
 
@@ -169,27 +169,6 @@
   width: 0%;
 }
 
-
-/* Marquee Animation */
-.marquee {
-  overflow: hidden;
-  position: relative;
-  width: 100%;
-}
-.marquee-content {
-  display: flex;
-  flex-wrap: nowrap; /* Ensure logos stay in a single line */
-  width: max-content; /* Force width to be sum of children for accurate animation */
-  animation: marquee 30s linear infinite;
-}
-.marquee-content:hover {
-  animation-play-state: paused;
-}
-/* Individual logo items (div wrappers) already have flex-shrink: 0 in client component */
-@keyframes marquee {
-  0%   { transform: translateX(0); }
-  100% { transform: translateX(-50%); } /* Scrolls one full set of duplicated logos */
-}
 
 /* Section specific alternating background styles */
 .section-dark {
@@ -241,7 +220,7 @@
 }
 
 .simple-feature-card-description {
-    @apply text-muted-foreground text-xs leading-relaxed; /* Kept concise */
+    @apply text-muted-foreground text-xs leading-relaxed;
 }
 .simple-feature-card-case-study {
     @apply mt-2 pt-2 border-t border-border/20 text-xs;
@@ -284,9 +263,9 @@ div[data-ai-hint] {
     color: hsl(var(--muted-foreground) / 0.5);
     background-color: hsl(var(--muted) / 0.2);
     border: 1px dashed hsl(var(--border) / 0.2);
-    min-height: 2.5rem; /* Reduced min-height */
+    min-height: 2.5rem;
     text-align: center;
-    padding: 0.2rem; /* Reduced padding */
+    padding: 0.2rem;
     border-radius: calc(var(--radius) - 2px);
 }
 
