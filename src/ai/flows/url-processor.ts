@@ -13,7 +13,12 @@ import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import axios from 'axios';
 import { convert } from 'html-to-text';
-import { extractKnowledge, KnowledgeExtractionOutputSchema, KnowledgeExtractionInput } from './knowledge-extraction';
+import { extractKnowledge } from './knowledge-extraction';
+import { 
+  KnowledgeExtractionOutputSchema, 
+  type KnowledgeExtractionInput,
+  type KnowledgeExtractionOutput // Import the type as well for ProcessUrlOutput
+} from '@/lib/types'; // Updated import path
 
 const ProcessUrlInputSchema = z.object({
   url: z.string().url().describe('The URL to process.'),
@@ -21,7 +26,7 @@ const ProcessUrlInputSchema = z.object({
 export type ProcessUrlInput = z.infer<typeof ProcessUrlInputSchema>;
 
 // Output is the same as KnowledgeExtractionOutput
-export type ProcessUrlOutput = z.infer<typeof KnowledgeExtractionOutputSchema>;
+export type ProcessUrlOutput = KnowledgeExtractionOutput; // Use the imported type
 
 export async function processUrl(input: ProcessUrlInput): Promise<ProcessUrlOutput> {
   return processUrlFlow(input);
@@ -31,7 +36,7 @@ const processUrlFlow = ai.defineFlow(
   {
     name: 'processUrlFlow',
     inputSchema: ProcessUrlInputSchema,
-    outputSchema: KnowledgeExtractionOutputSchema,
+    outputSchema: KnowledgeExtractionOutputSchema, // Uses imported schema
   },
   async (input: ProcessUrlInput): Promise<ProcessUrlOutput> => {
     let textContent: string;
@@ -45,23 +50,32 @@ const processUrlFlow = ai.defineFlow(
       });
 
       if (response.headers['content-type'] && !response.headers['content-type'].includes('text/html')) {
-        throw new Error(`Content type is not HTML: ${response.headers['content-type']}`);
+        // If not HTML, try to get text directly if it's a plain text type, otherwise throw error
+        if (response.headers['content-type'].includes('text/plain')) {
+            textContent = response.data;
+        } else {
+            throw new Error(`Content type is not HTML or plain text: ${response.headers['content-type']}`);
+        }
+      } else if (response.headers['content-type'] && response.headers['content-type'].includes('text/html')) {
+            textContent = convert(response.data, {
+                wordwrap: false, // Disable auto-wrapping
+                selectors: [
+                { selector: 'img', format: 'skip' }, // Skip images
+                { selector: 'a', options: { ignoreHref: true } }, // Keep link text, ignore href
+                // Add more selectors to skip unwanted elements like nav, footer, script, style
+                { selector: 'nav', format: 'skip' },
+                { selector: 'footer', format: 'skip' },
+                { selector: 'script', format: 'skip' },
+                { selector: 'style', format: 'skip' },
+                { selector: 'aside', format: 'skip'},
+                { selector: 'header', format: 'skip'}
+                ],
+            });
+      } else {
+        // Fallback for unknown or missing content-type, attempt to treat as text
+        textContent = typeof response.data === 'string' ? response.data : '';
       }
-      
-      textContent = convert(response.data, {
-        wordwrap: false, // Disable auto-wrapping
-        selectors: [
-          { selector: 'img', format: 'skip' }, // Skip images
-          { selector: 'a', options: { ignoreHref: true } }, // Keep link text, ignore href
-          // Add more selectors to skip unwanted elements like nav, footer, script, style
-          { selector: 'nav', format: 'skip' },
-          { selector: 'footer', format: 'skip' },
-          { selector: 'script', format: 'skip' },
-          { selector: 'style', format: 'skip' },
-          { selector: 'aside', format: 'skip'},
-          { selector: 'header', format: 'skip'}
-        ],
-      });
+
 
       if (!textContent.trim()) {
         throw new Error('No meaningful text content extracted from the URL.');
@@ -78,7 +92,7 @@ const processUrlFlow = ai.defineFlow(
     // Create a data URI from the extracted text
     const plainTextDataUri = `data:text/plain;charset=utf-8;base64,${Buffer.from(textContent).toString('base64')}`;
 
-    const knowledgeInput: KnowledgeExtractionInput = {
+    const knowledgeInput: KnowledgeExtractionInput = { // Use imported type
       documentDataUri: plainTextDataUri,
     };
 

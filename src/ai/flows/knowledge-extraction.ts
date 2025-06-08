@@ -10,32 +10,20 @@
  *
  * @remarks
  *  - `extractKnowledge` - Extracts knowledge from a document.
- *  - `KnowledgeExtractionInput` - Input type for `extractKnowledge`.
- *  - `KnowledgeExtractionOutput` - Output type for `extractKnowledge`.
- *  - `KnowledgeExtractionOutputSchema` - Zod schema for the output of `extractKnowledge`.
+ *  - `KnowledgeExtractionInput` - Input type for `extractKnowledge`. (Imported from @/lib/types)
+ *  - `KnowledgeExtractionOutput` - Output type for `extractKnowledge`. (Imported from @/lib/types)
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {
+  KnowledgeExtractionInputSchema,
+  KnowledgeExtractionOutputSchema,
+  type KnowledgeExtractionInput,
+  type KnowledgeExtractionOutput,
+} from '@/lib/types';
 
-const KnowledgeExtractionInputSchema = z.object({
-  documentDataUri: z
-    .string()
-    .describe(
-      'The document to extract knowledge from, as a data URI that must include a MIME type and use Base64 encoding. Expected format: \'data:<mimetype>;base64,<encoded_data>\'.'
-    ),
-});
-export type KnowledgeExtractionInput = z.infer<typeof KnowledgeExtractionInputSchema>;
-
-export const KnowledgeExtractionOutputSchema = z.object({
-  summary: z
-    .string()
-    .describe('A concise summary of the key information extracted from the document.'),
-  keywords: z
-    .array(z.string())
-    .describe('A list of keywords that represent the main topics covered in the document.'),
-});
-export type KnowledgeExtractionOutput = z.infer<typeof KnowledgeExtractionOutputSchema>;
+// Re-export types for easy import by other server components/actions if needed from this specific flow file
+export type { KnowledgeExtractionInput, KnowledgeExtractionOutput };
 
 export async function extractKnowledge(input: KnowledgeExtractionInput): Promise<KnowledgeExtractionOutput> {
   return extractKnowledgeFlow(input);
@@ -43,8 +31,8 @@ export async function extractKnowledge(input: KnowledgeExtractionInput): Promise
 
 const extractKnowledgePrompt = ai.definePrompt({
   name: 'extractKnowledgePrompt',
-  input: {schema: KnowledgeExtractionInputSchema},
-  output: {schema: KnowledgeExtractionOutputSchema},
+  input: {schema: KnowledgeExtractionInputSchema}, // Uses imported schema
+  output: {schema: KnowledgeExtractionOutputSchema}, // Uses imported schema
   prompt: `You are an expert knowledge extractor. Your goal is to read a document and extract the key information from it.  Then write a summary and list the keywords.
 
 Document: {{media url=documentDataUri}}`,
@@ -53,10 +41,10 @@ Document: {{media url=documentDataUri}}`,
 const extractKnowledgeFlow = ai.defineFlow(
   {
     name: 'extractKnowledgeFlow',
-    inputSchema: KnowledgeExtractionInputSchema,
-    outputSchema: KnowledgeExtractionOutputSchema,
+    inputSchema: KnowledgeExtractionInputSchema, // Uses imported schema
+    outputSchema: KnowledgeExtractionOutputSchema, // Uses imported schema
   },
-  async input => {
+  async (input: KnowledgeExtractionInput): Promise<KnowledgeExtractionOutput> => {
     const modelResponse = await extractKnowledgePrompt(input);
     if (!modelResponse.output) {
       const rawText = modelResponse.response?.text;
@@ -71,4 +59,3 @@ const extractKnowledgeFlow = ai.defineFlow(
     return modelResponse.output;
   }
 );
-
