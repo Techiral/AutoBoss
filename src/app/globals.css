@@ -24,7 +24,6 @@
     --muted: 220 15% 94%; /* Very Light Muted Gray */
     --muted-foreground: 220 10% 45%; /* Medium Gray Text */
     
-    /* NEW GRADIENT ACCENT COLORS */
     --electric-teal: 175 80% 45%;
     --neon-lime: 90 85% 55%;
     --accent-gradient: linear-gradient(to right, hsl(var(--electric-teal)), hsl(var(--neon-lime)));
@@ -77,18 +76,17 @@
     --muted: 220 15% 18%; /* Darker muted gray */
     --muted-foreground: 210 15% 60%; /* Lighter muted text */
 
-    /* GRADIENT ACCENT COLORS (Same for dark theme for vibrancy) */
-    --electric-teal: 175 80% 50%; /* Adjusted slightly for dark bg */
-    --neon-lime: 90 85% 60%;  /* Adjusted slightly for dark bg */
+    --electric-teal: 175 80% 50%; 
+    --neon-lime: 90 85% 60%;  
     --accent-gradient: linear-gradient(to right, hsl(var(--electric-teal)), hsl(var(--neon-lime)));
 
     --accent: var(--electric-teal);
-    --accent-foreground: 220 17% 8%; /* Dark text for contrast on bright accent */
+    --accent-foreground: 220 17% 8%; 
 
-    --destructive: 0 62% 50%; /* Slightly desaturated red for dark */
+    --destructive: 0 62% 50%; 
     --destructive-foreground: 0 0% 98%;
 
-    --border: 220 15% 25%; /* Softer dark border */
+    --border: 220 15% 25%; 
     --input: 220 15% 20%; 
     --ring: 217 91% 60%;
 
@@ -98,12 +96,12 @@
     --chart-4: 90 85% 60%;
     --chart-5: 300 70% 65%;
     
-    --sidebar-background: 224 24% 11%; /* Sidebar bg matching main bg or slightly different */
+    --sidebar-background: 224 24% 11%; 
     --sidebar-foreground: 210 20% 92%;
     --sidebar-primary: 217 91% 65%;
     --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 220 16% 18%; /* Darker accent for hover */
-    --sidebar-accent-foreground: hsl(var(--electric-teal)); /* Use teal for text on hover */
+    --sidebar-accent: 220 16% 18%; 
+    --sidebar-accent-foreground: hsl(var(--electric-teal)); 
     --sidebar-border: 220 15% 20%;
     --sidebar-ring: 217 91% 65%;
   }
@@ -115,10 +113,7 @@
   }
   body {
     @apply bg-background text-foreground;
-    /* Apply a subtle texture or noise to the main background if desired */
-    /* background-image: url('/path-to-noise-texture.png'); */
   }
-  /* Basic scroll-triggered fade-in animation */
   .scroll-reveal {
     opacity: 0;
     transform: translateY(30px);
@@ -133,15 +128,21 @@
 /* Typewriter effect */
 .typewriter-text {
   display: inline-block;
-  overflow: hidden; /* Ensures the content is not revealed until the animation */
-  border-right: .15em solid hsl(var(--electric-teal)); /* The typwriter cursor */
-  white-space: nowrap; /* Keeps the content on a single line */
-  margin: 0 auto; /* Gives that scrolling effect as the typing happens */
-  letter-spacing: .05em; /* Adjust as needed */
+  overflow: hidden;
+  border-right: .15em solid hsl(var(--electric-teal)); 
+  white-space: nowrap; 
+  margin: 0 auto;
+  letter-spacing: .05em;
   animation: 
-    typing 3.5s steps(30, end) forwards, /* Removed infinite, will cycle with JS */
+    typing 3.5s steps(30, end),
     blink-caret .75s step-end infinite;
 }
+/* This will be applied via JS to restart the typing animation */
+.typewriter-text-restart {
+  animation: none;
+  width: 0; /* Reset width for restart */
+}
+
 
 @keyframes typing {
   from { width: 0 }
@@ -178,4 +179,46 @@
 }
 .section-light-accent {
   @apply bg-card text-card-foreground; /* Using card as the lighter alternative */
+}
+
+/* CTA Button Pulse */
+@keyframes pulse-cta {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 hsla(var(--electric-teal), 0.7);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 10px hsla(var(--electric-teal), 0);
+  }
+}
+.pulse-cta-btn {
+  animation: pulse-cta 2s infinite;
+}
+
+/* Sticky Header - Basic */
+.sticky-header {
+    @apply sticky top-0 z-50 transition-all duration-300;
+}
+.sticky-header-scrolled {
+    @apply bg-background/90 backdrop-blur-md shadow-lg;
+}
+
+/* Perspective for Tilt Cards */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+/* Tilt Card specific hover */
+.tilt-card:hover {
+  transform: rotateY(5deg) rotateX(3deg) scale(1.03);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.2), 0 0 15px hsl(var(--primary)/0.3);
+}
+
+.tilt-card-inner {
+  transition: transform 0.4s ease-out;
+  transform-style: preserve-3d;
+}
+.tilt-card:hover .tilt-card-inner {
+   /* transform: translateZ(10px); */
 }
