@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAppContext } from "../../../layout";
 import type { Agent, AgentFlowDefinition, FlowNode as JsonFlowNode, FlowEdge as JsonFlowEdge } from "@/lib/types";
-import { Loader2, Save, AlertTriangle, Trash2, MousePointer, ArrowRight, MessageSquare, Zap, HelpCircle, Play, ChevronsUpDown, Settings2, Link2, Cog, BookOpen, Bot as BotIcon, Share2, Network, SlidersHorizontal, FileCode, MessageCircleQuestion, Timer, ArrowRightLeft, Users, BrainCircuit, StopCircle, Info, Sigma, GripVertical } from "lucide-react";
+import { Loader2, Save, AlertTriangle, Trash2, MousePointer, ArrowRight, MessageSquare, Zap, HelpCircle, Play, ChevronsUpDown, Settings2, Link2, Cog, BookOpen, Bot as BotIcon, Share2, Network, SlidersHorizontal, FileCode, MessageCircleQuestion, Timer, ArrowRightLeft, Users, BrainCircuit, StopCircle, Info, Sigma, GripVertical, Library } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
@@ -50,6 +50,7 @@ interface VisualNode extends Omit<JsonFlowNode, 'type' | 'position' | 'message' 
   qnaKnowledgeBaseId?: string;
   qnaQueryVariable?: string;
   qnaFallbackText?: string;
+  qnaOutputVariable?: string;
   qnaThreshold?: number;
   waitDurationMs?: number;
   transitionTargetFlowId?: string;
@@ -203,7 +204,7 @@ export const refundProcessingFlow: AgentFlowDefinition = {
 
 export const faqFlowMinimal: AgentFlowDefinition = {
   flowId: "faq-flow-minimal",
-  name: "FAQ & General Q&A",
+  name: "FAQ Agent",
   description: "A minimal flow that greets and then defers to autonomous reasoning for Q&A.",
   nodes: [
     { id: "faq_start", type: "start", label: "Start FAQ", position: { x: 50, y: 50 } },
@@ -216,7 +217,6 @@ export const faqFlowMinimal: AgentFlowDefinition = {
   ]
 };
 
-// Renamed original sample flow
 export const generalPurposeAssistantFlow: AgentFlowDefinition = {
   flowId: "general-purpose-assistant-flow",
   name: "General Purpose Assistant",
@@ -267,6 +267,14 @@ export const generalPurposeAssistantFlow: AgentFlowDefinition = {
     { id: "e_check_invalid_category_default", source: "check_category_node_3", target: "invalid_category_node_19", condition: "" , edgeType: "default", label: "Default/Invalid"},
     { id: "e_invalid_cat_to_get_category", source: "invalid_category_node_19", target: "get_issue_category_node_2"},
   ]
+};
+
+const sampleFlows: Record<string, { name: string; flow: AgentFlowDefinition }> = {
+  minimal: { name: "Minimal Flow", flow: minimalInitialFlow },
+  support: { name: "Customer Support", flow: customerSupportFlow },
+  refund: { name: "Refund Processing", flow: refundProcessingFlow },
+  faq: { name: "FAQ Agent", flow: faqFlowMinimal },
+  general: { name: "General Purpose Assistant", flow: generalPurposeAssistantFlow },
 };
 
 
@@ -320,6 +328,7 @@ export default function AgentStudioPage() {
     setNodes(loadedNodes);
     setEdges(loadedEdges);
     setCanvasOffset({ x: 0, y: 0 });
+    setSelectedNodeId(null); // Deselect any node when a new flow is loaded
   }, []);
 
   useEffect(() => {
@@ -357,7 +366,7 @@ export default function AgentStudioPage() {
       id: newNodeId,
       type: nodeType,
       label: defaultLabel,
-      x: Math.max(0, virtualX - 75),
+      x: Math.max(0, virtualX - 75), // Center the new node roughly under cursor
       y: Math.max(0, virtualY - 25),
       ...(nodeDef?.defaultProperties || {}),
     };
@@ -648,7 +657,7 @@ export default function AgentStudioPage() {
           baseJsonNode.apiUrl = node.apiUrl; 
           baseJsonNode.apiMethod = node.apiMethod; 
           try {
-            baseJsonNode.apiHeaders = typeof node.apiHeaders === 'string' ? JSON.parse(node.apiHeaders || '{}') : node.apiHeaders; 
+            baseJsonNode.apiHeaders = typeof node.apiHeaders === 'string' && node.apiHeaders.trim() !== '' ? JSON.parse(node.apiHeaders) : node.apiHeaders; 
           } catch (e) { console.warn(`Invalid JSON in apiHeaders for node ${node.id}: ${node.apiHeaders}`); baseJsonNode.apiHeaders = {};}
           baseJsonNode.apiBodyVariable = node.apiBodyVariable; 
           baseJsonNode.apiOutputVariable = node.apiOutputVariable || node.outputVariable;
@@ -656,16 +665,16 @@ export default function AgentStudioPage() {
       if (node.type === 'action') { 
           baseJsonNode.actionName = node.actionName; 
           try {
-            baseJsonNode.actionInputArgs = typeof node.actionInputArgs === 'string' ? JSON.parse(node.actionInputArgs || '{}') : node.actionInputArgs; 
+            baseJsonNode.actionInputArgs = typeof node.actionInputArgs === 'string' && node.actionInputArgs.trim() !== '' ? JSON.parse(node.actionInputArgs) : node.actionInputArgs; 
           } catch (e) { console.warn(`Invalid JSON in actionInputArgs for node ${node.id}: ${node.actionInputArgs}`); baseJsonNode.actionInputArgs = {};}
           try {
-            baseJsonNode.actionOutputVarMap = typeof node.actionOutputVarMap === 'string' ? JSON.parse(node.actionOutputVarMap || '{}') : node.actionOutputVarMap; 
+            baseJsonNode.actionOutputVarMap = typeof node.actionOutputVarMap === 'string' && node.actionOutputVarMap.trim() !== '' ? JSON.parse(node.actionOutputVarMap) : node.actionOutputVarMap; 
           } catch (e) { console.warn(`Invalid JSON in actionOutputVarMap for node ${node.id}: ${node.actionOutputVarMap}`); baseJsonNode.actionOutputVarMap = {};}
       }
       if (node.type === 'code') { 
           baseJsonNode.codeScript = node.codeScript; 
            try {
-            baseJsonNode.codeReturnVarMap = typeof node.codeReturnVarMap === 'string' ? JSON.parse(node.codeReturnVarMap || '{}') : node.codeReturnVarMap; 
+            baseJsonNode.codeReturnVarMap = typeof node.codeReturnVarMap === 'string' && node.codeReturnVarMap.trim() !== '' ? JSON.parse(node.codeReturnVarMap) : node.codeReturnVarMap; 
           } catch (e) { console.warn(`Invalid JSON in codeReturnVarMap for node ${node.id}: ${node.codeReturnVarMap}`); baseJsonNode.codeReturnVarMap = {};}
       }
       if (node.type === 'qnaLookup') { baseJsonNode.qnaKnowledgeBaseId = node.qnaKnowledgeBaseId; baseJsonNode.qnaQueryVariable = node.qnaQueryVariable; baseJsonNode.qnaOutputVariable = node.qnaOutputVariable || node.outputVariable; baseJsonNode.qnaFallbackText = node.qnaFallbackText; baseJsonNode.qnaThreshold = node.qnaThreshold; }
@@ -673,7 +682,7 @@ export default function AgentStudioPage() {
       if (node.type === 'transition') { 
           baseJsonNode.transitionTargetFlowId = node.transitionTargetFlowId; 
           try {
-            baseJsonNode.transitionVariablesToPass = typeof node.transitionVariablesToPass === 'string' ? JSON.parse(node.transitionVariablesToPass || '{}') : node.transitionVariablesToPass; 
+            baseJsonNode.transitionVariablesToPass = typeof node.transitionVariablesToPass === 'string' && node.transitionVariablesToPass.trim() !== '' ? JSON.parse(node.transitionVariablesToPass) : node.transitionVariablesToPass; 
           } catch (e) { console.warn(`Invalid JSON in transitionVariablesToPass for node ${node.id}: ${node.transitionVariablesToPass}`); baseJsonNode.transitionVariablesToPass = {};}
       }
       if (node.type === 'agentSkill') { baseJsonNode.agentSkillId = node.agentSkillId; baseJsonNode.agentSkillsList = node.agentSkillsList; }
@@ -726,14 +735,16 @@ export default function AgentStudioPage() {
     }
   }, [currentAgent, convertToMermaid, convertToAgentFlowDefinition, updateAgentFlow, toast]);
 
-  const resetToSampleFlow = () => { // Renamed from resetToComplexSampleFlow
-    loadFlowToVisual(customerSupportFlow); // Load the customer support flow
-    setSelectedNodeId(null);
-    setMermaidCode("");
-     if (currentAgent) {
-      toast({ title: "Flow Reset", description: "Visual flow editor reset to Customer Support sample flow."});
+ const handleLoadSampleFlow = (flowKey: string) => {
+    const selectedSample = sampleFlows[flowKey];
+    if (selectedSample) {
+      loadFlowToVisual(selectedSample.flow);
+      toast({ title: "Sample Flow Loaded", description: `"${selectedSample.name}" loaded into the editor.` });
+    } else {
+      toast({ title: "Error", description: "Could not load the selected sample flow.", variant: "destructive" });
     }
   };
+
 
   const selectedNodeDetails = selectedNodeId ? nodes.find(n => n.id === selectedNodeId) : null;
   const selectedNodeDefinition = selectedNodeDetails ? NODE_DEFINITIONS.find(def => def.type === selectedNodeDetails.type) : null;
@@ -769,7 +780,7 @@ export default function AgentStudioPage() {
                   className="p-2 border rounded-md cursor-grab flex items-center gap-2 hover:bg-muted active:cursor-grabbing transition-colors"
                 >
                   <def.icon className="w-5 h-5 text-primary shrink-0"/>
-                  <span className="text-sm">{def.label}</span>
+                  <span className="text-sm flex-1 min-w-0" style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }}>{def.label}</span>
                 </div>
               </TooltipTrigger>
               <TooltipContent side="right" align="start" className="max-w-xs z-[60]">
@@ -781,7 +792,21 @@ export default function AgentStudioPage() {
         </CardContent>
         </ScrollArea>
          <CardFooter className="p-2 border-t mt-auto">
-            <Button onClick={resetToSampleFlow} variant="outline" size="sm" className="w-full"><Trash2 className="mr-2 h-4 w-4" />Reset to Customer Support Sample</Button>
+            <div className="w-full space-y-2">
+                <Label htmlFor="sampleFlowSelect" className="text-xs text-muted-foreground">Load Sample Flow:</Label>
+                <Select onValueChange={handleLoadSampleFlow}>
+                  <SelectTrigger id="sampleFlowSelect" className="h-9">
+                    <SelectValue placeholder="Select a sample..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(sampleFlows).map(([key, { name }]) => (
+                      <SelectItem key={key} value={key}>
+                        {name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+            </div>
         </CardFooter>
       </Card>
 
@@ -798,10 +823,10 @@ export default function AgentStudioPage() {
       >
         <div
             ref={canvasContentRef}
-            className="absolute top-0 left-0 w-full h-full pointer-events-none"
+            className="absolute top-0 left-0 w-full h-full pointer-events-none" // Removed fixed width/height for pannable content
             style={{ transform: `translate(${-canvasOffset.x}px, ${-canvasOffset.y}px)` }}
         >
-            <svg className="absolute top-0 left-0 w-full h-full pointer-events-none">
+            <svg className="absolute top-0 left-0 w-full h-full pointer-events-none"> {/* Removed fixed width/height */}
             {edges.map(edge => {
                 const sourceNode = nodes.find(n => n.id === edge.source);
                 const targetNode = nodes.find(n => n.id === edge.target);
@@ -880,9 +905,9 @@ export default function AgentStudioPage() {
                         const WidgetIcon = NODE_DEFINITIONS.find(w=>w.type === node.type)?.icon;
                         return WidgetIcon ? <WidgetIcon className="w-3 h-3 text-primary shrink-0" /> : <GripVertical className="w-3 h-3 text-muted-foreground shrink-0"/>;
                     })()}
-                     <span className="text-xs font-medium flex-1 min-w-0" style={{ overflowWrap: 'break-word', wordBreak: 'break-all' }} title={node.label}>{node.label}</span>
+                     <span className="text-xs font-medium flex-1 min-w-0" style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }} title={node.label}>{node.label}</span>
                 </div>
-                <p className="text-[10px] text-muted-foreground w-full" style={{ overflowWrap: 'break-word', wordBreak: 'break-all' }} title={node.content || node.variableName || node.type}>
+                <p className="text-[10px] text-muted-foreground w-full" style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }} title={node.content || node.variableName || node.type}>
                 { node.type === 'sendMessage' ? (node.message || '...') :
                     node.type === 'getUserInput' ? (node.variableName ? `Var: ${node.variableName}`: '...') :
                     node.type === 'callLLM' ? (node.outputVariable ? `Out: ${node.outputVariable}`: '...') :
