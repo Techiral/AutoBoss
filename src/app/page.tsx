@@ -1,53 +1,60 @@
 
-"use client"; // Required for useEffect, useState for animations
+"use client"; 
 
 import React, { useEffect, useState, useRef } from 'react';
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Zap, Brain, Share2, Cog, Rocket, Eye, Palette, BarChart3, ShieldCheck, PlayCircle, MessageCircle, UserCheck, Star, RefreshCcw } from "lucide-react";
+import { ArrowRight, Zap, Brain, Share2, Cog, Rocket, Eye, Palette, BarChart3, PlayCircle, MessageCircle, Star, RefreshCcw } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { Logo } from "@/components/logo";
 import { cn } from "@/lib/utils";
 
-// Simple Intersection Observer hook for scroll animations
+// Modified Intersection Observer hook
 const useIntersectionObserver = (options?: IntersectionObserverInit) => {
-  const [entry, setEntry] = useState<IntersectionObserverEntry | null>(null);
+  const [isIntersecting, setIsIntersecting] = useState(false);
   const [node, setNode] = useState<HTMLElement | null>(null);
-
-  const observer = useRef<IntersectionObserver | null>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
 
   useEffect(() => {
-    if (observer.current) observer.current.disconnect();
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+    }
 
-    observer.current = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        setEntry(entry);
-        entry.target.classList.add('visible');
-      }
+    observerRef.current = new IntersectionObserver(([entry]) => {
+      setIsIntersecting(entry.isIntersecting);
     }, options);
 
-    const { current: currentObserver } = observer;
-    if (node) currentObserver.observe(node);
+    const { current: currentObserver } = observerRef;
+    if (node) {
+      currentObserver.observe(node);
+    }
 
-    return () => currentObserver.disconnect();
+    return () => {
+      if (currentObserver) {
+        currentObserver.disconnect();
+      }
+    };
   }, [node, options]);
 
-  return [setNode, entry] as const;
+  return [setNode, isIntersecting] as const;
 };
 
 
 // Component for Feature/Benefit Cards with hover tilt effect
 const TiltCard = ({ icon, title, description, dataAiHint }: { icon: React.ReactNode, title: string, description: string, dataAiHint?: string }) => {
-  const [setNode] = useIntersectionObserver({ threshold: 0.1 });
+  const [setNode, isIntersecting] = useIntersectionObserver({ threshold: 0.1 });
   return (
     <div 
       ref={setNode}
-      className="scroll-reveal group flex flex-col items-center text-center gap-4 p-6 md:p-8 rounded-xl border border-border bg-card/80 backdrop-blur-sm shadow-xl hover:shadow-primary/30 transition-all duration-300 transform hover:-translate-y-2 hover:border-primary/50 perspective-1000"
-      style={{ transformStyle: 'preserve-3d' }} // Needed for 3D tilt
+      className={cn(
+        "scroll-reveal group flex flex-col items-center text-center gap-4 p-6 md:p-8 rounded-xl border border-border bg-card/80 backdrop-blur-sm shadow-xl hover:shadow-primary/30 transition-all duration-300 transform hover:-translate-y-2 hover:border-primary/50 perspective-1000",
+        isIntersecting ? "visible" : ""
+      )}
+      style={{ transformStyle: 'preserve-3d' }} 
     >
       <div 
         className="p-4 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 mb-3 group-hover:scale-110 transition-transform duration-300"
-        style={{ transform: 'translateZ(20px)' }} // slight 3d pop
+        style={{ transform: 'translateZ(20px)' }} 
       >
         {icon}
       </div>
@@ -58,7 +65,6 @@ const TiltCard = ({ icon, title, description, dataAiHint }: { icon: React.ReactN
         {title}
       </h3>
       <p className="text-sm md:text-base text-muted-foreground flex-grow">{description}</p>
-       {/* Conceptual: Image placeholder if needed, for now icon is primary */}
       {dataAiHint && <div className="w-full h-32 mt-4 rounded-md bg-muted/50 flex items-center justify-center text-xs text-muted-foreground" data-ai-hint={dataAiHint}>Visual Hint: {dataAiHint}</div>}
     </div>
   );
@@ -78,31 +84,28 @@ export default function MarketingPage() {
   useEffect(() => {
     const intervalId = setInterval(() => {
       setCurrentPainPointIndex((prevIndex) => (prevIndex + 1) % painPoints.length);
-    }, 4000); // Change text every 4 seconds (3.5s typing + 0.5s pause)
+    }, 4000); 
     return () => clearInterval(intervalId);
   }, []);
   
-  // Scroll animation for sections
   const useSectionObserver = (threshold = 0.1) => {
-    const [setNode] = useIntersectionObserver({ threshold });
-    return setNode;
+    return useIntersectionObserver({ threshold });
   };
   
-  const heroRef = useSectionObserver();
-  const featuresRef = useSectionObserver();
-  const howItWorksRef = useSectionObserver();
-  const socialProofRef = useSectionObserver();
-  const humanizeRef = useSectionObserver();
-  const finalCtaRef = useSectionObserver();
+  const [heroRefCallback, heroIsIntersecting] = useSectionObserver();
+  const [featuresRefCallback, featuresIsIntersecting] = useSectionObserver();
+  const [howItWorksRefCallback, howItWorksIsIntersecting] = useSectionObserver();
+  const [socialProofRefCallback, socialProofIsIntersecting] = useSectionObserver();
+  const [humanizeRefCallback, humanizeIsIntersecting] = useSectionObserver();
+  const [finalCtaRefCallback, finalCtaIsIntersecting] = useSectionObserver();
 
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground text-center selection:bg-accent selection:text-accent-foreground">
-      {/* Sticky Header */}
       <header className="w-full px-4 lg:px-6 h-20 flex items-center border-b border-border/50 sticky top-0 z-50 bg-background/80 backdrop-blur-md">
         <div className="container mx-auto flex items-center justify-between">
           <Link href="/" className="hover:opacity-80 transition-opacity" aria-label="AutoBoss Homepage">
-            <Logo /> {/* Logo is now purely presentational */}
+            <Logo />
           </Link>
           <nav className="hidden md:flex gap-4 sm:gap-6 items-center">
             <Link href="#features" className="text-sm font-medium hover:text-primary transition-colors" prefetch={false}>
@@ -123,7 +126,7 @@ export default function MarketingPage() {
               </Link>
             </Button>
           </nav>
-           <div className="md:hidden"> {/* Basic Mobile Menu Trigger Placeholder */}
+           <div className="md:hidden"> 
             <Button variant="ghost" size="icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
             </Button>
@@ -132,11 +135,14 @@ export default function MarketingPage() {
       </header>
 
       <main className="flex-1">
-        {/* Hero Section */}
-        <section ref={heroRef} className="scroll-reveal section-dark w-full py-24 md:py-32 lg:py-40 xl:py-48 relative overflow-hidden">
-           {/* Placeholder for video/WebGL background */}
+        <section 
+          ref={heroRefCallback} 
+          className={cn(
+            "scroll-reveal section-dark w-full py-24 md:py-32 lg:py-40 xl:py-48 relative overflow-hidden",
+            heroIsIntersecting ? "visible" : ""
+          )}
+        >
           <div className="absolute inset-0 z-0 opacity-20">
-             {/* Replace with actual video or WebGL canvas */}
             <video autoPlay loop muted playsInline className="w-full h-full object-cover">
               <source src="https://placehold.co/1920x1080.mp4?text=Abstract+AI+Motion" type="video/mp4" data-ai-hint="abstract ai motion dark" />
             </video>
@@ -170,8 +176,14 @@ export default function MarketingPage() {
           </div>
         </section>
 
-        {/* "Wow Factors" / Key Benefits Section */}
-        <section ref={featuresRef} id="features" className="section-light-accent w-full py-16 md:py-24 lg:py-32">
+        <section 
+          ref={featuresRefCallback} 
+          id="features" 
+          className={cn(
+            "scroll-reveal section-light-accent w-full py-16 md:py-24 lg:py-32",
+            featuresIsIntersecting ? "visible" : ""
+          )}
+        >
           <div className="container px-4 md:px-6">
             <div className="mx-auto max-w-3xl space-y-4 mb-12 md:mb-16">
               <div className="inline-block rounded-lg bg-gradient-to-r from-electric-teal to-neon-lime px-4 py-2 text-sm text-background font-semibold shadow-md">
@@ -195,8 +207,14 @@ export default function MarketingPage() {
           </div>
         </section>
 
-        {/* How It Works (Simplified) */}
-        <section ref={howItWorksRef} id="how-it-works" className="section-dark w-full py-16 md:py-24 lg:py-32">
+        <section 
+          ref={howItWorksRefCallback} 
+          id="how-it-works" 
+          className={cn(
+            "scroll-reveal section-dark w-full py-16 md:py-24 lg:py-32",
+            howItWorksIsIntersecting ? "visible" : ""
+          )}
+        >
           <div className="container px-4 md:px-6">
             <div className="mx-auto max-w-3xl space-y-4 mb-12 md:mb-16">
                 <h2 className="font-headline text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
@@ -209,20 +227,36 @@ export default function MarketingPage() {
                     { number: "1", title: "Define & Design", description: "Visually craft your agent's brain and personality in our intuitive Studio.", icon: <Palette className="w-10 h-10 text-electric-teal"/>, dataAiHint: "ui design dark modern" },
                     { number: "2", title: "Enrich & Empower", description: "Upload docs or URLs to build a smart knowledge core. Train it on your data.", icon: <Brain className="w-10 h-10 text-neon-lime"/>, dataAiHint: "data upload dark tech" },
                     { number: "3", title: "Deploy & Dominate", description: "Integrate via widget, API, or direct link. Watch it transform your business.", icon: <Rocket className="w-10 h-10 text-primary"/>, dataAiHint: "rocket launch dark tech" },
-                ].map((step, index) => (
-                <div key={step.title} ref={useSectionObserver(0.2)} className="scroll-reveal relative flex flex-col items-center gap-3 p-6 rounded-lg bg-card/80 backdrop-blur-sm shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105">
-                    <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-gradient-to-br from-electric-teal to-neon-lime text-background text-lg font-bold w-12 h-12 rounded-full flex items-center justify-center border-4 border-background shadow-lg">{step.number}</div>
-                    <div className="mt-10 mb-2">{step.icon}</div>
-                    <h3 className="font-headline text-xl font-semibold">{step.title}</h3>
-                    <p className="text-sm text-muted-foreground">{step.description}</p>
-                </div>
-                ))}
+                ].map((step, index) => {
+                  const [stepRefCallback, stepIsIntersecting] = useSectionObserver(0.2);
+                  return (
+                    <div 
+                      key={step.title} 
+                      ref={stepRefCallback} 
+                      className={cn(
+                        "scroll-reveal relative flex flex-col items-center gap-3 p-6 rounded-lg bg-card/80 backdrop-blur-sm shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105",
+                        stepIsIntersecting ? "visible" : ""
+                      )}
+                    >
+                        <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-gradient-to-br from-electric-teal to-neon-lime text-background text-lg font-bold w-12 h-12 rounded-full flex items-center justify-center border-4 border-background shadow-lg">{step.number}</div>
+                        <div className="mt-10 mb-2">{step.icon}</div>
+                        <h3 className="font-headline text-xl font-semibold">{step.title}</h3>
+                        <p className="text-sm text-muted-foreground">{step.description}</p>
+                    </div>
+                  );
+                })}
             </div>
           </div>
         </section>
 
-        {/* Social Proof (Conceptual but improved structure) */}
-        <section ref={socialProofRef} id="social-proof" className="section-light-accent w-full py-16 md:py-24 lg:py-32">
+        <section 
+          ref={socialProofRefCallback} 
+          id="social-proof" 
+          className={cn(
+            "scroll-reveal section-light-accent w-full py-16 md:py-24 lg:py-32",
+            socialProofIsIntersecting ? "visible" : ""
+          )}
+        >
             <div className="container px-4 md:px-6">
                 <h2 className="font-headline text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl mb-4">
                     Join the <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-electric-teal">Automation Revolution</span>
@@ -230,10 +264,9 @@ export default function MarketingPage() {
                 <p className="mt-4 text-muted-foreground mx-auto max-w-xl md:text-lg mb-12">
                     Businesses worldwide are choosing AutoBoss to build AI agents that deliver real results.
                 </p>
-                {/* Logos Marquee */}
                 <div className="marquee w-full max-w-4xl mx-auto mb-12">
                   <div className="marquee-content flex items-center gap-12 md:gap-16">
-                    {[...Array(2)].flatMap((_, repeatIndex) => [ // Repeat logos for smooth loop
+                    {[...Array(2)].flatMap((_, repeatIndex) => [ 
                         { name: "Innovatech", hint: "modern tech logo dark" },
                         { name: "SolutionsAI", hint: "ai startup logo dark" },
                         { name: "GlobalSupport", hint: "global company logo dark" },
@@ -247,44 +280,59 @@ export default function MarketingPage() {
                   </div>
                 </div>
 
-                {/* Testimonials & Stats */}
                 <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-                    <div ref={useSectionObserver(0.2)} className="scroll-reveal bg-card p-6 rounded-lg shadow-lg">
-                        <Star className="w-6 h-6 text-neon-lime mb-2"/>
-                        <p className="italic text-muted-foreground">"AutoBoss cut our support response time by 70%! Our customers are happier, and our team can focus on complex issues."</p>
-                        <p className="font-semibold mt-3">- Sarah L., Head of Support, Innovatech</p>
-                    </div>
-                    <div ref={useSectionObserver(0.25)} className="scroll-reveal bg-card p-6 rounded-lg shadow-lg md:col-span-1">
-                        <BarChart3 className="w-6 h-6 text-electric-teal mb-2"/>
-                        <p className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-electric-teal to-neon-lime">1M+</p>
-                        <p className="text-muted-foreground">Automated Tasks Monthly</p>
-                        <p className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-electric-teal mt-4">97%</p>
-                        <p className="text-muted-foreground">Issue Resolution Rate</p>
-                    </div>
-                     <div ref={useSectionObserver(0.3)} className="scroll-reveal bg-card p-6 rounded-lg shadow-lg">
-                        <UserCheck className="w-6 h-6 text-primary mb-2"/>
-                        <p className="italic text-muted-foreground">"The visual flow builder is a game-changer. We designed and launched our lead qualification agent in just two days."</p>
-                        <p className="font-semibold mt-3">- Mark B., CEO, NextGen Leads</p>
-                    </div>
-                </div>
-                 {/* Placeholder for Video Testimonials */}
-                <div ref={useSectionObserver(0.1)} className="scroll-reveal mt-12 text-center">
-                    <h3 className="font-headline text-2xl font-semibold mb-4">See What Our Users Say</h3>
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto">
-                        {[1,2,3].map(i => (
-                            <div key={i} className="aspect-video bg-muted rounded-lg shadow-md flex items-center justify-center text-muted-foreground">
-                                <PlayCircle size={48} className="opacity-50"/>
-                                <p className="absolute bottom-2 text-xs">Video Testimonial {i} (Placeholder)</p>
-                                {/* <iframe data-ai-hint="user testimonial video dark" width="100%" height="100%" src="https://www.youtube.com/embed/placeholder_video_id" title="YouTube video player" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="rounded-lg"></iframe> */}
+                    {(() => {
+                        const [testimonial1Ref, testimonial1Visible] = useSectionObserver(0.2);
+                        const [statsRef, statsVisible] = useSectionObserver(0.25);
+                        const [testimonial2Ref, testimonial2Visible] = useSectionObserver(0.3);
+                        return <>
+                            <div ref={testimonial1Ref} className={cn("scroll-reveal bg-card p-6 rounded-lg shadow-lg", testimonial1Visible && "visible")}>
+                                <Star className="w-6 h-6 text-neon-lime mb-2"/>
+                                <p className="italic text-muted-foreground">"AutoBoss cut our support response time by 70%! Our customers are happier, and our team can focus on complex issues."</p>
+                                <p className="font-semibold mt-3">- Sarah L., Head of Support, Innovatech</p>
                             </div>
-                        ))}
-                    </div>
+                            <div ref={statsRef} className={cn("scroll-reveal bg-card p-6 rounded-lg shadow-lg md:col-span-1", statsVisible && "visible")}>
+                                <BarChart3 className="w-6 h-6 text-electric-teal mb-2"/>
+                                <p className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-electric-teal to-neon-lime">1M+</p>
+                                <p className="text-muted-foreground">Automated Tasks Monthly</p>
+                                <p className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-electric-teal mt-4">97%</p>
+                                <p className="text-muted-foreground">Issue Resolution Rate</p>
+                            </div>
+                             <div ref={testimonial2Ref} className={cn("scroll-reveal bg-card p-6 rounded-lg shadow-lg", testimonial2Visible && "visible")}>
+                                <Star className="w-6 h-6 text-primary mb-2"/> {/* Changed to Star for consistency with example */}
+                                <p className="italic text-muted-foreground">"The visual flow builder is a game-changer. We designed and launched our lead qualification agent in just two days."</p>
+                                <p className="font-semibold mt-3">- Mark B., CEO, NextGen Leads</p>
+                            </div>
+                        </>;
+                    })()}
                 </div>
+                {(() => {
+                    const [videoTestimonialsRef, videoTestimonialsVisible] = useSectionObserver(0.1);
+                    return (
+                        <div ref={videoTestimonialsRef} className={cn("scroll-reveal mt-12 text-center", videoTestimonialsVisible && "visible")}>
+                            <h3 className="font-headline text-2xl font-semibold mb-4">See What Our Users Say</h3>
+                            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto">
+                                {[1,2,3].map(i => (
+                                    <div key={i} className="aspect-video bg-muted rounded-lg shadow-md flex items-center justify-center text-muted-foreground">
+                                        <PlayCircle size={48} className="opacity-50"/>
+                                        <p className="absolute bottom-2 text-xs">Video Testimonial {i} (Placeholder)</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                })()}
             </div>
         </section>
 
-         {/* Humanize the Brand (Conceptual) */}
-        <section ref={humanizeRef} id="about-us" className="section-dark w-full py-16 md:py-24 lg:py-32">
+        <section 
+          ref={humanizeRefCallback} 
+          id="about-us" 
+          className={cn(
+            "scroll-reveal section-dark w-full py-16 md:py-24 lg:py-32",
+            humanizeIsIntersecting ? "visible" : ""
+          )}
+        >
           <div className="container px-4 md:px-6">
             <div className="mx-auto max-w-3xl space-y-4 mb-12 md:mb-16">
               <h2 className="font-headline text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
@@ -294,7 +342,6 @@ export default function MarketingPage() {
                 We're passionate about making sophisticated AI accessible to everyone. AutoBoss is more than software; it's a partner in your innovation journey.
               </p>
             </div>
-            {/* Placeholder for team/founder story */}
             <div className="max-w-2xl mx-auto bg-card/80 backdrop-blur-sm p-6 md:p-8 rounded-lg shadow-xl">
               <p className="italic text-muted-foreground">"I started AutoBoss because I saw businesses struggling with clunky, ineffective automation. My goal was simple: create a platform so intuitive and powerful that anyone could build truly intelligent AI agents. We're just getting started."</p>
               <div className="flex items-center gap-4 mt-4">
@@ -309,8 +356,13 @@ export default function MarketingPage() {
         </section>
 
 
-        {/* Final CTA Section */}
-        <section ref={finalCtaRef} className="section-light-accent w-full py-20 md:py-28 lg:py-32">
+        <section 
+          ref={finalCtaRefCallback} 
+          className={cn(
+            "scroll-reveal section-light-accent w-full py-20 md:py-28 lg:py-32",
+            finalCtaIsIntersecting ? "visible" : ""
+          )}
+        >
           <div className="container px-4 md:px-6">
             <div className="mx-auto max-w-2xl space-y-6">
               <h2 className="font-headline text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl bg-clip-text text-transparent bg-gradient-to-br from-primary via-electric-teal to-neon-lime">
@@ -327,7 +379,7 @@ export default function MarketingPage() {
                   </Link>
                 </Button>
                 <Button size="lg" variant="outline" asChild className="transition-all duration-300 hover:scale-105 hover:border-accent hover:text-accent px-10 py-7 text-lg border-muted-foreground/50 w-full sm:w-auto">
-                  <Link href="mailto:demo@autoboss.dev?subject=AutoBoss Demo Request"> {/* Placeholder mailto */}
+                  <Link href="mailto:demo@autoboss.dev?subject=AutoBoss Demo Request"> 
                     Request a Demo <PlayCircle className="ml-3 h-5 w-5"/>
                   </Link>
                 </Button>
@@ -337,7 +389,6 @@ export default function MarketingPage() {
         </section>
       </main>
 
-      {/* Footer */}
       <footer className="w-full py-8 border-t border-border/50 bg-background">
         <div className="container px-4 md:px-6 flex flex-col sm:flex-row items-center justify-between">
           <div className="flex items-center gap-2">
@@ -354,50 +405,14 @@ export default function MarketingPage() {
             <Link href="mailto:support@autoboss.dev" className="text-xs hover:text-primary transition-colors" prefetch={false}>
               Support
             </Link>
-             {/* Placeholder for Chat Widget Trigger */}
             <Button variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-primary p-0 h-auto" onClick={() => alert("Chat Widget Placeholder: Clicked!")}>
                 <MessageCircle className="mr-1 h-3 w-3"/> Chat with Us
             </Button>
           </nav>
         </div>
       </footer>
-      
-      {/* Script for scroll animations - basic implementation */}
-      <script
-        dangerouslySetInnerHTML={{
-          __html: `
-            const scrollElements = document.querySelectorAll(".scroll-reveal");
-            const elementInView = (el, dividend = 1) => {
-              const elementTop = el.getBoundingClientRect().top;
-              return (
-                elementTop <= (window.innerHeight || document.documentElement.clientHeight) / dividend
-              );
-            };
-            const displayScrollElement = (element) => {
-              element.classList.add("visible");
-            };
-            const hideScrollElement = (element) => {
-              element.classList.remove("visible");
-            };
-            const handleScrollAnimation = () => {
-              scrollElements.forEach((el) => {
-                if (elementInView(el, 1.05)) { // Adjust dividend for when animation triggers
-                  displayScrollElement(el);
-                } else {
-                  // Optionally hide if you want elements to fade out when scrolled out of view
-                  // hideScrollElement(el); 
-                }
-              })
-            }
-            window.addEventListener("scroll", () => { 
-              handleScrollAnimation();
-            });
-            // Initial check
-            handleScrollAnimation();
-          `,
-        }}
-      />
     </div>
   );
 }
 
+    
