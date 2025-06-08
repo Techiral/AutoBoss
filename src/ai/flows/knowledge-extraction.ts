@@ -12,6 +12,7 @@
  *  - `extractKnowledge` - Extracts knowledge from a document.
  *  - `KnowledgeExtractionInput` - Input type for `extractKnowledge`.
  *  - `KnowledgeExtractionOutput` - Output type for `extractKnowledge`.
+ *  - `KnowledgeExtractionOutputSchema` - Zod schema for the output of `extractKnowledge`.
  */
 
 import {ai} from '@/ai/genkit';
@@ -26,7 +27,7 @@ const KnowledgeExtractionInputSchema = z.object({
 });
 export type KnowledgeExtractionInput = z.infer<typeof KnowledgeExtractionInputSchema>;
 
-const KnowledgeExtractionOutputSchema = z.object({
+export const KnowledgeExtractionOutputSchema = z.object({
   summary: z
     .string()
     .describe('A concise summary of the key information extracted from the document.'),
@@ -70,3 +71,4 @@ const extractKnowledgeFlow = ai.defineFlow(
     return modelResponse.output;
   }
 );
+
