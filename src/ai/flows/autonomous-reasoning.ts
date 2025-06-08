@@ -2,7 +2,7 @@
 'use server';
 
 /**
- * @fileOverview A autonomous reasoning AI agent with knowledge base access.
+ * @fileOverview A autonomous reasoning AI agent with knowledge base access, enhanced for RAG-like behavior.
  *
  * - autonomousReasoning - A function that handles the autonomous reasoning process.
  * - AutonomousReasoningInput - The input type for the autonomousReasoning function.
@@ -21,8 +21,9 @@ const AutonomousReasoningInputSchema = z.object({
 export type AutonomousReasoningInput = z.infer<typeof AutonomousReasoningInputSchema>;
 
 const AutonomousReasoningOutputSchema = z.object({
-  responseToUser: z.string().describe('A direct, conversational reply to the user based on the context, their input, and any provided knowledge.'),
-  reasoning: z.string().describe('The reasoning behind the generated response.'),
+  responseToUser: z.string().describe('A direct, conversational reply to the user. If knowledge was used, it cites the source (e.g., "Based on document X...").'),
+  reasoning: z.string().describe('The reasoning behind the generated response, including which knowledge items were deemed relevant and used.'),
+  relevantKnowledgeIds: z.array(z.string()).optional().describe('IDs of the knowledge items deemed most relevant and used for the response.')
 });
 export type AutonomousReasoningOutput = z.infer<typeof AutonomousReasoningOutputSchema>;
 
@@ -34,21 +35,31 @@ const prompt = ai.definePrompt({
   name: 'autonomousReasoningPrompt',
   input: {schema: AutonomousReasoningInputSchema},
   output: {schema: AutonomousReasoningOutputSchema},
-  prompt: `You are a helpful and conversational AI assistant. Your primary goal is to understand the user's input within the given conversation context and respond naturally and effectively.
+  prompt: `You are a helpful and conversational AI assistant. Your goal is to understand the user's input within the given conversation context and respond effectively.
 
-{{#if knowledgeItems}}
-You have access to the following information from a knowledge base. Use it to answer questions or supplement your responses whenever relevant:
-{{#each knowledgeItems}}
----
-Source: {{{this.fileName}}}
-Summary: {{{this.summary}}}
-Keywords: {{#each this.keywords}}{{{this}}}{{/each}}
----
-{{/each}}
-Always prioritize information from this knowledge base if it directly answers the user's query.
-{{else}}
-You do not have any specific pre-loaded documents for this query, rely on your general knowledge and the conversation context.
-{{/if}}
+You will follow a RAG-like (Retrieval Augmented Generation) process if knowledge items are provided:
+1.  **Analyze and Retrieve:** First, carefully analyze the "User's Latest Input" and the "Conversation Context".
+2.  **Assess Knowledge Relevancy:**
+    {{#if knowledgeItems}}
+    Review the following "Available Knowledge Items". For each item, determine if it is highly relevant to the user's current query.
+    --- AVAILABLE KNOWLEDGE ITEMS START ---
+    {{#each knowledgeItems}}
+    Item ID: {{{this.id}}}
+    Source: {{{this.fileName}}}
+    Summary: {{{this.summary}}}
+    Keywords: {{#each this.keywords}}{{{this}}}{{/each}}
+    ---
+    {{/each}}
+    --- AVAILABLE KNOWLEDGE ITEMS END ---
+    Identify the IDs of the most relevant knowledge items (if any) and list them in the "relevantKnowledgeIds" output field.
+    {{else}}
+    No specific knowledge items are available for this query. Rely on your general knowledge and the conversation context. Set "relevantKnowledgeIds" to an empty array or omit it.
+    {{/if}}
+3.  **Generate Response:**
+    *   If relevant knowledge items were identified, synthesize information *primarily* from these items to construct your "responseToUser".
+    *   If you use information from the knowledge base, explicitly cite the source document name in your response (e.g., "Based on the document '{{{this.fileName}}}', ...").
+    *   If no relevant knowledge items were found or no knowledge items were provided, use your general knowledge and the conversation context to answer.
+4.  **Explain Reasoning:** Provide a brief "reasoning" for why you chose that response. If knowledge items were used, explain which ones were relevant and how they helped. If no knowledge was used, explain why (e.g., "General knowledge question" or "No relevant documents found").
 
 Conversation Context (previous messages):
 {{{context}}}
@@ -56,14 +67,11 @@ Conversation Context (previous messages):
 User's Latest Input:
 {{{userInput}}}
 
-Based on the full conversation context, the user's latest input, and any relevant information from the knowledge base (if provided):
-1. Generate a direct, natural, and conversational "responseToUser".
-2. Provide a brief "reasoning" for why you chose that response. For instance, mention if you used the knowledge base or how the user's input related to the conversation history.
-
 Your response MUST be a single, valid JSON object adhering to the output schema:
 {
-  "responseToUser": "The conversational reply to send to the user.",
-  "reasoning": "The reasoning behind the chosen response."
+  "responseToUser": "The conversational reply. Cite sources like '[Source: file.txt]' if knowledge was used.",
+  "reasoning": "Explanation of how the response was derived, noting any specific knowledge items used.",
+  "relevantKnowledgeIds": ["id_of_relevant_item_1", "id_of_relevant_item_2"]
 }
 `,
 });
@@ -75,12 +83,23 @@ const autonomousReasoningFlow = ai.defineFlow(
     outputSchema: AutonomousReasoningOutputSchema,
   },
   async (input: AutonomousReasoningInput): Promise<AutonomousReasoningOutput> => {
-    // The Handlebars prompt template handles the conditional inclusion of knowledgeItems directly.
     const modelResponse = await prompt(input); 
     
     if (!modelResponse.output) {
         const rawText = modelResponse.response?.text;
         console.error("Autonomous reasoning failed to produce structured output. Raw response:", rawText);
+        // Try to parse if it's just a stringified JSON
+        if (rawText) {
+            try {
+                const parsedOutput = JSON.parse(rawText);
+                if (AutonomousReasoningOutputSchema.safeParse(parsedOutput).success) {
+                     console.warn("Autonomous reasoning successfully parsed raw text fallback.");
+                    return parsedOutput as AutonomousReasoningOutput;
+                }
+            } catch (e) {
+                 // Ignore if parsing fails, proceed to throw original error
+            }
+        }
         throw new Error(`Autonomous reasoning failed. Model response: ${rawText ? rawText.substring(0,200) : 'No raw text'}`);
     }
     return modelResponse.output;

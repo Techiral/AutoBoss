@@ -50,7 +50,7 @@ function findNextEdge(currentNodeId: string, flowDefinition: AgentFlowDefinition
         if (typedEdge) return typedEdge;
     }
     // Fallback to default or first available edge
-    return outgoingEdges.find(edge => edge.edgeType === 'default' || !edge.edgeType) || outgoingEdges[0];
+    return outgoingEdges.find(edge => edge.edgeType === 'default' || !edge.edgeType || edge.condition === "") || outgoingEdges[0];
 }
 
 
@@ -79,7 +79,7 @@ export async function executeAgentFlow(input: ExecuteAgentFlowInput): Promise<Ex
         break;
       }
       
-      currentContext.currentNodeId = currentNode.id;
+      currentContext.currentNodeId = currentNode.id; // Store current node in context
       let nextEdge: FlowEdge | undefined;
 
       switch (currentNode.type) {
@@ -123,16 +123,32 @@ export async function executeAgentFlow(input: ExecuteAgentFlowInput): Promise<Ex
             
             if (currentNode.useKnowledge && knowledgeItems && knowledgeItems.length > 0) {
               const knowledgeSummaries = knowledgeItems
-                .map(item => item.summary)
+                .map(item => `ID: ${item.id}\nSource: ${item.fileName}\nSummary: ${item.summary}\nKeywords: ${item.keywords?.join(', ') || 'N/A'}`)
                 .filter(Boolean) 
                 .join("\n\n---\n\n");
+              
               if (knowledgeSummaries) {
-                populatedPrompt = `Relevant Information from Knowledge Base:\n${knowledgeSummaries}\n\nOriginal Prompt:\n${populatedPrompt}`;
+                populatedPrompt = `
+You have access to the following information from a knowledge base.
+Your primary task is to respond to the "Original Prompt" below.
+Before responding, review the "Available Knowledge Items" and determine if any are relevant to the Original Prompt.
+If relevant items are found, use them to inform your response. If you use knowledge, cite the source document name.
+
+--- AVAILABLE KNOWLEDGE ITEMS START ---
+${knowledgeSummaries}
+--- AVAILABLE KNOWLEDGE ITEMS END ---
+
+Original Prompt:
+${populatedPrompt}
+
+Based on the Original Prompt and any relevant knowledge, generate the response.
+`;
               }
             }
             
             const llmResponse = await ai.generate({ prompt: populatedPrompt });
             currentContext[currentNode.outputVariable] = llmResponse.text;
+            messagesToSend.push(`(System: LLM Call Node '${currentNode.id}' output: "${llmResponse.text ? llmResponse.text.substring(0, 50) + '...' : 'empty'}")`); // Log LLM output
             nextEdge = findNextEdge(currentNode.id, flowDefinition);
           } else {
             messagesToSend.push(`(System: LLM node '${currentNode.id}' misconfigured - missing prompt or outputVariable)`);
@@ -156,14 +172,14 @@ export async function executeAgentFlow(input: ExecuteAgentFlowInput): Promise<Ex
                 .filter((condition): condition is string => typeof condition === 'string' && condition.trim() !== ""); 
               
               if (edgeConditionLabels.length > 0) {
-                const llmPromptForDecision = `User input: "${valueToEvaluate}". Based on this input, which of the following categories or intents best describes it? Categories: ${JSON.stringify(edgeConditionLabels)}. Respond with *only* the text of the chosen category. If none directly match, respond with the category for a general or default fallback if available (usually the one with an empty condition text).`;
+                const llmPromptForDecision = `Value to evaluate: "${valueToEvaluate}". Based on this value, which of the following categories or intents best describes it? Categories: ${JSON.stringify(edgeConditionLabels)}. Respond with *only* the text of the chosen category. If none directly match, and there's an edge with an empty condition label (acting as a default), respond with that empty label's implied category.`;
                 try {
                   const decisionResponse = await ai.generate({ prompt: llmPromptForDecision });
                   let chosenCategory = decisionResponse.text?.trim().toLowerCase();
                   
                   nextEdge = outgoingEdges.find(edge => edge.condition?.toLowerCase() === chosenCategory);
                   if (!nextEdge) { 
-                     messagesToSend.push(`(System: LLM decision '${chosenCategory}' did not match any edge condition directly for node '${currentNode.id}'. Trying default.)`);
+                     messagesToSend.push(`(System: LLM decision '${chosenCategory}' for node '${currentNode.id}' did not match any edge condition. Trying default.)`);
                     nextEdge = outgoingEdges.find(edge => edge.edgeType === 'default' || !edge.condition || edge.condition === "");
                   }
                 } catch (llmError: any) {
@@ -183,29 +199,21 @@ export async function executeAgentFlow(input: ExecuteAgentFlowInput): Promise<Ex
           }
           break;
 
-        case 'apiCall': // HTTP Request (Placeholder)
+        case 'apiCall': 
            messagesToSend.push(`(System: HTTP Request (apiCall) node '${currentNode.id}' - Placeholder. Would call ${currentNode.apiMethod || 'GET'} ${templatize(currentNode.apiUrl || '', currentContext)})`);
-           // Placeholder: In a real scenario, make HTTP call, then based on response (success/error):
-           // if (success) { currentContext[currentNode.apiOutputVariable] = response_data; nextEdge = findNextEdge(currentNode.id, flowDefinition, 'success'); }
-           // else { nextEdge = findNextEdge(currentNode.id, flowDefinition, 'error'); }
            currentContext[currentNode.apiOutputVariable || 'apiResult'] = "Placeholder API Response";
            nextEdge = findNextEdge(currentNode.id, flowDefinition, 'success');
            if (!nextEdge) nextEdge = findNextEdge(currentNode.id, flowDefinition, 'default');
           break;
         
-        case 'action': // Placeholder
+        case 'action': 
           messagesToSend.push(`(System: Action node '${currentNode.id}' - Placeholder. Action: ${currentNode.actionName || 'N/A'})`);
-          // In real implementation:
-          // const actionResult = await executeRegisteredAction(currentNode.actionName, currentNode.actionInputArgs, currentContext);
-          // Map actionResult to context using currentNode.actionOutputVarMap
           nextEdge = findNextEdge(currentNode.id, flowDefinition);
           break;
 
-        case 'code': // Placeholder - NO ACTUAL CODE EXECUTION
+        case 'code': 
             messagesToSend.push(`(System: Code (JS) node '${currentNode.id}' - Placeholder. Script: '${currentNode.codeScript?.substring(0, 50)}...')`);
-            // This is a highly simplified placeholder. Real JS execution is complex and needs sandboxing.
             if (currentNode.codeScript && currentNode.codeReturnVarMap) {
-                // Extremely basic simulation for a return object: `return { "key": "value" };`
                 const match = currentNode.codeScript.match(/return\s*{\s*["']([^"']+)["']\s*:\s*["']([^"']+)["']\s*};?/);
                 if (match) {
                     const returnKey = match[1];
@@ -221,7 +229,7 @@ export async function executeAgentFlow(input: ExecuteAgentFlowInput): Promise<Ex
             nextEdge = findNextEdge(currentNode.id, flowDefinition);
             break;
 
-        case 'qnaLookup': // Placeholder, basic keyword check
+        case 'qnaLookup': 
             messagesToSend.push(`(System: Q&A Lookup node '${currentNode.id}' - Placeholder)`);
             let found = false;
             const query = currentNode.qnaQueryVariable ? currentContext[currentNode.qnaQueryVariable] as string : currentMessage;
@@ -246,7 +254,7 @@ export async function executeAgentFlow(input: ExecuteAgentFlowInput): Promise<Ex
                 }
                 nextEdge = findNextEdge(currentNode.id, flowDefinition, 'notFound');
             }
-            if (!nextEdge) nextEdge = findNextEdge(currentNode.id, flowDefinition, 'default'); // Fallback
+            if (!nextEdge) nextEdge = findNextEdge(currentNode.id, flowDefinition, 'default'); 
             break;
 
         case 'wait':
@@ -258,15 +266,13 @@ export async function executeAgentFlow(input: ExecuteAgentFlowInput): Promise<Ex
             nextEdge = findNextEdge(currentNode.id, flowDefinition);
             break;
 
-        case 'transition': // Placeholder
+        case 'transition': 
             messagesToSend.push(`(System: Transition node '${currentNode.id}' - Placeholder. Would transition to flow '${currentNode.transitionTargetFlowId}')`);
-            // This would involve a more complex mechanism to switch flow contexts or call another flow executor.
-            // For now, it might act like an end node or proceed if an edge is defined (though typically it wouldn't have one).
-            isFlowFinished = true; // Or treat as end for now
+            isFlowFinished = true; 
             currentNodeId = undefined;
             continue;
 
-        case 'agentSkill': // Placeholder
+        case 'agentSkill': 
             messagesToSend.push(`(System: Agent Skill node '${currentNode.id}' - Placeholder. Skill: ${currentNode.agentSkillId || 'N/A'})`);
             nextEdge = findNextEdge(currentNode.id, flowDefinition);
             break;
@@ -284,10 +290,8 @@ export async function executeAgentFlow(input: ExecuteAgentFlowInput): Promise<Ex
           continue; 
 
         default:
-          // This is a way to handle unknown node types if FlowNodeType in studio.tsx diverges from lib/types.ts
-          // const exhaustiveCheck: never = currentNode.type; 
           messagesToSend.push(`(System: Unknown node type '${(currentNode as any).type}' encountered for node '${currentNode.id}')`);
-          nextEdge = findNextEdge(currentNode.id, flowDefinition); // Try to find a default edge
+          nextEdge = findNextEdge(currentNode.id, flowDefinition); 
       }
       
       if (nextEdge) {
@@ -302,15 +306,18 @@ export async function executeAgentFlow(input: ExecuteAgentFlowInput): Promise<Ex
 
     if (maxSteps <= 0) {
       error = "Flow execution exceeded maximum steps.";
+      messagesToSend.push(`(System: ${error})`);
     }
 
   } catch (e: any) {
     console.error("Error executing agent flow:", e);
     error = e.message || "An unexpected error occurred during flow execution.";
+    messagesToSend.push(`(System: Flow execution error - ${error})`);
   }
   
   if (isFlowFinished || error) {
     currentContext.waitingForInput = undefined;
+    currentContext.currentNodeId = undefined;
   }
 
   return { 

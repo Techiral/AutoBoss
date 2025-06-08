@@ -6,9 +6,9 @@ import type { Timestamp } from 'firebase/firestore';
 export const UserProfileSchema = z.object({
   email: z.string().email().optional(),
   displayName: z.string().optional(),
-  phoneNumber: z.string().optional(), // E.164 format recommended, e.g., +11234567890
-  createdAt: z.custom<Timestamp>(), // Store as Firestore Timestamp
-  // Add other profile fields here if needed, e.g., photoURL if not relying solely on Auth
+  photoDataUri: z.string().optional().describe("Base64 encoded Data URI for profile photo."),
+  phoneNumber: z.string().optional(), 
+  createdAt: z.custom<Timestamp>(), 
 });
 export type UserProfile = z.infer<typeof UserProfileSchema>;
 
@@ -124,13 +124,13 @@ export const AgentFlowDefinitionSchema = z.object({
 });
 export type AgentFlowDefinition = z.infer<typeof AgentFlowDefinitionSchema>;
 
-export const FlowContextSchema = z.record(z.any()).describe("Holds variables like userName, llmResponse etc. Also includes conversationHistory and potentially other dynamic state.");
+export const FlowContextSchema = z.record(z.any()).describe("Holds variables like userName, llmResponse etc. Also includes conversationHistory and potentially other dynamic state such as 'currentNodeId' and 'waitingForInput'.");
 export type FlowContext = z.infer<typeof FlowContextSchema>;
 
 // Agent interface now includes userId
 export interface Agent {
   id: string;
-  userId: string; // Added for linking agent to a user
+  userId: string; 
   name: string;
   description: string;
   role?: string;
@@ -138,7 +138,7 @@ export interface Agent {
   generatedName?: string;
   generatedPersona?: string;
   generatedGreeting?: string;
-  createdAt: string | Timestamp; // Can be ISO string from client or Timestamp from Firestore
+  createdAt: string | Timestamp; 
   knowledgeItems?: KnowledgeItem[];
   flow?: AgentFlowDefinition;
 }
@@ -153,4 +153,5 @@ export interface ChatMessage {
   reasoning?: string;
   flowNodeId?: string;
   flowContext?: FlowContext;
+  relevantKnowledgeIds?: string[]; // Added for RAG
 }
