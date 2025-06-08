@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { ChatInterface } from "@/components/chat-interface";
 import type { Agent } from "@/lib/types";
 import { Loader2, AlertTriangle } from "lucide-react";
@@ -10,7 +11,7 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Logo } from "@/components/logo";
 import { db } from '@/lib/firebase';
 import { doc, getDoc, Timestamp } from 'firebase/firestore';
-import { Button } from "@/components/ui/button"; // Added Button import
+import { Button } from "@/components/ui/button";
 
 // Helper to convert Firestore Timestamps in agent data to ISO strings
 const convertTimestampsToISOForChat = (agentData: any): Agent => {
@@ -91,7 +92,9 @@ export default function PublicChatPage() {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
          <div className="mt-8">
+           <Link href="/" aria-label="Go to AutoBoss Homepage">
             <Logo collapsed={false}/>
+           </Link>
          </div>
           <Button onClick={() => router.push('/dashboard')} className="mt-4">Go to Dashboard</Button>
       </div>
@@ -107,7 +110,9 @@ export default function PublicChatPage() {
             <AlertDescription>The specified agent could not be loaded.</AlertDescription>
         </Alert>
          <div className="mt-8">
+           <Link href="/" aria-label="Go to AutoBoss Homepage">
             <Logo collapsed={false}/>
+           </Link>
          </div>
          <Button onClick={() => router.push('/dashboard')} className="mt-4">Go to Dashboard</Button>
       </div>
@@ -117,7 +122,9 @@ export default function PublicChatPage() {
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
         <header className="p-4 border-b flex items-center justify-between bg-card">
-           <Logo collapsed={false}/>
+           <Link href="/" aria-label="Go to AutoBoss Homepage" className="hover:opacity-80 transition-opacity">
+            <Logo collapsed={false}/>
+           </Link>
            <div className="text-right">
              <h1 className="font-headline text-xl font-semibold">{agent.generatedName || agent.name}</h1>
              <p className="text-xs text-muted-foreground">Live Chat</p>

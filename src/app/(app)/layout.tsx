@@ -23,17 +23,17 @@ import { Home, PlusCircle, Bot, Settings, BookOpen, MessageSquare, Share2, Cog, 
 import type { Agent, KnowledgeItem, AgentFlowDefinition } from '@/lib/types';
 import { minimalInitialFlow } from '@/app/(app)/agents/[agentId]/studio/page';
 import { db } from '@/lib/firebase';
-import { 
-  collection, 
-  getDocs, 
-  doc, 
-  setDoc, 
-  deleteDoc, 
-  updateDoc, 
-  Timestamp, 
+import {
+  collection,
+  getDocs,
+  doc,
+  setDoc,
+  deleteDoc,
+  updateDoc,
+  Timestamp,
   query,
   where,
-  writeBatch 
+  writeBatch
 } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/contexts/AuthContext';
@@ -70,7 +70,7 @@ export function useAppContext() {
 
 const convertTimestampsToISO = (agent: any): Agent => {
   const newAgent = { ...agent };
-  if (newAgent.createdAt && newAgent.createdAt.toDate) { 
+  if (newAgent.createdAt && newAgent.createdAt.toDate) {
     newAgent.createdAt = newAgent.createdAt.toDate().toISOString();
   }
   if (newAgent.knowledgeItems) {
@@ -142,7 +142,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             toast({ title: "Error Loading Agents", description: "Could not load agent data.", variant: "destructive" });
           } finally {
             setIsLoadingAgents(false);
-            setIsContextInitialized(true); 
+            setIsContextInitialized(true);
           }
         };
         fetchAgents();
@@ -157,16 +157,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       return null;
     }
     try {
-      const newAgentId = doc(collection(db, AGENTS_COLLECTION)).id; 
+      const newAgentId = doc(collection(db, AGENTS_COLLECTION)).id;
       const newAgentWithUser: Agent = {
         ...agentData,
         id: newAgentId,
         userId: currentUser.uid,
-        createdAt: Timestamp.now(), 
+        createdAt: Timestamp.now(),
         knowledgeItems: [],
         flow: minimalInitialFlow,
       };
-      
+
       const { id, ...dataToSave } = newAgentWithUser;
       await setDoc(doc(db, AGENTS_COLLECTION, newAgentWithUser.id), dataToSave);
 
@@ -188,7 +188,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     try {
       const agentRef = doc(db, AGENTS_COLLECTION, updatedAgent.id);
       const dataToUpdate: any = { ...updatedAgent };
-      delete dataToUpdate.id; 
+      delete dataToUpdate.id;
 
       if (typeof dataToUpdate.createdAt === 'string') {
         dataToUpdate.createdAt = Timestamp.fromDate(new Date(dataToUpdate.createdAt));
@@ -202,8 +202,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         });
       }
 
-      await setDoc(agentRef, dataToUpdate, { merge: true }); 
-      
+      await setDoc(agentRef, dataToUpdate, { merge: true });
+
       setAgents((prevAgents) =>
         prevAgents.map((agent) =>
           agent.id === updatedAgent.id ? convertTimestampsToISO(updatedAgent) : agent
@@ -214,7 +214,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       toast({ title: "Error Updating Agent", description: "Could not save agent updates.", variant: "destructive" });
     }
   }, [currentUser, toast]);
-  
+
   const getAgent = useCallback((id: string) => {
     const agent = agents.find(agent => agent.id === id);
     if (agent && currentUser && agent.userId === currentUser.uid) {
@@ -231,9 +231,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
     try {
       const agentRef = doc(db, AGENTS_COLLECTION, agentId);
-      
+
       const existingKnowledgeItemsFirestore = (agent.knowledgeItems || []).map(ki => ({
-        ...ki, 
+        ...ki,
         uploadedAt: typeof ki.uploadedAt === 'string' ? Timestamp.fromDate(new Date(ki.uploadedAt)) : ki.uploadedAt,
       }));
 
@@ -245,11 +245,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       await updateDoc(agentRef, {
         knowledgeItems: [...existingKnowledgeItemsFirestore, newKnowledgeItemFirestore]
       });
-      
+
       setAgents(prevAgents =>
         prevAgents.map(a => {
           if (a.id === agentId) {
-            const updatedKnowledgeItems = [...(a.knowledgeItems || []), item]; 
+            const updatedKnowledgeItems = [...(a.knowledgeItems || []), item];
             return { ...a, knowledgeItems: updatedKnowledgeItems };
           }
           return a;
@@ -270,8 +270,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     try {
       const agentRef = doc(db, AGENTS_COLLECTION, agentId);
       await updateDoc(agentRef, { flow });
-      
-      setAgents(prevAgents => 
+
+      setAgents(prevAgents =>
         prevAgents.map(prevAgent => {
           if (prevAgent.id === agentId) {
             return { ...prevAgent, flow: flow };
@@ -346,21 +346,21 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   // Render the main app structure consistently.
   // Loading and redirect logic will be handled inside the `main` content area.
   return (
-    <AppContext.Provider value={{ 
-        agents, 
-        addAgent, 
-        updateAgent, 
-        getAgent, 
-        addKnowledgeItem, 
-        updateAgentFlow, 
-        getAgentFlow, 
-        deleteAgent, 
-        theme, 
-        toggleTheme, 
+    <AppContext.Provider value={{
+        agents,
+        addAgent,
+        updateAgent,
+        getAgent,
+        addKnowledgeItem,
+        updateAgentFlow,
+        getAgentFlow,
+        deleteAgent,
+        theme,
+        toggleTheme,
         clearAllFirebaseData,
-        isLoadingAgents 
+        isLoadingAgents
     }}>
-      <SidebarProvider defaultOpen={true}> 
+      <SidebarProvider defaultOpen={true}>
         <AppSidebar />
         <div className="flex flex-col flex-1 min-h-screen">
           <AppHeader />
@@ -377,7 +377,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     {/* useEffect in this layout already handles router.push for redirect */}
                 </div>
               ) : (
-                children 
+                children
               )}
             </main>
           </SidebarInset>
@@ -403,10 +403,10 @@ function AppHeader() {
 
 function AppSidebar() {
   const pathname = usePathname();
-  const { state: sidebarState } = useSidebar(); 
+  const { state: sidebarState } = useSidebar();
   const collapsed = sidebarState === 'collapsed';
   const { currentUser } = useAuth();
-  
+
   const agentIdMatch = pathname.match(/^\/agents\/([a-zA-Z0-9_-]+)/);
   const currentAgentId = agentIdMatch ? agentIdMatch[1] : null;
 
@@ -419,13 +419,15 @@ function AppSidebar() {
   ] : [];
 
   if (!currentUser && !(pathname.startsWith('/chat/'))) { // Also allow sidebar for public chat for consistency
-    return <Sidebar><SidebarHeader className="p-4"><Logo collapsed={collapsed} /></SidebarHeader></Sidebar>;
+    return <Sidebar><SidebarHeader className="p-4"><Link href="/" aria-label="Go to AutoBoss Homepage" className="hover:opacity-80 transition-opacity"><Logo collapsed={collapsed} className="px-2 py-1"/></Link></SidebarHeader></Sidebar>;
   }
 
   return (
     <Sidebar>
       <SidebarHeader className="p-4">
-        <Logo collapsed={collapsed} />
+        <Link href="/dashboard" className="hover:opacity-80 transition-opacity" aria-label="Go to dashboard">
+            <Logo collapsed={collapsed} className="px-2 py-1"/>
+        </Link>
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
@@ -482,4 +484,3 @@ function AppSidebar() {
     </Sidebar>
   );
 }
-    

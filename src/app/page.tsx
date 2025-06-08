@@ -2,16 +2,16 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Zap, Brain, Share2, Cog, Rocket, Eye, Palette, BarChart3, ShieldCheck } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
-import { Logo } from "@/components/logo"; 
+import Image from "next/image"; // Keep if you plan to use next/image for other images
+import { Logo } from "@/components/logo";
 
 export default function MarketingPage() {
   return (
-    <div className="flex flex-col min-h-screen bg-background text-foreground">
-      {/* Header: Assumed to be part of a layout, or can be added here if needed */}
+    <div className="flex flex-col min-h-screen bg-background text-foreground text-center">
+      {/* Header */}
       <header className="w-full px-4 lg:px-6 h-20 flex items-center border-b sticky top-0 z-50 bg-background/90 backdrop-blur-md">
         <div className="container mx-auto flex items-center justify-between">
-          <Link href="/" className="flex items-center justify-center" aria-label="AutoBoss Homepage">
+          <Link href="/" className="hover:opacity-80 transition-opacity" aria-label="AutoBoss Homepage">
             <Logo collapsed={false} />
           </Link>
           <nav className="flex gap-4 sm:gap-6 items-center">
@@ -35,7 +35,7 @@ export default function MarketingPage() {
 
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="w-full py-24 md:py-32 lg:py-40 xl:py-48 text-center">
+        <section className="w-full py-24 md:py-32 lg:py-40 xl:py-48">
           <div className="container px-4 md:px-6">
             <div className="mx-auto max-w-3xl space-y-6">
               <h1 className="font-headline text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-teal-400">
@@ -62,7 +62,7 @@ export default function MarketingPage() {
         </section>
 
         {/* Wow Factors / Key Benefits Section */}
-        <section id="features" className="w-full py-16 md:py-24 lg:py-32 bg-card text-center">
+        <section id="features" className="w-full py-16 md:py-24 lg:py-32 bg-card">
           <div className="container px-4 md:px-6">
             <div className="mx-auto max-w-3xl space-y-4 mb-12">
               <div className="inline-block rounded-lg bg-secondary px-3 py-1 text-sm text-secondary-foreground font-semibold">
@@ -97,7 +97,7 @@ export default function MarketingPage() {
         </section>
 
         {/* How It Works (Simplified) */}
-        <section id="how-it-works" className="w-full py-16 md:py-24 lg:py-32 text-center">
+        <section id="how-it-works" className="w-full py-16 md:py-24 lg:py-32">
           <div className="container px-4 md:px-6">
             <div className="mx-auto max-w-3xl space-y-4 mb-12">
                 <div className="inline-block rounded-lg bg-secondary px-3 py-1 text-sm text-secondary-foreground font-semibold">
@@ -130,9 +130,9 @@ export default function MarketingPage() {
             </div>
           </div>
         </section>
-        
+
         {/* Social Proof (Conceptual) */}
-        <section className="w-full py-16 md:py-24 lg:py-32 bg-card text-center">
+        <section className="w-full py-16 md:py-24 lg:py-32 bg-card">
             <div className="container px-4 md:px-6">
                 <h2 className="font-headline text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl text-muted-foreground/80">
                     Trusted by Innovators & Builders Like You
@@ -151,7 +151,7 @@ export default function MarketingPage() {
         </section>
 
         {/* Final CTA Section */}
-        <section id="contact" className="w-full py-20 md:py-28 lg:py-32 text-center bg-gradient-to-t from-background to-card">
+        <section id="contact" className="w-full py-20 md:py-28 lg:py-32 bg-gradient-to-t from-background to-card">
           <div className="container px-4 md:px-6">
             <div className="mx-auto max-w-2xl space-y-6">
               <h2 className="font-headline text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
@@ -171,7 +171,7 @@ export default function MarketingPage() {
         </section>
       </main>
 
-      <footer className="w-full py-8 border-t bg-background text-center">
+      <footer className="w-full py-8 border-t bg-background">
         <div className="container px-4 md:px-6 flex flex-col sm:flex-row items-center justify-between">
           <p className="text-xs text-muted-foreground">&copy; {new Date().getFullYear()} AutoBoss AI. All rights reserved.</p>
           <nav className="flex gap-4 sm:gap-6 mt-4 sm:mt-0">
@@ -190,5 +190,3 @@ export default function MarketingPage() {
     </div>
   );
 }
-
-    

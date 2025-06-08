@@ -65,7 +65,9 @@ export default function LoginPage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-muted/30 p-4">
       <div className="mb-8">
-        <Logo collapsed={false} />
+        <Link href="/" aria-label="Go to AutoBoss Homepage" className="hover:opacity-80 transition-opacity">
+          <Logo collapsed={false}/>
+        </Link>
       </div>
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center">

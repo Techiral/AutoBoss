@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2, UserPlus, Mail } from "lucide-react"; 
+import { Loader2, UserPlus, Mail } from "lucide-react";
 import { Logo } from "@/components/logo";
 // Removed GoogleIcon and Separator as Google Sign-Up is removed
 
@@ -60,15 +60,17 @@ export default function SignupPage() {
         </div>
       );
   }
-  
+
   if (currentUser && !authLoading) {
-    return null; 
+    return null;
   }
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-muted/30 p-4">
       <div className="mb-8">
-        <Logo collapsed={false}/>
+        <Link href="/" aria-label="Go to AutoBoss Homepage" className="hover:opacity-80 transition-opacity">
+          <Logo collapsed={false}/>
+        </Link>
       </div>
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center">
@@ -79,7 +81,7 @@ export default function SignupPage() {
             Join AutoBoss to start building and managing your AI agents.
           </CardDescription>
         </CardHeader>
-        
+
         <CardContent className="space-y-6">
           <form onSubmit={handleSubmit(onEmailSubmit)} className="space-y-4">
             <div className="space-y-2">
