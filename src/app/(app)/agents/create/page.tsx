@@ -14,9 +14,9 @@ import { useToast } from "@/hooks/use-toast";
 import { createAgent, CreateAgentOutput } from "@/ai/flows/agent-creation";
 import { useRouter } from "next/navigation";
 import { useAppContext } from "../../layout"; 
-import type { Agent } from "@/lib/types"; // Omit type for addAgent call
+import type { Agent } from "@/lib/types"; 
 import { Loader2 } from "lucide-react";
-// minimalInitialFlow is not directly needed here, AppContext handles it.
+import { useAuth } from "@/contexts/AuthContext"; // Import useAuth
 
 const formSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
@@ -31,13 +31,19 @@ export default function CreateAgentPage() {
   const [generatedAgentDetails, setGeneratedAgentDetails] = useState<CreateAgentOutput | null>(null);
   const { toast } = useToast();
   const router = useRouter();
-  const { addAgent: addAgentToContext } = useAppContext(); // Renamed for clarity
+  const { addAgent: addAgentToContext } = useAppContext();
+  const { currentUser } = useAuth(); // Get current user
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(formSchema),
   });
 
   const onSubmit: SubmitHandler<FormData> = async (data) => {
+    if (!currentUser) {
+      toast({ title: "Not Authenticated", description: "Please log in to create an agent.", variant: "destructive" });
+      router.push('/login');
+      return;
+    }
     setIsLoading(true);
     setGeneratedAgentDetails(null);
     try {
@@ -45,8 +51,8 @@ export default function CreateAgentPage() {
       const aiResult = await createAgent({ agentDescription });
       setGeneratedAgentDetails(aiResult);
       
-      // Prepare data for Firestore, AppContext will handle `id` and `createdAt`
-      const agentDataForContext: Omit<Agent, 'id' | 'createdAt' | 'knowledgeItems' | 'flow'> = {
+      // Prepare data for Firestore, AppContext will handle `id`, `createdAt`, `userId`
+      const agentDataForContext: Omit<Agent, 'id' | 'createdAt' | 'knowledgeItems' | 'flow' | 'userId'> = {
         name: data.name, 
         description: `Role: ${data.role}. Personality: ${data.personality}.`, 
         role: data.role,
@@ -56,16 +62,16 @@ export default function CreateAgentPage() {
         generatedGreeting: aiResult.agentGreeting,
       };
       
-      const newAgent = await addAgentToContext(agentDataForContext);
+      const newAgent = await addAgentToContext(agentDataForContext); // AppContext now adds userId
 
       if (newAgent) {
         toast({
           title: "Agent Configured!",
-          description: `Agent "${aiResult.agentName}" saved to Firestore. Redirecting to Studio...`,
+          description: `Agent "${aiResult.agentName}" saved. Redirecting to Studio...`,
         });
         router.push(`/agents/${newAgent.id}/studio`);
       } else {
-        // Error already toasted by AppContext
+        // Error already toasted by AppContext if addAgentToContext returns null
       }
     } catch (error: any) {
       console.error("Error creating agent:", error);
@@ -88,7 +94,7 @@ export default function CreateAgentPage() {
           <CardDescription>
             Define the core characteristics of your new agent. The AI will help refine its persona.
             <br />
-            <span className="text-xs text-muted-foreground">Agent data will be stored in Firestore.</span>
+            <span className="text-xs text-muted-foreground">Agent data will be stored in Firestore, associated with your account.</span>
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit(onSubmit)}>

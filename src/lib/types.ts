@@ -1,12 +1,12 @@
 
 import { z } from 'zod';
-import type { Timestamp } from 'firebase/firestore'; // Import Timestamp type
+import type { Timestamp } from 'firebase/firestore'; 
 
 // Zod Schema for KnowledgeItem
 export const KnowledgeItemSchema = z.object({
   id: z.string(),
   fileName: z.string(),
-  uploadedAt: z.string().or(z.custom<Timestamp>()), // Allow string (ISO) or Firestore Timestamp
+  uploadedAt: z.string().or(z.custom<Timestamp>()), 
   summary: z.string().optional(),
   keywords: z.array(z.string()).optional(),
 });
@@ -43,7 +43,7 @@ export const FlowNodeSchema = z.object({
     'getUserInput', 
     'callLLM', 
     'condition', 
-    'apiCall', // Used for HTTP Request
+    'apiCall', 
     'end',
     'action',
     'code',
@@ -116,8 +116,10 @@ export type AgentFlowDefinition = z.infer<typeof AgentFlowDefinitionSchema>;
 export const FlowContextSchema = z.record(z.any()).describe("Holds variables like userName, llmResponse etc. Also includes conversationHistory and potentially other dynamic state.");
 export type FlowContext = z.infer<typeof FlowContextSchema>;
 
+// Agent interface now includes userId
 export interface Agent {
   id: string;
+  userId: string; // Added for linking agent to a user
   name: string;
   description: string; 
   role?: string; 
@@ -125,7 +127,7 @@ export interface Agent {
   generatedName?: string; 
   generatedPersona?: string; 
   generatedGreeting?: string; 
-  createdAt: string | Timestamp; // Allow string (ISO) or Firestore Timestamp
+  createdAt: string | Timestamp; 
   knowledgeItems?: KnowledgeItem[];
   flow?: AgentFlowDefinition; 
 }
