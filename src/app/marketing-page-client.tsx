@@ -67,7 +67,7 @@ const SimpleFeatureCard: React.FC<SimpleFeatureCardProps> = ({ icon, title, desc
   );
 };
 
-const heroPainPoint = "AutoBoss builds AI teammates.";
+const heroHeadline = "AutoBoss builds AI teammates.";
 
 export default function MarketingPageClient() {
   const typewriterRef = useRef<HTMLSpanElement>(null);
@@ -80,11 +80,11 @@ export default function MarketingPageClient() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  useEffect(() => {
+ useEffect(() => {
     if (typewriterRef.current) {
-      typewriterRef.current.textContent = heroPainPoint;
+      typewriterRef.current.textContent = heroHeadline;
       typewriterRef.current.classList.remove("typewriter-text");
-      void typewriterRef.current.offsetWidth;
+      void typewriterRef.current.offsetWidth; // Trigger reflow
       typewriterRef.current.classList.add("typewriter-text");
     }
   }, []);
@@ -126,7 +126,7 @@ export default function MarketingPageClient() {
             </Button>
             <Button size="sm" asChild className="font-semibold bg-gradient-to-r from-electric-teal to-neon-lime text-background shadow-md hover:opacity-90 transition-opacity btn-interactive text-xs">
               <Link href="/dashboard" className="flex items-center gap-1">
-                Try AutoBoss Free <ArrowRight className="h-3.5 w-3.5"/>
+                Try AutoBoss Free <ArrowRight />
               </Link>
             </Button>
           </nav>
@@ -178,12 +178,12 @@ export default function MarketingPageClient() {
                 <Button size="lg" asChild className="button-active-feedback shadow-lg bg-gradient-to-r from-electric-teal to-neon-lime text-background font-bold text-sm px-6 py-3 hover:opacity-90 transition-all duration-300 hover:scale-105 group btn-interactive">
                   <Link href="/dashboard" className="flex items-center gap-1.5">
                     Launch Agent Free
-                    <Rocket className="h-4 w-4 group-hover:animate-bounce" />
+                    <Rocket className="group-hover:animate-bounce" />
                   </Link>
                 </Button>
                 <Button size="lg" variant="outline" asChild className="button-active-feedback btn-outline-themed transition-all duration-300 hover:scale-105 px-6 py-3 text-sm border-muted-foreground/40 text-primary hover:text-accent-foreground hover:bg-accent hover:border-accent bg-background/10 backdrop-blur-sm btn-interactive">
                   <Link href="#video-demo-placeholder" className="flex items-center gap-1.5">
-                    Watch 60s Demo <PlayCircle className="h-4 w-4"/>
+                    Watch 60s Demo <PlayCircle />
                   </Link>
                 </Button>
               </div>
@@ -193,7 +193,7 @@ export default function MarketingPageClient() {
 
         <section ref={poweringAIRef} id="powering-ai" className={cn("scroll-reveal section-light-accent w-full py-10 md:py-12 border-b border-border/50", poweringAIVisible && "visible")}>
             <div className="container mx-auto px-4 md:px-6 text-center max-w-screen-xl">
-                <h2 className="marketing-h2 text-sm font-semibold uppercase tracking-wider text-primary !mb-4">Powering AI Breakthroughs</h2>
+                <h2 className="marketing-h2 !text-base font-semibold uppercase tracking-wider text-primary !mb-4">Powering AI Breakthroughs</h2>
                 <div className="marquee w-full max-w-4xl mx-auto">
                   <div className="marquee-content flex items-center gap-8 md:gap-12">
                     {[...Array(2)].flatMap((_, repeatIndex) => [
@@ -203,8 +203,8 @@ export default function MarketingPageClient() {
                         { name: "NextGenFlow", hint: "future tech logo abstract" },
                         { name: "DataDrivenInc", hint: "data analytics logo sharp" },
                     ].map((logo, index) => (
-                      <div key={`${repeatIndex}-${index}`} className="flex-shrink-0 h-5 md:h-6 grayscale opacity-50 hover:grayscale-0 hover:opacity-80 transition-all duration-300 transform hover:scale-110">
-                         <Image loading="lazy" src={`https://placehold.co/140x30/transparent/333333.png?text=${logo.name.replace(/\s/g,'+')}&font=nunito`} alt={`${logo.name} Logo`} width={120} height={25} className="object-contain h-full" data-ai-hint={logo.hint} />
+                      <div key={`${repeatIndex}-${index}`} className="flex-shrink-0 h-5 md:h-6 grayscale opacity-75 hover:grayscale-0 hover:opacity-100 transition-all duration-300 transform hover:scale-110">
+                         <Image loading="lazy" src={`https://placehold.co/140x30/1A202C/E2E8F0.png?text=${logo.name.replace(/\s/g,'+')}&font=nunito`} alt={`${logo.name} Logo`} width={120} height={25} className="object-contain h-full" data-ai-hint={logo.hint} />
                       </div>
                     )))}
                   </div>
@@ -220,28 +220,28 @@ export default function MarketingPageClient() {
             </p>
             <div className="grid md:grid-cols-2 gap-5 lg:gap-6 max-w-3xl mx-auto text-left">
               <SimpleFeatureCard
-                icon={<Edit3 className="h-5 w-5" />}
+                icon={<Edit3 />}
                 title="Visual Flow Studio"
                 description="Design complex AI logic visually. Drag, drop, done."
                 caseStudy={{ quote: "Deployed a lead qualifier in an afternoon!", metric: "5x Faster", author: "Marketing @ DataCo" }}
                 animationDelay="delay-100"
               />
               <SimpleFeatureCard
-                icon={<Palette className="h-5 w-5" />}
+                icon={<Palette />}
                 title="AI Persona Engine"
                 description="Define a role, get a personality. Agents that match your brand."
                 caseStudy={{ quote: "The AI persona was spot-on. Feels like one of us.", metric: "99% Brand Voice", author: "CEO @ NextFlow" }}
                 animationDelay="delay-200"
               />
               <SimpleFeatureCard
-                icon={<Brain className="h-5 w-5" />}
+                icon={<Brain />}
                 title="Dynamic Knowledge Core"
                 description="Feed it docs & sites. Your agent becomes an expert, instantly."
                 caseStudy={{ quote: "Our agent is our product info source of truth.", metric: "Instant Answers", author: "Support @ AIPowered" }}
                 animationDelay="delay-300"
               />
               <SimpleFeatureCard
-                icon={<Zap className="h-5 w-5" />}
+                icon={<Zap />}
                 title="Autonomous Action Engine"
                 description="Agents don't just talk—they *do*. Execute tasks seamlessly."
                 caseStudy={{ quote: "Automating invoices saved 20 hrs/week.", metric: "Full Task Automation", author: "Ops @ Innovate" }}
@@ -304,7 +304,7 @@ export default function MarketingPageClient() {
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6 max-w-5xl mx-auto text-left">
                     <article ref={useIntersectionObserver(sectionObserverOptions)[0]} className={cn("scroll-reveal bg-background p-5 rounded-lg shadow-lg transform hover:scale-103 transition-transform duration-300 text-foreground", useIntersectionObserver(sectionObserverOptions)[1] && "visible", "delay-100")}>
                         <div className="flex items-center mb-2">
-                            <Image loading="lazy" src="https://placehold.co/32x32/transparent/333333.png?text=AR&font=nunito" alt="Alex R." width={32} height={32} className="rounded-full mr-2" data-ai-hint="professional person portrait"/>
+                            <Image loading="lazy" src="https://placehold.co/32x32/1A202C/E2E8F0.png?text=AR&font=nunito" alt="Alex R." width={32} height={32} className="rounded-full mr-2" data-ai-hint="professional person portrait"/>
                             <div>
                                 <h4 className="font-semibold text-foreground text-xs">Alex R.</h4>
                                 <p className="text-xs text-muted-foreground">Support Lead</p>
@@ -325,7 +325,7 @@ export default function MarketingPageClient() {
                     </article>
                      <article ref={useIntersectionObserver(sectionObserverOptions)[0]} className={cn("scroll-reveal bg-background p-5 rounded-lg shadow-lg transform hover:scale-103 transition-transform duration-300 text-foreground", useIntersectionObserver(sectionObserverOptions)[1] && "visible", "delay-300")}>
                         <div className="flex items-center mb-2">
-                             <Image loading="lazy" src="https://placehold.co/32x32/transparent/333333.png?text=PS&font=nunito" alt="Priya S." width={32} height={32} className="rounded-full mr-2" data-ai-hint="founder startup person portrait"/>
+                             <Image loading="lazy" src="https://placehold.co/32x32/1A202C/E2E8F0.png?text=PS&font=nunito" alt="Priya S." width={32} height={32} className="rounded-full mr-2" data-ai-hint="founder startup person portrait"/>
                             <div>
                                 <h4 className="font-semibold text-foreground text-xs">Priya S.</h4>
                                 <p className="text-xs text-muted-foreground">Founder @ InnovateLLC</p>
@@ -358,16 +358,18 @@ export default function MarketingPageClient() {
             </aside>
           </div>
         </section>
-
-        {/* Placeholder for sticky mid-page CTA: Implementation would require JavaScript for scroll-triggered visibility and positioning.
-            <div className="fixed bottom-10 right-10 z-50 hidden md:block">
-              <Button size="lg" asChild className="button-active-feedback shadow-xl bg-gradient-to-r from-electric-teal to-neon-lime text-background font-bold text-sm px-5 py-2.5 hover:opacity-90 transition-all duration-300 hover:scale-105 group btn-interactive">
-                <Link href="/dashboard" className="flex items-center gap-1.5">
-                  Build Your Agent <Rocket className="h-4 w-4 group-hover:animate-bounce" />
-                </Link>
-              </Button>
-            </div>
+        
+        {/* Placeholder for sticky mid-page CTA - requires JS for scroll-triggered visibility */}
+        {/* 
+        <div className="fixed bottom-10 right-10 z-50 hidden md:block scroll-reveal delay-500" ref={useIntersectionObserver({threshold: 0.5, rootMargin: "100% 0px -50% 0px"})[0]}>
+            <Button size="lg" asChild className="button-active-feedback shadow-xl bg-gradient-to-r from-electric-teal to-neon-lime text-background font-bold text-sm px-5 py-2.5 hover:opacity-90 transition-all duration-300 hover:scale-105 group btn-interactive">
+              <Link href="/dashboard" className="flex items-center gap-1.5">
+                Build Your Agent <Rocket />
+              </Link>
+            </Button>
+        </div>
         */}
+
 
         <section ref={finalCtaRef} className={cn("scroll-reveal section-cta-final w-full py-16 lg:py-20", finalCtaVisible && "visible")}>
           <div className="container mx-auto px-4 md:px-6 text-center max-w-screen-xl">
@@ -382,12 +384,12 @@ export default function MarketingPageClient() {
                 <Button size="lg" asChild className="button-active-feedback shadow-xl bg-gradient-to-r from-electric-teal to-neon-lime text-background font-bold text-sm px-6 py-2.5 hover:opacity-90 transition-all duration-300 hover:scale-105 group w-full sm:w-auto btn-interactive">
                   <Link href="/dashboard" className="flex items-center gap-1.5">
                     Start Building Free
-                    <Rocket className="h-4 w-4 group-hover:animate-bounce" />
+                    <Rocket className="group-hover:animate-bounce" />
                   </Link>
                 </Button>
                 <Button size="lg" variant="outline" asChild className="button-active-feedback btn-outline-themed transition-all duration-300 hover:scale-105 px-6 py-2.5 text-sm text-primary hover:text-accent-foreground hover:bg-accent hover:border-accent border-muted-foreground/50 bg-background/20 dark:bg-card/20 backdrop-blur-sm w-full sm:w-auto btn-interactive">
                   <Link href="mailto:demo@autoboss.dev?subject=AutoBoss%20Demo%20Request" className="flex items-center gap-1.5">
-                    Request a Demo <Eye className="h-4 w-4"/>
+                    Request a Demo <Eye />
                   </Link>
                 </Button>
               </div>
