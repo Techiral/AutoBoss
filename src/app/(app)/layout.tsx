@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Logo } from '@/components/logo';
 import { UserNav } from '@/components/user-nav';
-// Removed Button import as it's not directly used here
 import {
   SidebarProvider,
   Sidebar,
@@ -18,13 +17,15 @@ import {
   SidebarMenuButton,
   SidebarTrigger,
   SidebarInset,
-  useSidebar, // Added useSidebar
 } from '@/components/ui/sidebar';
-import { Home, PlusCircle, Bot, Settings, BookOpen, MessageSquare, Share2, Cog } from 'lucide-react';
+import { Home, PlusCircle, Bot, Settings, BookOpen, MessageSquare, Share2, Cog, LifeBuoy } from 'lucide-react';
 import type { Agent, KnowledgeItem, AgentFlowDefinition } from '@/lib/types';
-import { minimalInitialFlow } from '@/app/(app)/agents/[agentId]/studio/page'; // Assuming minimalInitialFlow is exported
+import { minimalInitialFlow } from '@/app/(app)/agents/[agentId]/studio/page';
 
 const LOCAL_STORAGE_AGENTS_KEY = 'agentVerseAgents';
+const LOCAL_STORAGE_THEME_KEY = 'agentVerseTheme';
+
+type Theme = 'dark' | 'light';
 
 interface AppContextType {
   agents: Agent[];
@@ -35,6 +36,9 @@ interface AppContextType {
   updateAgentFlow: (agentId: string, flow: AgentFlowDefinition) => void;
   getAgentFlow: (agentId: string) => AgentFlowDefinition | undefined;
   deleteAgent: (agentId: string) => void;
+  theme: Theme;
+  toggleTheme: () => void;
+  clearAllLocalData: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -49,9 +53,11 @@ export function useAppContext() {
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [agents, setAgents] = useState<Agent[]>([]);
+  const [theme, setTheme] = useState<Theme>('dark'); // Default to dark
   const [isContextInitialized, setIsContextInitialized] = useState(false);
 
   useEffect(() => {
+    // Load agents from localStorage
     try {
       const storedAgents = localStorage.getItem(LOCAL_STORAGE_AGENTS_KEY);
       if (storedAgents) {
@@ -59,14 +65,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       console.error("Failed to load agents from localStorage:", error);
-      // Optionally, clear corrupted storage
-      // localStorage.removeItem(LOCAL_STORAGE_AGENTS_KEY);
     }
+
+    // Load theme from localStorage
+    const storedTheme = localStorage.getItem(LOCAL_STORAGE_THEME_KEY) as Theme | null;
+    if (storedTheme && (storedTheme === 'light' || storedTheme === 'dark')) {
+      setTheme(storedTheme);
+    }
+    
     setIsContextInitialized(true);
   }, []);
 
   useEffect(() => {
-    if (isContextInitialized) { // Only save if context has been initialized
+    if (isContextInitialized) {
         try {
             localStorage.setItem(LOCAL_STORAGE_AGENTS_KEY, JSON.stringify(agents));
         } catch (error) {
@@ -75,13 +86,24 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [agents, isContextInitialized]);
 
+  useEffect(() => {
+    if (isContextInitialized) {
+      localStorage.setItem(LOCAL_STORAGE_THEME_KEY, theme);
+      if (theme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+  }, [theme, isContextInitialized]);
+
 
   const addAgent = useCallback((agent: Agent) => {
     const agentWithExtras: Agent = { 
       ...agent, 
       knowledgeItems: agent.knowledgeItems || [], 
-      flow: agent.flow || minimalInitialFlow, // Ensure new agents have a minimal flow
-      createdAt: agent.createdAt || new Date().toISOString() // Ensure createdAt is set
+      flow: agent.flow || minimalInitialFlow,
+      createdAt: agent.createdAt || new Date().toISOString()
     };
     setAgents((prevAgents) => [...prevAgents, agentWithExtras]);
   }, []);
@@ -138,13 +160,24 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     setAgents(prevAgents => prevAgents.filter(agent => agent.id !== agentId));
   }, []);
 
+  const toggleTheme = useCallback(() => {
+    setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
+  }, []);
+
+  const clearAllLocalData = useCallback(() => {
+    localStorage.removeItem(LOCAL_STORAGE_AGENTS_KEY);
+    setAgents([]);
+    // Optionally, could also reset theme to default if desired
+    // localStorage.removeItem(LOCAL_STORAGE_THEME_KEY);
+    // setTheme('dark'); 
+  }, []);
+
   if (!isContextInitialized) {
-    // Optional: return a loading spinner or null while context is initializing
     return null; 
   }
 
   return (
-    <AppContext.Provider value={{ agents, addAgent, updateAgent, getAgent, addKnowledgeItem, updateAgentFlow, getAgentFlow, deleteAgent }}>
+    <AppContext.Provider value={{ agents, addAgent, updateAgent, getAgent, addKnowledgeItem, updateAgentFlow, getAgentFlow, deleteAgent, theme, toggleTheme, clearAllLocalData }}>
       <SidebarProvider defaultOpen={true}> 
         <AppSidebar />
         <div className="flex flex-col flex-1 min-h-screen">
@@ -176,13 +209,12 @@ function AppHeader() {
 
 function AppSidebar() {
   const pathname = usePathname();
-  const { state, open, setOpen, isMobile } = useSidebar(); // Get open and setOpen from context
-  const collapsed = state === 'collapsed';
+  // const { state, open, setOpen, isMobile, useSidebar } = useSidebar(); // open, setOpen, isMobile not directly needed here
+  const { state } = useAppContext().theme === 'dark' ? { state: 'expanded' } : { state: 'expanded' }; // Simplified, assuming sidebar logic is mostly CSS driven based on 'collapsed'
+  const collapsed = state === 'collapsed'; // This will be false if using above simplification for now.
   
   const agentIdMatch = pathname.match(/^\/agents\/([a-zA-Z0-9_-]+)/);
   const currentAgentId = agentIdMatch ? agentIdMatch[1] : null;
-
-  // Removed auto-collapsing logic to give user full control via SidebarTrigger
 
   const agentNavItems = currentAgentId ? [
     { href: `/agents/${currentAgentId}/studio`, label: 'Studio', icon: Cog },
@@ -235,9 +267,15 @@ function AppSidebar() {
           )}
         </SidebarMenu>
       </SidebarContent>
-      <SidebarFooter className="p-4">
+      <SidebarFooter className="p-4 space-y-2">
+        <Link href="/support">
+          <SidebarMenuButton tooltip={collapsed ? 'Support' : undefined} isActive={pathname === '/support'}>
+            <LifeBuoy />
+            <span>Support</span>
+          </SidebarMenuButton>
+        </Link>
         <Link href="/settings">
-          <SidebarMenuButton tooltip={collapsed ? 'Settings' : undefined}>
+          <SidebarMenuButton tooltip={collapsed ? 'Settings' : undefined} isActive={pathname === '/settings'}>
             <Settings />
             <span>Settings</span>
           </SidebarMenuButton>
@@ -246,5 +284,3 @@ function AppSidebar() {
     </Sidebar>
   );
 }
-    
-    
