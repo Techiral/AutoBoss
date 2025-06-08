@@ -10,20 +10,20 @@ import {
   signOut as firebaseSignOut,
   updateProfile,
   sendPasswordResetEmail,
-  GoogleAuthProvider, // Import GoogleAuthProvider
-  signInWithPopup,    // Import signInWithPopup
+  GoogleAuthProvider,
+  signInWithPopup,
 } from 'firebase/auth';
-import { auth, db } from '@/lib/firebase'; // Import db
+import { auth, db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { doc, setDoc, getDoc, Timestamp } from 'firebase/firestore'; // Firestore imports
-import type { UserProfile } from '@/lib/types'; // Import UserProfile type
+import { doc, setDoc, getDoc, Timestamp } from 'firebase/firestore';
+import type { UserProfile } from '@/lib/types';
 
 interface AuthContextType {
   currentUser: User | null;
   loading: boolean;
   signUp: (email: string, pass: string) => Promise<User | null>;
   signIn: (email: string, pass: string) => Promise<User | null>;
-  signInWithGoogle: () => Promise<User | null>; // Add Google sign-in
+  signInWithGoogle: () => Promise<User | null>;
   signOut: () => Promise<void>;
   updateUserDisplayName: (newName: string) => Promise<boolean>;
   sendUserPasswordResetEmail: () => Promise<boolean>;
@@ -52,21 +52,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const docSnap = await getDoc(userRef);
       if (!docSnap.exists()) {
-        // Document doesn't exist, create it
         const userData: UserProfile = {
           email: user.email || "",
-          displayName: user.displayName || "",
+          displayName: user.displayName || user.email?.split('@')[0] || "New User", // Ensure displayName has a fallback
           createdAt: Timestamp.now(),
-          // phoneNumber will be added/updated separately
         };
         await setDoc(userRef, userData);
         console.log("User document created in Firestore for UID:", user.uid);
       } else {
-        // Document exists, potentially update displayName or email if they changed via provider
         const existingData = docSnap.data() as UserProfile;
         const updates: Partial<UserProfile> = {};
         if (user.displayName && user.displayName !== existingData.displayName) {
             updates.displayName = user.displayName;
+        }
+         if (!existingData.displayName && user.email) { // If displayName was missing, set a default
+            updates.displayName = user.email.split('@')[0];
         }
         if (user.email && user.email !== existingData.email) {
             updates.email = user.email;
@@ -78,7 +78,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       console.error("Error ensuring user document in Firestore:", error);
-      // Don't necessarily toast here as it's a background process
     }
   }, []);
 
@@ -99,6 +98,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
       if (userCredential.user) {
         await ensureUserDocumentExists(userCredential.user);
+        // Explicitly update profile if display name needs to be set from email
+        if (!userCredential.user.displayName) {
+            await updateProfile(userCredential.user, { displayName: email.split('@')[0] });
+        }
       }
       toast({ title: "Account Created!", description: "You have successfully signed up." });
       return userCredential.user;
@@ -135,7 +138,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return result.user;
     } catch (error: any) {
       console.error("Error signing in with Google:", error);
-      toast({ title: "Google Sign-In Failed", description: error.message || "Could not sign you in with Google.", variant: "destructive" });
+      let errorMessage = error.message || "Could not sign you in with Google.";
+      let errorTitle = "Google Sign-In Failed";
+
+      if (error.code === 'auth/popup-closed-by-user') {
+        errorMessage = "The Google sign-in popup was closed before the process could complete. If you did not close it manually, please check for popup blockers, try a different browser/incognito window, or ensure your internet connection is stable.";
+      } else if (error.code === 'auth/cancelled-popup-request') {
+        errorMessage = "Multiple sign-in popups were opened, and the previous request was cancelled. Please try signing in again.";
+      } else if (error.code === 'auth/popup-blocked') {
+        errorTitle = "Popup Blocked";
+        errorMessage = "Your browser blocked the Google sign-in popup. Please disable your popup blocker for this site and try again.";
+      } else if (error.code === 'auth/operation-not-allowed') {
+        errorTitle = "Sign-In Method Disabled";
+        errorMessage = "Google Sign-In is not enabled for this app. Please contact support if this seems incorrect.";
+      } else if (error.code === 'auth/network-request-failed') {
+        errorMessage = "A network error occurred during Google sign-in. Please check your internet connection and try again.";
+      }
+      
+      toast({ title: errorTitle, description: errorMessage, variant: "destructive" });
       return null;
     }
   };
@@ -143,6 +163,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     try {
       await firebaseSignOut(auth);
+      setCurrentUser(null); // Explicitly set currentUser to null
       toast({ title: "Signed Out", description: "You have been successfully signed out." });
     } catch (error: any) {
       console.error("Error signing out:", error);
@@ -157,10 +178,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     try {
       await updateProfile(auth.currentUser, { displayName: newName });
-      setCurrentUser(prevUser => prevUser ? ({ ...prevUser, displayName: newName } as User) : null);
-      // Update in Firestore as well
+      // Update Firestore document as well
       const userRef = doc(db, "users", auth.currentUser.uid);
       await setDoc(userRef, { displayName: newName }, { merge: true });
+      // Force a refresh of the currentUser object to get the latest profile
+      await auth.currentUser.reload();
+      setCurrentUser(auth.currentUser); // Update local state with reloaded user
       toast({ title: "Display Name Updated", description: "Your display name has been successfully updated." });
       return true;
     } catch (error: any) {
@@ -172,12 +195,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const sendUserPasswordResetEmail = async (): Promise<boolean> => {
     if (!auth.currentUser || !auth.currentUser.email) {
-      toast({ title: "Error", description: "No authenticated user or email found.", variant: "destructive" });
+      toast({ title: "Error", description: "No authenticated user or email found for password reset.", variant: "destructive" });
       return false;
     }
     try {
       await sendPasswordResetEmail(auth, auth.currentUser.email);
-      toast({ title: "Password Reset Email Sent", description: "Check your inbox for a password reset link." });
+      toast({ title: "Password Reset Email Sent", description: `A password reset link has been sent to ${auth.currentUser.email}.` });
       return true;
     } catch (error: any) {
       console.error("Error sending password reset email:", error);
@@ -194,7 +217,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const userRef = doc(db, "users", currentUser.uid);
       await setDoc(userRef, { phoneNumber: phoneNumber }, { merge: true });
-      toast({ title: "Phone Number Updated", description: "Your phone number has been successfully updated." });
+      toast({ title: "Phone Number Updated", description: "Your phone number has been successfully updated in your profile." });
       return true;
     } catch (error: any) {
       console.error("Error updating phone number in Firestore:", error);
@@ -215,9 +238,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return userData.phoneNumber || null;
       }
       return null;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching phone number from Firestore:", error);
-      toast({ title: "Fetch Error", description: "Could not retrieve phone number.", variant: "destructive" });
+      // Avoid toasting for a simple fetch error that might be transient or expected if no number is set
       return null;
     }
   };
