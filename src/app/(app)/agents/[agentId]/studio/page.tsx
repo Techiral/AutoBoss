@@ -616,7 +616,7 @@ export default function AgentStudioPage() {
     }
      if (!hasEndNode && nodes.length > 0) {
         toast({ title: "Invalid Flow", description: "A flow should have at least one 'End' node.", variant: "destructive"});
-        return null;
+        // This is a soft warning, allow saving anyway for iterative design
     }
     
     for (const node of nodes) {
@@ -639,6 +639,32 @@ export default function AgentStudioPage() {
         }
     }
 
+    function recursivelyStripUndefined(obj: any): any {
+      if (typeof obj !== 'object' || obj === null) {
+        return obj;
+      }
+    
+      if (Array.isArray(obj)) {
+        const newArray = obj
+          .map(item => recursivelyStripUndefined(item))
+          .filter(item => item !== undefined);
+        return newArray.length > 0 ? newArray : undefined; // Return undefined if array becomes empty
+      }
+    
+      const newObj: { [key: string]: any } = {};
+      let hasKeys = false;
+      for (const key in obj) {
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
+          const value = recursivelyStripUndefined(obj[key]);
+          if (value !== undefined) {
+            newObj[key] = value;
+            hasKeys = true;
+          }
+        }
+      }
+      return hasKeys ? newObj : undefined; // Return undefined if object becomes empty
+    }
+
     function sanitizeNode(visualNode: VisualNode): JsonFlowNode {
         const output: any = {
             id: visualNode.id,
@@ -647,48 +673,105 @@ export default function AgentStudioPage() {
             position: { x: visualNode.x, y: visualNode.y },
         };
 
-        const stringProps: (keyof VisualNode)[] = ['message', 'prompt', 'variableName', 'inputType', 'validationRules', 'llmPrompt', 'outputVariable', 'conditionVariable', 'apiUrl', 'apiBodyVariable', 'apiOutputVariable', 'actionName', 'codeScript', 'qnaKnowledgeBaseId', 'qnaQueryVariable', 'qnaFallbackText', 'qnaOutputVariable', 'transitionTargetFlowId', 'agentSkillId', 'endOutputVariable'];
-        stringProps.forEach(prop => { if (visualNode[prop] !== undefined && visualNode[prop] !== null) output[prop] = visualNode[prop]; });
-
-        if (visualNode.useKnowledge !== undefined && visualNode.useKnowledge !== null) output.useKnowledge = visualNode.useKnowledge;
-        if (visualNode.useLLMForDecision !== undefined && visualNode.useLLMForDecision !== null) output.useLLMForDecision = visualNode.useLLMForDecision;
-        
-        if (visualNode.apiMethod !== undefined && visualNode.apiMethod !== null) output.apiMethod = visualNode.apiMethod;
-
-        if (visualNode.qnaThreshold !== undefined && visualNode.qnaThreshold !== null) output.qnaThreshold = visualNode.qnaThreshold;
-        if (visualNode.waitDurationMs !== undefined && visualNode.waitDurationMs !== null) output.waitDurationMs = visualNode.waitDurationMs;
-
-        if (visualNode.agentSkillsList !== undefined && visualNode.agentSkillsList !== null) output.agentSkillsList = visualNode.agentSkillsList;
-
-        const jsonStringProps: {key: keyof VisualNode, outKey: keyof JsonFlowNode}[] = [
-            {key: 'apiHeaders', outKey: 'apiHeaders'}, {key: 'actionInputArgs', outKey: 'actionInputArgs'},
-            {key: 'actionOutputVarMap', outKey: 'actionOutputVarMap'}, {key: 'codeReturnVarMap', outKey: 'codeReturnVarMap'},
-            {key: 'transitionVariablesToPass', outKey: 'transitionVariablesToPass'}
+        // Define all possible properties based on VisualNode that should map to JsonFlowNode
+        const allProps: (keyof VisualNode)[] = [
+            'message', 'prompt', 'variableName', 'inputType', 'validationRules', 'llmPrompt', 
+            'outputVariable', 'useKnowledge', 'conditionVariable', 'useLLMForDecision', 
+            'conditionExpressions', 'apiUrl', 'apiMethod', 'apiHeaders', 'apiBodyVariable', 
+            'apiTimeout', 'apiRetryAttempts', 'apiOutputVariable', 'endOutputVariable', 
+            'actionName', 'actionInputArgs', 'actionOutputVarMap', 'codeScript', 'codeReturnVarMap', 
+            'qnaKnowledgeBaseId', 'qnaQueryVariable', 'qnaThreshold', 'qnaOutputVariable', 
+            'qnaFallbackText', 'waitDurationMs', 'transitionTargetFlowId', 'transitionTargetNodeId', 
+            'transitionVariablesToPass', 'agentSkillId', 'agentSkillsList', 'agentContextWindow'
         ];
-        jsonStringProps.forEach(propMap => {
-            const visualValue = visualNode[propMap.key];
-            if (visualValue !== undefined && visualValue !== null) {
-                try {
-                    const parsed = (typeof visualValue === 'string' && visualValue.trim() !== '') ? JSON.parse(visualValue) : visualValue;
-                    if (parsed !== undefined && parsed !== null) output[propMap.outKey] = parsed;
-                } catch (e) { console.warn(`Invalid JSON in ${String(propMap.key)} for node ${visualNode.id}: ${visualValue}`); }
+
+        allProps.forEach(propKey => {
+            const visualValue = visualNode[propKey as keyof VisualNode];
+
+            if (visualValue === undefined || visualValue === null) {
+                return; // Skip if undefined or null
+            }
+
+            let valueToSet: any;
+
+            // Properties that might be JSON strings or objects
+            const jsonStringOrObjectProps: (keyof VisualNode)[] = [
+                'apiHeaders', 'actionInputArgs', 'actionOutputVarMap', 
+                'codeReturnVarMap', 'transitionVariablesToPass'
+            ];
+
+            if (jsonStringOrObjectProps.includes(propKey)) {
+                let objectToSanitize: any;
+                if (typeof visualValue === 'string') {
+                    if (visualValue.trim() === '') {
+                        objectToSanitize = {}; // Default empty string to empty object
+                    } else {
+                        try {
+                            objectToSanitize = JSON.parse(visualValue);
+                        } catch (e) {
+                            console.warn(`Invalid JSON string in ${String(propKey)} for node ${visualNode.id}: "${visualValue}". Skipping.`);
+                            return;
+                        }
+                    }
+                } else if (typeof visualValue === 'object') {
+                    objectToSanitize = visualValue;
+                } else {
+                    console.warn(`Unexpected type for ${String(propKey)} in node ${visualNode.id}. Expected string or object, got ${typeof visualValue}. Skipping.`);
+                    return;
+                }
+                
+                if (typeof objectToSanitize === 'object' && objectToSanitize !== null) {
+                    valueToSet = recursivelyStripUndefined(objectToSanitize);
+                } else {
+                     // If parsing led to non-object, and it wasn't an empty string (which defaults to {}), then warn and skip
+                    if (!(typeof visualValue === 'string' && visualValue.trim() === '')) {
+                         console.warn(`Value for ${String(propKey)} in node ${visualNode.id} parsed to non-object:`, objectToSanitize, `. Original visual value:`, visualValue, `. Skipping.`);
+                         return;
+                    }
+                    valueToSet = {}; // Default for empty string case
+                }
+
+            } else if (Array.isArray(visualValue)) {
+                const sanitizedArray = visualValue
+                    .map(item => recursivelyStripUndefined(item))
+                    .filter(item => item !== undefined);
+                if (sanitizedArray.length > 0) {
+                    valueToSet = sanitizedArray;
+                } else {
+                    // If array becomes empty after sanitization, consider if it should be omitted or be an empty array
+                    // For FlowNodeSchema, empty arrays are fine for optional array fields.
+                    valueToSet = []; 
+                }
+            } else if (typeof visualValue === 'object') {
+                // For other object types not in jsonStringOrObjectProps (e.g. if we add more complex direct object fields later)
+                 valueToSet = recursivelyStripUndefined(visualValue);
+            }
+            else {
+                valueToSet = visualValue; // Primitives (string, number, boolean)
+            }
+
+            if (valueToSet !== undefined) {
+                 // For boolean `false`, ensure it's included
+                if (typeof valueToSet === 'boolean' || (typeof valueToSet === 'object' && valueToSet !== null) || (typeof valueToSet !== 'object' && valueToSet !== null && valueToSet !== undefined ) ) {
+                    output[propKey as keyof JsonFlowNode] = valueToSet;
+                }
             }
         });
         return output as JsonFlowNode;
     }
 
-    const jsonNodes: JsonFlowNode[] = nodes.map(sanitizeNode);
-
     function sanitizeEdge(edge: VisualEdge): JsonFlowEdge {
         const output: any = {
             id: edge.id, source: edge.source, target: edge.target,
         };
-        if (edge.label !== undefined && edge.label !== null) output.label = edge.label;
-        if (edge.condition !== undefined && edge.condition !== null) output.condition = edge.condition;
+        if (edge.label !== undefined && edge.label !== null && edge.label.trim() !== "") output.label = edge.label;
+        if (edge.condition !== undefined && edge.condition !== null && edge.condition.trim() !== "") output.condition = edge.condition;
         if (edge.edgeType !== undefined && edge.edgeType !== null) output.edgeType = edge.edgeType;
-        // Default for edgeType is handled by Zod schema if omitted
+        // Default for edgeType is handled by Zod schema if omitted (which is 'default')
         return output as JsonFlowEdge;
     }
+
+    const jsonNodes: JsonFlowNode[] = nodes.map(sanitizeNode);
     const jsonEdges: JsonFlowEdge[] = edges.map(sanitizeEdge);
 
     const flowId = currentAgent?.flow?.flowId || generateId('flow_');
@@ -710,7 +793,7 @@ export default function AgentStudioPage() {
     try {
       const agentFlowDef = convertToAgentFlowDefinition();
       if (!agentFlowDef) {
-        setIsSaving(false);
+        setIsSaving(false); // Error already toasted by convertToAgentFlowDefinition
         return;
       }
       updateAgentFlow(currentAgent.id, agentFlowDef);
@@ -811,10 +894,10 @@ export default function AgentStudioPage() {
       >
         <div
             ref={canvasContentRef}
-            className="absolute top-0 left-0 w-full h-full pointer-events-none" // Removed fixed width/height for pannable content
+            className="absolute top-0 left-0 w-full h-full pointer-events-none" 
             style={{ transform: `translate(${-canvasOffset.x}px, ${-canvasOffset.y}px)` }}
         >
-            <svg className="absolute top-0 left-0 w-full h-full pointer-events-none"> {/* Removed fixed width/height */}
+            <svg className="absolute top-0 left-0 w-full h-full pointer-events-none"> 
             {edges.map(edge => {
                 const sourceNode = nodes.find(n => n.id === edge.source);
                 const targetNode = nodes.find(n => n.id === edge.target);
@@ -1136,3 +1219,4 @@ export default function AgentStudioPage() {
     </TooltipProvider>
   );
 }
+
