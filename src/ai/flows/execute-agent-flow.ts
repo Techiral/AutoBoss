@@ -51,7 +51,7 @@ function findNextEdge(currentNodeId: string, flowDefinition: AgentFlowDefinition
         if (typedEdge) return typedEdge;
     }
     // Fallback to default or first available edge
-    return outgoingEdges.find(edge => edge.edgeType === 'default' || !edge.edgeType || edge.condition === "") || outgoingEdges[0];
+    return outgoingEdges.find(edge => edge.edgeType === 'default' || !edge.condition || edge.condition === "") || outgoingEdges[0];
 }
 
 
@@ -207,7 +207,7 @@ ${knowledgeSummaries}
             } else { // Exact match (non-LLM)
               nextEdge = outgoingEdges.find(edge => edge.condition?.trim().toLowerCase() === valueToEvaluate);
               if (nextEdge) {
-                messagesToSend.push(`(System: Condition matched edge with condition '${edge.condition}'. Next node: ${nextEdge.target})`);
+                messagesToSend.push(`(System: Condition matched edge with condition '${nextEdge.condition}'. Next node: ${nextEdge.target})`);
               } else {
                 messagesToSend.push(`(System: No exact condition match for '${valueToEvaluate}'. Trying default path.)`);
                 nextEdge = outgoingEdges.find(edge => edge.edgeType === 'default' || !edge.condition || edge.condition?.trim() === "");
@@ -216,6 +216,11 @@ ${knowledgeSummaries}
                 }
               }
             }
+          }
+          if (!nextEdge && currentNode.type === 'condition') {
+            messagesToSend.push(`(System: Condition node '${currentNode.id}' did not find a matching edge or default path. Flow cannot continue from this node.)`);
+            currentNodeId = undefined; // Stop flow
+            continue;
           }
           break;
 
@@ -315,7 +320,7 @@ ${knowledgeSummaries}
       }
       
       if (nextEdge) {
-        messagesToSend.push(`(System: Next node is '${nodes.find(n=>n.id===nextEdge.target)?.label || nextEdge.target}' via edge '${nextEdge.label || nextEdge.id}')`);
+        messagesToSend.push(`(System: Next node is '${flowDefinition.nodes.find(n=>n.id===nextEdge.target)?.label || nextEdge.target}' via edge '${nextEdge.label || nextEdge.id}')`);
         currentNodeId = nextEdge.target;
       } else {
         if (currentNode.type !== 'end' && !isFlowFinished) { 
@@ -361,3 +366,6 @@ const agentJsonFlow = ai.defineFlow(
   }
 );
 
+    
+
+    
