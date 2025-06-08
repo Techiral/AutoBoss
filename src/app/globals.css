@@ -113,12 +113,23 @@
   }
   body {
     @apply bg-background text-foreground;
+    @apply font-body antialiased; /* Added antialiased */
+    -webkit-font-smoothing: antialiased; /* Smoother fonts on WebKit */
+    -moz-osx-font-smoothing: grayscale; /* Smoother fonts on Firefox */
   }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-headline text-foreground;
+  }
+  /* Specific font sizes for hierarchy, adjust as needed */
+  h1 { @apply text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight; } /* Hero headline */
+  h2 { @apply text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight; } /* Section titles */
+  h3 { @apply text-xl sm:text-2xl font-semibold; } /* Feature titles, sub-section titles */
+
   .scroll-reveal {
-    opacity: 0; /* Start fully transparent */
-    transform: translateY(20px); /* Start slightly lower */
-    transition: opacity 0.5s cubic-bezier(0.645, 0.045, 0.355, 1), transform 0.5s cubic-bezier(0.645, 0.045, 0.355, 1);
-    transition-delay: 0.1s; /* Slight delay to ensure it triggers after element is in DOM */
+    opacity: 0;
+    transform: translateY(30px); /* Start slightly lower */
+    transition: opacity 0.6s cubic-bezier(0.645, 0.045, 0.355, 1), transform 0.6s cubic-bezier(0.645, 0.045, 0.355, 1);
+    /* Staggered delays can be applied via Tailwind: delay-100, delay-200 etc. */
   }
   .scroll-reveal.visible {
     opacity: 1;
@@ -130,18 +141,20 @@
 .typewriter-text {
   display: inline-block;
   overflow: hidden;
-  border-right: .15em solid hsl(var(--electric-teal)); 
+  border-right: .12em solid hsl(var(--electric-teal)); 
   white-space: nowrap; 
   margin: 0 auto;
-  letter-spacing: .05em;
+  letter-spacing: .03em; /* Adjusted letter spacing */
   animation: 
-    typing 3.5s steps(30, end),
+    typing 3.5s steps(35, end) forwards, /* Use forwards to hold last frame */
     blink-caret .75s step-end infinite;
+  animation-delay: 0.2s; /* Slight delay before starting */
 }
 /* This will be applied via JS to restart the typing animation */
-.typewriter-text-restart.typewriter-text { /* Ensure specificity for restart */
-  animation: none;
+.typewriter-text-restart.typewriter-text {
+  animation: none; /* Remove existing animation */
   width: 0; /* Reset width for restart */
+  border-right-color: transparent; /* Hide caret during reset */
 }
 
 
@@ -163,8 +176,8 @@
 }
 .marquee-content {
   display: inline-block;
-  padding-left: 100%;
-  animation: marquee 30s linear infinite;
+  padding-left: 100%; /* Start off-screen */
+  animation: marquee 40s linear infinite; /* Slower for readability */
 }
 .marquee-content:hover {
   animation-play-state: paused;
@@ -179,96 +192,102 @@
   @apply bg-background text-foreground;
 }
 .section-light-accent {
-  @apply bg-card text-card-foreground; /* Using card as the lighter alternative */
+  @apply bg-card text-card-foreground; /* Card background is slightly lighter than main dark bg */
 }
+.section-cta-final { /* For the final CTA section */
+  @apply bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 text-foreground; /* Darker, richer gradient */
+}
+
 
 /* CTA Button Pulse */
 @keyframes pulse-cta {
   0%, 100% {
     transform: scale(1);
-    box-shadow: 0 0 0 0 hsla(var(--electric-teal), 0.7);
+    box-shadow: 0 0 0 0 hsla(var(--electric-teal), 0.5);
   }
   50% {
-    transform: scale(1.05);
-    box-shadow: 0 0 0 10px hsla(var(--electric-teal), 0);
+    transform: scale(1.03); /* Slightly less aggressive pulse */
+    box-shadow: 0 0 0 8px hsla(var(--electric-teal), 0);
   }
 }
 .pulse-cta-btn {
-  animation: pulse-cta 2s infinite;
+  animation: pulse-cta 2.5s infinite;
 }
 
-/* Sticky Header - Basic */
+/* Sticky Header */
 .sticky-header {
-    @apply sticky top-0 z-50 transition-all duration-300;
+    @apply sticky top-0 z-50 transition-all duration-300 ease-in-out;
 }
 .sticky-header-scrolled {
-    @apply bg-background/90 backdrop-blur-sm shadow-lg;
+    @apply bg-background/90 backdrop-blur-md shadow-lg;
 }
 
-/* Perspective for Tilt Cards */
-.perspective-1000 {
-  perspective: 1000px;
-}
-
-/* Tilt Card specific hover */
-.tilt-card:hover {
-  transform: rotateY(5deg) rotateX(3deg) scale(1.03);
-  box-shadow: 0 10px 20px rgba(0,0,0,0.2), 0 0 15px hsl(var(--primary)/0.3);
-}
-
-.tilt-card-inner {
-  transition: transform 0.4s ease-out;
-  transform-style: preserve-3d;
-}
-.tilt-card:hover .tilt-card-inner {
-   /* transform: translateZ(10px); */
-}
-
-/* Ensure gradient text is visible on its typical background */
+/* Gradient Text Helpers */
 .gradient-text-on-dark {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-electric-teal via-neon-lime to-primary;
 }
-.gradient-text-on-light {
+.dark .gradient-text-on-dark { /* Ensure it uses the dark theme variables */
+    @apply bg-gradient-to-r from-[hsl(var(--electric-teal))] via-[hsl(var(--neon-lime))] to-[hsl(var(--primary))];
+}
+
+.gradient-text-on-light { /* For use on light backgrounds */
      @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-electric-teal to-neon-lime;
 }
+.light .gradient-text-on-light {
+     @apply bg-gradient-to-r from-[hsl(var(--primary))] via-[hsl(var(--electric-teal))] to-[hsl(var(--neon-lime))];
+}
+
 
 /* Styles for simple feature card presentation */
 .simple-feature-card {
-    @apply bg-card/50 p-6 rounded-xl border border-border shadow-lg text-left;
+    @apply bg-card/70 p-6 rounded-xl border border-border/50 shadow-lg text-left transition-all duration-300 ease-out;
+    @apply hover:shadow-2xl hover:border-primary/50 hover:scale-[1.02]; /* Enhanced hover */
 }
 .simple-feature-card-icon {
-    @apply p-3 rounded-lg bg-primary/10 text-primary mb-3 inline-block;
+    @apply p-3 rounded-lg bg-primary/10 text-primary mb-4 inline-block; /* Larger margin */
 }
 .simple-feature-card-title {
-    @apply font-headline text-xl font-bold text-foreground mb-2;
+    @apply font-headline text-2xl font-bold text-foreground mb-2; /* Increased font size */
+    @apply relative pt-2; /* Space for accent */
 }
+/* Accent line for feature card titles */
+.simple-feature-card-title::before {
+    content: '';
+    @apply absolute top-0 left-0 h-1 w-12 rounded-full bg-gradient-to-r from-electric-teal to-neon-lime;
+}
+
 .simple-feature-card-description {
-    @apply text-muted-foreground text-sm;
+    @apply text-muted-foreground text-base leading-relaxed; /* Slightly larger body text */
 }
 .simple-feature-card-case-study {
-    @apply mt-3 pt-3 border-t border-border/50 text-xs;
+    @apply mt-4 pt-4 border-t border-border/30 text-sm; /* Adjusted spacing and border */
 }
 .simple-feature-card-quote {
-     @apply italic text-muted-foreground/80;
+     @apply italic text-muted-foreground/90; /* More visible quote */
 }
 .simple-feature-card-metric {
     @apply font-semibold text-primary mt-1;
 }
 
 
+/* Mobile Menu Styling */
 #mobile-menu {
-    transition: transform 0.3s ease-in-out;
+    transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+    opacity: 0;
+    pointer-events: none;
 }
-#mobile-menu.hidden {
-    transform: translateX(100%);
+#mobile-menu.translate-x-0 { /* When open */
+    opacity: 1;
+    pointer-events: auto;
 }
+
 
 /* Helper to ensure video placeholder text is visible */
 .video-placeholder-text {
-  @apply absolute inset-0 flex flex-col items-center justify-center text-center text-foreground/80 bg-black/30 p-4;
+  @apply absolute inset-0 flex flex-col items-center justify-center text-center text-foreground/80 bg-black/50 p-4; /* Darker overlay */
 }
 .video-placeholder-text svg {
- @apply w-16 h-16 opacity-50 mb-4;
+ @apply w-16 h-16 opacity-70 mb-4 text-primary; /* More prominent icon */
 }
 
 /* Ensure placeholder images show their data-ai-hint clearly */
@@ -281,4 +300,15 @@ div[data-ai-hint] {
     background-color: hsl(var(--muted));
     border: 1px dashed hsl(var(--border));
     min-height: 6rem; /* ensure some height */
+    text-align: center;
+    padding: 0.5rem;
+}
+
+/* Enhanced button active states */
+.button-active-feedback {
+  @apply active:scale-95 active:brightness-90 transition-transform duration-100 ease-out;
+}
+/* Apply this class to buttons that need this feedback */
+.btn-interactive {
+  @apply button-active-feedback;
 }
