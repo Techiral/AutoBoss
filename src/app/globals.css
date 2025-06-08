@@ -115,9 +115,10 @@
     @apply bg-background text-foreground;
   }
   .scroll-reveal {
-    opacity: 0;
-    transform: translateY(30px);
-    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+    opacity: 0; /* Start fully transparent */
+    transform: translateY(20px); /* Start slightly lower */
+    transition: opacity 0.5s cubic-bezier(0.645, 0.045, 0.355, 1), transform 0.5s cubic-bezier(0.645, 0.045, 0.355, 1);
+    transition-delay: 0.1s; /* Slight delay to ensure it triggers after element is in DOM */
   }
   .scroll-reveal.visible {
     opacity: 1;
@@ -138,7 +139,7 @@
     blink-caret .75s step-end infinite;
 }
 /* This will be applied via JS to restart the typing animation */
-.typewriter-text-restart {
+.typewriter-text-restart.typewriter-text { /* Ensure specificity for restart */
   animation: none;
   width: 0; /* Reset width for restart */
 }
@@ -201,7 +202,7 @@
     @apply sticky top-0 z-50 transition-all duration-300;
 }
 .sticky-header-scrolled {
-    @apply bg-background/90 backdrop-blur-md shadow-lg;
+    @apply bg-background/90 backdrop-blur-sm shadow-lg;
 }
 
 /* Perspective for Tilt Cards */
@@ -221,4 +222,63 @@
 }
 .tilt-card:hover .tilt-card-inner {
    /* transform: translateZ(10px); */
+}
+
+/* Ensure gradient text is visible on its typical background */
+.gradient-text-on-dark {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-electric-teal via-neon-lime to-primary;
+}
+.gradient-text-on-light {
+     @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-electric-teal to-neon-lime;
+}
+
+/* Styles for simple feature card presentation */
+.simple-feature-card {
+    @apply bg-card/50 p-6 rounded-xl border border-border shadow-lg text-left;
+}
+.simple-feature-card-icon {
+    @apply p-3 rounded-lg bg-primary/10 text-primary mb-3 inline-block;
+}
+.simple-feature-card-title {
+    @apply font-headline text-xl font-bold text-foreground mb-2;
+}
+.simple-feature-card-description {
+    @apply text-muted-foreground text-sm;
+}
+.simple-feature-card-case-study {
+    @apply mt-3 pt-3 border-t border-border/50 text-xs;
+}
+.simple-feature-card-quote {
+     @apply italic text-muted-foreground/80;
+}
+.simple-feature-card-metric {
+    @apply font-semibold text-primary mt-1;
+}
+
+
+#mobile-menu {
+    transition: transform 0.3s ease-in-out;
+}
+#mobile-menu.hidden {
+    transform: translateX(100%);
+}
+
+/* Helper to ensure video placeholder text is visible */
+.video-placeholder-text {
+  @apply absolute inset-0 flex flex-col items-center justify-center text-center text-foreground/80 bg-black/30 p-4;
+}
+.video-placeholder-text svg {
+ @apply w-16 h-16 opacity-50 mb-4;
+}
+
+/* Ensure placeholder images show their data-ai-hint clearly */
+div[data-ai-hint] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem; /* text-xs */
+    color: hsl(var(--muted-foreground));
+    background-color: hsl(var(--muted));
+    border: 1px dashed hsl(var(--border));
+    min-height: 6rem; /* ensure some height */
 }
