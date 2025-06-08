@@ -1,12 +1,23 @@
 
 import { z } from 'zod';
-import type { Timestamp } from 'firebase/firestore'; 
+import type { Timestamp } from 'firebase/firestore';
+
+// Zod Schema for UserProfile (stored in Firestore 'users' collection)
+export const UserProfileSchema = z.object({
+  email: z.string().email().optional(),
+  displayName: z.string().optional(),
+  phoneNumber: z.string().optional(), // E.164 format recommended, e.g., +11234567890
+  createdAt: z.custom<Timestamp>(), // Store as Firestore Timestamp
+  // Add other profile fields here if needed, e.g., photoURL if not relying solely on Auth
+});
+export type UserProfile = z.infer<typeof UserProfileSchema>;
+
 
 // Zod Schema for KnowledgeItem
 export const KnowledgeItemSchema = z.object({
   id: z.string(),
   fileName: z.string(),
-  uploadedAt: z.string().or(z.custom<Timestamp>()), 
+  uploadedAt: z.string().or(z.custom<Timestamp>()),
   summary: z.string().optional(),
   keywords: z.array(z.string()).optional(),
 });
@@ -38,12 +49,12 @@ export type KnowledgeExtractionOutput = z.infer<typeof KnowledgeExtractionOutput
 export const FlowNodeSchema = z.object({
   id: z.string(),
   type: z.enum([
-    'start', 
-    'sendMessage', 
-    'getUserInput', 
-    'callLLM', 
-    'condition', 
-    'apiCall', 
+    'start',
+    'sendMessage',
+    'getUserInput',
+    'callLLM',
+    'condition',
+    'apiCall',
     'end',
     'action',
     'code',
@@ -53,25 +64,25 @@ export const FlowNodeSchema = z.object({
     'agentSkill'
   ]),
   position: z.object({ x: z.number(), y: z.number() }).optional(),
-  
+
   message: z.string().optional(),
-  prompt: z.string().optional(), 
-  variableName: z.string().optional(), 
+  prompt: z.string().optional(),
+  variableName: z.string().optional(),
   inputType: z.string().optional().describe("e.g., text, number, email, choice, date"),
   validationRules: z.string().optional().describe("e.g., regex, ranges"),
-  llmPrompt: z.string().optional(), 
-  outputVariable: z.string().optional(), 
+  llmPrompt: z.string().optional(),
+  outputVariable: z.string().optional(),
   useKnowledge: z.boolean().optional(),
-  conditionVariable: z.string().optional(), 
+  conditionVariable: z.string().optional(),
   useLLMForDecision: z.boolean().optional().describe("If true, uses an LLM to match conditionVariable's value against edge conditions."),
   conditionExpressions: z.array(z.string()).optional().describe("List of JS/Nunjucks expressions for condition node (currently not used if useLLMForDecision is true)"),
   apiUrl: z.string().optional(),
-  apiMethod: z.enum(['GET', 'POST', 'PUT', 'DELETE', 'PATCH']).optional().default('GET'), 
+  apiMethod: z.enum(['GET', 'POST', 'PUT', 'DELETE', 'PATCH']).optional().default('GET'),
   apiHeaders: z.record(z.string()).or(z.string()).optional().describe("e.g. {\"Authorization\": \"Bearer {{token}}\", \"Content-Type\": \"application/json\"}"),
   apiBodyVariable: z.string().optional().describe("Variable from context for request body (e.g. if POST/PUT)"),
   apiTimeout: z.number().optional().default(10000),
   apiRetryAttempts: z.number().optional().default(0),
-  apiOutputVariable: z.string().optional().describe("Variable to store the API response text/JSON string"), 
+  apiOutputVariable: z.string().optional().describe("Variable to store the API response text/JSON string"),
   endOutputVariable: z.string().optional().describe("Variable from context to output from the flow"),
   actionName: z.string().optional(),
   actionInputArgs: z.record(z.any()).or(z.string()).optional().describe("Key-value pairs for action inputs, e.g. {\"userId\": \"{{userIdVar}}\", \"product\": \"Laptop\"}"),
@@ -90,16 +101,16 @@ export const FlowNodeSchema = z.object({
   agentSkillId: z.string().optional(),
   agentSkillsList: z.array(z.string()).optional(),
   agentContextWindow: z.number().optional(),
-  label: z.string().optional(), 
+  label: z.string().optional(),
 });
 export type FlowNode = z.infer<typeof FlowNodeSchema>;
 
 export const FlowEdgeSchema = z.object({
   id: z.string(),
-  source: z.string(), 
-  target: z.string(), 
-  label: z.string().optional(), 
-  condition: z.string().optional(), 
+  source: z.string(),
+  target: z.string(),
+  label: z.string().optional(),
+  condition: z.string().optional(),
   edgeType: z.enum(['default', 'success', 'error', 'invalid', 'found', 'notFound']).optional().default('default').describe("Semantic type for edge, e.g. for HTTP error paths or Q&A results")
 });
 export type FlowEdge = z.infer<typeof FlowEdgeSchema>;
@@ -121,15 +132,15 @@ export interface Agent {
   id: string;
   userId: string; // Added for linking agent to a user
   name: string;
-  description: string; 
-  role?: string; 
-  personality?: string; 
-  generatedName?: string; 
-  generatedPersona?: string; 
-  generatedGreeting?: string; 
-  createdAt: string | Timestamp; 
+  description: string;
+  role?: string;
+  personality?: string;
+  generatedName?: string;
+  generatedPersona?: string;
+  generatedGreeting?: string;
+  createdAt: string | Timestamp; // Can be ISO string from client or Timestamp from Firestore
   knowledgeItems?: KnowledgeItem[];
-  flow?: AgentFlowDefinition; 
+  flow?: AgentFlowDefinition;
 }
 
 export interface ChatMessage {
@@ -139,7 +150,7 @@ export interface ChatMessage {
   timestamp: number;
   intent?: string;
   entities?: Record<string, string>;
-  reasoning?: string; 
-  flowNodeId?: string; 
-  flowContext?: FlowContext; 
+  reasoning?: string;
+  flowNodeId?: string;
+  flowContext?: FlowContext;
 }
