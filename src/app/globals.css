@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -23,7 +24,12 @@
     --muted: 220 15% 94%; /* Very Light Muted Gray */
     --muted-foreground: 220 10% 45%; /* Medium Gray Text */
     
-    --accent: 145 70% 40%; /* Slightly Darker Green for Light Mode Contrast */
+    /* NEW GRADIENT ACCENT COLORS */
+    --electric-teal: 175 80% 45%;
+    --neon-lime: 90 85% 55%;
+    --accent-gradient: linear-gradient(to right, hsl(var(--electric-teal)), hsl(var(--neon-lime)));
+
+    --accent: var(--electric-teal); /* Default accent to teal for single color use */
     --accent-foreground: 0 0% 100%; /* White */
     
     --destructive: 0 72% 51%; /* Red */
@@ -35,68 +41,71 @@
     
     --radius: 0.5rem;
     
-    --chart-1: 217 91% 58%; /* Primary Blue */
-    --chart-2: 145 70% 40%; /* Accent Green */
-    --chart-3: 220 10% 60%; /* Medium Gray */
-    --chart-4: 25 80% 55%;  /* Orange */
-    --chart-5: 300 70% 60%; /* Purple */
+    --chart-1: 217 91% 58%;
+    --chart-2: 175 80% 45%; /* Teal */
+    --chart-3: 220 10% 60%;
+    --chart-4: 90 85% 55%;  /* Lime */
+    --chart-5: 300 70% 60%;
 
-    /* Sidebar Light Theme (Derived from main light theme) */
-    --sidebar-background: 0 0% 98%; /* Very Light Gray, almost white */
-    --sidebar-foreground: 220 17% 15%; /* Dark text */
-    --sidebar-primary: 217 91% 58%; /* Brand blue */
-    --sidebar-primary-foreground: 210 100% 98%; /* White */
-    --sidebar-accent: 220 15% 90%; /* Light gray for hover */
-    --sidebar-accent-foreground: 217 91% 50%; /* Darker blue for text on hover */
-    --sidebar-border: 220 10% 85%; /* Slightly darker border */
-    --sidebar-ring: 217 91% 58%; /* Brand blue */
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 220 17% 15%;
+    --sidebar-primary: 217 91% 58%;
+    --sidebar-primary-foreground: 210 100% 98%;
+    --sidebar-accent: 220 15% 90%;
+    --sidebar-accent-foreground: 217 91% 50%;
+    --sidebar-border: 220 10% 85%;
+    --sidebar-ring: 217 91% 58%;
   }
 
   .dark {
-    /* Dark Theme (Primary, Botpress-inspired) */
-    --background: 220 17% 8%; /* Very Dark, Slightly Cool Desaturated Blue/Black */
-    --foreground: 210 20% 95%; /* Very Light Gray, Almost White */
+    /* Dark Theme (Primary) */
+    --background: 224 24% 10%; /* Slightly bluer very dark gray */
+    --foreground: 210 25% 96%; /* Off-white */
 
-    --card: 220 16% 12%; /* Dark Cool Gray, Slightly Lighter than BG */
-    --card-foreground: 210 20% 95%; /* Same as main foreground */
+    --card: 223 20% 14%; /* Darker card */
+    --card-foreground: 210 25% 96%;
 
-    --popover: 220 16% 12%;
-    --popover-foreground: 210 20% 95%;
+    --popover: 223 20% 14%;
+    --popover-foreground: 210 25% 96%;
 
-    --primary: 217 91% 58%; /* Vibrant Blue from image */
-    --primary-foreground: 210 100% 98%; /* White */
+    --primary: 217 91% 60%; /* Kept vibrant blue */
+    --primary-foreground: 210 100% 98%;
 
-    --secondary: 220 15% 20%; /* Medium-Dark Gray */
-    --secondary-foreground: 210 20% 80%; /* Lighter Gray */
+    --secondary: 220 15% 22%; /* Medium-dark gray */
+    --secondary-foreground: 210 20% 85%;
 
-    --muted: 220 15% 15%; /* Darker Muted Gray */
-    --muted-foreground: 210 15% 55%; /* Medium Gray Text */
+    --muted: 220 15% 18%; /* Darker muted gray */
+    --muted-foreground: 210 15% 60%; /* Lighter muted text */
 
-    --accent: 145 70% 45%; /* Vibrant Green from image */
-    --accent-foreground: 0 0% 100%; /* White for contrast on green */
+    /* GRADIENT ACCENT COLORS (Same for dark theme for vibrancy) */
+    --electric-teal: 175 80% 50%; /* Adjusted slightly for dark bg */
+    --neon-lime: 90 85% 60%;  /* Adjusted slightly for dark bg */
+    --accent-gradient: linear-gradient(to right, hsl(var(--electric-teal)), hsl(var(--neon-lime)));
 
-    --destructive: 0 72% 51%; /* Red */
-    --destructive-foreground: 0 0% 100%;
+    --accent: var(--electric-teal);
+    --accent-foreground: 220 17% 8%; /* Dark text for contrast on bright accent */
 
-    --border: 220 15% 18%; /* Subtle Dark Border */
-    --input: 220 15% 18%; /* Same as border for input bg */
-    --ring: 217 91% 58%; /* Primary blue for focus rings */
+    --destructive: 0 62% 50%; /* Slightly desaturated red for dark */
+    --destructive-foreground: 0 0% 98%;
 
-    --chart-1: 217 91% 65%; /* Primary Blue */
-    --chart-2: 145 70% 50%; /* Accent Green */
-    --chart-3: 210 15% 70%; /* Light Gray */
-    --chart-4: 25 80% 65%;  /* Lighter Yellow/Orange */
-    --chart-5: 300 70% 65%; /* Lighter Purple */
+    --border: 220 15% 25%; /* Softer dark border */
+    --input: 220 15% 20%; 
+    --ring: 217 91% 60%;
+
+    --chart-1: 217 91% 65%;
+    --chart-2: 175 80% 50%;
+    --chart-3: 210 15% 70%;
+    --chart-4: 90 85% 60%;
+    --chart-5: 300 70% 65%;
     
-    /* Sidebar Dark Theme */
-    --sidebar-background: 220 17% 9%; /* Slightly off from main dark BG */
-    --sidebar-foreground: 210 20% 90%; /* Light gray text */
-    --sidebar-primary: 217 91% 65%; /* Lighter brand blue */
-    --sidebar-primary-foreground: 210 40% 98%; /* White */
-    --sidebar-accent: 220 16% 15%; /* Darker blue for hover */
-    --sidebar-accent-foreground: 210 40% 98%; /* White for text on hover */
-    --sidebar-border: 220 15% 14%; /* Subtle border */
-    --sidebar-ring: 217 91% 65%; /* Lighter brand blue */
+    --sidebar-background: 224 24% 11%; /* Sidebar bg matching main bg or slightly different */
+    --sidebar-foreground: 210 20% 92%;
+    --sidebar-primary: 217 91% 65%;
+    --sidebar-primary-foreground: 210 40% 98%;
+    --sidebar-accent: 220 16% 18%; /* Darker accent for hover */
+    --sidebar-accent-foreground: hsl(var(--electric-teal)); /* Use teal for text on hover */
+    --sidebar-border: 220 15% 20%;
+    --sidebar-ring: 217 91% 65%;
   }
 }
 
@@ -106,5 +115,67 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Apply a subtle texture or noise to the main background if desired */
+    /* background-image: url('/path-to-noise-texture.png'); */
   }
+  /* Basic scroll-triggered fade-in animation */
+  .scroll-reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+  }
+  .scroll-reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Typewriter effect */
+.typewriter-text {
+  display: inline-block;
+  overflow: hidden; /* Ensures the content is not revealed until the animation */
+  border-right: .15em solid hsl(var(--electric-teal)); /* The typwriter cursor */
+  white-space: nowrap; /* Keeps the content on a single line */
+  margin: 0 auto; /* Gives that scrolling effect as the typing happens */
+  letter-spacing: .05em; /* Adjust as needed */
+  animation: 
+    typing 3.5s steps(30, end) forwards, /* Removed infinite, will cycle with JS */
+    blink-caret .75s step-end infinite;
+}
+
+@keyframes typing {
+  from { width: 0 }
+  to { width: 100% }
+}
+
+@keyframes blink-caret {
+  from, to { border-color: transparent }
+  50% { border-color: hsl(var(--electric-teal)); }
+}
+
+/* Marquee Animation */
+.marquee {
+  overflow: hidden;
+  position: relative;
+  white-space: nowrap;
+}
+.marquee-content {
+  display: inline-block;
+  padding-left: 100%;
+  animation: marquee 30s linear infinite;
+}
+.marquee-content:hover {
+  animation-play-state: paused;
+}
+@keyframes marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-100%); }
+}
+
+/* Section specific alternating background styles */
+.section-dark {
+  @apply bg-background text-foreground;
+}
+.section-light-accent {
+  @apply bg-card text-card-foreground; /* Using card as the lighter alternative */
 }
