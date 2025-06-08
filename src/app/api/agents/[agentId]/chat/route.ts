@@ -90,17 +90,19 @@ export async function POST(
     const knowledgeItems = agent.knowledgeItems || [];
 
     // --- Try Flow Execution First if applicable ---
-    if (agent.flow) {
+    if (agent.flow && agent.flow.nodes.find(n => n.type === 'start')) { // Ensure flow has a start node
       let inputContext: FlowContext;
       let nodeToExecute: string | undefined;
 
       if (flowState?.context && flowState?.nextNodeId) {
         // Resume existing flow
         inputContext = flowState.context;
+        if (!inputContext.conversationHistory) inputContext.conversationHistory = [];
+        inputContext.conversationHistory.push(`User: ${userInput}`);
         nodeToExecute = flowState.nextNodeId;
       } else {
         // Start new flow
-        inputContext = { conversationHistory: [] }; 
+        inputContext = { conversationHistory: [`Agent: ${agent.generatedGreeting || 'Hello!'}`, `User: ${userInput}`] }; 
         nodeToExecute = agent.flow.nodes.find(n => n.type === 'start')?.id;
       }
 
@@ -111,25 +113,32 @@ export async function POST(
           currentMessage: userInput,
           startNodeId: nodeToExecute,
           knowledgeItems: knowledgeItems,
+          agent: agent, // Pass the full agent object
         };
         
         const flowResult = await executeAgentFlow(flowInput);
+        
+        const agentMessagesForHistory = flowResult.messagesToSend.filter(m => !m.startsWith("(System:")).map(m => `Agent: ${m}`);
+        const finalContext = {
+            ...flowResult.updatedContext,
+            conversationHistory: [...(inputContext.conversationHistory || []), ...agentMessagesForHistory]
+        };
+
 
         if (flowResult.error) {
-           // If flow itself reports an error, but executed partially
            return NextResponse.json({
              type: 'flow',
              messages: flowResult.messagesToSend,
-             newFlowState: flowResult.nextNodeId ? { context: flowResult.updatedContext, nextNodeId: flowResult.nextNodeId } : undefined,
+             newFlowState: flowResult.nextNodeId ? { context: finalContext, nextNodeId: flowResult.nextNodeId } : undefined,
              isFlowFinished: flowResult.isFlowFinished,
              error: flowResult.error 
-           }, { status: 200 }); // Still a 200 as the API call itself was successful, but flow had an issue.
+           }, { status: 200 });
         }
 
         return NextResponse.json({ 
           type: 'flow',
           messages: flowResult.messagesToSend,
-          newFlowState: flowResult.nextNodeId ? { context: flowResult.updatedContext, nextNodeId: flowResult.nextNodeId } : undefined,
+          newFlowState: flowResult.nextNodeId ? { context: finalContext, nextNodeId: flowResult.nextNodeId } : undefined,
           isFlowFinished: flowResult.isFlowFinished,
         }, { status: 200 });
       }
@@ -137,15 +146,20 @@ export async function POST(
 
     // --- Fallback to Autonomous Reasoning ---
     let reasoningContextString = conversationHistoryString || "";
-    if (!reasoningContextString.trim() && agent.generatedPersona) {
-        reasoningContextString = `Agent Persona: ${agent.generatedPersona}\n`;
+     if (flowState?.context?.conversationHistory && Array.isArray(flowState.context.conversationHistory)) {
+        reasoningContextString = flowState.context.conversationHistory.join('\n');
+    }
+    if (reasoningContextString) {
+        reasoningContextString += `\nUser: ${userInput}`;
+    } else {
+        reasoningContextString = `User: ${userInput}`;
     }
     
-    const autonomousInputContext = conversationHistoryString || 
-      (agent.generatedPersona ? `You are an AI assistant with the following persona: ${agent.generatedPersona}. ` : "");
-
     const reasoningInput: AutonomousReasoningInput = {
-      context: autonomousInputContext,
+      agentName: agent.generatedName,
+      agentPersona: agent.generatedPersona,
+      agentRole: agent.role,
+      context: reasoningContextString,
       userInput: userInput,
       knowledgeItems: knowledgeItems,
     };
@@ -155,13 +169,13 @@ export async function POST(
     return NextResponse.json({ 
       type: 'autonomous',
       reply: result.responseToUser,
-      reasoning: result.reasoning
+      reasoning: result.reasoning,
+      relevantKnowledgeIds: result.relevantKnowledgeIds
     }, { status: 200 });
 
   } catch (error: any) {
     console.error(`API Error for agent ${agentId} | Message: ${userInput.substring(0,50)} | Error:`, error);
-    // Differentiate between known errors and general server errors
-    if (error.message.includes("Agent not found")) { // Example of a specific check
+    if (error.message.includes("Agent not found")) { 
         return createErrorResponse(404, error.message);
     }
     return createErrorResponse(500, 'An unexpected error occurred while processing your request.', { internalError: error.message });

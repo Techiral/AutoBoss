@@ -71,7 +71,7 @@ export function ChatInterface({ agent: initialAgent, appContext }: ChatInterface
     
     const flowToUse = getAgentFlowFromAppContext ? getAgentFlowFromAppContext(initialAgent.id) : initialAgent.flow;
     setCurrentAgentFlow(flowToUse);
-    if (flowToUse && flowToUse.nodes && flowToUse.nodes.length > 0) {
+    if (flowToUse && flowToUse.nodes && flowToUse.nodes.length > 0 && flowToUse.nodes.find(n => n.type === 'start')) {
         setChatMode("flow"); 
     } else {
         setChatMode("autonomous");
@@ -108,6 +108,7 @@ export function ChatInterface({ agent: initialAgent, appContext }: ChatInterface
         text: agentRef.current.generatedGreeting,
         timestamp: Date.now()
       });
+      tempContextForInit.conversationHistory = [`Agent: ${agentRef.current.generatedGreeting}`];
     }
     
     if (chatMode === "flow" && currentAgentFlowRef.current && currentAgentFlowRef.current.nodes.find(n => n.type === 'start')) {
@@ -119,6 +120,7 @@ export function ChatInterface({ agent: initialAgent, appContext }: ChatInterface
           currentMessage: undefined, 
           startNodeId: flowToExecute.nodes.find(n => n.type === 'start')?.id,
           knowledgeItems: agentKnowledgeItemsRef.current || [],
+          agent: agentRef.current, // Pass agent for persona
         });
 
         const agentResponses: ChatMessage[] = flowResult.messagesToSend.map((msg, index) => ({
@@ -131,7 +133,7 @@ export function ChatInterface({ agent: initialAgent, appContext }: ChatInterface
         }));
         
         aggregatedMessages = [...aggregatedMessages, ...agentResponses];
-        tempContextForInit = { ...flowResult.updatedContext }; 
+        tempContextForInit = { ...flowResult.updatedContext, conversationHistory: [...(tempContextForInit.conversationHistory || []), ...flowResult.messagesToSend.filter(m => !m.startsWith("(System:")).map(m => `Agent: ${m}`)] }; 
         tempNextNodeIdForInit = flowResult.nextNodeId; 
 
         if (flowResult.error) {
@@ -203,6 +205,7 @@ export function ChatInterface({ agent: initialAgent, appContext }: ChatInterface
           currentMessage: currentInput,
           startNodeId: nextNodeIdToResumeRef.current, 
           knowledgeItems: currentKnowledge,
+          agent: agentRef.current, // Pass agent for persona
         };
         
         const result = await executeAgentFlow(flowInput);
@@ -217,10 +220,10 @@ export function ChatInterface({ agent: initialAgent, appContext }: ChatInterface
         }));
         setMessages((prev) => [...prev, ...agentResponses]);
         
-        const updatedHistory = result.messagesToSend.map(msg => `Agent: ${msg}`);
+        const newAgentMessagesForHistory = result.messagesToSend.filter(m => !m.startsWith("(System:")).map(msg => `Agent: ${msg}`);
         currentFlowContextRef.current = { 
             ...result.updatedContext,
-            conversationHistory: [...(turnContextForFlow.conversationHistory || []), ...updatedHistory]
+            conversationHistory: [...(turnContextForFlow.conversationHistory || []), ...newAgentMessagesForHistory]
         };
         setCurrentFlowContext(currentFlowContextRef.current); 
         nextNodeIdToResumeRef.current = result.nextNodeId ? result.nextNodeId : undefined;
@@ -233,7 +236,7 @@ export function ChatInterface({ agent: initialAgent, appContext }: ChatInterface
         if (result.isFlowFinished && !result.nextNodeId) {
            nextNodeIdToResumeRef.current = undefined; 
            setNextNodeIdToResume(undefined); 
-           setChatMode("autonomous"); // Switch to autonomous if flow finishes
+           setChatMode("autonomous"); 
            toast({ title: "Flow Finished", description: "Switched to autonomous mode."});
         }
       } else { 
@@ -241,6 +244,9 @@ export function ChatInterface({ agent: initialAgent, appContext }: ChatInterface
         const contextStringForReasoning = currentConversationHistoryForReasoning.map(m => `${m.sender === 'user' ? 'User' : 'Agent'}: ${m.text}`).join('\n');
         
         const reasoningResult = await autonomousReasoning({ 
+            agentName: agentRef.current.generatedName,
+            agentPersona: agentRef.current.generatedPersona,
+            agentRole: agentRef.current.role,
             context: contextStringForReasoning, 
             userInput: userMessage.text, 
             knowledgeItems: currentKnowledge
@@ -256,13 +262,14 @@ export function ChatInterface({ agent: initialAgent, appContext }: ChatInterface
         };
         setMessages((prev) => [...prev, agentResponse]);
         const newHistoryEntry = `Agent: ${reasoningResult.responseToUser}`;
-        const initialEmptyContext = { 
-            conversationHistory: [...(currentFlowContextRef.current.conversationHistory || []), newHistoryEntry],
+        const updatedAutonomousContextHistory = [...(currentFlowContextRef.current.conversationHistory || []), `User: ${userMessage.text}`, newHistoryEntry];
+        const newContextForAutonomous = { 
+            conversationHistory: updatedAutonomousContextHistory,
             waitingForInput: undefined, 
             currentNodeId: undefined 
         };
-        currentFlowContextRef.current = initialEmptyContext;
-        setCurrentFlowContext(initialEmptyContext);
+        currentFlowContextRef.current = newContextForAutonomous;
+        setCurrentFlowContext(newContextForAutonomous);
       }
     } catch (error: any) {
       console.error("Error processing message:", error);
@@ -325,7 +332,7 @@ export function ChatInterface({ agent: initialAgent, appContext }: ChatInterface
                     setChatMode('flow');
                     setIsInitializing(true); 
                   } else {
-                    toast({title: "No Flow Defined", description: "This agent does not have a valid flow to start. Please define one in the Studio.", variant: "destructive"});
+                    toast({title: "No Flow Defined", description: "This agent does not have a valid flow to start. Please define one in the Studio and save it.", variant: "destructive"});
                   }
                 }}
                 disabled={!(currentAgentFlowRef.current && currentAgentFlowRef.current.nodes.find(n => n.type === 'start')) || isLoading || isRestarting || isInitializing}
@@ -373,14 +380,15 @@ export function ChatInterface({ agent: initialAgent, appContext }: ChatInterface
                 )}
               >
                 <p className="whitespace-pre-wrap">{message.text}</p>
-                {(message.intent || message.reasoning || message.flowNodeId || message.flowContext || message.entities || message.relevantKnowledgeIds) && (
+                {(message.intent || message.reasoning || message.flowNodeId || message.flowContext || message.entities || message.relevantKnowledgeIds || message.text.startsWith("(System:")) && (
                   <Accordion type="single" collapsible className="mt-2 text-xs w-full">
                     <AccordionItem value="item-1" className="border-b-0">
                       <AccordionTrigger className="py-1 hover:no-underline text-muted-foreground [&[data-state=open]>svg]:text-foreground">
                         <Info size={12} className="mr-1" /> AI Debug Info 
                       </AccordionTrigger>
-                      <AccordionContent className="pt-1 pb-0 space-y-1 bg-background/30 p-2 rounded">
-                        {message.flowNodeId && <p><strong>Flow Node:</strong> {message.flowNodeId}</p>}
+                      <AccordionContent className="pt-1 pb-0 space-y-1 bg-background/30 p-2 rounded max-h-60 overflow-y-auto">
+                        {message.text.startsWith("(System:") && <p><strong>System Message:</strong> {message.text}</p>}
+                        {message.flowNodeId && <p><strong>Flow Node ID:</strong> {message.flowNodeId}</p>}
                         {message.intent && <p><strong>Intent:</strong> {message.intent}</p>}
                         {message.entities && Object.keys(message.entities).length > 0 && (
                           <p><strong>Entities:</strong> {JSON.stringify(message.entities)}</p>

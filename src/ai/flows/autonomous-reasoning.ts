@@ -14,6 +14,9 @@ import {z} from 'genkit';
 import { KnowledgeItemSchema } from '@/lib/types'; // Import KnowledgeItemSchema
 
 const AutonomousReasoningInputSchema = z.object({
+  agentName: z.string().optional().describe("The name of the agent."),
+  agentPersona: z.string().optional().describe("The persona of the agent."),
+  agentRole: z.string().optional().describe("The role/objective of the agent."),
   context: z.string().describe('The current context of the conversation, including past messages.'),
   userInput: z.string().describe('The user input to analyze and respond to.'),
   knowledgeItems: z.array(KnowledgeItemSchema).optional().describe("An array of knowledge items for the agent."),
@@ -35,7 +38,11 @@ const prompt = ai.definePrompt({
   name: 'autonomousReasoningPrompt',
   input: {schema: AutonomousReasoningInputSchema},
   output: {schema: AutonomousReasoningOutputSchema},
-  prompt: `You are a helpful and conversational AI assistant. Your goal is to understand the user's input within the given conversation context and respond effectively.
+  prompt: `
+{{#if agentName}}You are {{agentName}}.{{/if}}
+{{#if agentPersona}} Your persona is: {{agentPersona}}.{{/if}}
+{{#if agentRole}} Your role is: {{agentRole}}.{{else}}You are a helpful and conversational AI assistant.{{/if}}
+Your goal is to understand the user's input within the given conversation context and respond effectively.
 
 You will follow a RAG-like (Retrieval Augmented Generation) process if knowledge items are provided:
 1.  **Analyze and Retrieve:** First, carefully analyze the "User's Latest Input" and the "Conversation Context".
@@ -88,7 +95,6 @@ const autonomousReasoningFlow = ai.defineFlow(
     if (!modelResponse.output) {
         const rawText = modelResponse.response?.text;
         console.error("Autonomous reasoning failed to produce structured output. Raw response:", rawText);
-        // Try to parse if it's just a stringified JSON
         if (rawText) {
             try {
                 const parsedOutput = JSON.parse(rawText);
@@ -105,4 +111,3 @@ const autonomousReasoningFlow = ai.defineFlow(
     return modelResponse.output;
   }
 );
-
