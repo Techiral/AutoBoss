@@ -57,51 +57,51 @@
 
   .dark {
     /* Dark Theme (Primary) */
-    --background: 224 24% 10%;
-    --foreground: 210 25% 96%;
+    --background: 224 24% 10%; /* Dark Navy Blue */
+    --foreground: 210 25% 96%; /* Off-white/Light Gray for text */
 
-    --card: 223 20% 14%;
-    --card-foreground: 210 25% 96%;
+    --card: 223 20% 14%; /* Very Dark Gray for card backgrounds */
+    --card-foreground: 210 25% 96%; /* Off-white for card text */
 
     --popover: 223 20% 14%;
     --popover-foreground: 210 25% 96%;
 
-    --primary: 217 91% 60%;
-    --primary-foreground: 210 100% 98%;
+    --primary: 175 80% 50%; /* Teal for primary actions */
+    --primary-foreground: 220 17% 8%; /* Dark text for teal buttons */
 
-    --secondary: 220 15% 22%;
-    --secondary-foreground: 210 20% 85%;
+    --secondary: 220 15% 22%; /* Darker muted gray */
+    --secondary-foreground: 210 20% 85%; /* Lighter gray for secondary text */
 
-    --muted: 220 15% 18%;
-    --muted-foreground: 210 15% 60%;
+    --muted: 220 15% 18%; /* Very dark muted gray */
+    --muted-foreground: 210 15% 60%; /* Medium gray for muted text */
+    
+    --electric-teal: 175 80% 50%; /* Teal from style guide */
+    --neon-lime: 90 85% 60%; /* Neon Lime for secondary accents */
 
-    --electric-teal: 175 80% 50%;
-    --neon-lime: 90 85% 60%;
+    --accent: var(--electric-teal); /* Main accent: Teal */
+    --accent-foreground: 220 17% 8%; /* Dark text on Teal accent */
 
-    --accent: var(--electric-teal);
-    --accent-foreground: 220 17% 8%;
+    --destructive: 0 62% 50%; /* Red for destructive actions */
+    --destructive-foreground: 0 0% 98%; /* Light text on red */
 
-    --destructive: 0 62% 50%;
-    --destructive-foreground: 0 0% 98%;
+    --border: 220 15% 25%; /* Darker border */
+    --input: 220 15% 20%; /* Dark input background */
+    --ring: var(--electric-teal); /* Teal for focus rings */
 
-    --border: 220 15% 25%;
-    --input: 220 15% 20%;
-    --ring: 217 91% 60%;
-
-    --chart-1: 217 91% 65%;
-    --chart-2: 175 80% 50%;
+    --chart-1: hsl(var(--electric-teal));
+    --chart-2: hsl(var(--neon-lime));
     --chart-3: 210 15% 70%;
-    --chart-4: 90 85% 60%;
+    --chart-4: 217 91% 65%; /* Original primary blue as a chart color */
     --chart-5: 300 70% 65%;
 
     --sidebar-background: 224 24% 11%;
     --sidebar-foreground: 210 20% 92%;
-    --sidebar-primary: 217 91% 65%;
-    --sidebar-primary-foreground: 210 40% 98%;
+    --sidebar-primary: hsl(var(--electric-teal));
+    --sidebar-primary-foreground: 220 17% 8%;
     --sidebar-accent: 220 16% 18%;
-    --sidebar-accent-foreground: hsl(var(--electric-teal));
+    --sidebar-accent-foreground: hsl(var(--neon-lime));
     --sidebar-border: 220 15% 20%;
-    --sidebar-ring: 217 91% 65%;
+    --sidebar-ring: hsl(var(--electric-teal));
   }
 }
 
@@ -116,16 +116,26 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  h1, .marketing-h1 { @apply text-4xl sm:text-5xl font-bold tracking-tight font-headline; letter-spacing: -0.025em; }
-  h2, .marketing-h2 { @apply text-3xl sm:text-4xl font-bold tracking-tight font-headline; letter-spacing: -0.02em; }
-  h3 { @apply text-xl sm:text-2xl font-semibold font-headline; }
+  h1, .marketing-h1 {
+    @apply text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-tight;
+    letter-spacing: -0.03em;
+  }
+  h2, .marketing-h2 {
+    @apply text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight mb-3 md:mb-4;
+    letter-spacing: -0.02em;
+  }
+  h3 { @apply text-lg sm:text-xl font-semibold font-headline; }
+
+  .section-description {
+      @apply text-muted-foreground text-sm md:text-base max-w-xl mx-auto mb-6 md:mb-8 lg:mb-10;
+  }
 
 
   .scroll-reveal {
     opacity: 0;
     transform: translateY(20px);
     transition-property: opacity, transform;
-    transition-duration: 0.6s;
+    transition-duration: 0.6s; 
     transition-timing-function: cubic-bezier(0.645, 0.045, 0.355, 1);
   }
   .scroll-reveal.visible {
@@ -153,10 +163,10 @@
   margin: 0 auto;
   letter-spacing: .03em;
   animation:
-    typing 1.5s steps(40, end) forwards, /* 'forwards' holds the end state */
+    typing 1.5s steps(31, end) forwards, /* Ensure 31 steps for "AutoBoss builds AI teammates." */
     blink-caret .75s step-end infinite;
   animation-delay: 0.2s;
-  width: 0%; /* Start with no width */
+  width: 0%;
 }
 
 
@@ -168,7 +178,7 @@
 }
 .marquee-content {
   display: inline-block;
-  padding-left: 100%;
+  padding-left: 100%; 
   animation: marquee 30s linear infinite;
 }
 .marquee-content:hover {
@@ -176,7 +186,7 @@
 }
 @keyframes marquee {
   0%   { transform: translateX(0); }
-  100% { transform: translateX(-100%); }
+  100% { transform: translateX(-100%); } 
 }
 
 /* Section specific alternating background styles */
@@ -184,23 +194,23 @@
   @apply bg-background text-foreground;
 }
 .section-light-accent {
-  @apply bg-card/30 dark:bg-card/50 text-card-foreground;
+  @apply bg-card/30 dark:bg-card/50 text-card-foreground; /* Adjusted opacity for subtlety */
 }
 .section-cta-final {
   @apply bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 text-foreground dark:from-slate-800 dark:via-gray-900 dark:to-slate-900;
 }
 
-/* CTA Button Pulse - Gentle and Smooth */
+
 @keyframes pulse-cta-gentle {
   0%, 100% {
     transform: scale(1);
   }
   50% {
-    transform: scale(1.03); /* More subtle scale */
+    transform: scale(1.02); /* Even more subtle scale */
   }
 }
 .pulse-cta-btn {
-  animation: pulse-cta-gentle 3s ease-in-out infinite; /* Slower duration */
+  animation: pulse-cta-gentle 3s ease-in-out infinite; 
 }
 
 
@@ -227,26 +237,26 @@
 
 /* Styles for simple feature card presentation */
 .simple-feature-card {
-    @apply bg-card/70 dark:bg-card/50 p-5 rounded-xl border border-border/30 shadow-lg text-left transition-all duration-300 ease-out;
+    @apply bg-card/70 dark:bg-card/50 p-4 rounded-xl border border-border/30 shadow-lg text-left transition-all duration-300 ease-out;
     @apply hover:shadow-2xl hover:border-primary/50 hover:scale-[1.02];
 }
 .simple-feature-card-icon {
-    @apply p-2 rounded-lg bg-primary/10 text-primary mb-2 inline-block; /* Increased mb */
+    @apply p-2 rounded-lg bg-primary/10 text-primary mb-2 inline-block;
 }
 .simple-feature-card-title {
-    @apply font-headline text-lg font-bold text-foreground mb-1; /* Increased size and mb */
+    @apply font-headline text-lg font-bold text-foreground mb-1;
     @apply relative pt-1;
 }
 .simple-feature-card-title::before {
     content: '';
-    @apply absolute top-0 left-0 h-[3px] w-8 rounded-full bg-gradient-to-r from-electric-teal to-neon-lime; /* Wider accent */
+    @apply absolute top-0 left-0 h-[2px] w-6 rounded-full bg-gradient-to-r from-electric-teal to-neon-lime;
 }
 
 .simple-feature-card-description {
-    @apply text-muted-foreground text-sm leading-relaxed; /* Increased size */
+    @apply text-muted-foreground text-xs leading-relaxed;
 }
 .simple-feature-card-case-study {
-    @apply mt-2 pt-2 border-t border-border/20 text-sm; /* Increased size */
+    @apply mt-2 pt-2 border-t border-border/20 text-xs;
 }
 .simple-feature-card-quote {
      @apply italic text-muted-foreground/80;
@@ -263,7 +273,7 @@
     pointer-events: none;
     @apply bg-card shadow-xl;
 }
-#mobile-menu.translate-x-0 {
+#mobile-menu.translate-x-0 { 
     opacity: 1;
     pointer-events: auto;
 }
@@ -271,10 +281,10 @@
 
 /* Helper to ensure video placeholder text is visible */
 .video-placeholder-text {
-  @apply absolute inset-0 flex flex-col items-center justify-center text-center text-foreground/80 bg-black/50 p-4; /* Increased padding */
+  @apply absolute inset-0 flex flex-col items-center justify-center text-center text-foreground/80 bg-black/50 p-4;
 }
 .video-placeholder-text svg {
- @apply w-12 h-12 opacity-70 mb-2 text-primary; /* Larger icon, more opacity */
+ @apply w-10 h-10 opacity-70 mb-1 text-primary; 
 }
 
 /* Ensure placeholder images show their data-ai-hint clearly but are not obtrusive */
@@ -282,11 +292,11 @@ div[data-ai-hint] {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.65rem; /* Smaller font for hints */
+    font-size: 0.65rem;
     color: hsl(var(--muted-foreground) / 0.5);
     background-color: hsl(var(--muted) / 0.2);
     border: 1px dashed hsl(var(--border) / 0.2);
-    min-height: 2.5rem; /* Reduced min-height */
+    min-height: 2.5rem; 
     text-align: center;
     padding: 0.2rem;
     border-radius: calc(var(--radius) - 2px);
@@ -295,34 +305,34 @@ div[data-ai-hint] {
 /* Enhanced button active states & general transitions */
 .button-active-feedback, .btn-interactive {
   transition-property: background-color, border-color, color, transform, box-shadow, opacity;
-  @apply active:scale-95 active:brightness-90 duration-150 ease-out; /* Quicker active feedback */
+  @apply active:scale-95 active:brightness-90 duration-150 ease-out; 
 }
 
 /* Ensure outline button hover text has good contrast */
 .btn-outline-themed {
-    @apply border-primary/60 text-primary;
+    @apply border-primary/60 text-primary; /* Default text color */
 }
 .btn-outline-themed:hover {
     @apply bg-accent text-accent-foreground border-accent; /* Ensure accent-foreground is used */
 }
 
+
 /* Make sure all buttons have transition for smooth hover/active states */
 .button, [type="button"], [type="reset"], [type="submit"], button, .btn {
-    @apply transition-all duration-200 ease-in-out; /* General hover transition */
+    @apply transition-all duration-200 ease-in-out; 
 }
 
-/* Specific styling for h1, h2 for marketing page */
-.marketing-h1 {
-  @apply text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-tight text-center;
-  letter-spacing: -0.03em; /* Tighter for large headlines */
+
+/* Dashed line for "How It Works" section */
+.dashed-connector::before, .dashed-connector::after {
+    content: '';
+    @apply absolute top-1/2 border-t-2 border-dashed border-primary/20 -translate-y-1/2 z-0;
 }
-.marketing-h2 {
-  @apply text-3xl sm:text-4xl font-bold tracking-tight text-center mb-3 md:mb-4;
-  letter-spacing: -0.02em;
-}
-/* Ensure paragraphs under H2s are also centered and have a max-width for readability */
-.section-description {
-    @apply text-muted-foreground md:text-base max-w-xl mx-auto mb-8 md:mb-10 lg:mb-12 text-center;
-}
+.dashed-connector.left::before { @apply left-0 w-1/2; }
+.dashed-connector.right::after { @apply right-0 w-1/2; }
+
+.step-card-container > :nth-child(1) .dashed-connector::before { @apply content-none; } 
+.step-card-container > :nth-child(3) .dashed-connector::after { @apply content-none; } 
 
     
+

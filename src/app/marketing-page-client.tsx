@@ -19,7 +19,7 @@ const useIntersectionObserver = (options?: IntersectionObserverInit) => {
   useEffect(() => {
     if (observerRef.current) observerRef.current.disconnect();
     if (typeof window.IntersectionObserver === "undefined") {
-      setIsIntersecting(true); // Fallback
+      setIsIntersecting(true); // Fallback for SSR or old browsers
       return;
     }
     observerRef.current = new IntersectionObserver(([entry]) => setIsIntersecting(entry.isIntersecting), options);
@@ -81,13 +81,15 @@ export default function MarketingPageClient() {
   }, []);
 
   useEffect(() => {
+    // Typewriter effect logic
     if (typewriterRef.current) {
-      typewriterRef.current.textContent = heroPainPoint;
-      typewriterRef.current.classList.remove("typewriter-text");
-      void typewriterRef.current.offsetWidth; // Trigger reflow
-      typewriterRef.current.classList.add("typewriter-text");
+      typewriterRef.current.textContent = heroPainPoint; // Set the static text
+      typewriterRef.current.classList.remove("typewriter-text"); // Remove to reset if it was there
+      // Ensure a reflow before re-adding the class to restart the animation
+      void typewriterRef.current.offsetWidth;
+      typewriterRef.current.classList.add("typewriter-text"); // Add class to start animation
     }
-  }, []); // Run once on mount
+  }, []); // Empty dependency array ensures this runs once on mount and when text changes if it were dynamic
 
 
   const sectionObserverOptions = { threshold: 0.1, rootMargin: "0px 0px -50px 0px" };
@@ -98,7 +100,7 @@ export default function MarketingPageClient() {
   const [videoDemoRef, videoDemoVisible] = useIntersectionObserver(sectionObserverOptions);
   const [socialProofRef, socialProofVisible] = useIntersectionObserver(sectionObserverOptions);
   const [humanizeRef, humanizeVisible] = useIntersectionObserver(sectionObserverOptions);
-  const [finalCtaRef, finalCtaVisible] = useIntersectionObserver(sectionObserverOptions);
+  const [finalCtaRef, finalCtaVisible] =  useIntersectionObserver(sectionObserverOptions);
 
 
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -150,7 +152,7 @@ export default function MarketingPageClient() {
           ))}
           <Link href="/login" className="block py-1.5 text-sm text-card-foreground hover:text-primary" onClick={toggleMobileMenu}>Login</Link>
           <Button asChild className="w-full font-semibold bg-gradient-to-r from-electric-teal to-neon-lime text-background shadow-md hover:opacity-90 transition-opacity btn-interactive text-sm mt-2 pulse-cta-btn">
-            <Link href="/dashboard" onClick={toggleMobileMenu}>
+            <Link href="/dashboard" onClick={toggleMobileMenu} className="flex items-center justify-center gap-1">
               Try AutoBoss Free
             </Link>
           </Button>
@@ -167,12 +169,12 @@ export default function MarketingPageClient() {
           <div className="container mx-auto px-4 md:px-6 relative z-10 max-w-screen-xl">
             <div className="max-w-2xl mx-auto space-y-4 md:space-y-5">
               <h1 className="marketing-h1">
-                <span ref={typewriterRef} className="block gradient-text-on-dark min-h-[45px] sm:min-h-[60px] md:min-h-[70px] lg:min-h-[80px]">
+                <span ref={typewriterRef} className="block gradient-text-on-dark min-h-[40px] sm:min-h-[50px] md:min-h-[60px] lg:min-h-[70px]">
                   {/* Content set by useEffect */}
                 </span>
               </h1>
               <p className="section-description text-sm md:text-base max-w-md mx-auto !mb-6">
-                Instantly upgrade your business with AI agents that think, decide, & execute complex workflows.
+                Upgrade your business with AI agents that think, decide, &amp; execute.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center items-center pt-2">
                 <Button size="lg" asChild className="button-active-feedback shadow-lg bg-gradient-to-r from-electric-teal to-neon-lime text-background font-bold text-sm px-6 py-3 hover:opacity-90 transition-all duration-300 hover:scale-105 group pulse-cta-btn btn-interactive">
@@ -257,8 +259,8 @@ export default function MarketingPageClient() {
             <p className="section-description">
               From idea to impact, faster than you imagined. No complex coding required.
             </p>
-            <div className="relative mx-auto max-w-4xl grid md:grid-cols-3 gap-5 lg:gap-6 items-start">
-                <div className="hidden md:block absolute top-1/2 left-1/4 right-1/4 h-0.5 border-t-2 border-dashed border-primary/10 -translate-y-1/2 z-0"></div>
+            <div className="relative mx-auto max-w-4xl grid md:grid-cols-3 gap-5 lg:gap-6 items-start step-card-container">
+                {/* Dashed line connector (visual only) handled by CSS if needed, or can be omitted */}
                 {[
                     { number: "1", title: "Design Visually", description: "Craft your agent's brain in our intuitive Flow Studio.", icon: <Palette className="w-6 h-6 text-electric-teal"/>, animationDelay:"delay-100" },
                     { number: "2", title: "Enrich Knowledge", description: "Upload docs or URLs. Train it on your specific data.", icon: <Brain className="w-6 h-6 text-neon-lime"/>, animationDelay:"delay-200" },
@@ -267,18 +269,19 @@ export default function MarketingPageClient() {
                   const [stepRef, stepIsVisible] = useIntersectionObserver({ threshold: 0.3 });
                   return (
                     <article key={step.title} ref={stepRef} className={cn("scroll-reveal relative flex flex-col items-center gap-2 p-5 rounded-lg bg-background shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 text-foreground z-10", step.animationDelay, stepIsVisible && "visible")}>
-                        <div className="absolute -top-3.5 bg-gradient-to-br from-electric-teal to-neon-lime text-background text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center border-2 border-card shadow-md">{step.number}</div>
+                        <div className="absolute -top-3.5 bg-gradient-to-br from-electric-teal to-neon-lime text-background text-xs font-bold w-7 h-7 rounded-full flex items-center justify-center border-2 border-card shadow-md">{step.number}</div>
                         <div className="mt-5 mb-1">{step.icon}</div>
-                        <h3 className="font-headline text-lg font-semibold text-center">{step.title}</h3>
-                        <p className="text-sm text-muted-foreground text-center leading-relaxed">{step.description}</p>
+                        <h3 className="font-headline text-md font-semibold text-center">{step.title}</h3>
+                        <p className="text-xs text-muted-foreground text-center leading-relaxed">{step.description}</p>
                     </article>
                   );
                 })}
             </div>
             <div ref={useIntersectionObserver(sectionObserverOptions)[0]} className={cn("scroll-reveal mt-10 md:mt-12 max-w-2xl mx-auto", useIntersectionObserver(sectionObserverOptions)[1] && "visible", "delay-400")}>
-                <div className="aspect-video bg-background/50 rounded-lg shadow-inner flex flex-col items-center justify-center text-muted-foreground p-4 border border-dashed border-border/50" data-ai-hint="interactive ui demo minimal clean">
+                 {/* Removed data-ai-hint div here to clear placeholder block */}
+                 <div className="aspect-video bg-muted/30 rounded-lg shadow-inner flex flex-col items-center justify-center text-muted-foreground p-4 border border-dashed border-border/50" data-ai-hint="interactive ui demo clean minimal">
                     <Cog className="w-8 h-8 opacity-40 mb-2"/>
-                    <p className="text-sm">Interactive Studio Demo (Illustrative)</p>
+                    <p className="text-xs">Illustrative Studio Demo UI</p>
                 </div>
             </div>
           </div>
@@ -291,8 +294,8 @@ export default function MarketingPageClient() {
                 <div className="max-w-2xl mx-auto aspect-video bg-muted/20 rounded-lg shadow-xl flex items-center justify-center text-muted-foreground border border-border/50 relative overflow-hidden cursor-pointer group" data-ai-hint="video player modern dark sleek elegant">
                     <Image src="https://placehold.co/1280x720/0A0D13/0A0D13.png" alt="AutoBoss Demo Video Thumbnail" layout="fill" objectFit="cover" className="opacity-20 group-hover:opacity-10 transition-opacity" data-ai-hint="dark tech abstract thumbnail" loading="lazy"/>
                     <div className="video-placeholder-text z-10">
-                         <PlayCircle size={60} className="text-primary cursor-pointer group-hover:scale-110 group-hover:text-neon-lime transition-all duration-300"/>
-                         <p className="mt-2 text-sm font-semibold">Watch Quick Demo (1:03)</p>
+                         <PlayCircle size={50} className="text-primary cursor-pointer group-hover:scale-110 group-hover:text-neon-lime transition-all duration-300"/>
+                         <p className="mt-2 text-xs font-semibold">Watch Quick Demo (1:03)</p>
                     </div>
                 </div>
             </div>
@@ -305,37 +308,37 @@ export default function MarketingPageClient() {
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6 max-w-5xl mx-auto text-left">
                     <article ref={useIntersectionObserver(sectionObserverOptions)[0]} className={cn("scroll-reveal bg-background p-5 rounded-lg shadow-lg transform hover:scale-103 transition-transform duration-300 text-foreground", useIntersectionObserver(sectionObserverOptions)[1] && "visible", "delay-100")}>
                         <div className="flex items-center mb-2">
-                            <Image loading="lazy" src="https://placehold.co/36x36/E2E8F0/1A202C.png?text=AR" alt="Alex R." width={32} height={32} className="rounded-full mr-2.5" data-ai-hint="professional person portrait"/>
+                            <Image loading="lazy" src="https://placehold.co/32x32/E2E8F0/1A202C.png?text=AR" alt="Alex R." width={32} height={32} className="rounded-full mr-2" data-ai-hint="professional person portrait"/>
                             <div>
-                                <h4 className="font-semibold text-foreground text-sm">Alex R.</h4>
+                                <h4 className="font-semibold text-foreground text-xs">Alex R.</h4>
                                 <p className="text-xs text-muted-foreground">Support Lead</p>
                             </div>
                         </div>
                          <div className="mb-2 flex">
-                            {[...Array(5)].map((_, i) => <Star key={i} className="w-3.5 h-3.5 text-neon-lime fill-neon-lime mr-0.5"/>)}
+                            {[...Array(5)].map((_, i) => <Star key={i} className="w-3 h-3 text-neon-lime fill-neon-lime mr-0.5"/>)}
                         </div>
-                        <p className="text-sm italic text-muted-foreground leading-relaxed">"AutoBoss revolutionized our support, handling 80% of inquiries. A true game-changer."</p>
+                        <p className="text-xs italic text-muted-foreground leading-relaxed">"AutoBoss revolutionized our support, handling 80% of inquiries. A true game-changer."</p>
                     </article>
-                    <article ref={useIntersectionObserver(sectionObserverOptions)[0]} className={cn("scroll-reveal bg-gradient-to-br from-electric-teal to-neon-lime p-5 rounded-lg shadow-lg text-background flex flex-col items-center justify-center text-center", useIntersectionObserver(sectionObserverOptions)[1] && "visible", "delay-200")}>
-                        <TrendingUp className="w-7 h-7 mb-1 opacity-80"/>
-                        <p className="font-headline text-3xl font-bold">97%</p>
-                        <p className="text-sm font-medium">Task Automation</p>
-                        <Layers className="w-6 h-6 mt-3 mb-1 opacity-80"/>
-                        <p className="font-headline text-2xl font-bold">1M+</p>
-                        <p className="text-xs">Agents Deployed</p>
+                     <article ref={useIntersectionObserver(sectionObserverOptions)[0]} className={cn("scroll-reveal bg-gradient-to-br from-electric-teal to-neon-lime p-5 rounded-lg shadow-lg text-background flex flex-col items-center justify-center text-center", useIntersectionObserver(sectionObserverOptions)[1] && "visible", "delay-200")}>
+                        <TrendingUp className="w-6 h-6 mb-1 opacity-80"/>
+                        <p className="font-headline text-2xl font-bold">97%</p>
+                        <p className="text-xs font-medium">Task Automation</p>
+                        <Layers className="w-5 h-5 mt-2 mb-1 opacity-80"/>
+                        <p className="font-headline text-xl font-bold">1M+</p>
+                        <p className="text-[10px]">Agents Deployed</p>
                     </article>
                      <article ref={useIntersectionObserver(sectionObserverOptions)[0]} className={cn("scroll-reveal bg-background p-5 rounded-lg shadow-lg transform hover:scale-103 transition-transform duration-300 text-foreground", useIntersectionObserver(sectionObserverOptions)[1] && "visible", "delay-300")}>
                         <div className="flex items-center mb-2">
-                             <Image loading="lazy" src="https://placehold.co/36x36/E2E8F0/1A202C.png?text=PS" alt="Priya S." width={32} height={32} className="rounded-full mr-2.5" data-ai-hint="founder startup person portrait"/>
+                             <Image loading="lazy" src="https://placehold.co/32x32/E2E8F0/1A202C.png?text=PS" alt="Priya S." width={32} height={32} className="rounded-full mr-2" data-ai-hint="founder startup person portrait"/>
                             <div>
-                                <h4 className="font-semibold text-foreground text-sm">Priya S.</h4>
+                                <h4 className="font-semibold text-foreground text-xs">Priya S.</h4>
                                 <p className="text-xs text-muted-foreground">Founder @ InnovateLLC</p>
                             </div>
                         </div>
                          <div className="mb-2 flex">
-                            {[...Array(5)].map((_, i) => <Star key={i} className="w-3.5 h-3.5 text-neon-lime fill-neon-lime mr-0.5"/>)}
+                            {[...Array(5)].map((_, i) => <Star key={i} className="w-3 h-3 text-neon-lime fill-neon-lime mr-0.5"/>)}
                         </div>
-                        <p className="text-sm italic text-muted-foreground leading-relaxed">"The visual flow builder is incredibly intuitive. Launched our first AI agent in under an hour!"</p>
+                        <p className="text-xs italic text-muted-foreground leading-relaxed">"The visual flow builder is incredibly intuitive. Launched our first AI agent in under an hour!"</p>
                     </article>
                 </div>
             </div>
@@ -350,9 +353,9 @@ export default function MarketingPageClient() {
             <aside ref={useIntersectionObserver(sectionObserverOptions)[0]} className={cn("scroll-reveal max-w-lg mx-auto bg-card p-6 rounded-lg shadow-xl transform hover:scale-103 transition-transform text-card-foreground", useIntersectionObserver(sectionObserverOptions)[1] && "visible", "delay-150")}>
               <p className="italic text-sm text-muted-foreground leading-relaxed">"I started AutoBoss frustrated by clunky automation. My vision: a platform so intuitive, anyone can build truly intelligent AI agents that *actually work*."</p>
               <div className="flex items-center justify-center gap-2.5 mt-3">
-                <Image loading="lazy" src="https://placehold.co/40x40/1A202C/E2E8F0.png?text=AC" alt="Alex Chen, Founder (Placeholder)" width={40} height={40} className="rounded-full shadow-md" data-ai-hint="founder portrait friendly modern person" />
+                <Image loading="lazy" src="https://placehold.co/36x36/1A202C/E2E8F0.png?text=AC" alt="Alex Chen, Founder (Placeholder)" width={36} height={36} className="rounded-full shadow-md" data-ai-hint="founder portrait friendly modern person" />
                 <div>
-                  <p className="font-semibold text-sm text-card-foreground">Alex Chen (Placeholder)</p>
+                  <p className="font-semibold text-xs text-card-foreground">Alex Chen (Placeholder)</p>
                   <p className="text-xs text-primary">Founder & CEO, AutoBoss</p>
                 </div>
               </div>
@@ -360,28 +363,28 @@ export default function MarketingPageClient() {
           </div>
         </section>
 
-        {/* Placeholder for sticky mid-page CTA: JS would be needed for robust show/hide logic based on scroll position */}
+        {/* Placeholder comment for sticky mid-page CTA: Would require JS for scroll-triggered visibility */}
         {/* <div className="fixed bottom-10 right-10 z-50 hidden md:block"> <Button>Sticky CTA</Button> </div> */}
 
         <section ref={finalCtaRef} className={cn("scroll-reveal section-cta-final w-full py-16 lg:py-20", finalCtaVisible && "visible")}>
           <div className="container mx-auto px-4 md:px-6 text-center max-w-screen-xl">
-            <div className="mx-auto max-w-lg space-y-4 bg-card/80 dark:bg-background/70 backdrop-blur-md p-6 md:p-10 rounded-xl shadow-2xl">
-              <h2 className="marketing-h2 !text-3xl sm:!text-4xl gradient-text-on-dark">
+            <div className="mx-auto max-w-md space-y-4 bg-card/80 dark:bg-background/70 backdrop-blur-md p-6 md:p-8 rounded-xl shadow-2xl">
+              <h2 className="marketing-h2 !text-2xl sm:!text-3xl gradient-text-on-dark">
                 Start Your AI Journey
               </h2>
-              <p className="text-muted-foreground text-sm md:text-base !mb-6">
+              <p className="text-muted-foreground text-xs md:text-sm !mb-5">
                 AutoBoss is free to try. No credit card needed.
               </p>
-              <div className="flex flex-col sm:flex-row gap-3 justify-center items-center pt-2">
-                <Button size="lg" asChild className="button-active-feedback shadow-xl bg-gradient-to-r from-electric-teal to-neon-lime text-background font-bold text-base px-6 py-3 hover:opacity-90 transition-all duration-300 hover:scale-105 group w-full sm:w-auto pulse-cta-btn btn-interactive">
+              <div className="flex flex-col sm:flex-row gap-3 justify-center items-center pt-1">
+                <Button size="lg" asChild className="button-active-feedback shadow-xl bg-gradient-to-r from-electric-teal to-neon-lime text-background font-bold text-sm px-6 py-2.5 hover:opacity-90 transition-all duration-300 hover:scale-105 group w-full sm:w-auto pulse-cta-btn btn-interactive">
                   <Link href="/dashboard" className="flex items-center gap-1.5">
                     Start Building Free
-                    <Rocket className="h-5 w-5 group-hover:animate-bounce" />
+                    <Rocket className="h-4 w-4 group-hover:animate-bounce" />
                   </Link>
                 </Button>
-                <Button size="lg" variant="outline" asChild className="button-active-feedback btn-outline-themed transition-all duration-300 hover:scale-105 px-6 py-3 text-base text-primary hover:text-accent-foreground hover:bg-accent hover:border-accent border-muted-foreground/50 bg-background/20 dark:bg-card/20 backdrop-blur-sm w-full sm:w-auto btn-interactive">
+                <Button size="lg" variant="outline" asChild className="button-active-feedback btn-outline-themed transition-all duration-300 hover:scale-105 px-6 py-2.5 text-sm text-primary hover:text-accent-foreground hover:bg-accent hover:border-accent border-muted-foreground/50 bg-background/20 dark:bg-card/20 backdrop-blur-sm w-full sm:w-auto btn-interactive">
                   <Link href="mailto:demo@autoboss.dev?subject=AutoBoss%20Demo%20Request" className="flex items-center gap-1.5">
-                    Request a Demo <Eye className="h-5 w-5"/>
+                    Request a Demo <Eye className="h-4 w-4"/>
                   </Link>
                 </Button>
               </div>
@@ -390,18 +393,18 @@ export default function MarketingPageClient() {
         </section>
       </main>
 
-      <footer className="w-full py-4 border-t border-border/30 bg-background text-center">
-        <div className="container mx-auto px-4 md:px-6 flex flex-col sm:flex-row items-center justify-between gap-2 max-w-screen-xl">
+      <footer className="w-full py-3 border-t border-border/30 bg-background text-center">
+        <div className="container mx-auto px-4 md:px-6 flex flex-col sm:flex-row items-center justify-between gap-1.5 max-w-screen-xl">
           <div className="flex items-center gap-2">
              <Link href="/" aria-label="AutoBoss Homepage" className="flex items-center justify-center">
-                <Logo className="text-foreground hover:opacity-80 transition-opacity h-6 w-auto" collapsed={false}/>
+                <Logo className="text-foreground hover:opacity-80 transition-opacity h-5 w-auto" collapsed={false}/>
             </Link>
-            <p className="text-xs text-muted-foreground">&copy; {new Date().getFullYear()} AutoBoss. All rights reserved.</p>
+            <p className="text-[10px] text-muted-foreground">&copy; {new Date().getFullYear()} AutoBoss. All rights reserved.</p>
           </div>
-          <nav className="flex flex-wrap justify-center gap-2 sm:gap-3 mt-1 sm:mt-0">
-            <Link href="#" className="text-xs text-muted-foreground hover:text-primary transition-colors" prefetch={false}>Terms</Link>
-            <Link href="#" className="text-xs text-muted-foreground hover:text-primary transition-colors" prefetch={false}>Privacy</Link>
-            <Link href="mailto:support@autoboss.dev" className="text-xs text-muted-foreground hover:text-primary transition-colors" prefetch={false}>Support</Link>
+          <nav className="flex flex-wrap justify-center gap-1.5 sm:gap-2.5 mt-1 sm:mt-0">
+            <Link href="#" className="text-[10px] text-muted-foreground hover:text-primary transition-colors" prefetch={false}>Terms</Link>
+            <Link href="#" className="text-[10px] text-muted-foreground hover:text-primary transition-colors" prefetch={false}>Privacy</Link>
+            <Link href="mailto:support@autoboss.dev" className="text-[10px] text-muted-foreground hover:text-primary transition-colors" prefetch={false}>Support</Link>
           </nav>
         </div>
       </footer>
@@ -409,6 +412,3 @@ export default function MarketingPageClient() {
     </TooltipProvider>
   );
 }
-
-
-    
