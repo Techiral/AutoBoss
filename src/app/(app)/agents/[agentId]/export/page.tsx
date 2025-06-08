@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Copy, Check, Link as LinkIcon, Code, Globe, AlertTriangle, Info, ShieldCheck, Server, BookOpen, MessageSquare } from "lucide-react";
+import { Copy, Check, Link as LinkIcon, Code, Globe, AlertTriangle, Info, ShieldCheck, Server, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAppContext } from "../../../layout";
 import type { Agent } from "@/lib/types";
@@ -237,43 +237,56 @@ export default function ExportAgentPage() {
 ` : "";
 
 
-  const apiRequestExample = `{
-  "message": "Hello, what can you do?",
-  // Optional: To continue a flow-based conversation, include 'flowState'.
-  // "flowState": {
-  //   "context": { /* FlowContext object from a previous response's 'newFlowState.context' */ },
-  //   "nextNodeId": "/* Node ID from a previous response's 'newFlowState.nextNodeId' */"
-  // },
-  // Optional: For autonomous mode (if no flow or not resuming a flow),
-  // provide conversation history for better context.
-  // "conversationHistoryString": "User: Previous message\\nAgent: Previous reply"
+  const apiRequestExampleMinimal = `{
+  "message": "Hello, what can you do?"
 }`;
 
-  const apiResponseExample = `// Example Flow Response:
-{
+  const apiRequestExampleWithFlow = `{
+  "message": "My order ID is 12345",
+  "flowState": {
+    "context": {
+      "conversationHistory": ["User: I want to check my order status", "Agent: Sure, what is your order ID?"],
+      "waitingForInput": "get_order_id_node",
+      "someOtherVariable": "someValueFromPreviousSteps"
+    },
+    "nextNodeId": "get_order_id_node"
+  }
+}`;
+
+  const apiRequestExampleWithHistory = `{
+  "message": "Tell me more about your products.",
+  "conversationHistoryString": "User: Hi there!\\nAgent: Hello! How can I assist you today?"
+}`;
+
+
+  const apiFlowResponseExample = `{
   "type": "flow",
   "messages": ["Sure, I can help with that.", "What is your order number?"],
   "newFlowState": {
-    "context": { "conversationHistory": ["..."], "waitingForInput": "get_order_id_node", "someVariable": "value" },
+    "context": {
+      "conversationHistory": ["User: I want to check my order", "Agent: Sure, I can help with that.", "Agent: What is your order number?"],
+      "waitingForInput": "get_order_id_node",
+      "userId": "user123"
+    },
     "nextNodeId": "get_order_id_node"
   },
   "isFlowFinished": false
-}
+}`;
 
-// Example Autonomous Response:
-{
+  const apiAutonomousResponseExample = `{
   "type": "autonomous",
   "reply": "As an AI assistant, I can answer your questions based on my knowledge.",
   "reasoning": "User asked about capabilities, providing general info."
-}
+}`;
 
-// Example Error Response (e.g., 400 Bad Request):
-{
+  const apiErrorResponseExample = `{
   "error": {
     "code": 400,
     "message": "Invalid request body.",
     "details": {
-      "issues": [ { "path": ["message"], "message": "Message cannot be empty." } ]
+      "issues": [
+        { "path": ["message"], "message": "Message cannot be empty." }
+      ]
     }
   }
 }`;
@@ -350,9 +363,18 @@ export default function ExportAgentPage() {
                 <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                 <AlertTitle className="text-blue-700 dark:text-blue-300">Enhanced API Capabilities</AlertTitle>
                 <AlertDescription className="text-blue-600 dark:text-blue-400 text-xs">
-                This API interacts with your agent's defined flows or provides autonomous responses.
-                It includes input validation and standardized JSON error responses.
-                For flow-based interactions, your client application needs to manage and send back the `newFlowState` (context and nextNodeId) received from previous API responses to continue the conversation flow.
+                  This API interacts with your agent's defined flows or provides autonomous responses.
+                  It includes input validation and standardized JSON error responses.
+                  <ul className="list-disc list-inside pl-4 mt-1">
+                    <li><strong>message (string, required):</strong> The user's input.</li>
+                    <li><strong>flowState (object, optional):</strong> To continue a flow-based conversation.
+                        <ul>
+                            <li><code>context</code> (object): The FlowContext from the previous API response.</li>
+                            <li><code>nextNodeId</code> (string): The nextNodeId from the previous API response.</li>
+                        </ul>
+                    </li>
+                    <li><strong>conversationHistoryString (string, optional):</strong> For autonomous mode, provide past dialogue for better context if not resuming a flow (e.g., "User: Hi\\nAgent: Hello!").</li>
+                  </ul>
                 </AlertDescription>
             </Alert>
             <div className="flex items-center gap-2">
@@ -368,31 +390,74 @@ export default function ExportAgentPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                 <div>
-                    <Label htmlFor="apiRequestExample" className="flex items-center mb-1 text-sm">
-                    Example Request Body:
+                    <Label htmlFor="apiRequestExampleMinimal" className="flex items-center mb-1 text-sm">
+                    Example Request (Minimal):
                     </Label>
                     <div className="relative">
-                        <Textarea id="apiRequestExample" value={apiRequestExample} readOnly rows={12} className="font-code text-xs bg-muted/50"/>
-                        <Button variant="outline" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={() => handleCopy(apiRequestExample, "API Request Example")} aria-label="Copy API Request Example" disabled={!apiRequestExample}>
-                            {copied === "API Request Example" ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                        <Textarea id="apiRequestExampleMinimal" value={apiRequestExampleMinimal} readOnly rows={4} className="font-code text-xs bg-muted/50"/>
+                        <Button variant="outline" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={() => handleCopy(apiRequestExampleMinimal, "API Request Minimal")} aria-label="Copy API Request Minimal" disabled={!apiRequestExampleMinimal}>
+                            {copied === "API Request Minimal" ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
                         </Button>
                     </div>
                 </div>
                  <div>
-                    <Label htmlFor="apiResponseExample" className="flex items-center mb-1 text-sm">
-                    Example Response Bodies:
+                    <Label htmlFor="apiRequestExampleWithFlow" className="flex items-center mb-1 text-sm">
+                    Example Request (Resume Flow):
                     </Label>
                     <div className="relative">
-                        <Textarea id="apiResponseExample" value={apiResponseExample} readOnly rows={12} className="font-code text-xs bg-muted/50"/>
-                        <Button variant="outline" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={() => handleCopy(apiResponseExample, "API Response Example")} aria-label="Copy API Response Example" disabled={!apiResponseExample}>
-                            {copied === "API Response Example" ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                        <Textarea id="apiRequestExampleWithFlow" value={apiRequestExampleWithFlow} readOnly rows={12} className="font-code text-xs bg-muted/50"/>
+                        <Button variant="outline" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={() => handleCopy(apiRequestExampleWithFlow, "API Request With Flow")} aria-label="Copy API Request With Flow" disabled={!apiRequestExampleWithFlow}>
+                            {copied === "API Request With Flow" ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
                         </Button>
+                    </div>
+                </div>
+                 <div>
+                    <Label htmlFor="apiRequestExampleWithHistory" className="flex items-center mb-1 text-sm">
+                    Example Request (Autonomous with History):
+                    </Label>
+                    <div className="relative">
+                        <Textarea id="apiRequestExampleWithHistory" value={apiRequestExampleWithHistory} readOnly rows={6} className="font-code text-xs bg-muted/50"/>
+                        <Button variant="outline" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={() => handleCopy(apiRequestExampleWithHistory, "API Request With History")} aria-label="Copy API Request With History" disabled={!apiRequestExampleWithHistory}>
+                            {copied === "API Request With History" ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                        </Button>
+                    </div>
+                </div>
+            </div>
+            <div className="space-y-2 mt-4">
+                <Label className="flex items-center mb-1 text-sm">Example Responses:</Label>
+                <div className="space-y-3">
+                    <div>
+                        <Label htmlFor="apiFlowResponseExample" className="text-xs font-medium">Flow Response:</Label>
+                        <div className="relative">
+                            <Textarea id="apiFlowResponseExample" value={apiFlowResponseExample} readOnly rows={14} className="font-code text-xs bg-muted/50"/>
+                            <Button variant="outline" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={() => handleCopy(apiFlowResponseExample, "API Flow Response")} aria-label="Copy API Flow Response" disabled={!apiFlowResponseExample}>
+                                {copied === "API Flow Response" ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                            </Button>
+                        </div>
+                    </div>
+                    <div>
+                        <Label htmlFor="apiAutonomousResponseExample" className="text-xs font-medium">Autonomous Response:</Label>
+                         <div className="relative">
+                            <Textarea id="apiAutonomousResponseExample" value={apiAutonomousResponseExample} readOnly rows={7} className="font-code text-xs bg-muted/50"/>
+                            <Button variant="outline" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={() => handleCopy(apiAutonomousResponseExample, "API Autonomous Response")} aria-label="Copy API Autonomous Response" disabled={!apiAutonomousResponseExample}>
+                                {copied === "API Autonomous Response" ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                            </Button>
+                        </div>
+                    </div>
+                    <div>
+                        <Label htmlFor="apiErrorResponseExample" className="text-xs font-medium">Error Response (e.g., HTTP 400):</Label>
+                         <div className="relative">
+                            <Textarea id="apiErrorResponseExample" value={apiErrorResponseExample} readOnly rows={11} className="font-code text-xs bg-muted/50"/>
+                            <Button variant="outline" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={() => handleCopy(apiErrorResponseExample, "API Error Response")} aria-label="Copy API Error Response" disabled={!apiErrorResponseExample}>
+                                {copied === "API Error Response" ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </div>
              <Alert variant="default" className="mt-4">
                  <ShieldCheck className="h-4 w-4" />
-                 <AlertTitle>Production API Considerations</AlertTitle>
+                 <AlertTitle>API Production Considerations</AlertTitle>
                  <AlertDescription className="text-xs">
                      For a production-grade API, consider implementing:
                      <ul className="list-disc list-inside pl-4 mt-1">
@@ -410,3 +475,5 @@ export default function ExportAgentPage() {
     </div>
   );
 }
+
+    
