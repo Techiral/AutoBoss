@@ -1,17 +1,18 @@
 
 import { Button } from "@/components/ui/button";
-import { ArrowRight, BotMessageSquare, Cog, MessageSquare, BookOpen, Share2, Bot } from "lucide-react";
+import { ArrowRight, Cog, MessageSquare, BookOpen, Share2, Bot } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { Logo } from "@/components/logo"; // Import the new Logo
 
 export default function MarketingPage() {
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
       <header className="px-4 lg:px-6 h-16 flex items-center border-b">
-        <Link href="#" className="flex items-center justify-center" prefetch={false}>
-          <BotMessageSquare className="h-6 w-6 text-primary" />
-          <span className="ml-2 font-headline text-xl font-semibold">AutoBoss</span>
-        </Link>
+        <div className="flex items-center justify-center">
+          <Logo collapsed={true} /> {/* Use the new Logo component, pass collapsed true to only show icon */}
+           <span className="ml-2 font-headline text-xl font-semibold text-primary">AutoBoss</span> {/* Keep text separate if Logo only shows icon */}
+        </div>
         <nav className="ml-auto flex gap-4 sm:gap-6">
           <Link href="#features" className="text-sm font-medium hover:text-primary transition-colors" prefetch={false}>
             Features
@@ -61,7 +62,7 @@ export default function MarketingPage() {
                 width="600"
                 height="400"
                 alt="Hero AI"
-                data-ai-hint="abstract technology"
+                data-ai-hint="AI abstract modern"
                 className="mx-auto aspect-video overflow-hidden rounded-xl object-cover sm:w-full lg:order-last lg:aspect-square shadow-2xl"
               />
             </div>
