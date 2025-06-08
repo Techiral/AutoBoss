@@ -8,37 +8,37 @@
     /* Light Theme (Secondary, for users who prefer it) */
     --background: 0 0% 100%; /* White */
     --foreground: 220 17% 12%; /* Very Dark Gray/Almost Black Text */
-    
+
     --card: 0 0% 97%; /* Very Light Gray */
     --card-foreground: 220 17% 12%; /* Very Dark Gray/Almost Black Text */
-    
+
     --popover: 0 0% 97%;
     --popover-foreground: 220 17% 12%;
-    
+
     --primary: 217 91% 58%; /* Vibrant Blue */
     --primary-foreground: 210 100% 98%; /* White */
-    
+
     --secondary: 220 15% 90%; /* Light Gray */
     --secondary-foreground: 220 15% 30%; /* Darker Gray Text */
-    
+
     --muted: 220 15% 94%; /* Very Light Muted Gray */
     --muted-foreground: 220 10% 45%; /* Medium Gray Text */
-    
+
     --electric-teal: 175 80% 45%;
     --neon-lime: 90 85% 55%;
 
     --accent: var(--electric-teal); /* Default accent to teal for single color use */
     --accent-foreground: 0 0% 100%; /* White */
-    
+
     --destructive: 0 72% 51%; /* Red */
     --destructive-foreground: 0 0% 100%; /* White */
-    
+
     --border: 220 10% 88%; /* Light Gray Border */
     --input: 220 10% 88%; /* Light Gray Input Background */
     --ring: 217 91% 58%; /* Vibrant Blue for focus rings */
-    
+
     --radius: 0.5rem;
-    
+
     --chart-1: 217 91% 58%;
     --chart-2: 175 80% 45%; /* Teal */
     --chart-3: 220 10% 60%;
@@ -57,35 +57,35 @@
 
   .dark {
     /* Dark Theme (Primary) */
-    --background: 224 24% 10%; 
-    --foreground: 210 25% 96%; 
+    --background: 224 24% 10%;
+    --foreground: 210 25% 96%;
 
-    --card: 223 20% 14%; 
+    --card: 223 20% 14%;
     --card-foreground: 210 25% 96%;
 
     --popover: 223 20% 14%;
     --popover-foreground: 210 25% 96%;
 
-    --primary: 217 91% 60%; 
+    --primary: 217 91% 60%;
     --primary-foreground: 210 100% 98%;
 
-    --secondary: 220 15% 22%; 
+    --secondary: 220 15% 22%;
     --secondary-foreground: 210 20% 85%;
 
-    --muted: 220 15% 18%; 
-    --muted-foreground: 210 15% 60%; 
+    --muted: 220 15% 18%;
+    --muted-foreground: 210 15% 60%;
 
-    --electric-teal: 175 80% 50%; 
-    --neon-lime: 90 85% 60%;  
+    --electric-teal: 175 80% 50%;
+    --neon-lime: 90 85% 60%;
 
     --accent: var(--electric-teal);
-    --accent-foreground: 220 17% 8%; 
+    --accent-foreground: 220 17% 8%;
 
-    --destructive: 0 62% 50%; 
+    --destructive: 0 62% 50%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 220 15% 25%; 
-    --input: 220 15% 20%; 
+    --border: 220 15% 25%;
+    --input: 220 15% 20%;
     --ring: 217 91% 60%;
 
     --chart-1: 217 91% 65%;
@@ -93,13 +93,13 @@
     --chart-3: 210 15% 70%;
     --chart-4: 90 85% 60%;
     --chart-5: 300 70% 65%;
-    
-    --sidebar-background: 224 24% 11%; 
+
+    --sidebar-background: 224 24% 11%;
     --sidebar-foreground: 210 20% 92%;
     --sidebar-primary: 217 91% 65%;
     --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 220 16% 18%; 
-    --sidebar-accent-foreground: hsl(var(--electric-teal)); 
+    --sidebar-accent: 220 16% 18%;
+    --sidebar-accent-foreground: hsl(var(--electric-teal));
     --sidebar-border: 220 15% 20%;
     --sidebar-ring: 217 91% 65%;
   }
@@ -111,13 +111,13 @@
   }
   body {
     @apply bg-background text-foreground;
-    @apply font-body antialiased; 
-    -webkit-font-smoothing: antialiased; 
-    -moz-osx-font-smoothing: grayscale; 
+    @apply font-body antialiased;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
-  
-  h1 { @apply text-3xl sm:text-4xl font-bold tracking-tight font-headline; }
-  h2 { @apply text-2xl sm:text-3xl font-bold tracking-tight font-headline; }
+
+  h1, .marketing-h1 { @apply text-4xl sm:text-5xl font-bold tracking-tight font-headline; letter-spacing: -0.025em; }
+  h2, .marketing-h2 { @apply text-3xl sm:text-4xl font-bold tracking-tight font-headline; letter-spacing: -0.02em; }
   h3 { @apply text-xl sm:text-2xl font-semibold font-headline; }
 
 
@@ -125,8 +125,8 @@
     opacity: 0;
     transform: translateY(20px);
     transition-property: opacity, transform;
-    transition-duration: 0.8s; 
-    transition-timing-function: cubic-bezier(0.645, 0.045, 0.355, 1); 
+    transition-duration: 0.6s;
+    transition-timing-function: cubic-bezier(0.645, 0.045, 0.355, 1);
   }
   .scroll-reveal.visible {
     opacity: 1;
@@ -135,36 +135,30 @@
 }
 
 /* Typewriter effect */
-.typewriter-text {
-  display: inline-block;
-  overflow: hidden;
-  border-right: .12em solid hsl(var(--electric-teal)); 
-  white-space: nowrap; 
-  margin: 0 auto;
-  letter-spacing: .03em; 
-  animation: 
-    typing 1.5s steps(30, end) forwards,
-    blink-caret .75s step-end infinite;
-  animation-delay: 0.2s; 
-  width: 0%; 
-}
-
-.typewriter-text.finished-typing {
-  border-right-color: hsl(var(--electric-teal)); /* Keep cursor blinking */
-  animation: blink-caret .75s step-end infinite;
-  animation-delay: 5s; /* Start blinking cursor after text is visible and a delay */
-}
-
-
 @keyframes typing {
-  from { width: 0% }
-  to { width: 100% }
+  from { width: 0%; }
+  to { width: 100%; }
 }
 
 @keyframes blink-caret {
-  from, to { border-color: transparent }
+  from, to { border-color: transparent; }
   50% { border-color: hsl(var(--electric-teal)); }
 }
+
+.typewriter-text {
+  display: inline-block;
+  overflow: hidden;
+  border-right: .12em solid hsl(var(--electric-teal));
+  white-space: nowrap;
+  margin: 0 auto;
+  letter-spacing: .03em;
+  animation:
+    typing 1.5s steps(40, end) forwards, /* 'forwards' holds the end state */
+    blink-caret .75s step-end infinite;
+  animation-delay: 0.2s;
+  width: 0%; /* Start with no width */
+}
+
 
 /* Marquee Animation */
 .marquee {
@@ -174,8 +168,8 @@
 }
 .marquee-content {
   display: inline-block;
-  padding-left: 100%; 
-  animation: marquee 30s linear infinite; 
+  padding-left: 100%;
+  animation: marquee 30s linear infinite;
 }
 .marquee-content:hover {
   animation-play-state: paused;
@@ -190,25 +184,23 @@
   @apply bg-background text-foreground;
 }
 .section-light-accent {
-  @apply bg-card/30 dark:bg-card/50 text-card-foreground; 
+  @apply bg-card/30 dark:bg-card/50 text-card-foreground;
 }
-.section-cta-final { 
+.section-cta-final {
   @apply bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 text-foreground dark:from-slate-800 dark:via-gray-900 dark:to-slate-900;
 }
 
-/* CTA Button Pulse - Slow and Smooth */
-@keyframes pulse-cta-slow {
+/* CTA Button Pulse - Gentle and Smooth */
+@keyframes pulse-cta-gentle {
   0%, 100% {
     transform: scale(1);
-    box-shadow: 0 0 0 0 hsla(var(--electric-teal), 0.3);
   }
   50% {
-    transform: scale(1.05);
-    box-shadow: 0 0 0 8px hsla(var(--electric-teal), 0);
+    transform: scale(1.03); /* More subtle scale */
   }
 }
 .pulse-cta-btn {
-  animation: pulse-cta-slow 2.4s ease-in-out infinite;
+  animation: pulse-cta-gentle 3s ease-in-out infinite; /* Slower duration */
 }
 
 
@@ -217,18 +209,18 @@
     @apply sticky top-0 z-50 transition-all duration-300 ease-in-out;
 }
 .sticky-header-scrolled {
-    @apply bg-background/95 backdrop-blur-sm shadow-lg; 
+    @apply bg-background/95 backdrop-blur-sm shadow-lg;
 }
 
 /* Gradient Text Helpers */
 .gradient-text-on-dark {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-electric-teal via-neon-lime to-primary;
 }
-.dark .gradient-text-on-dark { 
+.dark .gradient-text-on-dark {
     @apply bg-gradient-to-r from-[hsl(var(--electric-teal))] via-[hsl(var(--neon-lime))] to-[hsl(var(--primary))];
 }
 
-.gradient-text-on-light { 
+.gradient-text-on-light {
      @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-electric-teal to-neon-lime;
 }
 
@@ -236,31 +228,31 @@
 /* Styles for simple feature card presentation */
 .simple-feature-card {
     @apply bg-card/70 dark:bg-card/50 p-5 rounded-xl border border-border/30 shadow-lg text-left transition-all duration-300 ease-out;
-    @apply hover:shadow-2xl hover:border-primary/50 hover:scale-[1.02]; 
+    @apply hover:shadow-2xl hover:border-primary/50 hover:scale-[1.02];
 }
 .simple-feature-card-icon {
-    @apply p-2 rounded-lg bg-primary/10 text-primary mb-1 inline-block;
+    @apply p-2 rounded-lg bg-primary/10 text-primary mb-2 inline-block; /* Increased mb */
 }
 .simple-feature-card-title {
-    @apply font-headline text-base font-bold text-foreground mb-0.5;
-    @apply relative pt-1; 
+    @apply font-headline text-lg font-bold text-foreground mb-1; /* Increased size and mb */
+    @apply relative pt-1;
 }
 .simple-feature-card-title::before {
     content: '';
-    @apply absolute top-0 left-0 h-[3px] w-5 rounded-full bg-gradient-to-r from-electric-teal to-neon-lime;
+    @apply absolute top-0 left-0 h-[3px] w-8 rounded-full bg-gradient-to-r from-electric-teal to-neon-lime; /* Wider accent */
 }
 
 .simple-feature-card-description {
-    @apply text-muted-foreground text-xs leading-relaxed;
+    @apply text-muted-foreground text-sm leading-relaxed; /* Increased size */
 }
 .simple-feature-card-case-study {
-    @apply mt-1 pt-1 border-t border-border/20 text-xs; 
+    @apply mt-2 pt-2 border-t border-border/20 text-sm; /* Increased size */
 }
 .simple-feature-card-quote {
-     @apply italic text-muted-foreground/80; 
+     @apply italic text-muted-foreground/80;
 }
 .simple-feature-card-metric {
-    @apply font-semibold text-primary mt-0.5;
+    @apply font-semibold text-primary mt-1;
 }
 
 
@@ -269,9 +261,9 @@
     transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
     opacity: 0;
     pointer-events: none;
-    @apply bg-card shadow-xl; 
+    @apply bg-card shadow-xl;
 }
-#mobile-menu.translate-x-0 { 
+#mobile-menu.translate-x-0 {
     opacity: 1;
     pointer-events: auto;
 }
@@ -279,10 +271,10 @@
 
 /* Helper to ensure video placeholder text is visible */
 .video-placeholder-text {
-  @apply absolute inset-0 flex flex-col items-center justify-center text-center text-foreground/80 bg-black/50 p-2; 
+  @apply absolute inset-0 flex flex-col items-center justify-center text-center text-foreground/80 bg-black/50 p-4; /* Increased padding */
 }
 .video-placeholder-text svg {
- @apply w-10 h-10 opacity-60 mb-1 text-primary; 
+ @apply w-12 h-12 opacity-70 mb-2 text-primary; /* Larger icon, more opacity */
 }
 
 /* Ensure placeholder images show their data-ai-hint clearly but are not obtrusive */
@@ -290,41 +282,47 @@ div[data-ai-hint] {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.75rem; 
-    color: hsl(var(--muted-foreground) / 0.6); 
-    background-color: hsl(var(--muted) / 0.3); 
-    border: 1px dashed hsl(var(--border) / 0.3); 
-    min-height: 3rem;
+    font-size: 0.65rem; /* Smaller font for hints */
+    color: hsl(var(--muted-foreground) / 0.5);
+    background-color: hsl(var(--muted) / 0.2);
+    border: 1px dashed hsl(var(--border) / 0.2);
+    min-height: 2.5rem; /* Reduced min-height */
     text-align: center;
-    padding: 0.25rem; 
-    border-radius: var(--radius);
+    padding: 0.2rem;
+    border-radius: calc(var(--radius) - 2px);
 }
 
 /* Enhanced button active states & general transitions */
 .button-active-feedback, .btn-interactive {
   transition-property: background-color, border-color, color, transform, box-shadow, opacity;
-  @apply active:scale-95 active:brightness-90 duration-200 ease-out;
+  @apply active:scale-95 active:brightness-90 duration-150 ease-out; /* Quicker active feedback */
 }
 
 /* Ensure outline button hover text has good contrast */
 .btn-outline-themed {
-    @apply border-primary/60 text-primary; 
+    @apply border-primary/60 text-primary;
 }
 .btn-outline-themed:hover {
-    @apply bg-accent text-accent-foreground border-accent;
+    @apply bg-accent text-accent-foreground border-accent; /* Ensure accent-foreground is used */
 }
 
 /* Make sure all buttons have transition for smooth hover/active states */
 .button, [type="button"], [type="reset"], [type="submit"], button, .btn {
-    @apply transition-all duration-200 ease-in-out;
+    @apply transition-all duration-200 ease-in-out; /* General hover transition */
 }
 
-/* Specific styling for h1, h2 for marketing page from feedback */
+/* Specific styling for h1, h2 for marketing page */
 .marketing-h1 {
-  @apply text-4xl sm:text-5xl font-bold tracking-tight leading-tight text-center; 
-  letter-spacing: -0.025em; 
+  @apply text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-tight text-center;
+  letter-spacing: -0.03em; /* Tighter for large headlines */
 }
 .marketing-h2 {
-  @apply text-3xl sm:text-4xl font-bold tracking-tight text-center; 
+  @apply text-3xl sm:text-4xl font-bold tracking-tight text-center mb-3 md:mb-4;
   letter-spacing: -0.02em;
 }
+/* Ensure paragraphs under H2s are also centered and have a max-width for readability */
+.section-description {
+    @apply text-muted-foreground md:text-base max-w-xl mx-auto mb-8 md:mb-10 lg:mb-12 text-center;
+}
+
+    
