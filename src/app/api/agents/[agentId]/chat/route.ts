@@ -1,10 +1,11 @@
 
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { autonomousReasoning, AutonomousReasoningInput } from '@/ai/flows/autonomous-reasoning';
 import { executeAgentFlow, ExecuteAgentFlowInput } from '@/ai/flows/execute-agent-flow';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, Timestamp } from 'firebase/firestore';
-import type { Agent, KnowledgeItem, FlowContext, AgentFlowDefinition, ChatMessage as LibChatMessage } from '@/lib/types'; // Added ChatMessage for history
+import type { Agent, KnowledgeItem, FlowContext, AgentFlowDefinition } from '@/lib/types';
 
 // Helper to convert Firestore Timestamps in agent data
 const convertAgentForFlow = (agentData: any): Agent => {
@@ -20,26 +21,39 @@ const convertAgentForFlow = (agentData: any): Agent => {
       return item;
     });
   }
-  // Ensure flow definition is included if it exists
   if (agentData.flow) {
     newAgent.flow = agentData.flow;
   }
   return newAgent as Agent;
 };
 
-interface ApiChatMessage {
-  sender: 'user' | 'agent';
-  text: string;
-}
+// --- Zod Schemas for Request and Response ---
+const FlowStateSchema = z.object({
+  context: z.record(z.any()).describe("The complete FlowContext object from the previous turn."),
+  nextNodeId: z.string().describe("The ID of the node the flow is currently waiting on."),
+});
 
-interface RequestBody {
-  message: string;
-  flowState?: {
-    context: FlowContext;
-    nextNodeId: string;
-  };
-  conversationHistoryString?: string; // For simpler autonomous mode if no flow state
-}
+const RequestBodySchema = z.object({
+  message: z.string().min(1, { message: "Message cannot be empty." }),
+  flowState: FlowStateSchema.optional().describe("If provided, attempts to resume or continue an existing flow."),
+  conversationHistoryString: z.string().optional().describe("A simple string of past dialogue. Used for autonomousReasoning if a flow is not being executed."),
+});
+type ApiRequestBody = z.infer<typeof RequestBodySchema>;
+
+
+// Helper to create standardized error responses
+const createErrorResponse = (status: number, message: string, details?: Record<string, any>) => {
+  return NextResponse.json(
+    {
+      error: {
+        code: status,
+        message: message,
+        details: details,
+      },
+    },
+    { status }
+  );
+};
 
 export async function POST(
   request: NextRequest,
@@ -47,19 +61,29 @@ export async function POST(
 ) {
   const { agentId } = params;
 
+  if (!agentId) {
+    return createErrorResponse(400, "Agent ID is missing in the path.");
+  }
+
+  let requestBody: ApiRequestBody;
   try {
-    const body: RequestBody = await request.json();
-    const userInput = body.message;
-
-    if (!userInput) {
-      return NextResponse.json({ error: 'Message is required' }, { status: 400 });
+    const rawBody = await request.json();
+    requestBody = RequestBodySchema.parse(rawBody);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return createErrorResponse(400, "Invalid request body.", { issues: error.errors });
     }
+    return createErrorResponse(400, "Malformed JSON in request body.");
+  }
 
-    const agentRef = doc(db, 'agents', agentId as string);
+  const { message: userInput, flowState, conversationHistoryString } = requestBody;
+
+  try {
+    const agentRef = doc(db, 'agents', agentId);
     const agentSnap = await getDoc(agentRef);
 
     if (!agentSnap.exists()) {
-      return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
+      return createErrorResponse(404, `Agent with ID '${agentId}' not found.`);
     }
     
     const agent = convertAgentForFlow({ id: agentSnap.id, ...agentSnap.data() });
@@ -70,13 +94,13 @@ export async function POST(
       let inputContext: FlowContext;
       let nodeToExecute: string | undefined;
 
-      if (body.flowState?.context && body.flowState?.nextNodeId) {
+      if (flowState?.context && flowState?.nextNodeId) {
         // Resume existing flow
-        inputContext = body.flowState.context;
-        nodeToExecute = body.flowState.nextNodeId;
+        inputContext = flowState.context;
+        nodeToExecute = flowState.nextNodeId;
       } else {
         // Start new flow
-        inputContext = { conversationHistory: [] }; // Initialize with empty history for the flow
+        inputContext = { conversationHistory: [] }; 
         nodeToExecute = agent.flow.nodes.find(n => n.type === 'start')?.id;
       }
 
@@ -84,39 +108,41 @@ export async function POST(
         const flowInput: ExecuteAgentFlowInput = {
           flowDefinition: agent.flow,
           currentContext: inputContext,
-          currentMessage: userInput, // The new message from the user
+          currentMessage: userInput,
           startNodeId: nodeToExecute,
           knowledgeItems: knowledgeItems,
         };
         
         const flowResult = await executeAgentFlow(flowInput);
 
+        if (flowResult.error) {
+           // If flow itself reports an error, but executed partially
+           return NextResponse.json({
+             type: 'flow',
+             messages: flowResult.messagesToSend,
+             newFlowState: flowResult.nextNodeId ? { context: flowResult.updatedContext, nextNodeId: flowResult.nextNodeId } : undefined,
+             isFlowFinished: flowResult.isFlowFinished,
+             error: flowResult.error 
+           }, { status: 200 }); // Still a 200 as the API call itself was successful, but flow had an issue.
+        }
+
         return NextResponse.json({ 
           type: 'flow',
           messages: flowResult.messagesToSend,
           newFlowState: flowResult.nextNodeId ? { context: flowResult.updatedContext, nextNodeId: flowResult.nextNodeId } : undefined,
           isFlowFinished: flowResult.isFlowFinished,
-          error: flowResult.error // Will be undefined if no error
-        });
+        }, { status: 200 });
       }
     }
 
     // --- Fallback to Autonomous Reasoning ---
-    // Build context string for autonomous reasoning
-    let reasoningContextString = body.conversationHistoryString || "";
+    let reasoningContextString = conversationHistoryString || "";
     if (!reasoningContextString.trim() && agent.generatedPersona) {
-        // If history is empty, prime with persona for better first response
         reasoningContextString = `Agent Persona: ${agent.generatedPersona}\n`;
     }
-    // Append current user input to the history string for autonomous reasoning
-    // The autonomousReasoning flow itself expects 'context' (history) and 'userInput' separately.
-    // Here, we'll pass the accumulated string as context.
     
-    // The 'context' for autonomousReasoning should be the history *before* the current userInput.
-    // 'userInput' is the current message.
-    const autonomousInputContext = body.conversationHistoryString || 
+    const autonomousInputContext = conversationHistoryString || 
       (agent.generatedPersona ? `You are an AI assistant with the following persona: ${agent.generatedPersona}. ` : "");
-
 
     const reasoningInput: AutonomousReasoningInput = {
       context: autonomousInputContext,
@@ -130,14 +156,14 @@ export async function POST(
       type: 'autonomous',
       reply: result.responseToUser,
       reasoning: result.reasoning
-    });
+    }, { status: 200 });
 
   } catch (error: any) {
-    console.error(`Error in agent API for ID ${agentId}:`, error);
-    // More specific error for JSON parsing issues
-    if (error instanceof SyntaxError && error.message.includes("JSON")) {
-        return NextResponse.json({ error: 'Invalid JSON in request body.' }, { status: 400 });
+    console.error(`API Error for agent ${agentId} | Message: ${userInput.substring(0,50)} | Error:`, error);
+    // Differentiate between known errors and general server errors
+    if (error.message.includes("Agent not found")) { // Example of a specific check
+        return createErrorResponse(404, error.message);
     }
-    return NextResponse.json({ error: error.message || 'Failed to process message' }, { status: 500 });
+    return createErrorResponse(500, 'An unexpected error occurred while processing your request.', { internalError: error.message });
   }
 }
