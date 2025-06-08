@@ -23,13 +23,13 @@ const formSchema = z.object({
   confirmPassword: z.string().min(6, "Password must be at least 6 characters"),
 }).refine(data => data.password === data.confirmPassword, {
   message: "Passwords don't match",
-  path: ["confirmPassword"], // path of error
+  path: ["confirmPassword"],
 });
 
 type FormData = z.infer<typeof formSchema>;
 
 export default function SignupPage() {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false); // Renamed from isLoading
   const { toast } = useToast();
   const router = useRouter();
   const { signUp, currentUser, loading: authLoading } = useAuth();
@@ -39,27 +39,34 @@ export default function SignupPage() {
   });
 
   useEffect(() => {
+    // Redirect if user is already logged in and auth is not loading
     if (!authLoading && currentUser) {
-      router.push("/dashboard"); // Redirect if already logged in
+      router.push("/dashboard");
     }
   }, [currentUser, authLoading, router]);
 
   const onSubmit: SubmitHandler<FormData> = async (data) => {
-    setIsLoading(true);
+    setIsSubmitting(true);
     const user = await signUp(data.email, data.password);
-    setIsLoading(false);
+    setIsSubmitting(false);
     if (user) {
-      router.push("/dashboard"); 
+      // router.push("/dashboard"); // Redirection is handled by useEffect or AppLayout
     }
     // Toast for error is handled within signUp
   };
 
-  if (authLoading || (!authLoading && currentUser)) {
+  // Show loader if auth state is still loading
+  if (authLoading) {
       return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4">
             <Loader2 className="h-16 w-16 animate-spin text-primary" />
         </div>
       );
+  }
+  
+  // If user is already logged in (and authLoading is false), useEffect will redirect.
+  if (currentUser) {
+    return null; 
   }
 
   return (
@@ -95,9 +102,9 @@ export default function SignupPage() {
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" disabled={isLoading} className="w-full">
-              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              {isLoading ? "Creating Account..." : "Sign Up"}
+            <Button type="submit" disabled={isSubmitting} className="w-full">
+              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {isSubmitting ? "Creating Account..." : "Sign Up"}
             </Button>
             <p className="text-sm text-muted-foreground">
               Already have an account?{" "}
@@ -112,3 +119,4 @@ export default function SignupPage() {
     </div>
   );
 }
+    

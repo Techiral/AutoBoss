@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react"; // Added useEffect
+import { useState, useEffect } from "react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { useRouter } from "next/navigation"; // Removed redirect
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2, LogIn } from "lucide-react";
@@ -24,7 +24,7 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 export default function LoginPage() {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false); // Renamed from isLoading for clarity
   const { toast } = useToast();
   const router = useRouter();
   const { signIn, currentUser, loading: authLoading } = useAuth();
@@ -34,28 +34,37 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
+    // Redirect if user is already logged in and auth is not loading
     if (!authLoading && currentUser) {
-      router.push("/dashboard"); // Redirect if already logged in
+      router.push("/dashboard");
     }
   }, [currentUser, authLoading, router]);
 
 
   const onSubmit: SubmitHandler<FormData> = async (data) => {
-    setIsLoading(true);
+    setIsSubmitting(true);
     const user = await signIn(data.email, data.password);
-    setIsLoading(false);
+    setIsSubmitting(false);
     if (user) {
-      router.push("/dashboard");
+      // router.push("/dashboard"); // Redirection is handled by useEffect above or AppLayout
     }
     // Toast for error is handled within signIn
   };
   
-  if (authLoading || (!authLoading && currentUser)) {
+  // Show loader if auth state is still loading
+  if (authLoading) {
       return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4">
             <Loader2 className="h-16 w-16 animate-spin text-primary" />
         </div>
       );
+  }
+
+  // If user is already logged in (and authLoading is false), useEffect will redirect.
+  // So, we can directly render the form if not loading and no current user.
+  // This avoids a flash of the form before redirection if already logged in.
+  if (currentUser) {
+    return null; // Or a minimal loading state if preferred, but useEffect handles redirect
   }
 
 
@@ -87,9 +96,9 @@ export default function LoginPage() {
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" disabled={isLoading} className="w-full">
-              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              {isLoading ? "Signing In..." : "Sign In"}
+            <Button type="submit" disabled={isSubmitting} className="w-full">
+              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {isSubmitting ? "Signing In..." : "Sign In"}
             </Button>
             <p className="text-sm text-muted-foreground">
               Don't have an account?{" "}
@@ -104,3 +113,4 @@ export default function LoginPage() {
     </div>
   );
 }
+    

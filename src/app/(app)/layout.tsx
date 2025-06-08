@@ -17,6 +17,7 @@ import {
   SidebarMenuButton,
   SidebarTrigger,
   SidebarInset,
+  useSidebar, // Import useSidebar
 } from '@/components/ui/sidebar';
 import { Home, PlusCircle, Bot, Settings, BookOpen, MessageSquare, Share2, Cog, LifeBuoy, Loader2, LogIn } from 'lucide-react';
 import type { Agent, KnowledgeItem, AgentFlowDefinition } from '@/lib/types';
@@ -31,11 +32,11 @@ import {
   updateDoc, 
   Timestamp, 
   query,
-  where, // Import where for querying
+  where,
   writeBatch 
 } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from '@/contexts/AuthContext'; // Import useAuth
+import { useAuth } from '@/contexts/AuthContext';
 
 const LOCAL_STORAGE_THEME_KEY = 'autoBossTheme';
 const AGENTS_COLLECTION = 'agents';
@@ -86,24 +87,26 @@ const convertTimestampsToISO = (agent: any): Agent => {
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [agents, setAgents] = useState<Agent[]>([]);
-  const [theme, setTheme] = useState<Theme>('dark');
+  const [theme, setTheme] = useState<Theme>('dark'); // Default to dark, useEffect will check localStorage
   const [isContextInitialized, setIsContextInitialized] = useState(false);
   const [isLoadingAgents, setIsLoadingAgents] = useState(true);
   const { toast } = useToast();
-  const { currentUser, loading: authLoading } = useAuth(); // Get currentUser from AuthContext
+  const { currentUser, loading: authLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    // Client-side theme initialization
     const storedTheme = localStorage.getItem(LOCAL_STORAGE_THEME_KEY) as Theme | null;
     if (storedTheme && (storedTheme === 'light' || storedTheme === 'dark')) {
       setTheme(storedTheme);
+    } else {
+      // If no theme in local storage, or it's invalid, use system preference or default to dark
+      // For simplicity, we just default to dark if nothing stored. System preference detection is more complex.
+      setTheme('dark');
     }
   }, []);
 
   useEffect(() => {
-    // Apply theme class to HTML element
     if (typeof window !== 'undefined') {
         if (theme === 'dark') {
             document.documentElement.classList.add('dark');
@@ -114,19 +117,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [theme]);
 
   useEffect(() => {
-    if (!authLoading) { // Only proceed if auth state is resolved
+    if (!authLoading) {
       if (!currentUser) {
-        // If not logged in, redirect to login page, unless already on login/signup
-        if (pathname !== '/login' && pathname !== '/signup' && !pathname.startsWith('/chat/')) { // Allow public chat
+        if (pathname !== '/login' && pathname !== '/signup' && !pathname.startsWith('/chat/')) {
           router.push('/login');
         } else {
-          setIsLoadingAgents(false); // Not loading agents if not logged in
+          setIsLoadingAgents(false);
           setIsContextInitialized(true);
         }
       } else {
-        // User is logged in, fetch their agents
         const fetchAgents = async () => {
-          if (!currentUser) return; // Should not happen if logic is correct
+          if (!currentUser) return;
           setIsLoadingAgents(true);
           try {
             const q = query(collection(db, AGENTS_COLLECTION), where("userId", "==", currentUser.uid));
@@ -160,14 +161,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       const newAgentWithUser: Agent = {
         ...agentData,
         id: newAgentId,
-        userId: currentUser.uid, // Add userId
+        userId: currentUser.uid,
         createdAt: Timestamp.now(), 
         knowledgeItems: [],
         flow: minimalInitialFlow,
       };
       
-      // Data to save in Firestore
-      const { id, ...dataToSave } = newAgentWithUser; // Exclude client-side id
+      const { id, ...dataToSave } = newAgentWithUser;
       await setDoc(doc(db, AGENTS_COLLECTION, newAgentWithUser.id), dataToSave);
 
       const agentForState = convertTimestampsToISO(newAgentWithUser);
@@ -314,7 +314,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     setTheme(prevTheme => {
         const newTheme = prevTheme === 'light' ? 'dark' : 'light';
         localStorage.setItem(LOCAL_STORAGE_THEME_KEY, newTheme);
-        // Effect will handle applying to document.documentElement
         return newTheme;
     });
   }, []);
@@ -344,27 +343,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [currentUser, toast]);
 
 
-  if (authLoading || (!isContextInitialized && currentUser)) { 
-    return (
-        <div className="flex items-center justify-center min-h-screen bg-background">
-            <Loader2 className="h-16 w-16 animate-spin text-primary" />
-        </div>
-    );
-  }
-
-  // If not authenticated and not on public pages, AuthProvider/routing logic should handle redirect.
-  // This layout should only render its UI if authenticated or if children are public.
-  if (!currentUser && !(pathname === '/login' || pathname === '/signup' || pathname.startsWith('/chat/'))) {
-     // This case should ideally be handled by router.push above, but as a fallback.
-     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4">
-            <LogIn className="h-16 w-16 text-primary mb-4" />
-            <p className="text-lg">Redirecting to login...</p>
-        </div>
-    );
-  }
-
-
+  // Render the main app structure consistently.
+  // Loading and redirect logic will be handled inside the `main` content area.
   return (
     <AppContext.Provider value={{ 
         agents, 
@@ -386,11 +366,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <AppHeader />
           <SidebarInset>
             <main className="flex-1 p-4 sm:p-6 lg:p-8 bg-background text-foreground">
-              {isLoadingAgents && currentUser ? ( 
+              {authLoading || (!isContextInitialized && currentUser) ? (
                  <div className="flex items-center justify-center h-full">
                     <Loader2 className="h-12 w-12 animate-spin text-primary" />
                  </div>
-              ) : children }
+              ) : !currentUser && !(pathname === '/login' || pathname === '/signup' || pathname.startsWith('/chat/')) ? (
+                <div className="flex flex-col items-center justify-center h-full">
+                    <LogIn className="h-16 w-16 text-primary mb-4" />
+                    <p className="text-lg">Redirecting to login...</p>
+                    {/* useEffect in this layout already handles router.push for redirect */}
+                </div>
+              ) : (
+                children 
+              )}
             </main>
           </SidebarInset>
         </div>
@@ -398,9 +386,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     </AppContext.Provider>
   );
 }
-
-// AppHeader and AppSidebar remain largely the same as before,
-// but UserNav within AppHeader will be updated to show auth status.
 
 function AppHeader() {
   return (
@@ -433,8 +418,8 @@ function AppSidebar() {
     { href: `/agents/${currentAgentId}/export`, label: 'Export', icon: Share2 },
   ] : [];
 
-  if (!currentUser) { // Don't render sidebar content if not logged in for (app) routes
-    return <Sidebar><SidebarHeader className="p-4"><Logo collapsed={collapsed} /></SidebarHeader></Sidebar>; // Minimal sidebar
+  if (!currentUser && !(pathname.startsWith('/chat/'))) { // Also allow sidebar for public chat for consistency
+    return <Sidebar><SidebarHeader className="p-4"><Logo collapsed={collapsed} /></SidebarHeader></Sidebar>;
   }
 
   return (
@@ -497,3 +482,4 @@ function AppSidebar() {
     </Sidebar>
   );
 }
+    
