@@ -11,15 +11,20 @@ import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Intersection Observer Hook
-const useIntersectionObserver = (options?: IntersectionObserverInit) => {
+const useIntersectionObserver = (options?: IntersectionObserverInit & { initialIsVisible?: boolean }) => {
   const [node, setNode] = useState<HTMLElement | null>(null);
-  const [isIntersecting, setIsIntersecting] = useState(false);
+  const [isIntersecting, setIsIntersecting] = useState(
+    typeof window === 'undefined' && options?.initialIsVisible !== undefined
+      ? options.initialIsVisible
+      : (options?.initialIsVisible ?? false)
+  );
   const observerRef = useRef<IntersectionObserver | null>(null);
 
   useEffect(() => {
     if (observerRef.current) observerRef.current.disconnect();
     if (typeof window.IntersectionObserver === "undefined") {
-      setIsIntersecting(true); // Fallback for SSR or old browsers
+      // Fallback for SSR or old browsers if not handled by initialIsVisible
+      if (options?.initialIsVisible === undefined) setIsIntersecting(true);
       return;
     }
     observerRef.current = new IntersectionObserver(([entry]) => setIsIntersecting(entry.isIntersecting), options);
@@ -27,8 +32,10 @@ const useIntersectionObserver = (options?: IntersectionObserverInit) => {
     if (node) currentObserver.observe(node);
     return () => { if (node && currentObserver) currentObserver.unobserve(node); };
   }, [node, options]);
+
   return [setNode, isIntersecting] as const;
 };
+
 
 interface SimpleFeatureCardProps {
   icon: React.ReactNode;
@@ -39,7 +46,7 @@ interface SimpleFeatureCardProps {
 }
 
 const SimpleFeatureCard: React.FC<SimpleFeatureCardProps> = ({ icon, title, description, caseStudy, animationDelay }) => {
-  const [ref, isVisible] = useIntersectionObserver({ threshold: 0.1 });
+  const [ref, isVisible] = useIntersectionObserver({ threshold: 0.1, initialIsVisible: typeof window === 'undefined' });
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -67,7 +74,7 @@ const SimpleFeatureCard: React.FC<SimpleFeatureCardProps> = ({ icon, title, desc
   );
 };
 
-const heroPainPoint = "AutoBoss builds AI teammates.";
+const heroPainPoint = "AutoBoss builds AI teammates."; // 29 characters including period
 
 export default function MarketingPageClient() {
   const typewriterRef = useRef<HTMLSpanElement>(null);
@@ -90,7 +97,7 @@ export default function MarketingPageClient() {
   }, []);
 
 
-  const sectionObserverOptions = { threshold: 0.1, rootMargin: "0px 0px -50px 0px" };
+  const sectionObserverOptions = { threshold: 0.1, rootMargin: "0px 0px -50px 0px", initialIsVisible: typeof window === 'undefined' };
   const [heroRef, heroVisible] = useIntersectionObserver(sectionObserverOptions);
   const [solveProblemsRef, solveProblemsVisible] = useIntersectionObserver(sectionObserverOptions);
   const [superpowersRef, superpowersVisible] = useIntersectionObserver(sectionObserverOptions);
@@ -98,8 +105,8 @@ export default function MarketingPageClient() {
   const [videoDemoRef, videoDemoVisible] = useIntersectionObserver(sectionObserverOptions);
   const [socialProofRef, socialProofVisible] = useIntersectionObserver(sectionObserverOptions);
   const [humanizeRef, humanizeVisible] = useIntersectionObserver(sectionObserverOptions);
+  const [founderQuoteAsideRef, founderQuoteAsideIsVisible] = useIntersectionObserver({ threshold: 0.1, initialIsVisible: typeof window === 'undefined' });
   const [finalCtaRef, finalCtaVisible] =  useIntersectionObserver(sectionObserverOptions);
-
 
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
 
@@ -108,6 +115,27 @@ export default function MarketingPageClient() {
     { href: "#how-it-works", label: "How It Works" },
     { href: "#proof", label: "Proof" },
   ];
+
+  const socialProofItems = [
+    {
+      type: "testimonial",
+      image: "https://placehold.co/32x32/1A202C/E2E8F0.png?text=AR&font=nunito", alt: "Alex R.", name: "Alex R.", role: "Support Lead",
+      quote: "AgentVerse revolutionized our support, handling 80% of inquiries. A true game-changer.",
+      delay: "delay-100",
+    },
+    {
+      type: "metric",
+      metrics: [ { icon: <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 mb-1 opacity-80"/>, value: "97%", label: "Task Automation" }, { icon: <Layers className="w-4 h-4 sm:w-5 sm:h-5 mt-2 mb-1 opacity-80"/>, value: "1M+", label: "Agents Deployed" } ],
+      delay: "delay-200",
+    },
+    {
+      type: "testimonial",
+      image: "https://placehold.co/32x32/1A202C/E2E8F0.png?text=PS&font=nunito", alt: "Priya S.", name: "Priya S.", role: "Founder @ InnovateLLC",
+      quote: "The visual flow builder is incredibly intuitive. Launched our first AI agent in under an hour!",
+      delay: "delay-300",
+    }
+  ];
+
 
   return (
     <TooltipProvider>
@@ -126,7 +154,7 @@ export default function MarketingPageClient() {
             </Button>
             <Button size="sm" asChild className="font-semibold bg-gradient-to-r from-electric-teal to-neon-lime text-background shadow-md hover:opacity-90 transition-opacity btn-interactive text-xs">
               <Link href="/dashboard" className="flex items-center gap-1">
-                Try AutoBoss Free <ArrowRight className="h-4 w-4"/>
+                 Try AutoBoss Free <ArrowRight className="h-4 w-4"/>
               </Link>
             </Button>
           </nav>
@@ -203,7 +231,7 @@ export default function MarketingPageClient() {
                     { icon: <Users className="w-5 h-5" />, title: "Personalized Onboarding", description: "Guide new users effectively with interactive, AI-driven onboarding flows.", hint: "user journey map", delay: "delay-200" },
                     { icon: <Filter className="w-5 h-5" />, title: "Automated Lead Qualifiers", description: "Qualify leads and book meetings around the clock with intelligent sales agents.", hint: "sales funnel graph", delay: "delay-300" },
                   ].map((item, index) => {
-                    const [cardRef, cardIsVisible] = useIntersectionObserver({ threshold: 0.2 });
+                    const [cardRef, cardIsVisible] = useIntersectionObserver({ threshold: 0.2, initialIsVisible: typeof window === 'undefined' });
                     return (
                       <div ref={cardRef} key={index} className={cn("scroll-reveal bg-background p-4 sm:p-5 rounded-lg shadow-lg text-left transform hover:scale-105 transition-transform duration-300", item.delay, cardIsVisible && "visible")}>
                         <div className="p-2 rounded-lg bg-primary/10 text-primary mb-2 inline-block" data-ai-hint={item.hint}>
@@ -269,7 +297,7 @@ export default function MarketingPageClient() {
                     { number: "2", title: "Enrich Knowledge", description: "Upload docs or URLs. Train it on your specific data.", icon: <Brain className="w-5 h-5 text-neon-lime"/>, animationDelay:"delay-200" },
                     { number: "3", title: "Deploy & Dominate", description: "Integrate via widget, API, or direct link.", icon: <Rocket className="w-5 h-5 text-primary"/>, animationDelay:"delay-300" },
                 ].map((step, index) => {
-                  const [stepRef, stepIsVisible] = useIntersectionObserver({ threshold: 0.3 });
+                  const [stepRef, stepIsVisible] = useIntersectionObserver({ threshold: 0.3, initialIsVisible: typeof window === 'undefined' });
                   return (
                     <div key={step.title} ref={stepRef} className={cn("relative scroll-reveal", step.animationDelay, index < 2 ? "md:dashed-connector md:right" : "", stepIsVisible && "visible")}>
                       <article className={cn("relative flex flex-col items-center gap-2 p-4 sm:p-5 rounded-lg bg-background shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 text-foreground z-10 h-full")}>
@@ -292,17 +320,17 @@ export default function MarketingPageClient() {
         </section>
 
         <section ref={videoDemoRef} id="video-demo-placeholder" className={cn("scroll-reveal section-dark w-full py-12 md:py-16 lg:py-20 text-center", videoDemoVisible && "visible")}>
-            <div className="container mx-auto px-4 md:px-6 max-w-screen-xl">
-                <h2 className="marketing-h2">See AgentVerse in Action</h2>
-                <p className="section-description mt-1 mb-6">Watch how easy it is to build an intelligent AI teammate.</p>
-                <div className="max-w-2xl mx-auto aspect-video bg-muted/20 rounded-lg shadow-xl flex items-center justify-center text-muted-foreground border border-border/50 relative overflow-hidden cursor-pointer group" data-ai-hint="video player modern dark sleek elegant">
-                    <Image src="https://placehold.co/1280x720/0A0D13/0A0D13.png" alt="AgentVerse Demo Video Thumbnail" layout="fill" objectFit="cover" className="opacity-20 group-hover:opacity-10 transition-opacity" data-ai-hint="dark tech abstract thumbnail" loading="lazy"/>
-                    <div className="video-placeholder-text z-10">
-                         <PlayCircle size={40} className="sm:size-50 text-primary cursor-pointer group-hover:scale-110 group-hover:text-neon-lime transition-all duration-300"/>
-                         <p className="mt-2 text-xs font-semibold">Watch Quick Demo (1:03)</p>
-                    </div>
+          <div className="container mx-auto px-4 md:px-6 max-w-screen-xl">
+            <h2 className="marketing-h2">See AgentVerse in Action</h2>
+            <p className="section-description mt-1 mb-6">Watch how easy it is to build an intelligent AI teammate.</p>
+            <div className="max-w-2xl mx-auto aspect-video bg-muted/20 rounded-lg shadow-xl flex items-center justify-center text-muted-foreground border border-border/50 relative overflow-hidden cursor-pointer group" data-ai-hint="video player modern dark sleek elegant">
+                <Image src="https://placehold.co/1280x720/0A0D13/0A0D13.png" alt="AgentVerse Demo Video Thumbnail" layout="fill" objectFit="cover" className="opacity-20 group-hover:opacity-10 transition-opacity" data-ai-hint="dark tech abstract thumbnail" loading="lazy"/>
+                <div className="video-placeholder-text z-10">
+                     <PlayCircle size={40} className="sm:size-50 text-primary cursor-pointer group-hover:scale-110 group-hover:text-neon-lime transition-all duration-300"/>
+                     <p className="mt-2 text-xs font-semibold">Watch Quick Demo (1:03)</p>
                 </div>
             </div>
+          </div>
         </section>
 
         <section ref={socialProofRef} id="proof" className={cn("scroll-reveal section-light-accent w-full py-12 md:py-16 lg:py-20", socialProofVisible && "visible")}>
@@ -310,24 +338,11 @@ export default function MarketingPageClient() {
                 <h2 className="marketing-h2 text-card-foreground">Real Results, Real Trust</h2>
                  <p className="section-description">Join innovators transforming their businesses with AgentVerse.</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 max-w-5xl mx-auto text-left">
-                    {[
-                      {
-                        refSetter: useIntersectionObserver(sectionObserverOptions)[0], isVisible: useIntersectionObserver(sectionObserverOptions)[1], delay: "delay-100", type: "testimonial",
-                        image: "https://placehold.co/32x32/1A202C/E2E8F0.png?text=AR&font=nunito", alt: "Alex R.", name: "Alex R.", role: "Support Lead",
-                        quote: "AgentVerse revolutionized our support, handling 80% of inquiries. A true game-changer."
-                      },
-                      {
-                        refSetter: useIntersectionObserver(sectionObserverOptions)[0], isVisible: useIntersectionObserver(sectionObserverOptions)[1], delay: "delay-200", type: "metric",
-                        metrics: [ { icon: <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 mb-1 opacity-80"/>, value: "97%", label: "Task Automation" }, { icon: <Layers className="w-4 h-4 sm:w-5 sm:h-5 mt-2 mb-1 opacity-80"/>, value: "1M+", label: "Agents Deployed" } ]
-                      },
-                      {
-                        refSetter: useIntersectionObserver(sectionObserverOptions)[0], isVisible: useIntersectionObserver(sectionObserverOptions)[1], delay: "delay-300", type: "testimonial",
-                        image: "https://placehold.co/32x32/1A202C/E2E8F0.png?text=PS&font=nunito", alt: "Priya S.", name: "Priya S.", role: "Founder @ InnovateLLC",
-                        quote: "The visual flow builder is incredibly intuitive. Launched our first AI agent in under an hour!"
-                      }
-                    ].map((item, index) => (
-                       <article ref={item.refSetter} key={index} className={cn("scroll-reveal transform hover:scale-103 transition-transform duration-300",
-                         item.delay, item.isVisible && "visible",
+                    {socialProofItems.map((item, index) => {
+                      const [cardRef, cardIsVisible] = useIntersectionObserver({ threshold: 0.2, initialIsVisible: typeof window === 'undefined' });
+                      return (
+                       <article ref={cardRef} key={index} className={cn("scroll-reveal transform hover:scale-103 transition-transform duration-300",
+                         item.delay, cardIsVisible && "visible",
                          item.type === 'testimonial' ? "bg-background p-4 sm:p-5 rounded-lg shadow-lg text-foreground" :
                          "bg-gradient-to-br from-electric-teal to-neon-lime p-4 sm:p-5 rounded-lg shadow-lg text-background flex flex-col items-center justify-center text-center")}>
                         {item.type === 'testimonial' ? (
@@ -354,7 +369,8 @@ export default function MarketingPageClient() {
                            ))
                         )}
                     </article>
-                    ))}
+                    );
+                    })}
                 </div>
             </div>
         </section>
@@ -365,7 +381,10 @@ export default function MarketingPageClient() {
             <p className="section-description">
               We're dedicated to making sophisticated AI accessible. AgentVerse is your partner in innovation.
             </p>
-            <aside ref={useIntersectionObserver(sectionObserverOptions)[0]} className={cn("scroll-reveal max-w-lg mx-auto bg-card p-5 sm:p-6 rounded-lg shadow-xl transform hover:scale-103 transition-transform text-card-foreground delay-150", useIntersectionObserver(sectionObserverOptions)[1] && "visible")}>
+            <aside ref={founderQuoteAsideRef} className={cn(
+                "scroll-reveal max-w-lg mx-auto bg-card p-5 sm:p-6 rounded-lg shadow-xl transform hover:scale-103 transition-transform text-card-foreground delay-150",
+                founderQuoteAsideIsVisible && "visible"
+            )}>
               <p className="italic text-sm text-muted-foreground leading-relaxed">"I started AgentVerse frustrated by clunky automation. My vision: a platform so intuitive, anyone can build truly intelligent AI agents that *actually work*."</p>
               <div className="flex items-center justify-center gap-2 mt-3">
                 <Image loading="lazy" src="https://placehold.co/36x36/1A202C/E2E8F0.png?text=AC&font=nunito" alt="Alex Chen, Founder (Placeholder)" width={32} height={32} className="rounded-full shadow-md" data-ai-hint="founder portrait friendly modern person" />

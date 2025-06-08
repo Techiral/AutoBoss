@@ -121,13 +121,13 @@
     letter-spacing: -0.03em;
   }
   .marketing-h2 {
-     @apply text-2xl sm:text-3xl font-bold tracking-tight text-center mb-2 md:mb-3;
-    letter-spacing: -0.02em;
+     @apply text-3xl sm:text-4xl font-bold tracking-tight text-center mb-3 md:mb-4; /* Adjusted from previous versions */
+     letter-spacing: -0.02em;
   }
   h3 { @apply text-lg sm:text-xl font-semibold font-headline; }
 
   .section-description {
-      @apply text-muted-foreground text-xs sm:text-sm md:text-base max-w-md mx-auto mb-5 md:mb-6 text-center;
+      @apply text-muted-foreground text-xs sm:text-sm md:text-base max-w-md mx-auto mb-6 md:mb-8 text-center;
   }
 
 
@@ -163,7 +163,7 @@
   margin: 0 auto;
   letter-spacing: .03em;
   animation:
-    typing 1.5s steps(31, end) forwards, /* Ensure 31 steps for "AutoBoss builds AI teammates." */
+    typing 1.5s steps(29, end) forwards, /* "AutoBoss builds AI teammates." is 29 chars */
     blink-caret .75s step-end infinite;
   animation-delay: 0.2s;
   width: 0%;
@@ -204,14 +204,14 @@
 
 /* Styles for simple feature card presentation */
 .simple-feature-card {
-    @apply bg-card/70 dark:bg-card/50 p-4 rounded-xl border border-border/30 shadow-lg text-left transition-all duration-300 ease-out;
+    @apply bg-card/70 dark:bg-card/50 p-4 sm:p-5 rounded-xl border border-border/30 shadow-lg text-left transition-all duration-300 ease-out;
     @apply hover:shadow-2xl hover:border-primary/50 hover:scale-[1.02];
 }
 .simple-feature-card-icon {
-    @apply p-2 rounded-lg bg-primary/10 text-primary mb-2 inline-block;
+    @apply p-2 sm:p-2.5 rounded-lg bg-primary/10 text-primary mb-2 sm:mb-3 inline-block;
 }
 .simple-feature-card-title {
-    @apply font-headline text-base sm:text-lg font-bold text-foreground mb-1; /* Changed text-md to text-lg */
+    @apply font-headline text-lg sm:text-lg font-bold text-foreground mb-1 sm:mb-1.5; /* Changed from text-base */
     @apply relative pt-1;
 }
 .simple-feature-card-title::before {
@@ -220,16 +220,16 @@
 }
 
 .simple-feature-card-description {
-    @apply text-muted-foreground text-xs leading-relaxed;
+    @apply text-muted-foreground text-xs sm:text-sm leading-relaxed;
 }
 .simple-feature-card-case-study {
-    @apply mt-2 pt-2 border-t border-border/20 text-xs;
+    @apply mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-border/20 text-xs sm:text-sm;
 }
 .simple-feature-card-quote {
      @apply italic text-muted-foreground/80;
 }
 .simple-feature-card-metric {
-    @apply font-semibold text-primary mt-1;
+    @apply font-semibold text-primary mt-1 sm:mt-1.5;
 }
 
 
@@ -259,14 +259,14 @@ div[data-ai-hint] {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.6rem; /* Smaller font size */
-    color: hsl(var(--muted-foreground) / 0.4); /* More subtle color */
-    background-color: hsl(var(--muted) / 0.1); /* More subtle background */
-    border: 1px dashed hsl(var(--border) / 0.1); /* More subtle border */
-    min-height: 2rem; /* Reduced min-height */
+    font-size: 0.6rem;
+    color: hsl(var(--muted-foreground) / 0.4);
+    background-color: hsl(var(--muted) / 0.1);
+    border: 1px dashed hsl(var(--border) / 0.1);
+    min-height: 2rem;
     text-align: center;
-    padding: 0.15rem; /* Reduced padding */
-    border-radius: calc(var(--radius) - 3px); /* Slightly adjusted radius */
+    padding: 0.15rem;
+    border-radius: calc(var(--radius) - 3px);
 }
 
 /* Enhanced button active states & general transitions */
@@ -309,4 +309,10 @@ div[data-ai-hint] {
 .step-card-container > :nth-child(1) .dashed-connector::before { @apply content-none; }
 .step-card-container > :nth-child(3) .dashed-connector::after { @apply content-none; }
 
+/* Removed .pulse-cta-btn and @keyframes pulse-cta-gentle as continuous pulsing was removed */
+/* The @keyframes pulse-cta-gentle and .pulse-cta-btn class were fully removed in a previous step */
+/* No orphaned braces should exist from their removal. */
     
+/* CSS for Logo Marquee (Powering AI Breakthroughs section) */
+/* This section was removed and replaced by "Solve Real Problems..." cards. */
+/* No marquee CSS should be present */
