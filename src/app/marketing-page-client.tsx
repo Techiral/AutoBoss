@@ -67,7 +67,7 @@ const SimpleFeatureCard: React.FC<SimpleFeatureCardProps> = ({ icon, title, desc
   );
 };
 
-const heroPainPoint = "AutoBoss builds AI teammates."; // Single, concise phrase
+const heroPainPoint = "AutoBoss builds AI teammates.";
 
 export default function MarketingPageClient() {
   const typewriterRef = useRef<HTMLSpanElement>(null);
@@ -81,15 +81,13 @@ export default function MarketingPageClient() {
   }, []);
 
   useEffect(() => {
-    // Typewriter effect logic
     if (typewriterRef.current) {
-      typewriterRef.current.textContent = heroPainPoint; // Set the static text
-      typewriterRef.current.classList.remove("typewriter-text"); // Remove to reset if it was there
-      // Ensure a reflow before re-adding the class to restart the animation
+      typewriterRef.current.textContent = heroPainPoint;
+      typewriterRef.current.classList.remove("typewriter-text");
       void typewriterRef.current.offsetWidth;
-      typewriterRef.current.classList.add("typewriter-text"); // Add class to start animation
+      typewriterRef.current.classList.add("typewriter-text");
     }
-  }, []); // Empty dependency array ensures this runs once on mount and when text changes if it were dynamic
+  }, []);
 
 
   const sectionObserverOptions = { threshold: 0.1, rootMargin: "0px 0px -50px 0px" };
@@ -126,7 +124,7 @@ export default function MarketingPageClient() {
             <Button variant="outline" size="sm" asChild className="btn-outline-themed transition-colors btn-interactive text-xs ml-2">
               <Link href="/login" className="flex items-center gap-1">Login</Link>
             </Button>
-            <Button size="sm" asChild className="font-semibold bg-gradient-to-r from-electric-teal to-neon-lime text-background shadow-md hover:opacity-90 transition-opacity btn-interactive text-xs pulse-cta-btn">
+            <Button size="sm" asChild className="font-semibold bg-gradient-to-r from-electric-teal to-neon-lime text-background shadow-md hover:opacity-90 transition-opacity btn-interactive text-xs">
               <Link href="/dashboard" className="flex items-center gap-1">
                 Try AutoBoss Free <ArrowRight className="h-3.5 w-3.5"/>
               </Link>
@@ -151,7 +149,7 @@ export default function MarketingPageClient() {
             <Link key={link.href} href={link.href} className="block py-1.5 text-sm text-card-foreground hover:text-primary" onClick={toggleMobileMenu}>{link.label}</Link>
           ))}
           <Link href="/login" className="block py-1.5 text-sm text-card-foreground hover:text-primary" onClick={toggleMobileMenu}>Login</Link>
-          <Button asChild className="w-full font-semibold bg-gradient-to-r from-electric-teal to-neon-lime text-background shadow-md hover:opacity-90 transition-opacity btn-interactive text-sm mt-2 pulse-cta-btn">
+          <Button asChild className="w-full font-semibold bg-gradient-to-r from-electric-teal to-neon-lime text-background shadow-md hover:opacity-90 transition-opacity btn-interactive text-sm mt-2">
             <Link href="/dashboard" onClick={toggleMobileMenu} className="flex items-center justify-center gap-1">
               Try AutoBoss Free
             </Link>
@@ -177,7 +175,7 @@ export default function MarketingPageClient() {
                 Upgrade your business with AI agents that think, decide, &amp; execute.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center items-center pt-2">
-                <Button size="lg" asChild className="button-active-feedback shadow-lg bg-gradient-to-r from-electric-teal to-neon-lime text-background font-bold text-sm px-6 py-3 hover:opacity-90 transition-all duration-300 hover:scale-105 group pulse-cta-btn btn-interactive">
+                <Button size="lg" asChild className="button-active-feedback shadow-lg bg-gradient-to-r from-electric-teal to-neon-lime text-background font-bold text-sm px-6 py-3 hover:opacity-90 transition-all duration-300 hover:scale-105 group btn-interactive">
                   <Link href="/dashboard" className="flex items-center gap-1.5">
                     Launch Agent Free
                     <Rocket className="h-4 w-4 group-hover:animate-bounce" />
@@ -260,7 +258,6 @@ export default function MarketingPageClient() {
               From idea to impact, faster than you imagined. No complex coding required.
             </p>
             <div className="relative mx-auto max-w-4xl grid md:grid-cols-3 gap-5 lg:gap-6 items-start step-card-container">
-                {/* Dashed line connector (visual only) handled by CSS if needed, or can be omitted */}
                 {[
                     { number: "1", title: "Design Visually", description: "Craft your agent's brain in our intuitive Flow Studio.", icon: <Palette className="w-6 h-6 text-electric-teal"/>, animationDelay:"delay-100" },
                     { number: "2", title: "Enrich Knowledge", description: "Upload docs or URLs. Train it on your specific data.", icon: <Brain className="w-6 h-6 text-neon-lime"/>, animationDelay:"delay-200" },
@@ -271,14 +268,13 @@ export default function MarketingPageClient() {
                     <article key={step.title} ref={stepRef} className={cn("scroll-reveal relative flex flex-col items-center gap-2 p-5 rounded-lg bg-background shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 text-foreground z-10", step.animationDelay, stepIsVisible && "visible")}>
                         <div className="absolute -top-3.5 bg-gradient-to-br from-electric-teal to-neon-lime text-background text-xs font-bold w-7 h-7 rounded-full flex items-center justify-center border-2 border-card shadow-md">{step.number}</div>
                         <div className="mt-5 mb-1">{step.icon}</div>
-                        <h3 className="font-headline text-md font-semibold text-center">{step.title}</h3>
+                        <h3 className="font-headline text-lg font-semibold text-center">{step.title}</h3>
                         <p className="text-xs text-muted-foreground text-center leading-relaxed">{step.description}</p>
                     </article>
                   );
                 })}
             </div>
             <div ref={useIntersectionObserver(sectionObserverOptions)[0]} className={cn("scroll-reveal mt-10 md:mt-12 max-w-2xl mx-auto", useIntersectionObserver(sectionObserverOptions)[1] && "visible", "delay-400")}>
-                 {/* Removed data-ai-hint div here to clear placeholder block */}
                  <div className="aspect-video bg-muted/30 rounded-lg shadow-inner flex flex-col items-center justify-center text-muted-foreground p-4 border border-dashed border-border/50" data-ai-hint="interactive ui demo clean minimal">
                     <Cog className="w-8 h-8 opacity-40 mb-2"/>
                     <p className="text-xs">Illustrative Studio Demo UI</p>
@@ -308,7 +304,7 @@ export default function MarketingPageClient() {
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6 max-w-5xl mx-auto text-left">
                     <article ref={useIntersectionObserver(sectionObserverOptions)[0]} className={cn("scroll-reveal bg-background p-5 rounded-lg shadow-lg transform hover:scale-103 transition-transform duration-300 text-foreground", useIntersectionObserver(sectionObserverOptions)[1] && "visible", "delay-100")}>
                         <div className="flex items-center mb-2">
-                            <Image loading="lazy" src="https://placehold.co/32x32/E2E8F0/1A202C.png?text=AR" alt="Alex R." width={32} height={32} className="rounded-full mr-2" data-ai-hint="professional person portrait"/>
+                            <Image loading="lazy" src="https://placehold.co/32x32/transparent/333333.png?text=AR&font=nunito" alt="Alex R." width={32} height={32} className="rounded-full mr-2" data-ai-hint="professional person portrait"/>
                             <div>
                                 <h4 className="font-semibold text-foreground text-xs">Alex R.</h4>
                                 <p className="text-xs text-muted-foreground">Support Lead</p>
@@ -329,7 +325,7 @@ export default function MarketingPageClient() {
                     </article>
                      <article ref={useIntersectionObserver(sectionObserverOptions)[0]} className={cn("scroll-reveal bg-background p-5 rounded-lg shadow-lg transform hover:scale-103 transition-transform duration-300 text-foreground", useIntersectionObserver(sectionObserverOptions)[1] && "visible", "delay-300")}>
                         <div className="flex items-center mb-2">
-                             <Image loading="lazy" src="https://placehold.co/32x32/E2E8F0/1A202C.png?text=PS" alt="Priya S." width={32} height={32} className="rounded-full mr-2" data-ai-hint="founder startup person portrait"/>
+                             <Image loading="lazy" src="https://placehold.co/32x32/transparent/333333.png?text=PS&font=nunito" alt="Priya S." width={32} height={32} className="rounded-full mr-2" data-ai-hint="founder startup person portrait"/>
                             <div>
                                 <h4 className="font-semibold text-foreground text-xs">Priya S.</h4>
                                 <p className="text-xs text-muted-foreground">Founder @ InnovateLLC</p>
@@ -353,7 +349,7 @@ export default function MarketingPageClient() {
             <aside ref={useIntersectionObserver(sectionObserverOptions)[0]} className={cn("scroll-reveal max-w-lg mx-auto bg-card p-6 rounded-lg shadow-xl transform hover:scale-103 transition-transform text-card-foreground", useIntersectionObserver(sectionObserverOptions)[1] && "visible", "delay-150")}>
               <p className="italic text-sm text-muted-foreground leading-relaxed">"I started AutoBoss frustrated by clunky automation. My vision: a platform so intuitive, anyone can build truly intelligent AI agents that *actually work*."</p>
               <div className="flex items-center justify-center gap-2.5 mt-3">
-                <Image loading="lazy" src="https://placehold.co/36x36/1A202C/E2E8F0.png?text=AC" alt="Alex Chen, Founder (Placeholder)" width={36} height={36} className="rounded-full shadow-md" data-ai-hint="founder portrait friendly modern person" />
+                <Image loading="lazy" src="https://placehold.co/36x36/1A202C/E2E8F0.png?text=AC&font=nunito" alt="Alex Chen, Founder (Placeholder)" width={36} height={36} className="rounded-full shadow-md" data-ai-hint="founder portrait friendly modern person" />
                 <div>
                   <p className="font-semibold text-xs text-card-foreground">Alex Chen (Placeholder)</p>
                   <p className="text-xs text-primary">Founder & CEO, AutoBoss</p>
@@ -363,8 +359,15 @@ export default function MarketingPageClient() {
           </div>
         </section>
 
-        {/* Placeholder comment for sticky mid-page CTA: Would require JS for scroll-triggered visibility */}
-        {/* <div className="fixed bottom-10 right-10 z-50 hidden md:block"> <Button>Sticky CTA</Button> </div> */}
+        {/* Placeholder for sticky mid-page CTA: Implementation would require JavaScript for scroll-triggered visibility and positioning.
+            <div className="fixed bottom-10 right-10 z-50 hidden md:block">
+              <Button size="lg" asChild className="button-active-feedback shadow-xl bg-gradient-to-r from-electric-teal to-neon-lime text-background font-bold text-sm px-5 py-2.5 hover:opacity-90 transition-all duration-300 hover:scale-105 group btn-interactive">
+                <Link href="/dashboard" className="flex items-center gap-1.5">
+                  Build Your Agent <Rocket className="h-4 w-4 group-hover:animate-bounce" />
+                </Link>
+              </Button>
+            </div>
+        */}
 
         <section ref={finalCtaRef} className={cn("scroll-reveal section-cta-final w-full py-16 lg:py-20", finalCtaVisible && "visible")}>
           <div className="container mx-auto px-4 md:px-6 text-center max-w-screen-xl">
@@ -376,7 +379,7 @@ export default function MarketingPageClient() {
                 AutoBoss is free to try. No credit card needed.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center items-center pt-1">
-                <Button size="lg" asChild className="button-active-feedback shadow-xl bg-gradient-to-r from-electric-teal to-neon-lime text-background font-bold text-sm px-6 py-2.5 hover:opacity-90 transition-all duration-300 hover:scale-105 group w-full sm:w-auto pulse-cta-btn btn-interactive">
+                <Button size="lg" asChild className="button-active-feedback shadow-xl bg-gradient-to-r from-electric-teal to-neon-lime text-background font-bold text-sm px-6 py-2.5 hover:opacity-90 transition-all duration-300 hover:scale-105 group w-full sm:w-auto btn-interactive">
                   <Link href="/dashboard" className="flex items-center gap-1.5">
                     Start Building Free
                     <Rocket className="h-4 w-4 group-hover:animate-bounce" />
