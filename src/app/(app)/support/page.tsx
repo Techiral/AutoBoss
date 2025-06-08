@@ -4,6 +4,7 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { LifeBuoy, MessageCircleQuestion, AlertTriangle, Mail } from "lucide-react";
+import { Button } from "@/components/ui/button"; // Added Button import
 
 export default function SupportPage() {
   const faqs = [
@@ -13,7 +14,7 @@ export default function SupportPage() {
     },
     {
       question: "Where is my agent data stored?",
-      answer: "For this prototype version of AgentVerse, all agent configurations (personality, knowledge items, flows) are stored directly in your web browser's local storage. This means data is specific to your current browser and will be lost if you clear your browser's site data.",
+      answer: "Agent configurations (personality, knowledge items, flows) are stored in Firebase Firestore. This allows your data to be persistent and accessible.",
     },
     {
       question: "How does the Knowledge Base work?",
@@ -25,7 +26,7 @@ export default function SupportPage() {
     },
     {
         question: "Can I export my agent to use elsewhere?",
-        answer: "Yes, the 'Export' tab for each agent provides a direct chatbot link (opens a public chat page), an illustrative API endpoint (for this prototype, it uses a simplified model and doesn't execute specific agent flows dynamically from the server), and an iframe embed code for the chat widget."
+        answer: "Yes, the 'Export' tab for each agent provides a direct chatbot link (opens a public chat page), an illustrative API endpoint, and an iframe embed code for the chat widget."
     }
   ];
 
@@ -36,7 +37,7 @@ export default function SupportPage() {
           <CardTitle className="font-headline text-2xl flex items-center gap-2">
             <LifeBuoy className="w-6 h-6" /> Support & Help Center
           </CardTitle>
-          <CardDescription>Find answers to common questions and get help with AgentVerse.</CardDescription>
+          <CardDescription>Find answers to common questions and get help with AutoBoss.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-8">
           <section>
@@ -58,7 +59,7 @@ export default function SupportPage() {
             <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
               <li>If you encounter unexpected behavior, try refreshing the page.</li>
               <li>Ensure your internet connection is stable, especially when interacting with AI features.</li>
-              <li>For persistent issues with an agent's data, you can try clearing all local agent data from the 'Settings' page (this will remove all your agents).</li>
+              <li>If you suspect data issues, you can clear all agent data from the 'Settings' page (this will remove all your agents from Firestore).</li>
               <li>Make sure your web browser is up to date for the best compatibility.</li>
             </ul>
           </section>

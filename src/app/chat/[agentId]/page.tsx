@@ -10,6 +10,7 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Logo } from "@/components/logo";
 import { db } from '@/lib/firebase';
 import { doc, getDoc, Timestamp } from 'firebase/firestore';
+import { Button } from "@/components/ui/button"; // Added Button import
 
 // Helper to convert Firestore Timestamps in agent data to ISO strings
 const convertTimestampsToISOForChat = (agentData: any): Agent => {
@@ -128,7 +129,7 @@ export default function PublicChatPage() {
             </div>
         </main>
          <footer className="text-center p-4 border-t text-xs text-muted-foreground">
-            Powered by AgentVerse
+            Powered by AutoBoss
         </footer>
     </div>
   );

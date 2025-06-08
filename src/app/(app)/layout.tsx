@@ -36,7 +36,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 
 
-const LOCAL_STORAGE_THEME_KEY = 'agentVerseTheme';
+const LOCAL_STORAGE_THEME_KEY = 'autoBossTheme'; // Updated theme key
 const AGENTS_COLLECTION = 'agents'; // Top-level collection for agents
 
 type Theme = 'dark' | 'light';
@@ -212,15 +212,23 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
     try {
       const agentRef = doc(db, AGENTS_COLLECTION, agentId);
-      const knowledgeItemsWithTimestamp = {
+      
+      // Prepare knowledge items for Firestore, ensuring timestamps
+      const existingKnowledgeItemsFirestore = (agent.knowledgeItems || []).map(ki => ({
+        ...ki, 
+        uploadedAt: typeof ki.uploadedAt === 'string' ? Timestamp.fromDate(new Date(ki.uploadedAt)) : ki.uploadedAt,
+      }));
+
+      const newKnowledgeItemFirestore = {
         ...item,
         uploadedAt: typeof item.uploadedAt === 'string' ? Timestamp.fromDate(new Date(item.uploadedAt)) : item.uploadedAt,
       };
 
       await updateDoc(agentRef, {
-        knowledgeItems: [...(agent.knowledgeItems || []).map(ki => ({...ki, uploadedAt: typeof ki.uploadedAt === 'string' ? Timestamp.fromDate(new Date(ki.uploadedAt)) : ki.uploadedAt })), knowledgeItemsWithTimestamp]
+        knowledgeItems: [...existingKnowledgeItemsFirestore, newKnowledgeItemFirestore]
       });
       
+      // Update local state with string timestamps for consistency
       setAgents(prevAgents =>
         prevAgents.map(a => {
           if (a.id === agentId) {

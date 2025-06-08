@@ -10,7 +10,7 @@ export default function MarketingPage() {
       <header className="px-4 lg:px-6 h-16 flex items-center border-b">
         <Link href="#" className="flex items-center justify-center" prefetch={false}>
           <BotMessageSquare className="h-6 w-6 text-primary" />
-          <span className="ml-2 font-headline text-xl font-semibold">AgentVerse</span>
+          <span className="ml-2 font-headline text-xl font-semibold">AutoBoss</span>
         </Link>
         <nav className="ml-auto flex gap-4 sm:gap-6">
           <Link href="#features" className="text-sm font-medium hover:text-primary transition-colors" prefetch={false}>
@@ -36,10 +36,10 @@ export default function MarketingPage() {
               <div className="flex flex-col justify-center space-y-4">
                 <div className="space-y-2">
                   <h1 className="font-headline text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
-                    Build, Deploy, and Manage AI Agents Effortlessly
+                    Build, Deploy, and Manage AI Agents Effortlessly with AutoBoss
                   </h1>
                   <p className="max-w-[600px] text-muted-foreground md:text-xl">
-                    AgentVerse provides a comprehensive platform to create intelligent conversational AI agents for any purpose.
+                    AutoBoss provides a comprehensive platform to create intelligent conversational AI agents for any purpose.
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
@@ -76,7 +76,7 @@ export default function MarketingPage() {
                   Everything You Need for Advanced AI Agents
                 </h2>
                 <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  From visual flow design to knowledge base integration, AgentVerse empowers you with cutting-edge tools.
+                  From visual flow design to knowledge base integration, AutoBoss empowers you with cutting-edge tools.
                 </p>
               </div>
             </div>
@@ -124,7 +124,7 @@ export default function MarketingPage() {
         </section>
       </main>
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
-        <p className="text-xs text-muted-foreground">&copy; {new Date().getFullYear()} AgentVerse. All rights reserved.</p>
+        <p className="text-xs text-muted-foreground">&copy; {new Date().getFullYear()} AutoBoss. All rights reserved.</p>
         <nav className="sm:ml-auto flex gap-4 sm:gap-6">
           <Link href="#" className="text-xs hover:text-primary transition-colors" prefetch={false}>
             Terms of Service

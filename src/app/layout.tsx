@@ -4,8 +4,8 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
-  title: 'AgentVerse',
-  description: 'Create and manage AI agents.',
+  title: 'AutoBoss',
+  description: 'Create and manage AI agents with AutoBoss.',
 };
 
 export default function RootLayout({
