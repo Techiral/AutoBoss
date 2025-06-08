@@ -45,7 +45,7 @@ const SimpleFeatureCard: React.FC<SimpleFeatureCardProps> = ({ icon, title, desc
       <TooltipTrigger asChild>
         <article
           ref={ref}
-          className={cn("simple-feature-card scroll-reveal", isVisible && "visible", animationDelay)}
+          className={cn("simple-feature-card scroll-reveal", animationDelay, isVisible && "visible")}
         >
           <div className="simple-feature-card-icon">{icon}</div>
           <h3 className="simple-feature-card-title">{title}</h3>
@@ -67,7 +67,7 @@ const SimpleFeatureCard: React.FC<SimpleFeatureCardProps> = ({ icon, title, desc
   );
 };
 
-const heroHeadline = "AutoBoss builds AI teammates.";
+const heroPainPoint = "AutoBoss builds AI teammates.";
 
 export default function MarketingPageClient() {
   const typewriterRef = useRef<HTMLSpanElement>(null);
@@ -80,11 +80,11 @@ export default function MarketingPageClient() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
- useEffect(() => {
+  useEffect(() => {
     if (typewriterRef.current) {
-      typewriterRef.current.textContent = heroHeadline;
+      typewriterRef.current.textContent = heroPainPoint;
       typewriterRef.current.classList.remove("typewriter-text");
-      void typewriterRef.current.offsetWidth; // Trigger reflow
+      void typewriterRef.current.offsetWidth; 
       typewriterRef.current.classList.add("typewriter-text");
     }
   }, []);
@@ -112,10 +112,10 @@ export default function MarketingPageClient() {
   return (
     <TooltipProvider>
     <div className="flex flex-col min-h-screen bg-background text-foreground selection:bg-accent selection:text-accent-foreground">
-      <header className={cn("w-full px-4 lg:px-6 h-16 flex items-center sticky-header z-50", isHeaderScrolled && "sticky-header-scrolled")}>
+      <header className={cn("w-full px-4 lg:px-6 h-14 sm:h-16 flex items-center sticky-header z-50", isHeaderScrolled && "sticky-header-scrolled")}>
         <div className="container mx-auto flex items-center justify-between max-w-screen-xl">
           <Link href="/" className="flex items-center justify-center" aria-label="AutoBoss Homepage">
-            <Logo className="text-foreground hover:opacity-80 transition-opacity h-7 w-auto" />
+            <Logo className="text-foreground hover:opacity-80 transition-opacity h-7 sm:h-8 w-auto" />
           </Link>
           <nav className="hidden md:flex gap-1 sm:gap-2 items-center">
             {navLinks.map(link => (
@@ -126,12 +126,12 @@ export default function MarketingPageClient() {
             </Button>
             <Button size="sm" asChild className="font-semibold bg-gradient-to-r from-electric-teal to-neon-lime text-background shadow-md hover:opacity-90 transition-opacity btn-interactive text-xs">
               <Link href="/dashboard" className="flex items-center gap-1">
-                Try AutoBoss Free <ArrowRight />
+                Try AutoBoss Free <ArrowRight className="h-4 w-4"/>
               </Link>
             </Button>
           </nav>
           <div className="md:hidden">
-            <Button variant="ghost" size="icon" aria-label="Open menu" onClick={toggleMobileMenu} className="btn-interactive">
+            <Button variant="ghost" size="icon" aria-label="Open menu" onClick={toggleMobileMenu} className="btn-interactive h-8 w-8 sm:h-9 sm:w-9">
                {isMobileMenuOpen ? <CloseIcon className="h-5 w-5 text-foreground"/> : <Menu className="h-5 w-5 text-foreground"/>}
             </Button>
           </div>
@@ -141,7 +141,7 @@ export default function MarketingPageClient() {
       <div
         id="mobile-menu"
         className={cn(
-          "md:hidden fixed top-16 right-0 h-[calc(100vh-4rem)] w-60 bg-card shadow-xl z-40 p-5 space-y-2 transform transition-all duration-300 ease-in-out",
+          "md:hidden fixed top-14 sm:top-16 right-0 h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)] w-60 bg-card shadow-xl z-40 p-5 space-y-2 transform transition-all duration-300 ease-in-out",
           isMobileMenuOpen ? "translate-x-0 opacity-100 pointer-events-auto" : "translate-x-full opacity-0 pointer-events-none"
         )}
       >
@@ -157,7 +157,7 @@ export default function MarketingPageClient() {
       </div>
 
       <main className="flex-1">
-        <section ref={heroRef} className={cn("scroll-reveal section-dark w-full min-h-[calc(100vh-4rem)] flex items-center justify-center text-center py-12 md:py-16 relative overflow-hidden", heroVisible && "visible")}>
+        <section ref={heroRef} className={cn("scroll-reveal section-dark w-full min-h-[calc(100vh-3.5rem)] sm:min-h-[calc(100vh-4rem)] flex items-center justify-center text-center py-10 md:py-12 relative overflow-hidden", heroVisible && "visible")}>
           <div className="absolute inset-0 z-0 opacity-[0.02]">
             <video autoPlay loop muted playsInline className="w-full h-full object-cover" poster="https://placehold.co/1920x1080/0A0F14/0A0F14.png" data-ai-hint="dark abstract particles subtle motion">
               <source src="https://placehold.co/1920x1080.mp4?text=." type="video/mp4" />
@@ -166,24 +166,24 @@ export default function MarketingPageClient() {
           </div>
           <div className="container mx-auto px-4 md:px-6 relative z-10 max-w-screen-xl">
             <div className="max-w-2xl mx-auto space-y-3 md:space-y-4">
-              <h1 className="marketing-h1 text-4xl sm:text-5xl md:text-6xl">
-                <span ref={typewriterRef} className="block gradient-text-on-dark min-h-[40px] sm:min-h-[50px] md:min-h-[60px] lg:min-h-[70px]">
+              <h1 className="marketing-h1 text-3xl sm:text-4xl md:text-5xl lg:text-6xl">
+                <span ref={typewriterRef} className="block gradient-text-on-dark min-h-[38px] sm:min-h-[48px] md:min-h-[60px] lg:min-h-[72px]">
                   {/* Content set by useEffect */}
                 </span>
               </h1>
-              <p className="section-description text-sm sm:text-base max-w-md mx-auto !mb-6">
+              <p className="section-description text-sm sm:text-base max-w-md mx-auto !mb-5 md:!mb-6">
                 Upgrade your business with AI agents that think, decide, &amp; execute.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center items-center pt-1">
-                <Button size="lg" asChild className="shadow-lg bg-gradient-to-r from-electric-teal to-neon-lime text-background font-bold text-sm px-6 py-3 hover:opacity-90 transition-all duration-300 hover:scale-105 group btn-interactive w-full sm:w-auto">
+                <Button size="lg" asChild className="shadow-lg bg-gradient-to-r from-electric-teal to-neon-lime text-background font-bold text-sm px-6 py-2.5 sm:py-3 hover:opacity-90 transition-all duration-300 hover:scale-105 group btn-interactive w-full sm:w-auto">
                   <Link href="/dashboard" className="flex items-center gap-1.5">
                     Launch Agent Free
-                    <Rocket className="group-hover:animate-bounce" />
+                    <Rocket className="h-4 w-4 sm:h-5 sm:w-5 group-hover:animate-bounce" />
                   </Link>
                 </Button>
-                <Button size="lg" variant="outline" asChild className="btn-outline-themed transition-all duration-300 hover:scale-105 px-6 py-3 text-sm border-muted-foreground/40 text-primary hover:text-accent-foreground hover:bg-accent hover:border-accent bg-background/10 backdrop-blur-sm btn-interactive w-full sm:w-auto">
+                <Button size="lg" variant="outline" asChild className="btn-outline-themed transition-all duration-300 hover:scale-105 px-6 py-2.5 sm:py-3 text-sm border-muted-foreground/40 text-primary hover:text-accent-foreground hover:bg-accent hover:border-accent bg-background/10 backdrop-blur-sm btn-interactive w-full sm:w-auto">
                   <Link href="#video-demo-placeholder" className="flex items-center gap-1.5">
-                    Watch 60s Demo <PlayCircle />
+                    Watch 60s Demo <PlayCircle className="h-4 w-4 sm:h-5 sm:w-5" />
                   </Link>
                 </Button>
               </div>
@@ -193,32 +193,27 @@ export default function MarketingPageClient() {
 
         <section ref={solveProblemsRef} id="solve-problems" className={cn("scroll-reveal section-light-accent w-full py-12 md:py-16 lg:py-20 border-b border-border/50", solveProblemsVisible && "visible")}>
             <div className="container mx-auto px-4 md:px-6 text-center max-w-screen-xl">
-                <h2 className="marketing-h2 text-card-foreground">Solve Real Problems with AI Agents</h2>
-                 <p className="section-description !mb-8 md:!mb-10">
-                  AgentVerse empowers you to build specialized AI assistants that drive efficiency and engagement across various domains.
+                <h2 className="marketing-h2 text-card-foreground">Solve Real Problems</h2>
+                 <p className="section-description !mb-6 md:!mb-8">
+                  AgentVerse empowers you to build specialized AI assistants that drive efficiency and engagement.
                 </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 max-w-4xl mx-auto">
-                  <div className="bg-background p-4 sm:p-5 rounded-lg shadow-lg text-left transform hover:scale-105 transition-transform duration-300">
-                    <div className="p-2 rounded-lg bg-primary/10 text-primary mb-2 inline-block" data-ai-hint="customer service chatbot">
-                      <LifeBuoy className="w-5 h-5" />
-                    </div>
-                    <h3 className="font-headline text-md sm:text-lg font-semibold text-foreground mb-1">24/7 Smart Support</h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed">Resolve customer queries instantly with AI agents trained on your knowledge.</p>
-                  </div>
-                  <div className="bg-background p-4 sm:p-5 rounded-lg shadow-lg text-left transform hover:scale-105 transition-transform duration-300">
-                    <div className="p-2 rounded-lg bg-primary/10 text-primary mb-2 inline-block" data-ai-hint="user journey map">
-                      <Users className="w-5 h-5" />
-                    </div>
-                    <h3 className="font-headline text-md sm:text-lg font-semibold text-foreground mb-1">Personalized Onboarding</h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed">Guide new users effectively with interactive, AI-driven onboarding flows.</p>
-                  </div>
-                  <div className="bg-background p-4 sm:p-5 rounded-lg shadow-lg text-left transform hover:scale-105 transition-transform duration-300">
-                    <div className="p-2 rounded-lg bg-primary/10 text-primary mb-2 inline-block" data-ai-hint="sales funnel graph">
-                      <Filter className="w-5 h-5" />
-                    </div>
-                    <h3 className="font-headline text-md sm:text-lg font-semibold text-foreground mb-1">Automated Lead Qualifiers</h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed">Qualify leads and book meetings around the clock with intelligent sales agents.</p>
-                  </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-5 max-w-4xl mx-auto">
+                  {[
+                    { icon: <LifeBuoy className="w-5 h-5" />, title: "24/7 Smart Support", description: "Resolve customer queries instantly with AI agents trained on your knowledge.", hint: "customer service chatbot", delay: "delay-100" },
+                    { icon: <Users className="w-5 h-5" />, title: "Personalized Onboarding", description: "Guide new users effectively with interactive, AI-driven onboarding flows.", hint: "user journey map", delay: "delay-200" },
+                    { icon: <Filter className="w-5 h-5" />, title: "Automated Lead Qualifiers", description: "Qualify leads and book meetings around the clock with intelligent sales agents.", hint: "sales funnel graph", delay: "delay-300" },
+                  ].map((item, index) => {
+                    const [cardRef, cardIsVisible] = useIntersectionObserver({ threshold: 0.2 });
+                    return (
+                      <div ref={cardRef} key={index} className={cn("scroll-reveal bg-background p-4 sm:p-5 rounded-lg shadow-lg text-left transform hover:scale-105 transition-transform duration-300", item.delay, cardIsVisible && "visible")}>
+                        <div className="p-2 rounded-lg bg-primary/10 text-primary mb-2 inline-block" data-ai-hint={item.hint}>
+                          {item.icon}
+                        </div>
+                        <h3 className="font-headline text-md sm:text-lg font-semibold text-foreground mb-1">{item.title}</h3>
+                        <p className="text-xs text-muted-foreground leading-relaxed">{item.description}</p>
+                      </div>
+                    );
+                  })}
                 </div>
             </div>
         </section>
@@ -276,8 +271,8 @@ export default function MarketingPageClient() {
                 ].map((step, index) => {
                   const [stepRef, stepIsVisible] = useIntersectionObserver({ threshold: 0.3 });
                   return (
-                    <div key={step.title} className={cn("relative", index < 2 ? "md:dashed-connector md:right" : "")}>
-                      <article ref={stepRef} className={cn("scroll-reveal relative flex flex-col items-center gap-2 p-4 sm:p-5 rounded-lg bg-background shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 text-foreground z-10 h-full", step.animationDelay, stepIsVisible && "visible")}>
+                    <div key={step.title} ref={stepRef} className={cn("relative scroll-reveal", step.animationDelay, index < 2 ? "md:dashed-connector md:right" : "", stepIsVisible && "visible")}>
+                      <article className={cn("relative flex flex-col items-center gap-2 p-4 sm:p-5 rounded-lg bg-background shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 text-foreground z-10 h-full")}>
                           <div className="absolute -top-3 bg-gradient-to-br from-electric-teal to-neon-lime text-background text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center border-2 border-card shadow-md">{step.number}</div>
                           <div className="mt-5 mb-1">{step.icon}</div>
                           <h3 className="font-headline text-md sm:text-lg font-semibold text-center">{step.title}</h3>
@@ -287,7 +282,7 @@ export default function MarketingPageClient() {
                   );
                 })}
             </div>
-            <div ref={useIntersectionObserver(sectionObserverOptions)[0]} className={cn("scroll-reveal mt-8 md:mt-10 max-w-2xl mx-auto", useIntersectionObserver(sectionObserverOptions)[1] && "visible", "delay-400")}>
+            <div ref={useIntersectionObserver(sectionObserverOptions)[0]} className={cn("scroll-reveal mt-8 md:mt-10 max-w-2xl mx-auto delay-400", useIntersectionObserver(sectionObserverOptions)[1] && "visible")}>
                  <div className="aspect-video bg-muted/30 rounded-lg shadow-inner flex flex-col items-center justify-center text-muted-foreground p-4 border border-dashed border-border/50" data-ai-hint="interactive ui demo clean minimal">
                     <Cog className="w-6 h-6 sm:w-8 sm:h-8 opacity-40 mb-2"/>
                     <p className="text-xs sm:text-sm">Illustrative Studio Demo UI</p>
@@ -315,40 +310,51 @@ export default function MarketingPageClient() {
                 <h2 className="marketing-h2 text-card-foreground">Real Results, Real Trust</h2>
                  <p className="section-description">Join innovators transforming their businesses with AgentVerse.</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 max-w-5xl mx-auto text-left">
-                    <article ref={useIntersectionObserver(sectionObserverOptions)[0]} className={cn("scroll-reveal bg-background p-4 sm:p-5 rounded-lg shadow-lg transform hover:scale-103 transition-transform duration-300 text-foreground", useIntersectionObserver(sectionObserverOptions)[1] && "visible", "delay-100")}>
-                        <div className="flex items-center mb-2">
-                            <Image loading="lazy" src="https://placehold.co/32x32/1A202C/E2E8F0.png?text=AR&font=nunito" alt="Alex R." width={28} height={28} className="rounded-full mr-2" data-ai-hint="professional person portrait"/>
-                            <div>
-                                <h4 className="font-semibold text-foreground text-xs">Alex R.</h4>
-                                <p className="text-xs text-muted-foreground">Support Lead</p>
-                            </div>
-                        </div>
-                         <div className="mb-2 flex">
-                            {[...Array(5)].map((_, i) => <Star key={i} className="w-3 h-3 text-neon-lime fill-neon-lime mr-0.5"/>)}
-                        </div>
-                        <p className="text-xs italic text-muted-foreground leading-relaxed">"AgentVerse revolutionized our support, handling 80% of inquiries. A true game-changer."</p>
+                    {[
+                      {
+                        refSetter: useIntersectionObserver(sectionObserverOptions)[0], isVisible: useIntersectionObserver(sectionObserverOptions)[1], delay: "delay-100", type: "testimonial",
+                        image: "https://placehold.co/32x32/1A202C/E2E8F0.png?text=AR&font=nunito", alt: "Alex R.", name: "Alex R.", role: "Support Lead",
+                        quote: "AgentVerse revolutionized our support, handling 80% of inquiries. A true game-changer."
+                      },
+                      {
+                        refSetter: useIntersectionObserver(sectionObserverOptions)[0], isVisible: useIntersectionObserver(sectionObserverOptions)[1], delay: "delay-200", type: "metric",
+                        metrics: [ { icon: <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 mb-1 opacity-80"/>, value: "97%", label: "Task Automation" }, { icon: <Layers className="w-4 h-4 sm:w-5 sm:h-5 mt-2 mb-1 opacity-80"/>, value: "1M+", label: "Agents Deployed" } ]
+                      },
+                      {
+                        refSetter: useIntersectionObserver(sectionObserverOptions)[0], isVisible: useIntersectionObserver(sectionObserverOptions)[1], delay: "delay-300", type: "testimonial",
+                        image: "https://placehold.co/32x32/1A202C/E2E8F0.png?text=PS&font=nunito", alt: "Priya S.", name: "Priya S.", role: "Founder @ InnovateLLC",
+                        quote: "The visual flow builder is incredibly intuitive. Launched our first AI agent in under an hour!"
+                      }
+                    ].map((item, index) => (
+                       <article ref={item.refSetter} key={index} className={cn("scroll-reveal transform hover:scale-103 transition-transform duration-300",
+                         item.delay, item.isVisible && "visible",
+                         item.type === 'testimonial' ? "bg-background p-4 sm:p-5 rounded-lg shadow-lg text-foreground" :
+                         "bg-gradient-to-br from-electric-teal to-neon-lime p-4 sm:p-5 rounded-lg shadow-lg text-background flex flex-col items-center justify-center text-center")}>
+                        {item.type === 'testimonial' ? (
+                            <>
+                                <div className="flex items-center mb-2">
+                                    <Image loading="lazy" src={item.image!} alt={item.alt!} width={28} height={28} className="rounded-full mr-2" data-ai-hint="professional person portrait"/>
+                                    <div>
+                                        <h4 className="font-semibold text-foreground text-xs">{item.name}</h4>
+                                        <p className="text-xs text-muted-foreground">{item.role}</p>
+                                    </div>
+                                </div>
+                                <div className="mb-2 flex">
+                                    {[...Array(5)].map((_, i) => <Star key={i} className="w-3 h-3 text-neon-lime fill-neon-lime mr-0.5"/>)}
+                                </div>
+                                <p className="text-xs italic text-muted-foreground leading-relaxed">{item.quote}</p>
+                            </>
+                        ) : (
+                           item.metrics?.map((metric, mIndex) => (
+                               <React.Fragment key={mIndex}>
+                                   {metric.icon}
+                                   <p className={cn("font-headline font-bold", mIndex === 0 ? "text-xl sm:text-2xl" : "text-lg sm:text-xl")}>{metric.value}</p>
+                                   <p className={cn("text-xs font-medium", mIndex === 0 ? "mb-2" : "")}>{metric.label}</p>
+                               </React.Fragment>
+                           ))
+                        )}
                     </article>
-                     <article ref={useIntersectionObserver(sectionObserverOptions)[0]} className={cn("scroll-reveal bg-gradient-to-br from-electric-teal to-neon-lime p-4 sm:p-5 rounded-lg shadow-lg text-background flex flex-col items-center justify-center text-center", useIntersectionObserver(sectionObserverOptions)[1] && "visible", "delay-200")}>
-                        <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 mb-1 opacity-80"/>
-                        <p className="font-headline text-xl sm:text-2xl font-bold">97%</p>
-                        <p className="text-xs font-medium">Task Automation</p>
-                        <Layers className="w-4 h-4 sm:w-5 sm:h-5 mt-2 mb-1 opacity-80"/>
-                        <p className="font-headline text-lg sm:text-xl font-bold">1M+</p>
-                        <p className="text-[10px]">Agents Deployed</p>
-                    </article>
-                     <article ref={useIntersectionObserver(sectionObserverOptions)[0]} className={cn("scroll-reveal bg-background p-4 sm:p-5 rounded-lg shadow-lg transform hover:scale-103 transition-transform duration-300 text-foreground", useIntersectionObserver(sectionObserverOptions)[1] && "visible", "delay-300")}>
-                        <div className="flex items-center mb-2">
-                             <Image loading="lazy" src="https://placehold.co/32x32/1A202C/E2E8F0.png?text=PS&font=nunito" alt="Priya S." width={28} height={28} className="rounded-full mr-2" data-ai-hint="founder startup person portrait"/>
-                            <div>
-                                <h4 className="font-semibold text-foreground text-xs">Priya S.</h4>
-                                <p className="text-xs text-muted-foreground">Founder @ InnovateLLC</p>
-                            </div>
-                        </div>
-                         <div className="mb-2 flex">
-                            {[...Array(5)].map((_, i) => <Star key={i} className="w-3 h-3 text-neon-lime fill-neon-lime mr-0.5"/>)}
-                        </div>
-                        <p className="text-xs italic text-muted-foreground leading-relaxed">"The visual flow builder is incredibly intuitive. Launched our first AI agent in under an hour!"</p>
-                    </article>
+                    ))}
                 </div>
             </div>
         </section>
@@ -359,7 +365,7 @@ export default function MarketingPageClient() {
             <p className="section-description">
               We're dedicated to making sophisticated AI accessible. AgentVerse is your partner in innovation.
             </p>
-            <aside ref={useIntersectionObserver(sectionObserverOptions)[0]} className={cn("scroll-reveal max-w-lg mx-auto bg-card p-5 sm:p-6 rounded-lg shadow-xl transform hover:scale-103 transition-transform text-card-foreground", useIntersectionObserver(sectionObserverOptions)[1] && "visible", "delay-150")}>
+            <aside ref={useIntersectionObserver(sectionObserverOptions)[0]} className={cn("scroll-reveal max-w-lg mx-auto bg-card p-5 sm:p-6 rounded-lg shadow-xl transform hover:scale-103 transition-transform text-card-foreground delay-150", useIntersectionObserver(sectionObserverOptions)[1] && "visible")}>
               <p className="italic text-sm text-muted-foreground leading-relaxed">"I started AgentVerse frustrated by clunky automation. My vision: a platform so intuitive, anyone can build truly intelligent AI agents that *actually work*."</p>
               <div className="flex items-center justify-center gap-2 mt-3">
                 <Image loading="lazy" src="https://placehold.co/36x36/1A202C/E2E8F0.png?text=AC&font=nunito" alt="Alex Chen, Founder (Placeholder)" width={32} height={32} className="rounded-full shadow-md" data-ai-hint="founder portrait friendly modern person" />
@@ -372,17 +378,6 @@ export default function MarketingPageClient() {
           </div>
         </section>
         
-        {/* Placeholder for sticky mid-page CTA - requires JS for scroll-triggered visibility and careful styling
-        // <div className="fixed bottom-10 right-10 z-50 hidden md:block scroll-reveal delay-500" ref={useIntersectionObserver({threshold: 0.5, rootMargin: "100% 0px -50% 0px"})[0]}>
-        //     <Button size="lg" asChild className="button-active-feedback shadow-xl bg-gradient-to-r from-electric-teal to-neon-lime text-background font-bold text-sm px-5 py-2.5 hover:opacity-90 transition-all duration-300 hover:scale-105 group btn-interactive">
-        //       <Link href="/dashboard" className="flex items-center gap-1.5">
-        //         Build Your Agent <Rocket />
-        //       </Link>
-        //     </Button>
-        // </div>
-        */}
-
-
         <section ref={finalCtaRef} className={cn("scroll-reveal section-cta-final w-full py-12 md:py-16 lg:py-20", finalCtaVisible && "visible")}>
           <div className="container mx-auto px-4 md:px-6 text-center max-w-screen-xl">
             <div className="mx-auto max-w-md space-y-3 bg-card/80 dark:bg-background/70 backdrop-blur-md p-5 sm:p-6 md:p-8 rounded-xl shadow-2xl">
@@ -396,12 +391,12 @@ export default function MarketingPageClient() {
                 <Button size="lg" asChild className="shadow-xl bg-gradient-to-r from-electric-teal to-neon-lime text-background font-bold text-sm px-6 py-2.5 hover:opacity-90 transition-all duration-300 hover:scale-105 group w-full sm:w-auto btn-interactive">
                   <Link href="/dashboard" className="flex items-center gap-1.5">
                     Start Building Free
-                    <Rocket className="group-hover:animate-bounce" />
+                    <Rocket className="h-4 w-4 sm:h-5 sm:w-5 group-hover:animate-bounce" />
                   </Link>
                 </Button>
                 <Button size="lg" variant="outline" asChild className="btn-outline-themed transition-all duration-300 hover:scale-105 px-6 py-2.5 text-sm text-primary hover:text-accent-foreground hover:bg-accent hover:border-accent border-muted-foreground/50 bg-background/20 dark:bg-card/20 backdrop-blur-sm w-full sm:w-auto btn-interactive">
                   <Link href="mailto:demo@agentverse.dev?subject=AgentVerse%20Demo%20Request" className="flex items-center gap-1.5">
-                    Request a Demo <Eye />
+                    Request a Demo <Eye className="h-4 w-4 sm:h-5 sm:w-5"/>
                   </Link>
                 </Button>
               </div>
@@ -430,4 +425,3 @@ export default function MarketingPageClient() {
   );
 }
 
-    

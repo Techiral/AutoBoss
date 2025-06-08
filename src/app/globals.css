@@ -117,7 +117,7 @@
   }
 
   .marketing-h1 {
-    @apply text-4xl sm:text-5xl font-bold tracking-tight leading-tight text-center;
+    @apply text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-tight text-center;
     letter-spacing: -0.03em;
   }
   .marketing-h2 {
@@ -127,7 +127,7 @@
   h3 { @apply text-lg sm:text-xl font-semibold font-headline; }
 
   .section-description {
-      @apply text-muted-foreground text-xs sm:text-sm md:text-base max-w-md mx-auto mb-6 md:mb-8 text-center;
+      @apply text-muted-foreground text-xs sm:text-sm md:text-base max-w-md mx-auto mb-5 md:mb-6 text-center;
   }
 
 
@@ -163,7 +163,7 @@
   margin: 0 auto;
   letter-spacing: .03em;
   animation:
-    typing 1.5s steps(31, end) forwards,
+    typing 1.5s steps(31, end) forwards, /* Ensure 31 steps for "AutoBoss builds AI teammates." */
     blink-caret .75s step-end infinite;
   animation-delay: 0.2s;
   width: 0%;
@@ -211,7 +211,7 @@
     @apply p-2 rounded-lg bg-primary/10 text-primary mb-2 inline-block;
 }
 .simple-feature-card-title {
-    @apply font-headline text-base sm:text-lg font-bold text-foreground mb-1;
+    @apply font-headline text-base sm:text-lg font-bold text-foreground mb-1; /* Changed text-md to text-lg */
     @apply relative pt-1;
 }
 .simple-feature-card-title::before {
