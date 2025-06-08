@@ -33,10 +33,13 @@ interface VisualNode extends Omit<JsonFlowNode, 'type' | 'position' | 'message' 
   message?: string;
   prompt?: string;
   variableName?: string;
+  inputType?: string;
+  validationRules?: string;
   llmPrompt?: string;
   outputVariable?: string;
   conditionVariable?: string;
   useLLMForDecision?: boolean;
+  useKnowledge?: boolean;
   actionName?: string;
   actionInputArgs?: Record<string, any> | string;
   actionOutputVarMap?: Record<string, string> | string;
@@ -58,9 +61,6 @@ interface VisualNode extends Omit<JsonFlowNode, 'type' | 'position' | 'message' 
   agentSkillId?: string;
   agentSkillsList?: string[];
   endOutputVariable?: string;
-  useKnowledge?: boolean;
-  inputType?: string;
-  validationRules?: string;
 }
 
 
@@ -639,69 +639,57 @@ export default function AgentStudioPage() {
         }
     }
 
-    const jsonNodes: JsonFlowNode[] = nodes.map(node => {
-      const { x, y, content, ...restOfVisualNode } = node; 
-      
-      const baseJsonNode: Partial<JsonFlowNode> = {
-          id: restOfVisualNode.id,
-          type: restOfVisualNode.type,
-          label: restOfVisualNode.label,
-          position: { x: node.x, y: node.y },
-      };
+    function sanitizeNode(visualNode: VisualNode): JsonFlowNode {
+        const output: any = {
+            id: visualNode.id,
+            type: visualNode.type,
+            label: visualNode.label || NODE_DEFINITIONS.find(def => def.type === visualNode.type)?.defaultProperties?.label || visualNode.id,
+            position: { x: visualNode.x, y: visualNode.y },
+        };
 
-      if (node.type === 'sendMessage') baseJsonNode.message = node.message;
-      if (node.type === 'getUserInput') { baseJsonNode.prompt = node.prompt; baseJsonNode.variableName = node.variableName; baseJsonNode.inputType = node.inputType; baseJsonNode.validationRules = node.validationRules; }
-      if (node.type === 'callLLM') { baseJsonNode.llmPrompt = node.llmPrompt; baseJsonNode.outputVariable = node.outputVariable; baseJsonNode.useKnowledge = node.useKnowledge; }
-      if (node.type === 'condition') { baseJsonNode.conditionVariable = node.conditionVariable; baseJsonNode.useLLMForDecision = node.useLLMForDecision; }
-      if (node.type === 'apiCall') { 
-          baseJsonNode.apiUrl = node.apiUrl; 
-          baseJsonNode.apiMethod = node.apiMethod; 
-          try {
-            baseJsonNode.apiHeaders = typeof node.apiHeaders === 'string' && node.apiHeaders.trim() !== '' ? JSON.parse(node.apiHeaders) : node.apiHeaders; 
-          } catch (e) { console.warn(`Invalid JSON in apiHeaders for node ${node.id}: ${node.apiHeaders}`); baseJsonNode.apiHeaders = {};}
-          baseJsonNode.apiBodyVariable = node.apiBodyVariable; 
-          baseJsonNode.apiOutputVariable = node.apiOutputVariable || node.outputVariable;
-      }
-      if (node.type === 'action') { 
-          baseJsonNode.actionName = node.actionName; 
-          try {
-            baseJsonNode.actionInputArgs = typeof node.actionInputArgs === 'string' && node.actionInputArgs.trim() !== '' ? JSON.parse(node.actionInputArgs) : node.actionInputArgs; 
-          } catch (e) { console.warn(`Invalid JSON in actionInputArgs for node ${node.id}: ${node.actionInputArgs}`); baseJsonNode.actionInputArgs = {};}
-          try {
-            baseJsonNode.actionOutputVarMap = typeof node.actionOutputVarMap === 'string' && node.actionOutputVarMap.trim() !== '' ? JSON.parse(node.actionOutputVarMap) : node.actionOutputVarMap; 
-          } catch (e) { console.warn(`Invalid JSON in actionOutputVarMap for node ${node.id}: ${node.actionOutputVarMap}`); baseJsonNode.actionOutputVarMap = {};}
-      }
-      if (node.type === 'code') { 
-          baseJsonNode.codeScript = node.codeScript; 
-           try {
-            baseJsonNode.codeReturnVarMap = typeof node.codeReturnVarMap === 'string' && node.codeReturnVarMap.trim() !== '' ? JSON.parse(node.codeReturnVarMap) : node.codeReturnVarMap; 
-          } catch (e) { console.warn(`Invalid JSON in codeReturnVarMap for node ${node.id}: ${node.codeReturnVarMap}`); baseJsonNode.codeReturnVarMap = {};}
-      }
-      if (node.type === 'qnaLookup') { baseJsonNode.qnaKnowledgeBaseId = node.qnaKnowledgeBaseId; baseJsonNode.qnaQueryVariable = node.qnaQueryVariable; baseJsonNode.qnaOutputVariable = node.qnaOutputVariable || node.outputVariable; baseJsonNode.qnaFallbackText = node.qnaFallbackText; baseJsonNode.qnaThreshold = node.qnaThreshold; }
-      if (node.type === 'wait') { baseJsonNode.waitDurationMs = node.waitDurationMs; }
-      if (node.type === 'transition') { 
-          baseJsonNode.transitionTargetFlowId = node.transitionTargetFlowId; 
-          try {
-            baseJsonNode.transitionVariablesToPass = typeof node.transitionVariablesToPass === 'string' && node.transitionVariablesToPass.trim() !== '' ? JSON.parse(node.transitionVariablesToPass) : node.transitionVariablesToPass; 
-          } catch (e) { console.warn(`Invalid JSON in transitionVariablesToPass for node ${node.id}: ${node.transitionVariablesToPass}`); baseJsonNode.transitionVariablesToPass = {};}
-      }
-      if (node.type === 'agentSkill') { baseJsonNode.agentSkillId = node.agentSkillId; baseJsonNode.agentSkillsList = node.agentSkillsList; }
-      if (node.type === 'end') { baseJsonNode.endOutputVariable = node.endOutputVariable; }
-      
-      return baseJsonNode as JsonFlowNode;
-    });
+        const stringProps: (keyof VisualNode)[] = ['message', 'prompt', 'variableName', 'inputType', 'validationRules', 'llmPrompt', 'outputVariable', 'conditionVariable', 'apiUrl', 'apiBodyVariable', 'apiOutputVariable', 'actionName', 'codeScript', 'qnaKnowledgeBaseId', 'qnaQueryVariable', 'qnaFallbackText', 'qnaOutputVariable', 'transitionTargetFlowId', 'agentSkillId', 'endOutputVariable'];
+        stringProps.forEach(prop => { if (visualNode[prop] !== undefined && visualNode[prop] !== null) output[prop] = visualNode[prop]; });
 
-    const jsonEdges: JsonFlowEdge[] = edges.map(edge => {
-      const { ...restOfEdge } = edge; 
-      return {
-        id: restOfEdge.id,
-        source: restOfEdge.source,
-        target: restOfEdge.target,
-        label: restOfEdge.label,
-        condition: restOfEdge.condition,
-        edgeType: restOfEdge.edgeType,
-      };
-    });
+        if (visualNode.useKnowledge !== undefined && visualNode.useKnowledge !== null) output.useKnowledge = visualNode.useKnowledge;
+        if (visualNode.useLLMForDecision !== undefined && visualNode.useLLMForDecision !== null) output.useLLMForDecision = visualNode.useLLMForDecision;
+        
+        if (visualNode.apiMethod !== undefined && visualNode.apiMethod !== null) output.apiMethod = visualNode.apiMethod;
+
+        if (visualNode.qnaThreshold !== undefined && visualNode.qnaThreshold !== null) output.qnaThreshold = visualNode.qnaThreshold;
+        if (visualNode.waitDurationMs !== undefined && visualNode.waitDurationMs !== null) output.waitDurationMs = visualNode.waitDurationMs;
+
+        if (visualNode.agentSkillsList !== undefined && visualNode.agentSkillsList !== null) output.agentSkillsList = visualNode.agentSkillsList;
+
+        const jsonStringProps: {key: keyof VisualNode, outKey: keyof JsonFlowNode}[] = [
+            {key: 'apiHeaders', outKey: 'apiHeaders'}, {key: 'actionInputArgs', outKey: 'actionInputArgs'},
+            {key: 'actionOutputVarMap', outKey: 'actionOutputVarMap'}, {key: 'codeReturnVarMap', outKey: 'codeReturnVarMap'},
+            {key: 'transitionVariablesToPass', outKey: 'transitionVariablesToPass'}
+        ];
+        jsonStringProps.forEach(propMap => {
+            const visualValue = visualNode[propMap.key];
+            if (visualValue !== undefined && visualValue !== null) {
+                try {
+                    const parsed = (typeof visualValue === 'string' && visualValue.trim() !== '') ? JSON.parse(visualValue) : visualValue;
+                    if (parsed !== undefined && parsed !== null) output[propMap.outKey] = parsed;
+                } catch (e) { console.warn(`Invalid JSON in ${String(propMap.key)} for node ${visualNode.id}: ${visualValue}`); }
+            }
+        });
+        return output as JsonFlowNode;
+    }
+
+    const jsonNodes: JsonFlowNode[] = nodes.map(sanitizeNode);
+
+    function sanitizeEdge(edge: VisualEdge): JsonFlowEdge {
+        const output: any = {
+            id: edge.id, source: edge.source, target: edge.target,
+        };
+        if (edge.label !== undefined && edge.label !== null) output.label = edge.label;
+        if (edge.condition !== undefined && edge.condition !== null) output.condition = edge.condition;
+        if (edge.edgeType !== undefined && edge.edgeType !== null) output.edgeType = edge.edgeType;
+        // Default for edgeType is handled by Zod schema if omitted
+        return output as JsonFlowEdge;
+    }
+    const jsonEdges: JsonFlowEdge[] = edges.map(sanitizeEdge);
 
     const flowId = currentAgent?.flow?.flowId || generateId('flow_');
     const flowName = currentAgent?.flow?.name || "My Visual Flow";
