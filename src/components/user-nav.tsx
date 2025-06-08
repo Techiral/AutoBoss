@@ -14,7 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { LogOut, User, Settings, LifeBuoy, LogIn, UserPlus } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext"; // Import useAuth
+import { useAuth } from "@/contexts/AuthContext"; 
 import { useRouter } from "next/navigation";
 
 export function UserNav() {
@@ -23,7 +23,7 @@ export function UserNav() {
 
   const handleSignOut = async () => {
     await signOut();
-    router.push('/login'); // Redirect to login after sign out
+    router.push('/login'); 
   };
 
   if (loading) {
@@ -51,32 +51,38 @@ export function UserNav() {
     );
   }
 
+  const userDisplayName = currentUser.displayName || currentUser.email?.split('@')[0] || "User";
+  const userEmail = currentUser.email || "No email available";
+  const avatarFallback = userDisplayName.substring(0, 2).toUpperCase();
+
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-10 w-10 rounded-full">
           <Avatar className="h-10 w-10">
-            {/* Add logic for dynamic avatar image if available */}
-            <AvatarImage src="https://placehold.co/100x100.png" alt={currentUser.email || "User Avatar"} data-ai-hint="user avatar"/>
-            <AvatarFallback>
-              {currentUser.email ? currentUser.email.substring(0, 2).toUpperCase() : "U"}
-            </AvatarFallback>
+            {currentUser.photoURL ? (
+                <AvatarImage src={currentUser.photoURL} alt={userDisplayName} />
+            ) : (
+                <AvatarImage src={`https://placehold.co/100x100.png?text=${avatarFallback}`} alt={userDisplayName} data-ai-hint="user avatar placeholder"/>
+            )}
+            <AvatarFallback>{avatarFallback}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">Authenticated User</p>
+            <p className="text-sm font-medium leading-none">{userDisplayName}</p>
             <p className="text-xs leading-none text-muted-foreground">
-              {currentUser.email}
+              {userEmail}
             </p>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuItem asChild>
-            <Link href="/settings"> {/* Profile might be part of settings */}
+            <Link href="/profile"> 
               <User className="mr-2 h-4 w-4" />
               <span>Profile</span>
             </Link>

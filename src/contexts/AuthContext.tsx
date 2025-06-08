@@ -7,10 +7,11 @@ import {
   User, 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
-  signOut as firebaseSignOut 
+  signOut as firebaseSignOut,
+  updateProfile, // Import updateProfile
+  sendPasswordResetEmail // Import sendPasswordResetEmail
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
-import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface AuthContextType {
@@ -19,6 +20,8 @@ interface AuthContextType {
   signUp: (email: string, pass: string) => Promise<User | null>;
   signIn: (email: string, pass: string) => Promise<User | null>;
   signOut: () => Promise<void>;
+  updateUserDisplayName: (newName: string) => Promise<boolean>;
+  sendUserPasswordResetEmail: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -78,6 +81,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const updateUserDisplayName = async (newName: string): Promise<boolean> => {
+    if (!auth.currentUser) {
+      toast({ title: "Not Authenticated", description: "No user is currently signed in.", variant: "destructive" });
+      return false;
+    }
+    try {
+      await updateProfile(auth.currentUser, { displayName: newName });
+      // Manually update the currentUser state to reflect the change immediately
+      setCurrentUser(prevUser => prevUser ? ({ ...prevUser, displayName: newName } as User) : null);
+      toast({ title: "Display Name Updated", description: "Your display name has been successfully updated." });
+      return true;
+    } catch (error: any) {
+      console.error("Error updating display name:", error);
+      toast({ title: "Update Failed", description: error.message || "Could not update display name.", variant: "destructive" });
+      return false;
+    }
+  };
+
+  const sendUserPasswordResetEmail = async (): Promise<boolean> => {
+    if (!auth.currentUser || !auth.currentUser.email) {
+      toast({ title: "Error", description: "No authenticated user or email found.", variant: "destructive" });
+      return false;
+    }
+    try {
+      await sendPasswordResetEmail(auth, auth.currentUser.email);
+      toast({ title: "Password Reset Email Sent", description: "Check your inbox for a password reset link." });
+      return true;
+    } catch (error: any) {
+      console.error("Error sending password reset email:", error);
+      toast({ title: "Email Sending Failed", description: error.message || "Could not send password reset email.", variant: "destructive" });
+      return false;
+    }
+  };
 
   const value = {
     currentUser,
@@ -85,10 +121,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signUp,
     signIn,
     signOut,
+    updateUserDisplayName,
+    sendUserPasswordResetEmail,
   };
 
-  // AuthProvider should always render its children.
-  // The AppLayout (or other consumers) will use the `loading` state
-  // from the context to decide whether to show a loading UI.
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
