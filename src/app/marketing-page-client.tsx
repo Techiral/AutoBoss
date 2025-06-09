@@ -17,33 +17,37 @@ const useIntersectionObserver = (options?: IntersectionObserverInit) => {
   const observerRef = useRef<IntersectionObserver | null>(null);
 
   useEffect(() => {
-    // Ensure IntersectionObserver is available
-    if (typeof window === 'undefined' || !window.IntersectionObserver) {
-      setIsIntersecting(true); // Fallback for SSR or old browsers
+    if (typeof window === 'undefined' || !window.IntersectionObserver || !node) {
       return;
     }
 
-    // Disconnect previous observer if node changes
     if (observerRef.current) {
       observerRef.current.disconnect();
     }
 
     observerRef.current = new IntersectionObserver(([entry]) => {
-      setIsIntersecting(entry.isIntersecting);
+      if (entry.isIntersecting) {
+        setIsIntersecting(true);
+        // Optional: Unobserve after it becomes visible if you only want it to animate once
+        // if (observerRef.current) {
+        //   observerRef.current.unobserve(entry.target);
+        // }
+      }
+      // If you want it to toggle back to invisible when out of view:
+      // else {
+      //   setIsIntersecting(false);
+      // }
     }, options);
 
     const currentObserver = observerRef.current;
-
-    if (node) {
-      currentObserver.observe(node);
-    }
+    currentObserver.observe(node);
 
     return () => {
       if (node) {
         currentObserver.unobserve(node);
       }
     };
-  }, [node, options]); // Re-run effect if node or options change
+  }, [node, options]);
 
   return [setNode, isIntersecting] as const;
 };
@@ -102,12 +106,11 @@ export default function MarketingPageClient() {
   useEffect(() => {
     if (typewriterRef.current) {
       typewriterRef.current.textContent = heroPainPoint;
-      // Ensure the animation re-triggers if text content changes by toggling the class
       typewriterRef.current.classList.remove("typewriter-text");
-      void typewriterRef.current.offsetWidth; // Force reflow
+      void typewriterRef.current.offsetWidth; 
       typewriterRef.current.classList.add("typewriter-text");
     }
-  }, []); // Empty dependency array, runs once on mount.
+  }, []); 
 
   const observerOptions = { threshold: 0.1 };
   const [heroRef, heroVisible] = useIntersectionObserver(observerOptions);
@@ -119,6 +122,8 @@ export default function MarketingPageClient() {
   const [humanizeRef, humanizeVisible] = useIntersectionObserver(observerOptions);
   const [founderQuoteAsideRef, founderQuoteAsideIsVisible] = useIntersectionObserver(observerOptions);
   const [finalCtaRef, finalCtaVisible] =  useIntersectionObserver(observerOptions);
+  const [studioDemoPlaceholderRef, studioDemoPlaceholderIsVisible] = useIntersectionObserver(observerOptions);
+
 
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
 
@@ -205,8 +210,8 @@ export default function MarketingPageClient() {
           </div>
           <div className="container mx-auto px-4 md:px-6 relative z-10 max-w-screen-xl">
             <div className="max-w-2xl mx-auto space-y-3 md:space-y-4">
-              <h1 className="marketing-h1 text-3xl sm:text-4xl md:text-5xl lg:text-6xl">
-                <span ref={typewriterRef} className="gradient-text-on-dark min-h-[38px] sm:min-h-[48px] md:min-h-[60px] lg:min-h-[72px]">
+              <h1 className="marketing-h1 text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-center">
+                <span ref={typewriterRef} className="typewriter-text min-h-[38px] sm:min-h-[48px] md:min-h-[60px] lg:min-h-[72px] gradient-text-on-dark">
                   {/* Content set by useEffect */}
                 </span>
               </h1>
@@ -220,7 +225,7 @@ export default function MarketingPageClient() {
                     <Rocket className="h-4 w-4 sm:h-5 sm:h-5 group-hover:animate-bounce" />
                   </Link>
                 </Button>
-                <Button size="lg" variant="outline" asChild className="btn-outline-themed transition-all duration-300 hover:scale-105 px-6 py-2.5 sm:py-3 text-sm border-muted-foreground/40 text-primary hover:text-accent-foreground hover:bg-accent hover:border-accent bg-background/10 backdrop-blur-sm btn-interactive w-full sm:w-auto">
+                <Button size="lg" variant="outline" asChild className="btn-outline-themed transition-all duration-300 hover:scale-105 px-6 py-2.5 text-sm border-muted-foreground/40 text-primary hover:text-accent-foreground hover:bg-accent hover:border-accent bg-background/10 backdrop-blur-sm btn-interactive w-full sm:w-auto">
                   <Link href="#video-demo-placeholder" className="flex items-center gap-1.5">
                     Watch 60s Demo <PlayCircle className="h-4 w-4 sm:h-5 sm:h-5" />
                   </Link>
@@ -321,9 +326,9 @@ export default function MarketingPageClient() {
                   );
                 })}
             </div>
-            <div ref={useIntersectionObserver(observerOptions)[0]} className={cn("scroll-reveal mt-8 md:mt-10 max-w-2xl mx-auto delay-400", useIntersectionObserver(observerOptions)[1] && "visible")}>
+            <div ref={studioDemoPlaceholderRef} className={cn("scroll-reveal mt-8 md:mt-10 max-w-2xl mx-auto delay-400", studioDemoPlaceholderIsVisible && "visible")}>
                  <div className="aspect-video bg-muted/30 rounded-lg shadow-inner flex flex-col items-center justify-center text-muted-foreground p-4 border border-dashed border-border/50" data-ai-hint="interactive ui demo clean minimal">
-                    <Cog className="w-6 h-6 sm:w-8 sm:h-8 opacity-40 mb-2"/>
+                    <Cog className="w-6 h-6 sm:w-8 sm:h-8 opacity-60 mb-2"/>
                     <p className="text-xs sm:text-sm">Illustrative Studio Demo UI</p>
                 </div>
             </div>
@@ -454,4 +459,3 @@ export default function MarketingPageClient() {
     </TooltipProvider>
   );
 }
-
