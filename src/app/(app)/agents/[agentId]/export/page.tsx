@@ -41,7 +41,7 @@ export default function ExportAgentPage() {
       const foundAgent = getAgent(agentId as string);
       setAgent(foundAgent || null);
       // In a real app, you'd fetch these from a secure store if previously saved
-      // For now, they are just local state.
+      // For now, they are just local state and for display/copy purposes.
     }
   }, [agentId, getAgent]);
 
@@ -53,6 +53,23 @@ export default function ExportAgentPage() {
     }).catch(err => {
       toast({ title: "Copy Failed", description: "Could not copy to clipboard.", variant: "destructive" });
       console.error('Failed to copy: ', err);
+    });
+  };
+
+  const handleSaveTwilioConfig = () => {
+    // This function is a placeholder for actual save logic.
+    // In a real application, these credentials would be sent to a secure backend API.
+    // They should NOT be stored in frontend state or local storage long-term.
+    toast({
+      title: "Configuration Not Saved",
+      description: "For this prototype, Twilio credentials are not saved to a backend. Please set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBER as environment variables on your server where the voice hook API is deployed.",
+      variant: "default",
+      duration: 10000, 
+    });
+    console.log("Twilio Config 'Save' Clicked (Placeholder):", {
+      twilioAccountSid,
+      twilioAuthToken,
+      twilioPhoneNumber,
     });
   };
 
@@ -257,8 +274,8 @@ export default function ExportAgentPage() {
                 <AlertTitle className="text-sm sm:text-base">Voice Agent Integration</AlertTitle>
                 <AlertDescription className="text-xs text-muted-foreground">
                   To enable your AI agent to make and receive phone calls, provide your Twilio account credentials and phone number below. 
-                  This requires additional backend setup by you or a developer to integrate with Twilio's voice services. 
-                  AutoBoss provides the conversational intelligence; the call handling logic is configured in your Twilio account and interacts with the Voice API endpoint shown.
+                  You must then set these credentials as environment variables on your server (e.g., in a `.env` file: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`).
+                  The Voice API Endpoint shown below is where Twilio will send requests for incoming calls.
                 </AlertDescription>
             </Alert>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -287,10 +304,11 @@ export default function ExportAgentPage() {
                 </div>
                 <p className="text-[10px] text-muted-foreground mt-0.5">Configure this URL in your Twilio phone number's settings for incoming calls (Voice & Fax > A call comes in > Webhook).</p>
             </div>
-            <Button disabled className="w-full sm:w-auto">
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Save Twilio Configuration (Coming Soon)
+            <Button onClick={handleSaveTwilioConfig} className="w-full sm:w-auto">
+                <Info className="mr-2 h-4 w-4" />
+                Note: Securely Set Credentials on Server
             </Button>
+            <p className="text-xs text-muted-foreground mt-1">Clicking above does not save credentials here. You must set them as environment variables on your server.</p>
           </div>
 
 
