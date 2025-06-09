@@ -63,7 +63,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
         await setDoc(userRef, userData);
         console.log("AuthContext: User document created in Firestore for UID:", user.uid);
-         // If Firebase Auth user.displayName is null but we just set it in Firestore, update Firebase Auth profile
         if (!user.displayName && displayName !== "New User") {
           try {
             await updateProfile(user, { displayName });
@@ -76,11 +75,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log("AuthContext: Existing document found for UID:", user.uid);
         const existingData = docSnap.data() as UserProfile;
         const updates: Partial<UserProfile> = {};
-        // Sync displayName from Auth to Firestore if Auth has one and Firestore doesn't match or is default
         if (user.displayName && (user.displayName !== existingData.displayName || existingData.displayName === "New User")) {
             updates.displayName = user.displayName;
         }
-        // Ensure email is synced
         if (user.email && user.email !== existingData.email) {
             updates.email = user.email;
         }
@@ -89,9 +86,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.log("AuthContext: User document updated in Firestore for UID:", user.uid, "with updates:", updates);
         }
       }
-    } catch (error) {
-      console.error("AuthContext: Error ensuring user document in Firestore:", error);
-      toast({ title: "Profile Sync Error", description: "Could not sync user profile data.", variant: "destructive"});
+    } catch (error: any) {
+      console.error("AuthContext: Error ensuring user document in Firestore for UID " + user.uid + ":", error, "Error Code:", error.code);
+      // Only show a toast if it's NOT a known transient permission-denied error during initial sync.
+      // Firebase error codes for Firestore permissions usually include "permission-denied".
+      if (!(error.code && typeof error.code === 'string' && error.code.includes("permission-denied"))) {
+         toast({ title: "Profile Sync Error", description: "Could not sync your user profile with the database.", variant: "destructive"});
+      } else {
+         console.warn("AuthContext: Transient permission-denied error during user document sync for user " + user.uid + ". This often resolves automatically and user sign-in will proceed.");
+      }
     }
   }, [toast]);
 
@@ -119,7 +122,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const user = userCredential.user;
       console.log("AuthContext: Email/Password Sign-Up successful, user:", user.uid);
       
-      // Set a default display name if not already set (e.g. from email)
       const displayName = user.email?.split('@')[0] || "New User";
       if (!user.displayName || user.displayName !== displayName) {
          try {
@@ -129,14 +131,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.error("AuthContext: Error updating profile display name on sign up:", profileError);
          }
       }
-      // Now ensure Firestore document reflects this, potentially creating it
-      await ensureUserDocumentExists(user); // ensureUserDocumentExists will handle sync
+      await ensureUserDocumentExists(user); 
       
       toast({ title: "Account Created!", description: "You have successfully signed up." });
       return user;
     } catch (error: any) {
       console.error("AuthContext: Error signing up:", error);
-      toast({ title: "Sign Up Failed", description: error.message || "Could not create your account.", variant: "destructive" });
+      // Do not show toast if ensureUserDocumentExists already handled a specific type of error silently
+      if (!(error.code && typeof error.code === 'string' && error.code.includes("permission-denied"))) {
+        toast({ title: "Sign Up Failed", description: error.message || "Could not create your account.", variant: "destructive" });
+      }
       return null;
     }
   };
@@ -145,19 +149,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     console.log("AuthContext: Attempting Email/Password Sign-In for:", email);
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, pass);
-      const user = userCredential.user;
-      console.log("AuthContext: Email/Password Sign-In successful, user:", user.uid);
-      await ensureUserDocumentExists(user); // ensureUserDocumentExists will handle sync
+      // The onAuthStateChanged listener will handle ensureUserDocumentExists and setting currentUser.
+      // No need to call ensureUserDocumentExists here directly as it might lead to race conditions or double calls.
       toast({ title: "Signed In!", description: "Welcome back!" });
       return userCredential.user;
     } catch (error: any) {
       console.error("AuthContext: Error signing in:", error);
-      toast({ title: "Sign In Failed", description: error.message || "Could not sign you in.", variant: "destructive" });
+      // Do not show toast if ensureUserDocumentExists already handled a specific type of error silently from onAuthStateChanged path
+      if (!(error.code && typeof error.code === 'string' && error.code.includes("permission-denied"))) {
+         toast({ title: "Sign In Failed", description: error.message || "Could not sign you in.", variant: "destructive" });
+      }
       return null;
     }
   };
 
-  // Removed signInWithGoogle and its related useEffect for getRedirectResult
 
   const signOut = async () => {
     console.log("AuthContext: Attempting Sign Out...");
@@ -180,17 +185,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     console.log("AuthContext: Attempting to update display name to:", newName, "for user:", auth.currentUser.uid);
     try {
       await updateProfile(auth.currentUser, { displayName: newName });
-      // Update Firestore document as well
       const userRef = doc(db, "users", auth.currentUser.uid);
       await setDoc(userRef, { displayName: newName }, { merge: true });
       
-      // Force a refresh of the currentUser object to get the latest profile
-      // This can be tricky, sometimes it's better to manually update the local currentUser state
-      // Forcing reload can be slow or cause flashes. Let's try updating local state first.
       setCurrentUser(prevUser => prevUser ? ({ ...prevUser, displayName: newName } as User) : null);
       
-      // Alternative: await auth.currentUser.reload(); setCurrentUser(auth.currentUser);
-
       console.log("AuthContext: Display name updated successfully.");
       toast({ title: "Display Name Updated", description: "Your display name has been successfully updated." });
       return true;
@@ -264,7 +263,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loading,
     signUp,
     signIn,
-    // signInWithGoogle, // Removed
     signOut,
     updateUserDisplayName,
     sendUserPasswordResetEmail,
