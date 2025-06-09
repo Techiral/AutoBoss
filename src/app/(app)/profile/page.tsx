@@ -14,6 +14,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Loader2, UserCircle, Mail, ShieldCheck, Phone } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Logo } from "@/components/logo";
+import { cn } from "@/lib/utils";
 
 const displayNameFormSchema = z.object({
   displayName: z.string().min(1, "Display name cannot be empty").max(50, "Display name too long"),
@@ -127,7 +128,7 @@ export default function ProfilePage() {
           <div className="flex items-center gap-2 sm:gap-3">
             <UserCircle className="w-8 h-8 sm:w-10 sm:h-10 text-primary" />
             <div>
-              <CardTitle className="font-headline text-xl sm:text-2xl">Your Profile</CardTitle>
+              <CardTitle className={cn("font-headline text-xl sm:text-2xl", "text-gradient-dynamic")}>Your Profile</CardTitle>
               <CardDescription className="text-sm">Manage your account settings.</CardDescription>
             </div>
           </div>
@@ -135,7 +136,7 @@ export default function ProfilePage() {
         <CardContent className="space-y-5 sm:space-y-6 p-4 sm:p-6">
           <div>
             <Label htmlFor="email" className="flex items-center text-xs sm:text-sm font-medium text-muted-foreground">
-              <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2" /> Email Address
+              <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2 text-primary" /> Email Address
             </Label>
             <Input id="email" type="email" value={currentUser.email || "Not available"} readOnly disabled className="mt-1 bg-muted/50 text-sm"/>
           </div>
@@ -149,7 +150,7 @@ export default function ProfilePage() {
               <Input id="displayName" placeholder="Enter your display name" {...registerDisplayName("displayName")} className="text-sm"/>
               {displayNameErrors.displayName && <p className="text-xs text-destructive mt-1">{displayNameErrors.displayName.message}</p>}
             </div>
-            <Button type="submit" disabled={isUpdatingName} className="w-full sm:w-auto text-sm py-2">
+            <Button type="submit" disabled={isUpdatingName} className={cn("w-full sm:w-auto text-sm py-2", "btn-gradient-primary")}>
               {isUpdatingName ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               {isUpdatingName ? "Saving..." : "Save Display Name"}
             </Button>
@@ -160,7 +161,7 @@ export default function ProfilePage() {
           <form onSubmit={handleSubmitPhone(onPhoneSubmit)} className="space-y-3 sm:space-y-4">
             <div>
               <Label htmlFor="phoneNumber" className="text-sm sm:text-base font-semibold flex items-center">
-                <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2"/> Phone Number
+                <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2 text-primary"/> Phone Number
               </Label>
               <p className="text-xs text-muted-foreground mb-1">Optional: for account recovery or notifications.</p>
               <Input
@@ -173,7 +174,7 @@ export default function ProfilePage() {
               />
               {phoneErrors.phoneNumber && <p className="text-xs text-destructive mt-1">{phoneErrors.phoneNumber.message}</p>}
             </div>
-            <Button type="submit" disabled={isUpdatingPhone} className="w-full sm:w-auto text-sm py-2">
+            <Button type="submit" disabled={isUpdatingPhone} className={cn("w-full sm:w-auto text-sm py-2", "btn-gradient-primary")}>
               {isUpdatingPhone ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               {isUpdatingPhone ? "Saving..." : "Save Phone Number"}
             </Button>

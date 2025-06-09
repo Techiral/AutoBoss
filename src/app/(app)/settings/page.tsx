@@ -20,6 +20,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { cn } from "@/lib/utils";
 
 export default function SettingsPage() {
   const { theme, toggleTheme, clearAllFirebaseData, isLoadingAgents } = useAppContext();
@@ -38,8 +39,8 @@ export default function SettingsPage() {
     <div className="space-y-4 sm:space-y-6">
       <Card>
         <CardHeader className="p-4 sm:p-6">
-          <CardTitle className="font-headline text-xl sm:text-2xl flex items-center gap-2">
-            <SettingsIcon className="w-5 h-5 sm:w-6 sm:h-6" /> Application Settings
+          <CardTitle className={cn("font-headline text-xl sm:text-2xl flex items-center gap-2", "text-gradient-dynamic")}>
+            <SettingsIcon className="w-5 h-5 sm:w-6 sm:h-6 text-primary" /> Application Settings
           </CardTitle>
           <CardDescription className="text-sm">Manage your application preferences and data.</CardDescription>
         </CardHeader>
@@ -104,9 +105,9 @@ export default function SettingsPage() {
           <div className="p-3 sm:p-4 border rounded-lg bg-muted/30">
             <Label className="text-sm sm:text-base font-medium block mb-1">Application Information</Label>
              <div className="text-xs sm:text-sm text-muted-foreground space-y-1">
-                <p><InfoIcon className="inline h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" /><strong>Version:</strong> 1.1.0 (Firestore Integrated)</p>
-                <p><InfoIcon className="inline h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" /><strong>Data Storage:</strong> Firebase Firestore</p>
-                <p><InfoIcon className="inline h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" /><strong>AI Provider:</strong> Google Gemini via Genkit</p>
+                <p><InfoIcon className="inline h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 text-primary" /><strong>Version:</strong> 1.1.0 (Firestore Integrated)</p>
+                <p><InfoIcon className="inline h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 text-primary" /><strong>Data Storage:</strong> Firebase Firestore</p>
+                <p><InfoIcon className="inline h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 text-primary" /><strong>AI Provider:</strong> Google Gemini via Genkit</p>
              </div>
           </div>
 
@@ -118,5 +119,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    

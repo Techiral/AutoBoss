@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAppContext } from "../../../layout";
 import type { Agent } from "@/lib/types";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { cn } from "@/lib/utils";
 
 export default function ExportAgentPage() {
   const params = useParams();
@@ -207,7 +208,7 @@ export default function ExportAgentPage() {
     <div className="space-y-4 md:space-y-6">
       <Card>
         <CardHeader className="p-4 sm:p-6">
-          <CardTitle className="font-headline text-xl sm:text-2xl">Export Agent: {agent.generatedName || agent.name}</CardTitle>
+          <CardTitle className={cn("font-headline text-xl sm:text-2xl", "text-gradient-dynamic")}>Export Agent: {agent.generatedName || agent.name}</CardTitle>
           <CardDescription className="text-sm">Access links, API details, and embeddable launcher to integrate your agent.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6 sm:space-y-8 p-4 sm:p-6">
@@ -230,9 +231,9 @@ export default function ExportAgentPage() {
               <Code className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary" /> Embeddable Chat Launcher
             </Label>
             <Alert variant="default" className="mb-2 p-3 sm:p-4">
-                <Info className="h-4 w-4 text-primary" />
-                <AlertTitle className="text-sm sm:text-base">How to Use</AlertTitle>
-                <AlertDescription className="text-xs">
+                <Info className="h-4 w-4 text-accent" />
+                <AlertTitle className="text-sm sm:text-base text-accent">How to Use</AlertTitle>
+                <AlertDescription className="text-xs text-accent/90">
                   Paste this script before &lt;/body&gt; on any HTML page for a chat launcher button.
                 </AlertDescription>
             </Alert>
@@ -359,5 +360,3 @@ export default function ExportAgentPage() {
     </div>
   );
 }
-
-    

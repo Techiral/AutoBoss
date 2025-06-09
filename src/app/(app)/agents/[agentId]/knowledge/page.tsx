@@ -16,6 +16,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAppContext } from "../../../layout";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Logo } from "@/components/logo";
+import { cn } from "@/lib/utils";
 
 export default function KnowledgePage() {
   const [isLoadingFile, setIsLoadingFile] = useState(false);
@@ -210,7 +211,7 @@ export default function KnowledgePage() {
     <div className="grid gap-4 md:gap-6 grid-cols-1 lg:grid-cols-3">
       <Card className="lg:col-span-1">
         <CardHeader className="p-4 sm:p-6">
-          <CardTitle className="font-headline text-lg sm:text-2xl">Add Knowledge</CardTitle>
+          <CardTitle className={cn("font-headline text-lg sm:text-2xl", "text-gradient-dynamic")}>Add Knowledge</CardTitle>
           <CardDescription className="text-sm">Upload documents or process URLs to build agent <span className="font-semibold">{currentAgent.generatedName || currentAgent.name}</span>'s knowledge.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
@@ -219,7 +220,7 @@ export default function KnowledgePage() {
                 <Input id="document" type="file" onChange={handleFileChange} accept=".txt,.pdf,.md,.docx,.json,.csv,.html,.htm,image/png,image/jpeg" disabled={isLoadingFile || isProcessingUrl}/>
                 {selectedFile && <p className="text-xs sm:text-sm text-muted-foreground">Selected: {selectedFile.name}</p>}
             </div>
-            <Button onClick={handleSubmitFile} disabled={isLoadingFile || !selectedFile || isProcessingUrl} className="w-full">
+            <Button onClick={handleSubmitFile} disabled={isLoadingFile || !selectedFile || isProcessingUrl} className={cn("w-full", "btn-gradient-primary")}>
                 {isLoadingFile ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
                 {isLoadingFile ? "Processing File..." : "Extract from File"}
             </Button>
@@ -237,7 +238,7 @@ export default function KnowledgePage() {
                 <Label htmlFor="url">Process URL</Label>
                 <Input id="url" type="url" placeholder="https://example.com/article" value={urlInput} onChange={handleUrlInputChange} disabled={isProcessingUrl || isLoadingFile}/>
             </div>
-            <Button onClick={handleProcessUrl} disabled={isProcessingUrl || !urlInput.trim() || isLoadingFile} className="w-full">
+            <Button onClick={handleProcessUrl} disabled={isProcessingUrl || !urlInput.trim() || isLoadingFile} className={cn("w-full", "btn-gradient-primary")}>
                 {isProcessingUrl ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LinkIcon className="mr-2 h-4 w-4" />}
                 {isProcessingUrl ? "Processing URL..." : "Process URL"}
             </Button>
@@ -247,7 +248,7 @@ export default function KnowledgePage() {
       {knowledgeItems.length > 0 && (
         <Card className="lg:col-span-2">
           <CardHeader className="p-4 sm:p-6">
-            <CardTitle className="font-headline text-lg sm:text-xl">Knowledge Base for {currentAgent.generatedName || currentAgent.name}</CardTitle>
+            <CardTitle className={cn("font-headline text-lg sm:text-xl", "text-gradient-dynamic")}>Knowledge Base for {currentAgent.generatedName || currentAgent.name}</CardTitle>
           </CardHeader>
           <CardContent className="p-4 sm:p-6 pt-0">
             <ScrollArea className="h-[calc(100vh-350px)] sm:h-[calc(100vh-300px)] max-h-[500px] sm:max-h-[600px] pr-3 sm:pr-4"> 
@@ -291,7 +292,7 @@ export default function KnowledgePage() {
        {knowledgeItems.length === 0 && (
          <Card className="lg:col-span-2">
           <CardHeader className="p-4 sm:p-6">
-            <CardTitle className="font-headline text-lg sm:text-xl">Knowledge Base Empty</CardTitle>
+            <CardTitle className={cn("font-headline text-lg sm:text-xl", "text-gradient-dynamic")}>Knowledge Base Empty</CardTitle>
           </CardHeader>
            <CardContent className="flex flex-col items-center justify-center min-h-[200px] sm:min-h-[300px] p-4 sm:p-6">
             <FileText className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground mb-3 sm:mb-4" />

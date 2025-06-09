@@ -890,7 +890,7 @@ export default function AgentStudioPage() {
           isToolsPanelOpen ? "col-span-12 flex order-1 lg:order-none max-h-[40vh] lg:max-h-full" : "hidden"
       )}>
         <CardHeader className="pb-1 sm:pb-2 pt-3 sm:pt-4 px-2 sm:px-3">
-          <CardTitle className="text-base sm:text-lg">Node Tools</CardTitle>
+          <CardTitle className={cn("text-base sm:text-lg", "text-gradient-dynamic")}>Node Tools</CardTitle>
         </CardHeader>
         <ScrollArea className="flex-grow">
         <CardContent className="space-y-1.5 sm:space-y-2 p-2 sm:p-3">
@@ -1072,7 +1072,7 @@ export default function AgentStudioPage() {
           isPropsPanelOpen ? "col-span-12 flex order-3 lg:order-none max-h-[40vh] lg:max-h-full" : "hidden"
       )}>
         <CardHeader className="pb-1 sm:pb-2 pt-3 sm:pt-4 px-2 sm:px-3">
-          <CardTitle className="text-base sm:text-lg flex items-center gap-1.5 sm:gap-2">
+          <CardTitle className={cn("text-base sm:text-lg flex items-center gap-1.5 sm:gap-2", "text-gradient-dynamic")}>
             <Settings2 className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
             {selectedNodeDetails ? `Edit: ${selectedNodeDetails.label}` : "Node Guide"}
           </CardTitle>
@@ -1226,7 +1226,7 @@ export default function AgentStudioPage() {
                   </ScrollArea>
                 </details>
               )}
-          <Button onClick={handleSaveFlow} disabled={isSaving} className="w-full h-8 sm:h-9 text-xs sm:text-sm">
+          <Button onClick={handleSaveFlow} disabled={isSaving} className={cn("w-full h-8 sm:h-9 text-xs sm:text-sm", "btn-gradient-primary")}>
             {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
             Save Visual Flow
           </Button>

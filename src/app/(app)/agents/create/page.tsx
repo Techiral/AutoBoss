@@ -17,6 +17,7 @@ import { useAppContext } from "../../layout";
 import type { Agent } from "@/lib/types"; 
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext"; 
+import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters").max(100, "Name too long"),
@@ -87,7 +88,7 @@ export default function CreateAgentPage() {
     <div className="max-w-2xl mx-auto">
       <Card>
         <CardHeader className="p-4 sm:p-6">
-          <CardTitle className="font-headline text-xl sm:text-2xl">Configure New AI Agent</CardTitle>
+          <CardTitle className={cn("font-headline text-xl sm:text-2xl", "text-gradient-dynamic")}>Configure New AI Agent</CardTitle>
           <CardDescription className="text-sm">
             Define the core characteristics of your new agent. The AI will help refine its persona.
             <br />
@@ -113,7 +114,7 @@ export default function CreateAgentPage() {
             </div>
           </CardContent>
           <CardFooter className="p-4 sm:p-6">
-            <Button type="submit" disabled={isLoading} className="w-full">
+            <Button type="submit" disabled={isLoading} className={cn("w-full", "btn-gradient-primary")}>
               {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               {isLoading ? "Configuring Agent..." : "Configure Agent & Generate Details"}
             </Button>
@@ -124,7 +125,7 @@ export default function CreateAgentPage() {
       {generatedAgentDetails && (
         <Card className="mt-6 sm:mt-8">
           <CardHeader className="p-4 sm:p-6">
-            <CardTitle className="font-headline text-lg sm:text-xl">AI Generated Details</CardTitle>
+            <CardTitle className={cn("font-headline text-lg sm:text-xl", "text-gradient-dynamic")}>AI Generated Details</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6">
             <div>
@@ -145,5 +146,3 @@ export default function CreateAgentPage() {
     </div>
   );
 }
-
-    

@@ -9,6 +9,7 @@ import { useAppContext } from "../../../layout";
 import type { Agent } from "@/lib/types";
 import { Loader2 } from "lucide-react";
 import { Logo } from "@/components/logo";
+import { cn } from "@/lib/utils";
 
 export default function TestAgentPage() {
   const params = useParams();
@@ -30,7 +31,7 @@ export default function TestAgentPage() {
     return (
       <Card>
         <CardHeader className="p-4 sm:p-6">
-          <CardTitle className="font-headline text-xl sm:text-2xl">Test Agent</CardTitle>
+          <CardTitle className={cn("font-headline text-xl sm:text-2xl", "text-gradient-dynamic")}>Test Agent</CardTitle>
           <CardDescription className="text-sm">Loading agent emulator...</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center justify-center min-h-[calc(100vh-300px)] p-4 sm:p-6">
@@ -49,7 +50,7 @@ export default function TestAgentPage() {
   return (
     <Card className="h-full flex flex-col">
       <CardHeader className="p-4 sm:p-6">
-        <CardTitle className="font-headline text-xl sm:text-2xl">Test Agent: {agent.generatedName || agent.name}</CardTitle>
+        <CardTitle className={cn("font-headline text-xl sm:text-2xl", "text-gradient-dynamic")}>Test Agent: {agent.generatedName || agent.name}</CardTitle>
         <CardDescription className="text-sm">Interact with your agent in real-time to test its responses and flows.</CardDescription>
       </CardHeader>
       <CardContent className="flex-1 p-2 sm:p-4 md:p-6 min-h-0"> 

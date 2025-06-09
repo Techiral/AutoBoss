@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, Loader2 } from 'lucide-react';
 import { Logo } from '@/components/logo';
+import { cn } from '@/lib/utils';
 
 export default function AgentDetailLayout({ children }: { children: React.ReactNode }) {
   const params = useParams();
@@ -53,7 +54,7 @@ export default function AgentDetailLayout({ children }: { children: React.ReactN
   return (
     <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="font-headline text-2xl sm:text-3xl font-bold break-words">{agent.generatedName || agent.name}</h1>
+        <h1 className={cn("font-headline text-2xl sm:text-3xl font-bold break-words", "text-gradient-dynamic")}>{agent.generatedName || agent.name}</h1>
         <p className="text-sm sm:text-base text-muted-foreground break-words">{agent.description}</p>
       </div>
       {children}

@@ -34,7 +34,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6 sm:space-y-8">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
-        <h1 className="font-headline text-2xl sm:text-3xl font-bold">Your Agents</h1>
+        <h1 className={cn("font-headline text-2xl sm:text-3xl font-bold", "text-gradient-dynamic")}>Your Agents</h1>
         <Button asChild size="sm" className={cn("w-full sm:w-auto", "btn-gradient-primary")}>
           <Link href="/agents/create">
             <PlusCircle className="mr-2 h-4 w-4 sm:h-5 sm:w-5" /> Create New Agent

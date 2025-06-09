@@ -17,6 +17,7 @@ import { useAppContext } from "../../../layout";
 import type { Agent } from "@/lib/types";
 import { Loader2 } from "lucide-react";
 import { Logo } from "@/components/logo";
+import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters").max(100, "Name too long"),
@@ -122,7 +123,7 @@ export default function PersonalityPage() {
   return (
     <Card>
       <CardHeader className="p-4 sm:p-6">
-        <CardTitle className="font-headline text-xl sm:text-2xl">Edit Agent Personality</CardTitle>
+        <CardTitle className={cn("font-headline text-xl sm:text-2xl", "text-gradient-dynamic")}>Edit Agent Personality</CardTitle>
         <CardDescription className="text-sm">
           Refine your agent's name, role, personality, and how it introduces itself.
         </CardDescription>
@@ -146,7 +147,7 @@ export default function PersonalityPage() {
           </div>
            {(generatedDetails || (currentAgent.generatedName && currentAgent.generatedPersona)) && (
             <div className="space-y-3 sm:space-y-4 pt-3 sm:pt-4 border-t">
-                <h3 className="font-headline text-md sm:text-lg">Current AI Generated Details</h3>
+                <h3 className={cn("font-headline text-md sm:text-lg", "text-gradient-dynamic")}>Current AI Generated Details</h3>
                 <div>
                     <Label className="text-xs font-semibold">Generated Name</Label>
                     <p className="text-sm p-2 bg-muted rounded-md mt-1">{generatedDetails?.agentName || currentAgent.generatedName}</p>
@@ -163,7 +164,7 @@ export default function PersonalityPage() {
           )}
         </CardContent>
         <CardFooter className="p-4 sm:p-6">
-          <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
+          <Button type="submit" disabled={isLoading} className={cn("w-full sm:w-auto", "btn-gradient-primary")}>
             {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             {isLoading ? "Updating Personality..." : "Update Personality & Regenerate Details"}
           </Button>

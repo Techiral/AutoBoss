@@ -5,6 +5,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { LifeBuoy, MessageCircleQuestion, AlertTriangle, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export default function SupportPage() {
   const faqs = [
@@ -34,14 +35,14 @@ export default function SupportPage() {
     <div className="space-y-4 sm:space-y-6">
       <Card>
         <CardHeader className="p-4 sm:p-6">
-          <CardTitle className="font-headline text-xl sm:text-2xl flex items-center gap-2">
-            <LifeBuoy className="w-5 h-5 sm:w-6 sm:h-6" /> Support & Help Center
+          <CardTitle className={cn("font-headline text-xl sm:text-2xl flex items-center gap-2", "text-gradient-dynamic")}>
+            <LifeBuoy className="w-5 h-5 sm:w-6 sm:h-6 text-primary" /> Support & Help Center
           </CardTitle>
           <CardDescription className="text-sm">Find answers to common questions and get help with AutoBoss.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6 sm:space-y-8 p-4 sm:p-6">
           <section>
-            <h2 className="text-lg sm:text-xl font-semibold mb-2 sm:mb-3 flex items-center gap-2"><MessageCircleQuestion className="w-4 h-4 sm:w-5 sm:w-5 text-primary"/>Frequently Asked Questions</h2>
+            <h2 className={cn("text-lg sm:text-xl font-semibold mb-2 sm:mb-3 flex items-center gap-2", "text-gradient-dynamic")}><MessageCircleQuestion className="w-4 h-4 sm:w-5 sm:w-5 text-primary"/>Frequently Asked Questions</h2>
             <Accordion type="single" collapsible className="w-full">
               {faqs.map((faq, index) => (
                 <AccordionItem value={`item-${index + 1}`} key={index}>
@@ -55,7 +56,7 @@ export default function SupportPage() {
           </section>
 
           <section className="p-3 sm:p-4 border rounded-lg bg-muted/30">
-            <h2 className="text-lg sm:text-xl font-semibold mb-2 sm:mb-3 flex items-center gap-2"><AlertTriangle className="w-4 h-4 sm:w-5 sm:w-5 text-primary"/>Basic Troubleshooting</h2>
+            <h2 className={cn("text-lg sm:text-xl font-semibold mb-2 sm:mb-3 flex items-center gap-2", "text-gradient-dynamic")}><AlertTriangle className="w-4 h-4 sm:w-5 sm:w-5 text-primary"/>Basic Troubleshooting</h2>
             <ul className="list-disc list-inside space-y-1 text-xs sm:text-sm text-muted-foreground">
               <li>If you encounter unexpected behavior, try refreshing the page.</li>
               <li>Ensure your internet connection is stable, especially when interacting with AI features.</li>
@@ -65,7 +66,7 @@ export default function SupportPage() {
           </section>
 
           <section className="p-3 sm:p-4 border rounded-lg bg-muted/30">
-            <h2 className="text-lg sm:text-xl font-semibold mb-2 sm:mb-3 flex items-center gap-2"><Mail className="w-4 h-4 sm:w-5 sm:w-5 text-primary"/>Contact Us</h2>
+            <h2 className={cn("text-lg sm:text-xl font-semibold mb-2 sm:mb-3 flex items-center gap-2", "text-gradient-dynamic")}><Mail className="w-4 h-4 sm:w-5 sm:w-5 text-primary"/>Contact Us</h2>
             <p className="text-xs sm:text-sm text-muted-foreground">
               For further assistance or to report a bug, please reach out to our support team.
             </p>
