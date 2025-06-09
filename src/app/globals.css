@@ -121,13 +121,13 @@
     letter-spacing: -0.03em;
   }
   .marketing-h2 {
-     @apply text-3xl sm:text-4xl font-bold tracking-tight text-center mb-3 md:mb-4;
+     @apply text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-center mb-2 md:mb-3;
      letter-spacing: -0.02em;
   }
   h3 { @apply text-lg sm:text-xl font-semibold font-headline; }
 
   .section-description {
-      @apply text-muted-foreground text-xs sm:text-sm md:text-base max-w-md mx-auto mb-6 md:mb-8 text-center;
+      @apply text-muted-foreground text-xs sm:text-sm md:text-base max-w-md mx-auto mb-4 md:mb-6 text-center;
   }
 
 
@@ -146,8 +146,8 @@
 
 /* Typewriter effect */
 @keyframes typing {
-  from { width: 0%; }
-  to { width: 100%; }
+  from { width: 0ch; }
+  to { width: 13ch; } /* "AI Teammates." is 13 characters */
 }
 
 @keyframes blink-caret {
@@ -162,10 +162,10 @@
   white-space: nowrap;
   letter-spacing: .03em;
   animation:
-    typing 1.5s steps(13, end) forwards, /* "AI Teammates." is 13 chars */
+    typing 1.5s steps(13, end) forwards, /* Match steps to char count */
     blink-caret .75s step-end infinite;
   animation-delay: 0.2s;
-  width: 0%; /* Start with 0 width, animation will expand it */
+  width: 0ch; /* Start with 0ch width, animation will expand it */
 }
 
 
@@ -207,7 +207,7 @@
   @apply bg-gradient-to-r from-primary to-neon-lime text-primary-foreground shadow-md hover:opacity-90 transition-opacity;
 }
 .dark .btn-gradient-primary {
-  @apply text-primary-foreground;
+  @apply text-primary-foreground; /* Ensures dark text on light gradient for dark mode buttons */
 }
 
 
@@ -220,7 +220,7 @@
     @apply p-2 sm:p-2.5 rounded-lg bg-primary/10 text-primary mb-2 sm:mb-3 inline-block;
 }
 .simple-feature-card-title {
-    @apply font-headline text-lg font-bold text-foreground mb-1 sm:mb-1.5;
+    @apply font-headline text-base sm:text-lg font-bold text-foreground mb-1 sm:mb-1.5;
     @apply relative pt-1;
 }
 .simple-feature-card-title::before {
