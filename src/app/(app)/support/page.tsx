@@ -1,6 +1,7 @@
 
 "use client";
 
+import Link from "next/link"; // Added missing import
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { LifeBuoy, MessageCircleQuestion, AlertTriangle, Mail, Cog, BookOpen, Share2 } from "lucide-react";
@@ -79,5 +80,3 @@ export default function SupportPage() {
     </div>
   );
 }
-
-    
