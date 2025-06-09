@@ -9,8 +9,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Send, Bot, User, Loader2, Info, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ChatMessage as ChatMessageType, Agent, FlowContext, AgentFlowDefinition, KnowledgeItem } from "@/lib/types";
-import { autonomousReasoning } from "@/ai/flows/autonomous-reasoning";
-import { executeAgentFlow, ExecuteAgentFlowInput } from "@/ai/flows/execute-agent-flow";
+// Removed direct import of autonomousReasoning and executeAgentFlow as API call is used.
 import { useToast } from "@/hooks/use-toast";
 import {
   Accordion,
@@ -33,7 +32,7 @@ export interface ChatInterfaceHandles {
 
 interface ChatInterfaceProps {
   agent: Agent;
-  appContext?: ReturnType<UseAppContextType>;
+  appContext?: ReturnType<UseAppContextType>; // Make appContext optional for public chat page
   onNewAgentMessage?: (message: ExtendedChatMessage) => void;
 }
 
@@ -41,24 +40,33 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
   const [messages, setMessages] = useState<ExtendedChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isInitializing, setIsInitializing] = useState(true);
-  const [isRestarting, setIsRestarting] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true); 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const [currentAgent, setCurrentAgent] = useState<Agent>(initialAgent);
-  const getAgentFlowFromAppContext = appContext?.getAgentFlow;
-
-  const [currentFlowContext, setCurrentFlowContext] = useState<FlowContext>({ conversationHistory: [] });
-  const [currentAgentFlow, setCurrentAgentFlow] = useState<AgentFlowDefinition | undefined>(undefined);
+  
+  // State for flow execution
+  const [currentFlowContext, setCurrentFlowContext] = useState<FlowContext | undefined>(undefined);
   const [nextNodeIdToResume, setNextNodeIdToResume] = useState<string | undefined>(undefined);
 
+  // Refs to hold current values for async operations and API calls
+  const agentRef = useRef(currentAgent);
   const currentFlowContextRef = useRef(currentFlowContext);
   const nextNodeIdToResumeRef = useRef(nextNodeIdToResume);
-  const currentAgentFlowRef = useRef(currentAgentFlow);
-  const agentKnowledgeItemsRef = useRef(currentAgent.knowledgeItems);
-  const agentRef = useRef(currentAgent);
+
+  useEffect(() => {
+    setCurrentAgent(initialAgent);
+    agentRef.current = initialAgent;
+    // When agent changes, reset initialization and flow state
+    setIsInitializing(true); 
+    setCurrentFlowContext(undefined);
+    currentFlowContextRef.current = undefined;
+    setNextNodeIdToResume(undefined);
+    nextNodeIdToResumeRef.current = undefined;
+    setMessages([]); // Clear messages when agent changes
+  }, [initialAgent]);
 
   useEffect(() => {
     currentFlowContextRef.current = currentFlowContext;
@@ -67,22 +75,6 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
   useEffect(() => {
     nextNodeIdToResumeRef.current = nextNodeIdToResume;
   }, [nextNodeIdToResume]);
-
-  useEffect(() => {
-    currentAgentFlowRef.current = currentAgentFlow;
-  }, [currentAgentFlow]);
-
-  useEffect(() => {
-    setCurrentAgent(initialAgent);
-    agentRef.current = initialAgent;
-    agentKnowledgeItemsRef.current = initialAgent.knowledgeItems;
-
-    const flowToUse = getAgentFlowFromAppContext ? getAgentFlowFromAppContext(initialAgent.id) : initialAgent.flow;
-    setCurrentAgentFlow(flowToUse);
-    currentAgentFlowRef.current = flowToUse;
-    setIsInitializing(true);
-  }, [initialAgent, getAgentFlowFromAppContext]);
-
 
   const scrollToBottom = () => {
     if (scrollAreaRef.current) {
@@ -99,110 +91,89 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
 
   const initializeChat = useCallback(async (isManualRestart = false) => {
     if (!agentRef.current) return;
-
+    console.log("ChatInterface: Initializing chat for agent:", agentRef.current.id, "Manual restart:", isManualRestart);
     setIsLoading(true);
-    let aggregatedMessages: ExtendedChatMessage[] = [];
-    let tempContextForInit: FlowContext = { conversationHistory: [], waitingForInput: undefined, currentNodeId: undefined };
-    let tempNextNodeIdForInit: string | undefined = undefined;
-    let initDebugLog: string[] = [];
 
-    if (agentRef.current.generatedGreeting) {
-      const greetingMessage: ExtendedChatMessage = {
-        id: 'agent-greeting',
+    const initialMessages: ExtendedChatMessage[] = [];
+    let initialContext: FlowContext = { conversationHistory: [] };
+    let initialNextNodeId: string | undefined = undefined;
+
+    // Add agent's generated greeting if it exists and primary logic is not 'flow' (flow handles its own greeting)
+    if (agentRef.current.generatedGreeting && agentRef.current.primaryLogic !== 'flow') {
+      const greetingMsg: ExtendedChatMessage = {
+        id: 'agent-greeting-auto',
         sender: 'agent',
         text: agentRef.current.generatedGreeting,
         timestamp: Date.now()
       };
-      aggregatedMessages.push(greetingMessage);
-      if (onNewAgentMessage) onNewAgentMessage(greetingMessage);
-      tempContextForInit.conversationHistory = [`Agent: ${agentRef.current.generatedGreeting}`];
+      initialMessages.push(greetingMsg);
+      initialContext.conversationHistory.push(`Agent: ${agentRef.current.generatedGreeting}`);
+      if (onNewAgentMessage) onNewAgentMessage(greetingMsg);
     }
-
-    const flowToExecute = currentAgentFlowRef.current;
-    if (flowToExecute && flowToExecute.nodes.find(n => n.type === 'start')) {
+    
+    // If agent logic involves a flow, try to execute its initial steps (e.g. start node -> sendMessage)
+    if ((agentRef.current.primaryLogic === 'flow' || agentRef.current.primaryLogic === 'hybrid') && agentRef.current.flow) {
       try {
-        const flowResult = await executeAgentFlow({
-          flowDefinition: flowToExecute,
-          currentContext: { ...tempContextForInit },
-          currentMessage: undefined, 
-          startNodeId: flowToExecute.nodes.find(n => n.type === 'start')?.id,
-          knowledgeItems: agentKnowledgeItemsRef.current || [],
-          agent: agentRef.current,
+        const response = await fetch(`/api/agents/${agentRef.current.id}/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: undefined, // No user message for initialization
+            flowState: { context: initialContext, nextNodeId: agentRef.current.flow.nodes.find(n=>n.type==='start')?.id },
+          }),
         });
-        
-        initDebugLog = flowResult.debugLog || [];
+        const data = await response.json();
 
-        if (flowResult.messagesToSend && flowResult.messagesToSend.length > 0) {
-            const agentResponses: ExtendedChatMessage[] = flowResult.messagesToSend.map((msg, index) => {
-                 const newMsg: ExtendedChatMessage = {
-                    id: `flow-init-${Date.now()}-${index}`,
-                    sender: 'agent',
-                    text: msg,
-                    timestamp: Date.now() + index,
-                    flowNodeId: flowResult.updatedContext.currentNodeId,
-                    flowContext: { ...flowResult.updatedContext },
-                    debugMessages: (index === flowResult.messagesToSend.length - 1) ? initDebugLog : undefined,
-                };
-                if(onNewAgentMessage) onNewAgentMessage(newMsg);
-                return newMsg;
-            });
-             aggregatedMessages = [...aggregatedMessages, ...agentResponses];
-        } else if (initDebugLog.length > 0 && aggregatedMessages.length > 0) {
-            aggregatedMessages[aggregatedMessages.length-1].debugMessages = initDebugLog;
-        } else if (initDebugLog.length > 0) {
-             console.log("Initial flow execution debug log (no user messages):", initDebugLog);
+        if (data.error) {
+          throw new Error(data.error.message || "Initialization API error");
         }
-
-
-        const agentMessagesForHistory = flowResult.messagesToSend.filter(m => !m.startsWith("(System:")).map(m => `Agent: ${m}`);
-        tempContextForInit = { ...flowResult.updatedContext, conversationHistory: [...(tempContextForInit.conversationHistory || []), ...agentMessagesForHistory] };
-        tempNextNodeIdForInit = flowResult.nextNodeId;
-
-        if (flowResult.error) {
-          toast({ title: "Chatbot Error", description: `An issue occurred: ${flowResult.error}`, variant: "destructive" });
-           const errorMsg: ExtendedChatMessage = { id: 'flow-error-init', sender: 'agent', text: `Sorry, an initialization error occurred.`, timestamp: Date.now(), debugMessages: [`System notice: ${flowResult.error}`, ...initDebugLog]};
-           aggregatedMessages.push(errorMsg);
-           if(onNewAgentMessage) onNewAgentMessage(errorMsg);
+        
+        if (data.messages && Array.isArray(data.messages)) {
+          const flowInitMessages: ExtendedChatMessage[] = data.messages.map((msgText: string, index: number) => ({
+            id: `flow-init-${Date.now()}-${index}`,
+            sender: 'agent',
+            text: msgText,
+            timestamp: Date.now() + index,
+            debugMessages: data.debugLog && index === data.messages.length -1 ? data.debugLog : undefined,
+            flowNodeId: data.newFlowState?.context?.currentNodeId,
+            flowContext: data.newFlowState?.context,
+          }));
+          initialMessages.push(...flowInitMessages);
+          flowInitMessages.forEach(msg => { if (onNewAgentMessage) onNewAgentMessage(msg); });
+        }
+        if (data.newFlowState) {
+          initialContext = data.newFlowState.context;
+          initialNextNodeId = data.newFlowState.nextNodeId;
         }
       } catch (err: any) {
-        console.error("Error initializing flow:", err);
-        const errorMessage = err.message || "Could not start the chatbot conversation.";
-        toast({ title: "Chatbot Initialization Error", description: errorMessage, variant: "destructive" });
-        const errorCatchMsg : ExtendedChatMessage = { id: 'flow-error-init-catch', sender: 'agent', text: `System error: ${errorMessage}`, timestamp: Date.now(), debugMessages: initDebugLog };
-        aggregatedMessages.push(errorCatchMsg);
-        if(onNewAgentMessage) onNewAgentMessage(errorCatchMsg);
+        console.error("ChatInterface: Error during flow initialization API call:", err);
+        toast({ title: "Chatbot Init Error", description: err.message || "Could not start the flow.", variant: "destructive" });
+         initialMessages.push({ id: 'init-error', sender: 'agent', text: `Error initializing: ${err.message}`, timestamp: Date.now() });
       }
     }
 
-    setMessages(aggregatedMessages);
-    currentFlowContextRef.current = tempContextForInit;
-    setCurrentFlowContext(tempContextForInit);
-    nextNodeIdToResumeRef.current = tempNextNodeIdForInit;
-    setNextNodeIdToResume(tempNextNodeIdForInit);
+    setMessages(initialMessages);
+    setCurrentFlowContext(initialContext);
+    currentFlowContextRef.current = initialContext;
+    setNextNodeIdToResume(initialNextNodeId);
+    nextNodeIdToResumeRef.current = initialNextNodeId;
 
     setIsLoading(false);
     setIsInitializing(false);
     if (isManualRestart) {
       toast({ title: "Conversation Restarted", description: "The chat has been reset." });
     }
+    console.log("ChatInterface: Initialization complete. Context:", initialContext, "NextNode:", initialNextNodeId);
   }, [toast, onNewAgentMessage]);
 
-
   useEffect(() => {
-    if (isInitializing) {
-      setMessages([]);
-      const initialEmptyContext = { conversationHistory: [], waitingForInput: undefined, currentNodeId: undefined };
-      setCurrentFlowContext(initialEmptyContext);
-      currentFlowContextRef.current = initialEmptyContext;
-      setNextNodeIdToResume(undefined);
-      nextNodeIdToResumeRef.current = undefined;
+    if (isInitializing && agentRef.current) { // Only initialize if agent is set
       initializeChat();
     }
-  }, [isInitializing, initializeChat]);
-
+  }, [isInitializing, initializeChat, agentRef.current]); // Depend on agentRef.current
 
   const handleSendMessageInternal = async (messageText: string) => {
-    if (messageText.trim() === "" || isLoading || isRestarting || isInitializing) return;
+    if (messageText.trim() === "" || isLoading || isInitializing) return; // Removed isRestarting as it's handled by isInitializing
 
     const userMessage: ExtendedChatMessage = {
       id: Date.now().toString(),
@@ -211,130 +182,107 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
       timestamp: Date.now(),
     };
     
-    setInput(""); // Clear input field, messageText has the content
+    setMessages((prev) => [...prev, userMessage]);
+    setInput(""); 
     setIsLoading(true);
-    setMessages((prev) => [...prev, userMessage]); 
 
-    const turnContextForFlow: FlowContext = {
-      ...currentFlowContextRef.current,
-      conversationHistory: [...(currentFlowContextRef.current.conversationHistory || []), `User: ${userMessage.text}`]
+    // Prepare flowState for the API call
+    const flowStateForApi = {
+      context: {
+        ...(currentFlowContextRef.current || { conversationHistory: [] }), // Ensure context is at least an empty history
+        conversationHistory: [...(currentFlowContextRef.current?.conversationHistory || []), `User: ${userMessage.text}`]
+      },
+      nextNodeId: nextNodeIdToResumeRef.current,
     };
     
+    console.log("ChatInterface: Sending message to API. Agent Primary Logic:", agentRef.current.primaryLogic, "Flow State:", flowStateForApi);
+
     try {
-      const currentKnowledge: KnowledgeItem[] = agentKnowledgeItemsRef.current || [];
-      let executedAsFlow = false;
-      let flowFinishedWithoutNextNode = false;
-      let turnDebugLog: string[] = [];
-
-      if (currentAgentFlowRef.current && currentAgentFlowRef.current.nodes.find(n => n.type === 'start')) {
-        const flowToExecute = currentAgentFlowRef.current;
-        const nodeIdForExecution = nextNodeIdToResumeRef.current || flowToExecute.nodes.find(n => n.type === 'start')?.id;
-
-        if (nodeIdForExecution) {
-            const flowInput: ExecuteAgentFlowInput = {
-                flowDefinition: flowToExecute,
-                currentContext: turnContextForFlow,
-                currentMessage: messageText,
-                startNodeId: nodeIdForExecution,
-                knowledgeItems: currentKnowledge,
-                agent: agentRef.current,
-            };
-
-            const result = await executeAgentFlow(flowInput);
-            executedAsFlow = true; 
-            turnDebugLog = result.debugLog || [];
-
-            if (result.messagesToSend && result.messagesToSend.length > 0) {
-                const agentResponses: ExtendedChatMessage[] = result.messagesToSend.map((msg, index) => {
-                    const newMsg: ExtendedChatMessage = {
-                        id: `flow-${Date.now()}-${index}`,
-                        sender: 'agent',
-                        text: msg,
-                        timestamp: Date.now() + index,
-                        flowNodeId: result.updatedContext.currentNodeId,
-                        flowContext: { ...result.updatedContext },
-                        debugMessages: (index === result.messagesToSend.length - 1) ? turnDebugLog : undefined,
-                    };
-                    if(onNewAgentMessage) onNewAgentMessage(newMsg);
-                    return newMsg;
-                });
-                setMessages((prev) => [...prev, ...agentResponses]);
-            } else if (turnDebugLog.length > 0) {
-                console.log("Flow execution debug log (no user messages for this turn):", turnDebugLog);
-            }
-
-            const newAgentMessagesForHistory = result.messagesToSend.filter(m => !m.startsWith("(System:")).map(msg => `Agent: ${msg}`);
-            currentFlowContextRef.current = {
-                ...result.updatedContext,
-                conversationHistory: [...(turnContextForFlow.conversationHistory || []), ...newAgentMessagesForHistory]
-            };
-            setCurrentFlowContext(currentFlowContextRef.current);
-            nextNodeIdToResumeRef.current = result.nextNodeId ? result.nextNodeId : undefined;
-            setNextNodeIdToResume(result.nextNodeId ? result.nextNodeId : undefined);
-
-            if (result.error) {
-                toast({ title: "Chatbot Error", description: `An issue occurred: ${result.error}`, variant: "destructive" });
-                const errorMsg: ExtendedChatMessage = { id: 'flow-error-exec', sender: 'agent', text: `Sorry, an error occurred while processing.`, timestamp: Date.now(), debugMessages: [`System notice: ${result.error}`, ...turnDebugLog]};
-                setMessages(prev => [...prev, errorMsg]);
-                if(onNewAgentMessage) onNewAgentMessage(errorMsg);
-            }
-            if (result.isFlowFinished && !result.nextNodeId) {
-                flowFinishedWithoutNextNode = true;
-                nextNodeIdToResumeRef.current = undefined; 
-                setNextNodeIdToResume(undefined);
-            }
-        }
-      }
-
-      if (!executedAsFlow || flowFinishedWithoutNextNode) {
-        const currentConversationHistoryForReasoning = [...messages, userMessage]; 
-        const contextStringForReasoning = currentConversationHistoryForReasoning.map(m => `${m.sender === 'user' ? 'User' : 'Agent'}: ${m.text}`).join('\n');
-
-        const reasoningResult = await autonomousReasoning({
-          agentName: agentRef.current.generatedName,
-          agentPersona: agentRef.current.generatedPersona,
-          agentRole: agentRef.current.role,
-          context: contextStringForReasoning, 
-          userInput: userMessage.text,
-          knowledgeItems: currentKnowledge
-        });
-
-        const agentResponse: ExtendedChatMessage = {
-          id: (Date.now() + 1).toString(),
-          sender: "agent",
-          text: reasoningResult.responseToUser,
-          timestamp: Date.now(),
-          reasoning: reasoningResult.reasoning,
-          relevantKnowledgeIds: reasoningResult.relevantKnowledgeIds,
-          debugMessages: turnDebugLog.length > 0 ? turnDebugLog : undefined 
-        };
-        setMessages((prev) => [...prev, agentResponse]);
-        if(onNewAgentMessage) onNewAgentMessage(agentResponse);
-        
-        const newHistoryEntryForAutonomous = `Agent: ${reasoningResult.responseToUser}`;
-        const updatedAutonomousContextHistory = [...(currentFlowContextRef.current.conversationHistory || []), newHistoryEntryForAutonomous];
-        const newContextForAutonomous = { 
-          conversationHistory: updatedAutonomousContextHistory,
-          waitingForInput: undefined, 
-          currentNodeId: undefined
-        };
-        currentFlowContextRef.current = newContextForAutonomous;
-        setCurrentFlowContext(newContextForAutonomous);
-      }
-    } catch (error: any) {
-      console.error("Error processing message:", error);
-      const errorMessage = error.message || "Could not get a response from the chatbot.";
-      toast({
-        title: "Processing Error",
-        description: errorMessage,
-        variant: "destructive",
+      const response = await fetch(`/api/agents/${agentRef.current.id}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: messageText,
+          flowState: flowStateForApi,
+        }),
       });
+
+      const data = await response.json();
+
+      if (!response.ok || data.error) {
+        const errorDetail = data.error ? (data.error.message + (data.error.details ? ` ${JSON.stringify(data.error.details)}` : '')) : `API Error: ${response.status}`;
+        throw new Error(errorDetail);
+      }
+      
+      let agentResponses: ExtendedChatMessage[] = [];
+
+      if (data.type === 'flow' && data.messages && Array.isArray(data.messages)) {
+        agentResponses = data.messages.map((msgText: string, index: number) => ({
+          id: `flow-resp-${Date.now()}-${index}`,
+          sender: 'agent',
+          text: msgText,
+          timestamp: Date.now() + index,
+          debugMessages: data.debugLog && index === data.messages.length - 1 ? data.debugLog : undefined,
+          flowNodeId: data.newFlowState?.context?.currentNodeId,
+          flowContext: data.newFlowState?.context,
+        }));
+      } else if ((data.type === 'autonomous' || data.type === 'rag' || data.type === 'prompt') && data.reply) {
+        agentResponses.push({
+          id: `auto-resp-${Date.now()}`,
+          sender: 'agent',
+          text: data.reply,
+          timestamp: Date.now(),
+          reasoning: data.reasoning,
+          relevantKnowledgeIds: data.relevantKnowledgeIds,
+          // No specific flowNodeId for pure autonomous, but context still updates
+          flowContext: data.newFlowState?.context,
+        });
+      }
+
+      if (agentResponses.length > 0) {
+        setMessages((prev) => [...prev, ...agentResponses]);
+        agentResponses.forEach(msg => { if (onNewAgentMessage) onNewAgentMessage(msg); });
+      } else if (data.debugLog && data.debugLog.length > 0) {
+         // If no visible messages but there's a debug log, attach to user message or a system message
+         // For simplicity, let's just log it if no agent message was produced this turn
+         console.log("ChatInterface: Debug log from API (no agent messages):", data.debugLog);
+      }
+
+
+      if (data.newFlowState) {
+        console.log("ChatInterface: Received newFlowState from API:", data.newFlowState);
+        setCurrentFlowContext(data.newFlowState.context);
+        currentFlowContextRef.current = data.newFlowState.context;
+        setNextNodeIdToResume(data.newFlowState.nextNodeId);
+        nextNodeIdToResumeRef.current = data.newFlowState.nextNodeId;
+      } else {
+        // If no newFlowState, it means it was likely a pure autonomous, RAG, or prompt response
+        // We still need to update the local conversation history in the context
+        const currentContext = currentFlowContextRef.current || {conversationHistory: []};
+        const newHistory = [...currentContext.conversationHistory];
+        agentResponses.forEach(ar => newHistory.push(`Agent: ${ar.text}`));
+        const updatedContextOnlyHistory = {...currentContext, conversationHistory: newHistory};
+        
+        setCurrentFlowContext(updatedAutonomousContextOnlyHistory);
+        currentFlowContextRef.current = updatedAutonomousContextOnlyHistory;
+        // For non-flow responses, there's no nextNodeId to resume
+        setNextNodeIdToResume(undefined);
+        nextNodeIdToResumeRef.current = undefined;
+      }
+      
+      if (data.error) { // API might return 200 but still have an error in payload for flows
+         toast({ title: "Chatbot Error", description: data.error, variant: "destructive" });
+      }
+
+
+    } catch (error: any) {
+      console.error("ChatInterface: Error calling chat API:", error);
+      toast({ title: "API Error", description: error.message || "Could not get a response.", variant: "destructive" });
       const errorResponse: ExtendedChatMessage = {
         id: (Date.now() + 1).toString(),
         sender: "agent",
-        text: `Sorry, I encountered an error: ${errorMessage}`,
+        text: `Sorry, I encountered an API error: ${error.message}`,
         timestamp: Date.now(),
-        debugMessages: turnDebugLog.length > 0 ? turnDebugLog : undefined,
       };
       setMessages((prev) => [...prev, errorResponse]);
       if(onNewAgentMessage) onNewAgentMessage(errorResponse);
@@ -361,17 +309,12 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
   };
 
 
-  const handleRestartConversation = async () => {
-    if (isRestarting || isInitializing) return;
-    setIsRestarting(true);
+  const handleRestartConversation = () => {
+    if (isInitializing || isLoading) return; // Prevent restart if already processing
+    console.log("ChatInterface: Restarting conversation...");
     setInput("");
-
-    const flowToUse = getAgentFlowFromAppContext ? getAgentFlowFromAppContext(agentRef.current.id) : agentRef.current.flow;
-    setCurrentAgentFlow(flowToUse);
-    currentAgentFlowRef.current = flowToUse;
-
-    setIsInitializing(true); 
-    setIsRestarting(false);
+    setMessages([]); // Immediately clear UI messages
+    setIsInitializing(true); // This will trigger the useEffect for initializeChat
   };
 
 
@@ -382,15 +325,17 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
           variant="outline"
           size="sm"
           onClick={handleRestartConversation}
-          disabled={isRestarting || isInitializing || isLoading}
+          disabled={isInitializing || isLoading} // Disabled during init or active loading
           title="Restart Conversation"
           className="px-2 py-1 h-auto text-xs w-full sm:w-auto"
         >
-          {isRestarting ? <Loader2 size={14} className="mr-1 animate-spin" /> : <RefreshCw size={14} className="mr-1" />} Restart
+          {isInitializing ? <Loader2 size={14} className="mr-1 animate-spin" /> : <RefreshCw size={14} className="mr-1" />} 
+          {isInitializing ? "Initializing..." : "Restart"}
         </Button>
         <div className="flex items-center gap-1 w-full sm:w-auto justify-end sm:justify-center">
             <span className="text-xs text-muted-foreground">
-                {nextNodeIdToResumeRef.current ? "Following conversation steps..." : "Ready for your questions"}
+                {nextNodeIdToResumeRef.current ? "Following conversation steps..." : 
+                 (agentRef.current.primaryLogic === 'flow' && !isInitializing ? "Flow ended or waiting..." : "Ready for your questions")}
             </span>
         </div>
       </div>
@@ -444,7 +389,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
                             <strong className="text-[10px] sm:text-xs">Used Knowledge:</strong>
                             <div className="flex flex-wrap gap-1 mt-0.5">
                               {message.relevantKnowledgeIds.map(id => {
-                                const item = agentKnowledgeItemsRef.current?.find(k => k.id === id);
+                                const item = agentRef.current.knowledgeItems?.find(k => k.id === id); // Use agentRef
                                 return <Badge key={id} variant="secondary" className="text-[9px] sm:text-xs px-1.5 py-0.5">{item?.fileName || id}</Badge>;
                               })}
                             </div>
@@ -503,10 +448,10 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
             onChange={(e) => setInput(e.target.value)}
             placeholder={nextNodeIdToResumeRef.current ? "Your response..." : "Ask your chatbot anything..."}
             className="flex-1 h-9 sm:h-10 text-sm"
-            disabled={isLoading || isRestarting || isInitializing}
+            disabled={isLoading || isInitializing}
           />
-          <Button type="submit" size="icon" disabled={isLoading || isRestarting || isInitializing || input.trim() === ""} className="h-9 w-9 sm:h-10 sm:w-10">
-            {(isLoading && !isInitializing && !isRestarting) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+          <Button type="submit" size="icon" disabled={isLoading || isInitializing || input.trim() === ""} className="h-9 w-9 sm:h-10 sm:w-10">
+            {(isLoading && !isInitializing) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             <span className="sr-only">Send</span>
           </Button>
         </form>
@@ -515,5 +460,3 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
   );
 });
 ChatInterface.displayName = "ChatInterface";
-
-    
