@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2, UserCircle, Mail, ShieldCheck, Phone } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { Logo } from "@/components/logo";
 
 const displayNameFormSchema = z.object({
   displayName: z.string().min(1, "Display name cannot be empty").max(50, "Display name too long"),
@@ -61,6 +62,10 @@ export default function ProfilePage() {
     }
 
     const fetchPhoneNumber = async () => {
+      if (!currentUser) { // Ensure currentUser exists before fetching
+        setIsLoadingPhoneNumber(false);
+        return;
+      }
       setIsLoadingPhoneNumber(true);
       const phone = await getUserPhoneNumberFromFirestore();
       setCurrentPhoneNumber(phone);
@@ -70,10 +75,10 @@ export default function ProfilePage() {
       setIsLoadingPhoneNumber(false);
     };
 
-    if (currentUser) {
+    if (!authLoading) { // Only fetch if auth is not loading
       fetchPhoneNumber();
     }
-  }, [currentUser, setDisplayNameValue, getUserPhoneNumberFromFirestore, setPhoneValue]);
+  }, [currentUser, setDisplayNameValue, getUserPhoneNumberFromFirestore, setPhoneValue, authLoading]);
 
   const onDisplayNameSubmit: SubmitHandler<DisplayNameFormData> = async (data) => {
     setIsUpdatingName(true);
@@ -96,15 +101,17 @@ export default function ProfilePage() {
     setIsSendingResetEmail(false);
   };
 
-  if (authLoading || (currentUser && isLoadingPhoneNumber)) {
+  if (authLoading || (!authLoading && currentUser && isLoadingPhoneNumber)) {
     return (
-      <div className="flex justify-center items-center min-h-[300px] p-4">
-        <Loader2 className="h-10 w-10 sm:h-12 sm:w-12 animate-spin text-primary" />
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] p-4">
+        <Logo className="mb-3 h-8" />
+        <Loader2 className="h-10 w-10 sm:h-12 sm:h-12 animate-spin text-primary" />
+        <p className="text-xs text-muted-foreground mt-2">Loading profile...</p>
       </div>
     );
   }
 
-  if (!currentUser) {
+  if (!currentUser) { // If not loading and still no current user
     return (
       <Card>
         <CardHeader className="p-4 sm:p-6"><CardTitle className="text-lg sm:text-xl">Profile Not Available</CardTitle></CardHeader>
@@ -195,5 +202,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
-    

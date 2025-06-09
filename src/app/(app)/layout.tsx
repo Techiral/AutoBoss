@@ -117,36 +117,39 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [theme]);
 
   useEffect(() => {
-    if (!authLoading) {
-      if (!currentUser) {
-        if (pathname !== '/login' && pathname !== '/signup' && !pathname.startsWith('/chat/')) {
-          router.push('/login');
-        } else {
+    if (authLoading) { // Context is already showing a full-page loader if auth is loading
+      setIsLoadingAgents(false); // Prevent this layout from showing another loader
+      setIsContextInitialized(false); // Wait for auth
+      return;
+    }
+    if (!currentUser) {
+      if (pathname !== '/login' && pathname !== '/signup' && !pathname.startsWith('/chat/')) {
+        router.push('/login');
+      } else {
+        setIsLoadingAgents(false);
+        setIsContextInitialized(true); // No user, so context is "initialized" for non-auth state
+      }
+    } else {
+      const fetchAgents = async () => {
+        if (!currentUser) return;
+        setIsLoadingAgents(true);
+        try {
+          const q = query(collection(db, AGENTS_COLLECTION), where("userId", "==", currentUser.uid));
+          const querySnapshot = await getDocs(q);
+          const fetchedAgents: Agent[] = [];
+          querySnapshot.forEach((doc) => {
+            fetchedAgents.push(convertTimestampsToISO({ id: doc.id, ...doc.data() } as Agent));
+          });
+          setAgents(fetchedAgents);
+        } catch (error) {
+          console.error("Error fetching agents from Firestore:", error);
+          toast({ title: "Error Loading Agents", description: "Could not load agent data.", variant: "destructive" });
+        } finally {
           setIsLoadingAgents(false);
           setIsContextInitialized(true);
         }
-      } else {
-        const fetchAgents = async () => {
-          if (!currentUser) return;
-          setIsLoadingAgents(true);
-          try {
-            const q = query(collection(db, AGENTS_COLLECTION), where("userId", "==", currentUser.uid));
-            const querySnapshot = await getDocs(q);
-            const fetchedAgents: Agent[] = [];
-            querySnapshot.forEach((doc) => {
-              fetchedAgents.push(convertTimestampsToISO({ id: doc.id, ...doc.data() } as Agent));
-            });
-            setAgents(fetchedAgents);
-          } catch (error) {
-            console.error("Error fetching agents from Firestore:", error);
-            toast({ title: "Error Loading Agents", description: "Could not load agent data.", variant: "destructive" });
-          } finally {
-            setIsLoadingAgents(false);
-            setIsContextInitialized(true);
-          }
-        };
-        fetchAgents();
-      }
+      };
+      fetchAgents();
     }
   }, [currentUser, authLoading, router, toast, pathname]);
 
@@ -342,6 +345,41 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [currentUser, toast]);
 
+  const renderContent = () => {
+    // The AuthContext already handles a full-screen loader when authLoading is true.
+    // This layout should only show its loader if auth is done, but we are still fetching app-specific data (agents).
+    if (!authLoading && isLoadingAgents && currentUser) {
+      return (
+        <div className="flex flex-col items-center justify-center flex-1 p-4">
+          <Logo className="mb-4 h-8 sm:h-10" />
+          <Loader2 className="h-8 w-8 sm:h-10 sm:h-10 animate-spin text-primary mb-3" />
+          <p className="text-sm text-muted-foreground">Loading your agents...</p>
+        </div>
+      );
+    }
+    if (!authLoading && !currentUser && !(pathname === '/login' || pathname === '/signup' || pathname.startsWith('/chat/'))) {
+      // This case is typically handled by redirection in useEffect,
+      // but as a fallback or during the brief moment before redirection:
+      return (
+        <div className="flex flex-col items-center justify-center flex-1 p-4 text-center">
+            <LogIn className="h-10 w-10 sm:h-12 sm:h-12 text-primary mb-3" />
+            <p className="text-md sm:text-lg">Redirecting to login...</p>
+        </div>
+      );
+    }
+    // If context is initialized (or authLoading is false and no currentUser for public pages), show children
+    if (isContextInitialized || ( (!authLoading && !currentUser) && (pathname === '/login' || pathname === '/signup' || pathname.startsWith('/chat/')) ) ) {
+      return children;
+    }
+    // Default to a minimal loader if none of the above (should be rare)
+    return (
+       <div className="flex items-center justify-center flex-1">
+          <Loader2 className="h-10 w-10 sm:h-12 sm:h-12 animate-spin text-primary" />
+       </div>
+    );
+  };
+
+
   return (
     <AppContext.Provider value={{
         agents,
@@ -363,18 +401,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <AppHeader />
           <SidebarInset>
             <main className="flex-1 p-4 sm:p-6 lg:p-8 bg-background text-foreground">
-              {authLoading || (!isContextInitialized && currentUser) ? (
-                 <div className="flex items-center justify-center h-full">
-                    <Loader2 className="h-10 w-10 sm:h-12 sm:w-12 animate-spin text-primary" />
-                 </div>
-              ) : !currentUser && !(pathname === '/login' || pathname === '/signup' || pathname.startsWith('/chat/')) ? (
-                <div className="flex flex-col items-center justify-center h-full text-center">
-                    <LogIn className="h-12 w-12 sm:h-16 sm:w-16 text-primary mb-3 sm:mb-4" />
-                    <p className="text-md sm:text-lg">Redirecting to login...</p>
-                </div>
-              ) : (
-                children
-              )}
+              {renderContent()}
             </main>
           </SidebarInset>
         </div>

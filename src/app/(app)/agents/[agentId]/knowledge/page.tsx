@@ -15,6 +15,7 @@ import type { KnowledgeItem, Agent } from "@/lib/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAppContext } from "../../../layout";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Logo } from "@/components/logo";
 
 export default function KnowledgePage() {
   const [isLoadingFile, setIsLoadingFile] = useState(false);
@@ -25,15 +26,17 @@ export default function KnowledgePage() {
   const { toast } = useToast();
   const params = useParams();
   const agentId = Array.isArray(params.agentId) ? params.agentId[0] : params.agentId;
-  const { getAgent, addKnowledgeItem } = useAppContext();
+  const { getAgent, addKnowledgeItem, isLoadingAgents } = useAppContext();
   const [currentAgent, setCurrentAgent] = useState<Agent | null | undefined>(undefined);
 
   useEffect(() => {
-    if (agentId) {
+    if (!isLoadingAgents && agentId) {
       const agent = getAgent(agentId as string);
       setCurrentAgent(agent);
+    } else if (!isLoadingAgents && !agentId) {
+      setCurrentAgent(null);
     }
-  }, [agentId, getAgent]);
+  }, [agentId, getAgent, isLoadingAgents]);
 
   const knowledgeItems = currentAgent?.knowledgeItems || [];
 
@@ -179,11 +182,17 @@ export default function KnowledgePage() {
   };
 
 
-  if (currentAgent === undefined) {
+  if (isLoadingAgents || currentAgent === undefined) {
     return (
       <Card>
-        <CardHeader><CardTitle className="text-lg sm:text-xl">Loading Knowledge...</CardTitle></CardHeader>
-        <CardContent className="flex justify-center items-center min-h-[200px]"><Loader2 className="h-8 w-8 sm:h-10 sm:w-10 animate-spin text-primary" /></CardContent>
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="text-lg sm:text-xl">Loading Knowledge...</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col items-center justify-center min-h-[calc(100vh-300px)]">
+          <Logo className="mb-3 h-8" />
+          <Loader2 className="h-8 w-8 sm:h-10 sm:w-10 animate-spin text-primary" />
+          <p className="text-xs text-muted-foreground mt-2">Fetching knowledge base...</p>
+        </CardContent>
       </Card>
     )
   }
@@ -294,5 +303,3 @@ export default function KnowledgePage() {
     </div>
   );
 }
-
-    

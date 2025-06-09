@@ -10,21 +10,19 @@ import {
   signOut as firebaseSignOut,
   updateProfile,
   sendPasswordResetEmail,
-  // GoogleAuthProvider, // Removed
-  // signInWithRedirect as firebaseSignInWithRedirect, // Removed
-  // getRedirectResult, // Removed
 } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { doc, setDoc, getDoc, Timestamp } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/types';
+import { Loader2 } from 'lucide-react';
+import { Logo } from '@/components/logo';
 
 interface AuthContextType {
   currentUser: User | null;
   loading: boolean;
   signUp: (email: string, pass: string) => Promise<User | null>;
   signIn: (email: string, pass: string) => Promise<User | null>;
-  // signInWithGoogle: () => Promise<User | null>; // Removed
   signOut: () => Promise<void>;
   updateUserDisplayName: (newName: string) => Promise<boolean>;
   sendUserPasswordResetEmail: () => Promise<boolean>;
@@ -88,8 +86,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error: any) {
       console.error("AuthContext: Error ensuring user document in Firestore for UID " + user.uid + ":", error, "Error Code:", error.code);
-      // Only show a toast if it's NOT a known transient permission-denied error during initial sync.
-      // Firebase error codes for Firestore permissions usually include "permission-denied".
       if (!(error.code && typeof error.code === 'string' && error.code.includes("permission-denied"))) {
          toast({ title: "Profile Sync Error", description: "Could not sync your user profile with the database.", variant: "destructive"});
       } else {
@@ -137,7 +133,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return user;
     } catch (error: any) {
       console.error("AuthContext: Error signing up:", error);
-      // Do not show toast if ensureUserDocumentExists already handled a specific type of error silently
       if (!(error.code && typeof error.code === 'string' && error.code.includes("permission-denied"))) {
         toast({ title: "Sign Up Failed", description: error.message || "Could not create your account.", variant: "destructive" });
       }
@@ -149,13 +144,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     console.log("AuthContext: Attempting Email/Password Sign-In for:", email);
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, pass);
-      // The onAuthStateChanged listener will handle ensureUserDocumentExists and setting currentUser.
-      // No need to call ensureUserDocumentExists here directly as it might lead to race conditions or double calls.
       toast({ title: "Signed In!", description: "Welcome back!" });
       return userCredential.user;
     } catch (error: any) {
       console.error("AuthContext: Error signing in:", error);
-      // Do not show toast if ensureUserDocumentExists already handled a specific type of error silently from onAuthStateChanged path
       if (!(error.code && typeof error.code === 'string' && error.code.includes("permission-denied"))) {
          toast({ title: "Sign In Failed", description: error.message || "Could not sign you in.", variant: "destructive" });
       }
@@ -269,6 +261,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     updateUserPhoneNumberInFirestore,
     getUserPhoneNumberFromFirestore,
   };
+  
+  // Branded full-page loader for initial auth check
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4">
+        <Logo className="mb-4 h-10 sm:h-12" />
+        <Loader2 className="h-8 w-8 sm:h-10 sm:h-10 animate-spin text-primary mb-3" />
+        <p className="text-sm text-muted-foreground">Loading AutoBoss...</p>
+      </div>
+    );
+  }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

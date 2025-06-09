@@ -19,6 +19,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { Logo } from "@/components/logo";
 
 
 const generateId = (prefix = "node_") => `${prefix}${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -282,7 +283,7 @@ const sampleFlows: Record<string, { name: string; flow: AgentFlowDefinition }> =
 export default function AgentStudioPage() {
   const params = useParams();
   const { toast } = useToast();
-  const { getAgent, updateAgentFlow } = useAppContext();
+  const { getAgent, updateAgentFlow, isLoadingAgents } = useAppContext();
 
   const agentId = Array.isArray(params.agentId) ? params.agentId[0] : params.agentId;
   const [currentAgent, setCurrentAgent] = useState<Agent | null | undefined>(undefined);
@@ -336,12 +337,15 @@ export default function AgentStudioPage() {
   }, []);
 
   useEffect(() => {
-    if (agentId) {
+    if (!isLoadingAgents && agentId) {
       const agent = getAgent(agentId as string);
       setCurrentAgent(agent);
       loadFlowToVisual(agent?.flow);
+    } else if (!isLoadingAgents && !agentId) {
+      setCurrentAgent(null); // No agent Id, clear currentAgent
+      loadFlowToVisual(undefined); // Load minimal flow
     }
-  }, [agentId, getAgent, loadFlowToVisual]);
+  }, [agentId, getAgent, loadFlowToVisual, isLoadingAgents]);
 
   const handleDragStartWidget = (event: React.DragEvent<HTMLDivElement>, nodeType: FlowNodeType) => {
     event.dataTransfer.setData("application/visual-node-type", nodeType);
@@ -405,8 +409,8 @@ export default function AgentStudioPage() {
     event.stopPropagation();
   };
 
-  const nodeWidth = 160; // Reduced for mobile
-  const nodeHeight = 60; // Reduced for mobile
+  const nodeWidth = 160; 
+  const nodeHeight = 60; 
 
   const handleCanvasMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
     if (event.target === canvasRef.current || event.target === canvasContentRef.current ) {
@@ -820,16 +824,46 @@ export default function AgentStudioPage() {
     }
   }, [nodes, edges, convertToMermaid]);
 
-  if (currentAgent === undefined) return <Card><CardHeader><CardTitle className="text-lg sm:text-xl">Loading Studio...</CardTitle></CardHeader><CardContent className="flex justify-center items-center min-h-[300px]"><Loader2 className="mx-auto h-8 w-8 sm:h-10 sm:w-10 animate-spin text-primary" /></CardContent></Card>;
-  if (!currentAgent) return <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>Agent Not Found</AlertTitle><AlertDescription>The agent could not be loaded. Please select an agent from the dashboard.</AlertDescription></Alert>;
+  if (isLoadingAgents || (currentAgent === undefined && agentId) ) {
+    return (
+        <Card>
+            <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="text-lg sm:text-xl">Loading Studio...</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center justify-center min-h-[calc(100vh-300px)] p-4 sm:p-6">
+                <Logo className="mb-3 h-8" />
+                <Loader2 className="h-8 w-8 sm:h-10 sm:w-10 animate-spin text-primary" />
+                <p className="text-xs text-muted-foreground mt-2">Initializing flow editor...</p>
+            </CardContent>
+        </Card>
+    );
+  }
+  if (!currentAgent && agentId) { // Agent ID provided but agent not found after loading
+    return (
+        <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Agent Not Found</AlertTitle>
+            <AlertDescription>The agent for studio (ID: {agentId}) could not be loaded. Please select a valid agent.</AlertDescription>
+        </Alert>
+    );
+  }
+  if (!currentAgent && !agentId) { // No agent ID at all (e.g. direct navigation to /studio, unlikely but handle)
+     return (
+        <Alert variant="default">
+             <Info className="h-4 w-4" />
+            <AlertTitle>No Agent Selected</AlertTitle>
+            <AlertDescription>Please select an agent from the dashboard to use the studio.</AlertDescription>
+        </Alert>
+    );
+  }
 
-  const portSize = 8; // Slightly smaller for mobile
+
+  const portSize = 8; 
 
   return (
     <TooltipProvider>
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-4 h-[calc(100vh-220px)] sm:h-[calc(100vh-200px)]">
       
-      {/* Tools Panel Toggle - Mobile */}
       <Button 
         variant="outline" 
         size="icon" 
@@ -840,7 +874,6 @@ export default function AgentStudioPage() {
         {isToolsPanelOpen ? <PanelLeft size={18}/> : <PanelRight size={18}/>}
       </Button>
 
-      {/* Properties Panel Toggle - Mobile */}
       <Button 
         variant="outline" 
         size="icon" 
@@ -851,7 +884,6 @@ export default function AgentStudioPage() {
         {isPropsPanelOpen ? <PanelRight size={18}/> : <PanelLeft size={18}/>}
       </Button>
 
-      {/* Tools Panel */}
       <Card className={cn(
           "h-full flex-col",
           "lg:col-span-2 lg:flex",
@@ -901,7 +933,6 @@ export default function AgentStudioPage() {
         </CardFooter>
       </Card>
 
-      {/* Canvas Area */}
       <Card
         className={cn(
             "h-full relative overflow-hidden bg-muted/20 border-dashed border-input cursor-grab",
@@ -937,7 +968,7 @@ export default function AgentStudioPage() {
                 const midY = (y1 + y2) / 2;
 
                 const angle = Math.atan2(y2 - y1, x2 - x1);
-                const arrowLength = 6; // Smaller arrow for smaller nodes
+                const arrowLength = 6; 
                 const arrowPoint1X = x2 - arrowLength * Math.cos(angle - Math.PI / 6);
                 const arrowPoint1Y = y2 - arrowLength * Math.sin(angle - Math.PI / 6);
                 const arrowPoint2X = x2 - arrowLength * Math.cos(angle + Math.PI / 6);
@@ -963,7 +994,7 @@ export default function AgentStudioPage() {
                         y2={edgeDragInfo.currentY}
                         stroke="hsl(var(--ring))"
                         strokeWidth="2"
-                        strokeDasharray="3 1.5" // Adjusted dasharray
+                        strokeDasharray="3 1.5" 
                     />
                 )}
             </svg>
@@ -980,7 +1011,7 @@ export default function AgentStudioPage() {
                     width: `${nodeWidth}px`,
                     height: `${nodeHeight}px`,
                     borderColor: selectedNodeId === node.id ? 'hsl(var(--ring))' : 'hsl(var(--border))',
-                    boxShadow: selectedNodeId === node.id ? '0 0 0 1.5px hsl(var(--ring))' : '0 1px 2px rgba(0,0,0,0.1)', // Adjusted shadow
+                    boxShadow: selectedNodeId === node.id ? '0 0 0 1.5px hsl(var(--ring))' : '0 1px 2px rgba(0,0,0,0.1)', 
                     zIndex: draggingNodeInfo?.id === node.id || edgeDragInfo?.sourceNodeId === node.id ? 10 : 1,
                 }}
             >
@@ -989,10 +1020,10 @@ export default function AgentStudioPage() {
                         data-port="in"
                         onMouseUp={(e) => handlePortMouseUp(e, node.id, 'in')}
                         title={`Connect to ${node.label}`}
-                        className="absolute -left-[5px] top-1/2 -translate-y-1/2 cursor-crosshair pointer-events-auto bg-background rounded-full" // Adjusted left offset
+                        className="absolute -left-[5px] top-1/2 -translate-y-1/2 cursor-crosshair pointer-events-auto bg-background rounded-full" 
                         style={{width: `${portSize+2}px`, height: `${portSize+2}px`, display:'flex', alignItems:'center', justifyContent:'center'}}
                     >
-                    <div className="w-1.5 h-1.5 bg-primary/70 rounded-full border border-background ring-1 ring-primary/70 group-hover/node:bg-primary group-hover/node:ring-primary transition-all"/> {/* Smaller port visual */}
+                    <div className="w-1.5 h-1.5 bg-primary/70 rounded-full border border-background ring-1 ring-primary/70 group-hover/node:bg-primary group-hover/node:ring-primary transition-all"/> 
                     </div>
                 )}
 
@@ -1009,7 +1040,7 @@ export default function AgentStudioPage() {
                     node.type === 'callLLM' ? (node.outputVariable ? `Out: ${node.outputVariable}`: '...') :
                     node.type === 'condition' ? (node.conditionVariable ? `If: ${node.conditionVariable}`: '...') :
                     node.type === 'action' ? (node.actionName || 'Action') :
-                    node.type === 'apiCall' ? (node.apiUrl ? node.apiUrl.substring(0,15)+'...' : 'HTTP Req') : // Shorter substring
+                    node.type === 'apiCall' ? (node.apiUrl ? node.apiUrl.substring(0,15)+'...' : 'HTTP Req') : 
                     node.type === 'code' ? 'JS Code' :
                     node.type === 'qnaLookup' ? (node.qnaOutputVariable || 'Q&A') :
                     node.type === 'wait' ? `${node.waitDurationMs || 0}ms Wait` :
@@ -1024,10 +1055,10 @@ export default function AgentStudioPage() {
                         data-port="out"
                         onMouseDown={(e) => handlePortMouseDown(e, node.id, 'out')}
                         title={`Connect from ${node.label}`}
-                        className="absolute -right-[5px] top-1/2 -translate-y-1/2 cursor-crosshair pointer-events-auto bg-background rounded-full" // Adjusted right offset
+                        className="absolute -right-[5px] top-1/2 -translate-y-1/2 cursor-crosshair pointer-events-auto bg-background rounded-full" 
                         style={{width: `${portSize+2}px`, height: `${portSize+2}px`, display:'flex', alignItems:'center', justifyContent:'center'}}
                     >
-                        <div className="w-1.5 h-1.5 bg-primary/70 rounded-full border border-background ring-1 ring-primary/70 group-hover/node:bg-primary group-hover/node:ring-primary transition-all"/> {/* Smaller port visual */}
+                        <div className="w-1.5 h-1.5 bg-primary/70 rounded-full border border-background ring-1 ring-primary/70 group-hover/node:bg-primary group-hover/node:ring-primary transition-all"/> 
                     </div>
                 )}
             </div>
@@ -1035,7 +1066,6 @@ export default function AgentStudioPage() {
         </div>
       </Card>
 
-      {/* Properties Panel */}
       <Card className={cn(
           "h-full flex-col",
           "lg:col-span-3 lg:flex",
@@ -1043,7 +1073,7 @@ export default function AgentStudioPage() {
       )}>
         <CardHeader className="pb-1 sm:pb-2 pt-3 sm:pt-4 px-2 sm:px-3">
           <CardTitle className="text-base sm:text-lg flex items-center gap-1.5 sm:gap-2">
-            <Settings2 className="w-4 h-4 sm:w-5 sm:h-5" />
+            <Settings2 className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
             {selectedNodeDetails ? `Edit: ${selectedNodeDetails.label}` : "Node Guide"}
           </CardTitle>
         </CardHeader>
@@ -1098,7 +1128,6 @@ export default function AgentStudioPage() {
                         <div><Label htmlFor="apiOutputVar" className="text-[10px] sm:text-xs">Output Variable (for response)</Label><Input id="apiOutputVar" value={selectedNodeDetails.apiOutputVariable || selectedNodeDetails.outputVariable || ""} onChange={e => updateSelectedNodeProperties({ apiOutputVariable: e.target.value, outputVariable: e.target.value })} className="h-7 sm:h-8 text-xs sm:text-sm"/></div>
                     </>
                 )}
-                {/* ... other node property inputs similar responsive adjustments ... */}
                 <Button variant="outline" size="sm" onClick={() => deleteNode(selectedNodeDetails.id)} className="text-destructive border-destructive hover:bg-destructive/10 w-full mt-2 h-8 text-xs sm:text-sm">
                   <Trash2 className="mr-2 h-3 w-3" /> Delete Node
                 </Button>
@@ -1207,5 +1236,3 @@ export default function AgentStudioPage() {
     </TooltipProvider>
   );
 }
-
-    

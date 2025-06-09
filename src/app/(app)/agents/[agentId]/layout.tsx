@@ -7,36 +7,38 @@ import { useAppContext } from '../../layout';
 import type { Agent } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Loader2 } from 'lucide-react';
+import { Logo } from '@/components/logo';
 
 export default function AgentDetailLayout({ children }: { children: React.ReactNode }) {
   const params = useParams();
   const router = useRouter();
-  const { getAgent } = useAppContext();
+  const { getAgent, isLoadingAgents } = useAppContext(); // Added isLoadingAgents
   const [agent, setAgent] = useState<Agent | null | undefined>(undefined); 
 
   const agentId = Array.isArray(params.agentId) ? params.agentId[0] : params.agentId;
 
   useEffect(() => {
-    if (agentId) {
+    if (!isLoadingAgents && agentId) { // Check isLoadingAgents before trying to getAgent
       const foundAgent = getAgent(agentId);
       setAgent(foundAgent);
+    } else if (!isLoadingAgents && !agentId) {
+      setAgent(null); // No agentId, so set to null
     }
-  }, [agentId, getAgent]); 
+    // If isLoadingAgents, agent remains undefined, handled by loader below
+  }, [agentId, getAgent, isLoadingAgents]); 
 
-  if (agent === undefined) {
+  if (isLoadingAgents || agent === undefined) { // Combined loading states
     return (
-      <div className="space-y-3 sm:space-y-4">
-        <Skeleton className="h-8 sm:h-10 w-3/4 sm:w-1/2" />
-        <Skeleton className="h-6 sm:h-8 w-full sm:w-2/3" />
-        <div className="p-4 border rounded-lg mt-4">
-          <Skeleton className="h-48 sm:h-64 w-full" />
-        </div>
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] p-4">
+        <Logo className="mb-4 h-8 sm:h-10" />
+        <Loader2 className="h-8 w-8 sm:h-10 animate-spin text-primary mb-3" />
+        <p className="text-sm text-muted-foreground">Loading agent details...</p>
       </div>
     );
   }
 
-  if (!agent) {
+  if (!agent) { // Agent not found after loading
     return (
        <Alert variant="destructive">
         <AlertTriangle className="h-4 w-4" />
@@ -58,5 +60,3 @@ export default function AgentDetailLayout({ children }: { children: React.ReactN
     </div>
   );
 }
-
-    

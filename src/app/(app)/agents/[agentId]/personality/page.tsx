@@ -16,6 +16,7 @@ import { useParams } from "next/navigation";
 import { useAppContext } from "../../../layout"; 
 import type { Agent } from "@/lib/types";
 import { Loader2 } from "lucide-react";
+import { Logo } from "@/components/logo";
 
 const formSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters").max(100, "Name too long"),
@@ -33,7 +34,7 @@ export default function PersonalityPage() {
   const { toast } = useToast();
   const params = useParams();
   const agentId = Array.isArray(params.agentId) ? params.agentId[0] : params.agentId;
-  const { getAgent, updateAgent } = useAppContext();
+  const { getAgent, updateAgent, isLoadingAgents } = useAppContext();
 
   const { register, handleSubmit, formState: { errors }, setValue } = useForm<FormData>({ 
     resolver: zodResolver(formSchema),
@@ -45,7 +46,7 @@ export default function PersonalityPage() {
   });
 
   useEffect(() => {
-    if (agentId) {
+    if (!isLoadingAgents && agentId) {
       const agent = getAgent(agentId as string);
       setCurrentAgent(agent); 
       if (agent) {
@@ -60,8 +61,10 @@ export default function PersonalityPage() {
             });
         }
       }
+    } else if (!isLoadingAgents && !agentId) {
+       setCurrentAgent(null);
     }
-  }, [agentId, getAgent, setValue]);
+  }, [agentId, getAgent, setValue, isLoadingAgents]);
 
 
   const onSubmit: SubmitHandler<FormData> = async (data) => {
@@ -100,15 +103,19 @@ export default function PersonalityPage() {
     }
   };
   
-  if (currentAgent === undefined && agentId) { 
+  if (isLoadingAgents || (currentAgent === undefined && agentId)) { 
     return (
       <Card>
         <CardHeader className="p-4 sm:p-6"><CardTitle className="text-lg sm:text-xl">Loading Agent Personality...</CardTitle></CardHeader>
-        <CardContent className="p-4 sm:p-6 flex justify-center items-center min-h-[200px]"><Loader2 className="h-8 w-8 sm:h-10 sm:w-10 animate-spin text-primary" /></CardContent>
+        <CardContent className="flex flex-col items-center justify-center min-h-[calc(100vh-300px)] p-4 sm:p-6">
+            <Logo className="mb-3 h-8" />
+            <Loader2 className="h-8 w-8 sm:h-10 sm:w-10 animate-spin text-primary" />
+            <p className="text-xs text-muted-foreground mt-2">Fetching personality details...</p>
+        </CardContent>
       </Card>
     )
   }
-  if (!currentAgent) {
+  if (!currentAgent) { // Agent not found or no agentId
       return null; 
   }
 
@@ -165,5 +172,3 @@ export default function PersonalityPage() {
     </Card>
   );
 }
-
-    

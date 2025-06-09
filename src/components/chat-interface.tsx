@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Send, Bot, User, Loader2, Info, RefreshCw, Brain, Zap as ZapIcon } from "lucide-react"; // Renamed Zap to ZapIcon
+import { Send, Bot, User, Loader2, Info, RefreshCw, Brain, Zap as ZapIcon } from "lucide-react"; 
 import { cn } from "@/lib/utils";
 import type { ChatMessage, Agent, FlowContext, AgentFlowDefinition, KnowledgeItem } from "@/lib/types";
 import { autonomousReasoning } from "@/ai/flows/autonomous-reasoning";
@@ -18,12 +18,12 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { useAppContext } from "@/app/(app)/layout";
+import type { useAppContext as UseAppContextType } from "@/app/(app)/layout"; // Import type
 import { Badge } from "@/components/ui/badge";
 
 interface ChatInterfaceProps {
   agent: Agent;
-  appContext?: ReturnType<typeof useAppContext>; 
+  appContext?: ReturnType<UseAppContextType>; // Make appContext optional and use its type
 }
 
 type ChatMode = "autonomous" | "flow";
@@ -471,5 +471,3 @@ export function ChatInterface({ agent: initialAgent, appContext }: ChatInterface
     </div>
   );
 }
-
-    
