@@ -160,13 +160,12 @@
   overflow: hidden;
   border-right: .12em solid hsl(var(--electric-teal));
   white-space: nowrap;
-  margin: 0 auto;
   letter-spacing: .03em;
   animation:
     typing 1.5s steps(13, end) forwards, /* "AI Teammates." is 13 chars */
     blink-caret .75s step-end infinite;
   animation-delay: 0.2s;
-  width: 0%;
+  width: 0%; /* Start with 0 width, animation will expand it */
 }
 
 
@@ -202,6 +201,13 @@
 }
 .dark .text-gradient-dynamic {
     @apply bg-gradient-to-r from-[hsl(var(--primary))] via-[hsl(var(--neon-lime))] to-[hsl(var(--primary))];
+}
+
+.btn-gradient-primary {
+  @apply bg-gradient-to-r from-primary to-neon-lime text-primary-foreground shadow-md hover:opacity-90 transition-opacity;
+}
+.dark .btn-gradient-primary {
+  @apply text-primary-foreground;
 }
 
 
@@ -311,13 +317,3 @@ div[data-ai-hint] {
 
 .step-card-container > :nth-child(1) .dashed-connector::before { @apply content-none; }
 .step-card-container > :nth-child(3) .dashed-connector::after { @apply content-none; }
-
-/* New Gradient Button Style */
-.btn-gradient-primary {
-  @apply bg-gradient-to-r from-primary to-neon-lime text-primary-foreground shadow-md hover:opacity-90 transition-opacity;
-}
-/* Ensure dark mode compatibility if text-primary-foreground (dark text) clashes with neon-lime */
-.dark .btn-gradient-primary {
-  @apply text-primary-foreground; /* This is already dark, should be okay */
-}
-
