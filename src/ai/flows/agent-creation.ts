@@ -11,11 +11,13 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import type { AgentType } from '@/lib/types';
 
 const CreateAgentInputSchema = z.object({
   agentDescription: z
     .string()
     .describe('A description of the agent, including its role and personality.'),
+  agentType: z.custom<AgentType>().optional().describe("The type of agent: 'chat', 'voice', or 'hybrid'. This can influence the generated persona and greeting.")
 });
 export type CreateAgentInput = z.infer<typeof CreateAgentInputSchema>;
 
@@ -41,7 +43,16 @@ const prompt = ai.definePrompt({
 2. A detailed "agentPersona" in the first person, embodying the role and personality.
 3. A sample "agentGreeting" that the agent would use to introduce itself.
 
-Description: {{{agentDescription}}}
+{{#if agentType}}
+The agent is intended to be a "{{agentType}}" agent. Consider this when crafting the persona and greeting.
+For example:
+- A 'voice' agent's greeting should be natural and concise for a phone call (e.g., "Hello, this is [Agent Name], how can I help you?").
+- A 'chat' agent's greeting can be slightly more detailed for a website (e.g., "Hi there! I'm [Agent Name], your virtual assistant for [Business]. How can I assist you today?").
+- A 'hybrid' agent should have a versatile greeting.
+{{/if}}
+
+Description:
+{{{agentDescription}}}
 
 Your response MUST be a single, valid JSON object that adheres to the output schema.
 Specifically, it should have the fields: "agentName", "agentPersona", and "agentGreeting".
@@ -60,10 +71,10 @@ const createAgentFlow = ai.defineFlow(
     outputSchema: CreateAgentOutputSchema,
   },
   async (input): Promise<CreateAgentOutput> => {
-    const modelResponse = await prompt(input); // `prompt` is the object from ai.definePrompt
+    const modelResponse = await prompt(input); 
 
     if (!modelResponse.output) {
-      const rawText = modelResponse.response?.text; // For debugging
+      const rawText = modelResponse.response?.text; 
       console.error(
         'Failed to get structured output from createAgentPrompt. Raw model response:',
         rawText || 'No raw text available'
@@ -72,7 +83,6 @@ const createAgentFlow = ai.defineFlow(
         'AI agent could not generate valid details. The model did not return the expected JSON format.'
       );
     }
-    // modelResponse.output is already parsed by Genkit according to CreateAgentOutputSchema
     return modelResponse.output;
   }
 );

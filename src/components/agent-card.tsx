@@ -4,13 +4,28 @@
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bot, ArrowRight, Trash2 } from "lucide-react"; // Removed Pencil
+import { Bot, ArrowRight, Trash2, MessageSquare, Phone, Info } from "lucide-react"; 
 import type { Agent } from "@/lib/types";
 import { useState, useEffect } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { cn } from "@/lib/utils";
 
 interface AgentCardProps {
   agent: Agent;
   onDelete: (agentId: string) => void;
+}
+
+function getAgentTypeIcon(agentType?: Agent['agentType']) {
+  switch (agentType) {
+    case 'chat':
+      return <MessageSquare className="w-3 h-3" />;
+    case 'voice':
+      return <Phone className="w-3 h-3" />;
+    case 'hybrid':
+      return <Bot className="w-3 h-3" />;
+    default:
+      return <Info className="w-3 h-3" />;
+  }
 }
 
 export function AgentCard({ agent, onDelete }: AgentCardProps) {
@@ -26,9 +41,17 @@ export function AgentCard({ agent, onDelete }: AgentCardProps) {
   return (
     <Card className="flex flex-col h-full">
       <CardHeader className="p-4 sm:p-5">
-        <div className="flex items-center gap-2 sm:gap-3 mb-1.5 sm:mb-2">
-          <Bot className="w-7 h-7 sm:w-8 sm:h-8 text-primary" />
-          <CardTitle className="font-headline text-lg sm:text-xl break-all">{agent.generatedName || agent.name}</CardTitle>
+        <div className="flex items-start justify-between mb-1.5 sm:mb-2">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Bot className="w-7 h-7 sm:w-8 sm:h-8 text-primary shrink-0" />
+            <CardTitle className="font-headline text-lg sm:text-xl break-all">{agent.generatedName || agent.name}</CardTitle>
+          </div>
+          {agent.agentType && (
+            <Badge variant="outline" className="text-xs capitalize h-fit px-1.5 py-0.5 sm:px-2">
+              {getAgentTypeIcon(agent.agentType)}
+              <span className="ml-1">{agent.agentType}</span>
+            </Badge>
+          )}
         </div>
         <CardDescription className="line-clamp-2 h-10 text-xs sm:text-sm">{agent.description}</CardDescription>
       </CardHeader>
@@ -45,7 +68,7 @@ export function AgentCard({ agent, onDelete }: AgentCardProps) {
         <Button variant="ghost" size="sm" onClick={() => onDelete(agent.id)} aria-label="Delete agent" className="text-xs px-2 py-1 h-auto text-destructive hover:text-destructive">
           <Trash2 className="w-3.5 h-3.5 mr-1 sm:mr-1.5" /> Delete
         </Button>
-        <Button asChild size="sm" className="text-xs px-2 py-1 h-auto">
+        <Button asChild size="sm" className={cn("text-xs px-2 py-1 h-auto", "btn-gradient-primary")}>
           <Link href={`/agents/${agent.id}/studio`}>
             Open Studio <ArrowRight className="ml-1 sm:ml-1.5 w-3.5 h-3.5" />
           </Link>
@@ -54,5 +77,3 @@ export function AgentCard({ agent, onDelete }: AgentCardProps) {
     </Card>
   );
 }
-
-    

@@ -7,7 +7,7 @@ export const UserProfileSchema = z.object({
   email: z.string().email().optional(),
   displayName: z.string().optional(),
   photoDataUri: z.string().optional().describe("Base64 encoded Data URI for profile photo."),
-  phoneNumber: z.string().optional(),
+  phoneNumber: z.string().optional().describe("User's phone number, potentially for voice agent features or account recovery."),
   createdAt: z.custom<Timestamp>(),
 });
 export type UserProfile = z.infer<typeof UserProfileSchema>;
@@ -135,10 +135,13 @@ export type AgentFlowDefinition = z.infer<typeof AgentFlowDefinitionSchema>;
 export const FlowContextSchema = z.record(z.any()).describe("Holds variables like userName, llmResponse etc. Also includes conversationHistory and potentially other dynamic state such as 'currentNodeId' and 'waitingForInput'.");
 export type FlowContext = z.infer<typeof FlowContextSchema>;
 
-// Agent interface now includes userId
+// Agent interface now includes userId and agentType
+export type AgentType = 'chat' | 'voice' | 'hybrid';
+
 export interface Agent {
   id: string;
   userId: string;
+  agentType: AgentType; // New field to differentiate agent types
   name: string;
   description: string;
   role?: string;
