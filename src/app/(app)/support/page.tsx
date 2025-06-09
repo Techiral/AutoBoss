@@ -4,7 +4,7 @@
 import Link from "next/link"; 
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { LifeBuoy, MessageCircleQuestion, AlertTriangle, Mail, Cog, BookOpen, Share2, Bot, Palette, Brain } from "lucide-react";
+import { LifeBuoy, MessageCircleQuestion, AlertTriangle, Mail, Cog, BookOpen, Share2, Bot, Palette, Brain, Mic } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -12,32 +12,37 @@ export default function SupportPage() {
   const faqs = [
     {
       question: "How do I create a new AI chatbot for a client's business?",
-      answer: "Go to your 'Agency Hub' (Dashboard) and click 'Build New Client Chatbot'. You'll first define its name (e.g., 'Acme Corp Support'), its role for the business (e.g., 'Handles customer inquiries about widgets'), and desired personality (e.g., 'Friendly and professional'). AutoBoss will then help generate a base personality and greeting for the chatbot.",
+      answer: "Navigate to your 'Agency Hub' (Dashboard) and click 'Build New Client Chatbot'. You'll first define its name (e.g., 'Acme Corp Support'), its primary role for the business (e.g., 'Handles customer inquiries about widgets'), and its desired personality (e.g., 'Friendly and professional'). AutoBoss will then assist in generating a base personality and a suitable greeting for the chatbot.",
       icon: Bot,
     },
     {
       question: "How do I train a chatbot with my client's specific business data?",
-      answer: "Once you've created a chatbot, go to its 'Knowledge' section. Here, you can upload documents like FAQs, product catalogs, policy documents (PDFs, TXT files are great). You can also add website URLs (e.g., your client's 'About Us' or 'Services' page). AutoBoss processes this information to make the chatbot an expert on that specific business.",
+      answer: "After creating a chatbot, access its 'Knowledge' section. Here, you can upload relevant documents such as FAQs, product catalogs, or policy documents (PDFs and TXT files are recommended). You can also add website URLs (e.g., your client's 'About Us' or 'Services' page). AutoBoss processes this information, enabling the chatbot to become an expert on that particular business.",
       icon: Brain,
     },
     {
       question: "What is the 'Design Conversation' (Studio) page for?",
-      answer: "The Studio is where you visually map out how your chatbot should interact for specific tasks or scenarios. You can create step-by-step conversation paths, ask questions to gather information, make decisions based on user input, send specific messages, and use AI for smart, context-aware responses. This allows you to build highly customized chatbot experiences for your clients.",
+      answer: "The Studio is a visual tool where you map out how your chatbot should interact for specific tasks or scenarios. You can design step-by-step conversation paths, configure it to ask questions to gather information, make decisions based on user input, send specific messages, and leverage AI for smart, context-aware responses. This allows you to build highly customized and effective chatbot experiences for your clients.",
       icon: Cog,
     },
      {
       question: "How can I make the chatbot's personality match my client's brand?",
-      answer: "In the 'Personality' section for each chatbot, you can refine the AI-generated name, persona (how it describes itself), and sample greeting. You initially provide a basic description, and the AI helps flesh it out. You can tweak this as much as you need to match the client's brand voice.",
+      answer: "In the 'Personality' section for each chatbot, you can refine the AI-generated name, persona (how it describes itself and its speaking style), and sample greeting. You initially provide a basic description of the role and desired tone, and the AI helps expand on this. You can then tweak these AI suggestions as much as you need to perfectly align with the client's brand voice and image.",
       icon: Palette,
     },
     {
       question: "How do I put the chatbot I built on my client's website?",
-      answer: "Navigate to the 'Export' tab for the specific chatbot. You'll find an 'Embed Chatbot on Any Website' section. Copy the script provided there and paste it into the HTML of your client's website (usually just before the closing </body> tag). This will add a floating chat launcher button to their site. It's designed to be super easy!",
+      answer: "Go to the 'Export' tab for the specific chatbot you want to deploy. You will find an 'Embed Chatbot on Any Website' section. Copy the script provided there and paste it into the HTML of your client's website, typically just before the closing </body> tag. This action will add a floating chat launcher button to their site, making integration straightforward.",
       icon: Share2,
     },
     {
         question: "Do I or my clients need to know coding to use AutoBoss chatbots?",
-        answer: "No! AutoBoss is designed for users without a technical background. You can build, train, and deploy sophisticated AI chatbots using our visual tools and simple upload interfaces, all without writing any code. Your clients also just need to paste the embed script on their site."
+        answer: "Absolutely not! AutoBoss is specifically designed for users without a technical background. You can build, train, and deploy sophisticated AI chatbots using our intuitive visual tools and simple upload interfaces, all without writing a single line of code. Your clients also just need to paste the provided embed script onto their site, which is a simple copy-paste action."
+    },
+    {
+      question: "Can I build voice assistants or calling agents with AutoBoss?",
+      answer: "AutoBoss allows you to design the conversational logic and train the knowledge base for agents that could be used in voice interactions. You can prepare your agent by uploading sales scripts, product details for verbal explanation, and common objection handling guides in the 'Knowledge' section. To enable actual phone call capabilities, you would need to integrate this agent with a third-party telephony service like Twilio, using your own Twilio account credentials and performing some backend setup. The 'Export' page provides fields to note your Twilio details for such an integration, but the actual call plumbing is an advanced setup you or a developer would manage outside of AutoBoss's core offering.",
+      icon: Mic,
     }
   ];
 
@@ -74,7 +79,7 @@ export default function SupportPage() {
               <li>If a client's chatbot isn't answering correctly, first check its 'Trained Knowledge'. Does it have the right documents or website content?</li>
               <li>For chatbots with specific tasks, review the 'Conversation Design' in the Studio. Ensure all paths are connected and logic is correct.</li>
               <li>Always use the 'Test Chatbot' tab extensively before giving the embed code to a client.</li>
-              <li>If you're training from a URL and it fails, ensure the website is publicly accessible and not too heavily reliant on JavaScript for its main content. Plain text pages work best.</li>
+              <li>If you're training from a URL and it fails, ensure the website is publicly accessible and not too heavily reliant on JavaScript for its main content. Plain text pages work best. Ensure your ScrapeNinja API key (if used) is correctly configured.</li>
               <li>For file uploads, .txt, .md, and simple .pdf files are generally most reliable for training.</li>
             </ul>
           </section>

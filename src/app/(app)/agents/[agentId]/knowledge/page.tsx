@@ -10,8 +10,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { extractKnowledge } from "@/ai/flows/knowledge-extraction";
 import { processUrl } from "@/ai/flows/url-processor"; 
-import { Upload, Loader2, FileText, Tag, AlertTriangle, Link as LinkIcon, Brain, Info } from "lucide-react";
-import type { KnowledgeItem, Agent } from "@/lib/types";
+import { Upload, Loader2, FileText, Tag, AlertTriangle, Link as LinkIcon, Brain, Info, Mic } from "lucide-react";
+import type { KnowledgeItem, Agent, ProcessedUrlOutput } from "@/lib/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAppContext } from "../../../layout";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -102,10 +102,8 @@ export default function KnowledgePage() {
           else if (fileName.endsWith('.json')) effectiveMimeType = 'application/json';
           else if (fileName.endsWith('.csv')) effectiveMimeType = 'text/csv';
           else if (fileName.endsWith('.html') || fileName.endsWith('.htm')) effectiveMimeType = 'text/html';
-          // Add more explicit MIME type checks here if needed
         }
 
-        // Reconstruct Data URI if MIME type was guessed
         if (effectiveMimeType && effectiveMimeType !== originalFileMimeType) {
           const base64Marker = ';base64,';
           const base64DataIndex = documentDataUri.indexOf(base64Marker);
@@ -115,7 +113,6 @@ export default function KnowledgePage() {
           }
         }
         
-        // Check for generic octet-stream if no better type was determined
         if (documentDataUri.startsWith('data:application/octet-stream')) {
             toast({
                 title: "Unsupported File Type",
@@ -125,7 +122,7 @@ export default function KnowledgePage() {
             setIsLoadingFile(false);
             setSelectedFile(null);
             const fileInput = document.getElementById('document') as HTMLInputElement;
-            if (fileInput) fileInput.value = ''; // Clear the file input
+            if (fileInput) fileInput.value = '';
             return; 
         }
         try {
@@ -138,7 +135,7 @@ export default function KnowledgePage() {
         }
         setSelectedFile(null); 
         const fileInput = document.getElementById('document') as HTMLInputElement;
-        if (fileInput) fileInput.value = ''; // Clear the file input
+        if (fileInput) fileInput.value = ''; 
         setIsLoadingFile(false);
       };
       reader.onerror = (error) => {
@@ -158,8 +155,13 @@ export default function KnowledgePage() {
         toast({ title: "No URL provided", description: "Please enter a website URL to train from.", variant: "destructive"});
         return;
     }
+    let validUrl = urlInput;
+    if (!urlInput.startsWith('http://') && !urlInput.startsWith('https://')) {
+      validUrl = `https://${urlInput}`;
+    }
+
     try {
-        new URL(urlInput); 
+        new URL(validUrl); 
     } catch (_) {
         toast({ title: "Invalid URL", description: "Please enter a valid website URL (e.g., https://example.com/about-us).", variant: "destructive"});
         return;
@@ -167,22 +169,30 @@ export default function KnowledgePage() {
 
     setIsProcessingUrl(true);
     try {
-        const result = await processUrl({ url: urlInput });
-        let displayUrl = urlInput;
-        try { // Attempt to make the URL more display-friendly
-            const parsedUrl = new URL(urlInput);
-            displayUrl = parsedUrl.hostname + (parsedUrl.pathname === '/' ? '' : parsedUrl.pathname);
-        } catch { /* ignore if parsing fails, use original URL */ }
+        const result: ProcessedUrlOutput = await processUrl({ url: validUrl });
+        
+        let displayFileName = result.title || validUrl;
+        try { 
+            const parsedUrl = new URL(validUrl);
+            displayFileName = result.title || (parsedUrl.hostname + (parsedUrl.pathname === '/' ? '' : parsedUrl.pathname));
+        } catch { /* ignore if parsing fails, use validUrl or title */ }
 
-        addKnowledgeToAgent(displayUrl.substring(0,100), result.summary, result.keywords); 
+        const textDataUri = `data:text/plain;charset=utf-8;base64,${Buffer.from(result.extractedText).toString('base64')}`;
+        const knowledgeResult = await extractKnowledge({ documentDataUri: textDataUri });
+        
+        addKnowledgeToAgent(displayFileName.substring(0,100), knowledgeResult.summary, knowledgeResult.keywords); 
         setUrlInput(""); 
     } catch (error: any) {
         console.error("Error processing URL:", error);
         let errorMessage = error.message || "Failed to process the website. The content might be inaccessible or unsuitable for training.";
-        if (errorMessage.includes("Failed to fetch URL")) {
-            errorMessage = "Could not access the website. Please check if the URL is correct, public, and not blocked.";
+        if (errorMessage.toLowerCase().includes("enotfound") || errorMessage.toLowerCase().includes("getaddrinfo")) {
+          errorMessage = `Could not connect to the scraping service due to a DNS resolution error for its domain. This might be a temporary network issue with the server or the scraping service. Please try again later. (Details: ${errorMessage})`;
+        } else if (errorMessage.includes("Failed to fetch URL")) {
+            errorMessage = `Could not access the website at ${validUrl}. Please check if the URL is correct, public, and not blocked.`;
         } else if (errorMessage.includes("No meaningful text content extracted")) {
-            errorMessage = "No useful text content was found at this URL. It might be an image, a very complex page, or require login.";
+            errorMessage = `No useful text content was found at ${validUrl}. It might be an image, a very complex page, or require login.`;
+        } else if (errorMessage.includes("Scraping API key is not set")) {
+            errorMessage = "The Scraping API key is missing. Please configure it in your settings to train from websites effectively.";
         }
         toast({ title: "Website Training Error", description: errorMessage, variant: "destructive" });
     } finally {
@@ -237,7 +247,7 @@ export default function KnowledgePage() {
                 <Info className="h-3.5 w-3.5 text-accent" />
                 <AlertTitle className="text-accent text-xs font-medium">Tip for File Uploads</AlertTitle>
                 <AlertDescription className="text-accent/80 dark:text-accent/90 text-[11px]">
-                  For best results, use clean text files (.txt, .md), simple PDFs, or well-structured web pages. Avoid complex layouts, scanned images in PDFs, or sites that heavily rely on JavaScript to load content for now.
+                  For best results, use clean text files (.txt, .md), simple PDFs, or well-structured web pages. Avoid complex layouts, scanned images in PDFs, or sites that heavily rely on JavaScript to load content for now. Direct CSV processing for deep data integration is an advanced future feature, but you can include summaries of CSV data in text files.
                 </AlertDescription>
             </Alert>
 
@@ -255,10 +265,25 @@ export default function KnowledgePage() {
                 <Label htmlFor="url">Train from Website URL</Label>
                 <Input id="url" type="url" placeholder="e.g., https://example.com/services" value={urlInput} onChange={handleUrlInputChange} disabled={isProcessingUrl || isLoadingFile}/>
             </div>
+             <Alert variant="default" className="p-3 text-xs bg-accent/10 dark:bg-accent/20 border-accent/30 mb-2">
+                <Info className="h-3.5 w-3.5 text-accent" />
+                <AlertTitle className="text-accent text-xs font-medium">Website Training Tip</AlertTitle>
+                <AlertDescription className="text-accent/80 dark:text-accent/90 text-[11px]">
+                  This uses a scraping service (ScrapeNinja) to fetch website content. Ensure your ScrapeNinja API key is set in your environment variables for best results with dynamic websites.
+                </AlertDescription>
+            </Alert>
             <Button onClick={handleProcessUrl} disabled={isProcessingUrl || !urlInput.trim() || isLoadingFile} className={cn("w-full", "btn-gradient-primary")}>
                 {isProcessingUrl ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LinkIcon className="mr-2 h-4 w-4" />}
                 {isProcessingUrl ? "Fetching Website..." : "Fetch & Train URL"}
             </Button>
+
+            <Alert variant="default" className="mt-4 p-3 text-xs bg-secondary/20 dark:bg-secondary/30 border-secondary/50">
+                <Mic className="h-3.5 w-3.5 text-secondary-foreground" />
+                <AlertTitle className="text-secondary-foreground text-xs font-medium">Training for Voice Agents?</AlertTitle>
+                <AlertDescription className="text-secondary-foreground/80 dark:text-secondary-foreground/90 text-[11px]">
+                  If you plan to use this agent for voice interactions (e.g., phone calls), upload relevant sales scripts, product details, common customer objections, and how to handle them. This will help the AI sound natural and be effective in voice conversations.
+                </AlertDescription>
+            </Alert>
         </CardContent>
       </Card>
 
@@ -277,7 +302,7 @@ export default function KnowledgePage() {
                 <Card key={item.id} className="bg-muted/50">
                   <CardHeader className="p-3 sm:p-4">
                     <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                        {item.fileName.startsWith('http') ? <LinkIcon className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0"/> : <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0"/>} 
+                        {(item.fileName.startsWith('http://') || item.fileName.startsWith('https://')) ? <LinkIcon className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0"/> : <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0"/>} 
                         <span className="truncate text-sm sm:text-base" title={item.fileName}>{item.fileName}</span>
                     </CardTitle>
                     <CardDescription className="text-xs">Trained: {new Date(item.uploadedAt).toLocaleString()}</CardDescription>

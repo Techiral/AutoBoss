@@ -7,9 +7,11 @@ import { ChatInterface } from "@/components/chat-interface";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { useAppContext } from "../../../layout";
 import type { Agent } from "@/lib/types";
-import { Loader2 } from "lucide-react";
+import { Loader2, Mic, PhoneOff } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function TestAgentPage() {
   const params = useParams();
@@ -49,16 +51,42 @@ export default function TestAgentPage() {
   }
 
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader className="p-4 sm:p-6">
-        <CardTitle className={cn("font-headline text-xl sm:text-2xl", "text-gradient-dynamic")}>Test Chatbot: {agent.generatedName || agent.name}</CardTitle>
-        <CardDescription className="text-sm">Preview and interact with this chatbot exactly as your client's customers will. Test all conversation paths before deploying to their website.</CardDescription>
-      </CardHeader>
-      <CardContent className="flex-1 p-2 sm:p-4 md:p-6 min-h-0">
-        <div className="h-full max-h-[calc(100vh-250px)] sm:max-h-[calc(100vh-280px)]">
-         <ChatInterface agent={agent} appContext={appContextValue} /> 
-        </div>
-      </CardContent>
-    </Card>
+    <div className="space-y-4 md:space-y-6">
+      <Card className="h-full flex flex-col">
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className={cn("font-headline text-xl sm:text-2xl", "text-gradient-dynamic")}>Test Chatbot: {agent.generatedName || agent.name}</CardTitle>
+          <CardDescription className="text-sm">Preview and interact with this chatbot exactly as your client's customers will. Test all conversation paths before deploying to their website.</CardDescription>
+        </CardHeader>
+        <CardContent className="flex-1 p-2 sm:p-4 md:p-6 min-h-0">
+          <div className="h-full max-h-[calc(100vh-320px)] sm:max-h-[calc(100vh-350px)]">
+           <ChatInterface agent={agent} appContext={appContextValue} /> 
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className={cn("font-headline text-lg sm:text-xl flex items-center gap-2", "text-gradient-dynamic")}>
+            <Mic className="w-5 h-5 sm:w-6 sm:h-6 text-primary" /> Test Voice Interaction (Simulated)
+          </CardTitle>
+          <CardDescription className="text-sm">
+            This area is for simulating voice calls. Full voice capabilities require Twilio integration.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-4 sm:p-6">
+          <Alert variant="default" className="bg-muted/50">
+            <PhoneOff className="h-4 w-4" />
+            <AlertTitle>Voice Simulation Placeholder</AlertTitle>
+            <AlertDescription>
+              Voice call testing is not yet implemented. To enable real phone calls, configure Twilio integration on the 'Export' page. You can design voice-friendly conversation flows and train knowledge in the meantime.
+            </AlertDescription>
+          </Alert>
+          <Button disabled className="mt-4 w-full sm:w-auto">
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Start Simulated Voice Call (Coming Soon)
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

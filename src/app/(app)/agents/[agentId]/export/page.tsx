@@ -8,12 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Copy, Check, Globe, Code, Server, MessageSquare, Info, ShieldCheck, Share2 } from "lucide-react";
+import { Copy, Check, Globe, Code, Server, MessageSquare, Info, ShieldCheck, Share2, Mic, PhoneCall } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAppContext } from "../../../layout";
 import type { Agent } from "@/lib/types";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
+import { Separator } from "@/components/ui/separator";
 
 export default function ExportAgentPage() {
   const params = useParams();
@@ -22,6 +23,10 @@ export default function ExportAgentPage() {
   const [copied, setCopied] = useState<string | null>(null);
   const { toast } = useToast();
   const [baseUrl, setBaseUrl] = useState("");
+
+  const [twilioAccountSid, setTwilioAccountSid] = useState("");
+  const [twilioAuthToken, setTwilioAuthToken] = useState("");
+  const [twilioPhoneNumber, setTwilioPhoneNumber] = useState("");
 
   const agentId = Array.isArray(params.agentId) ? params.agentId[0] : params.agentId;
 
@@ -35,6 +40,8 @@ export default function ExportAgentPage() {
     if (agentId) {
       const foundAgent = getAgent(agentId as string);
       setAgent(foundAgent || null);
+      // In a real app, you'd fetch these from a secure store if previously saved
+      // For now, they are just local state.
     }
   }, [agentId, getAgent]);
 
@@ -50,7 +57,9 @@ export default function ExportAgentPage() {
   };
 
   const chatbotLink = agent && baseUrl ? `${baseUrl}/chat/${agent.id}` : "";
-  const apiEndpoint = agent && baseUrl ? `${baseUrl}/api/agents/${agent.id}/chat` : "";
+  const apiEndpointChat = agent && baseUrl ? `${baseUrl}/api/agents/${agent.id}/chat` : "";
+  const apiEndpointVoice = agent && baseUrl ? `${baseUrl}/api/agents/${agent.id}/voice-hook` : "";
+
 
   const primaryHsl = "var(--primary)"; 
   const primaryFgHsl = "var(--primary-foreground)"; 
@@ -152,11 +161,6 @@ export default function ExportAgentPage() {
   }
 }`;
 
-  const apiRequestExampleWithHistory = `{
-  "message": "Tell me more about your products.",
-  "conversationHistoryString": "User: Hi there!\\nAgent: Hello! How can I assist you today?"
-}`;
-
 
   const apiFlowResponseExample = `{
   "type": "flow",
@@ -176,18 +180,6 @@ export default function ExportAgentPage() {
   "type": "autonomous",
   "reply": "As an AI assistant, I can answer your questions based on my knowledge.",
   "reasoning": "User asked about capabilities, providing general info."
-}`;
-
-  const apiErrorResponseExample = `{
-  "error": {
-    "code": 400,
-    "message": "Invalid request body.",
-    "details": {
-      "issues": [
-        { "path": ["message"], "message": "Message cannot be empty." }
-      ]
-    }
-  }
 }`;
 
 
@@ -254,16 +246,65 @@ export default function ExportAgentPage() {
             </Alert>
           </div>
           
+          <Separator className="my-4 sm:my-6" />
 
-          <div className="space-y-3 border-t pt-6 sm:pt-8">
-            <Label htmlFor="apiEndpoint" className="flex items-center text-sm sm:text-base font-semibold">
-              <Server className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary" /> For Developers / Advanced Integration (API Endpoint)
+          <div className="space-y-4">
+            <h3 className={cn("font-headline text-lg sm:text-xl flex items-center gap-2", "text-gradient-dynamic")}>
+              <Mic className="w-5 h-5 sm:w-6 sm:h-6 text-primary" /> Enable Voice Calls with Twilio (Advanced)
+            </h3>
+            <Alert variant="default" className="p-3 sm:p-4 bg-muted/50 dark:bg-card/90 border-border/70">
+                <PhoneCall className="h-4 w-4 text-muted-foreground" />
+                <AlertTitle className="text-sm sm:text-base">Voice Agent Integration</AlertTitle>
+                <AlertDescription className="text-xs text-muted-foreground">
+                  To enable your AI agent to make and receive phone calls, provide your Twilio account credentials and phone number below. 
+                  This requires additional backend setup by you or a developer to integrate with Twilio's voice services. 
+                  AutoBoss provides the conversational intelligence; the call handling logic is configured in your Twilio account and interacts with the Voice API endpoint shown.
+                </AlertDescription>
+            </Alert>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                    <Label htmlFor="twilioSid">Twilio Account SID</Label>
+                    <Input id="twilioSid" value={twilioAccountSid} onChange={(e) => setTwilioAccountSid(e.target.value)} placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" />
+                </div>
+                <div className="space-y-1.5">
+                    <Label htmlFor="twilioToken">Twilio Auth Token</Label>
+                    <Input id="twilioToken" type="password" value={twilioAuthToken} onChange={(e) => setTwilioAuthToken(e.target.value)} placeholder="Your Auth Token" />
+                </div>
+            </div>
+            <div className="space-y-1.5">
+                <Label htmlFor="twilioPhone">Your Twilio Phone Number</Label>
+                <Input id="twilioPhone" type="tel" value={twilioPhoneNumber} onChange={(e) => setTwilioPhoneNumber(e.target.value)} placeholder="+12345678901" />
+            </div>
+             <div className="space-y-1.5">
+                <Label htmlFor="apiEndpointVoice" className="flex items-center mb-1 text-xs font-semibold">
+                    <Server className="w-3 h-3 mr-1.5 text-primary" /> Voice API Endpoint (for Twilio Webhook)
+                </Label>
+                 <div className="flex items-center gap-2">
+                    <Input id="apiEndpointVoice" value={apiEndpointVoice} readOnly className="text-[10px] sm:text-xs"/>
+                    <Button variant="outline" size="icon" onClick={() => handleCopy(apiEndpointVoice, "Voice API Endpoint")} aria-label="Copy Voice API Endpoint" disabled={!apiEndpointVoice} className="h-8 w-8 sm:h-9 sm:w-9">
+                        {copied === "Voice API Endpoint" ? <Check className="w-3 h-3 sm:w-4 sm:w-4 text-green-500" /> : <Copy className="w-3 h-3 sm:w-4 sm:w-4" />}
+                    </Button>
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Configure this URL in your Twilio phone number's settings for incoming calls (Voice & Fax > A call comes in > Webhook).</p>
+            </div>
+            <Button disabled className="w-full sm:w-auto">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Save Twilio Configuration (Coming Soon)
+            </Button>
+          </div>
+
+
+          <Separator className="my-4 sm:my-6" />
+
+          <div className="space-y-3">
+            <Label htmlFor="apiEndpointChat" className="flex items-center text-sm sm:text-base font-semibold">
+              <Server className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary" /> For Developers: Chat API Endpoint
             </Label>
              <Alert variant="default" className="p-3 sm:p-4 bg-muted/30 dark:bg-card/80 border-border/50">
                 <Info className="h-4 w-4 text-muted-foreground" />
-                <AlertTitle className="text-sm sm:text-base">Technical API Details</AlertTitle>
+                <AlertTitle className="text-sm sm:text-base">Technical Chat API Details</AlertTitle>
                 <AlertDescription className="text-xs text-muted-foreground">
-                  This POST endpoint allows programmatic interaction with the chatbot. It can continue designed conversation flows or provide direct AI-generated responses.
+                  This POST endpoint allows programmatic interaction with the chatbot for text-based conversations.
                   <ul className="list-disc list-inside pl-3 mt-1 text-[11px] sm:text-xs">
                     <li><strong>message (string, required):</strong> User's input.</li>
                     <li><strong>flowState (object, optional):</strong> To continue a specific point in a designed conversation.</li>
@@ -272,20 +313,20 @@ export default function ExportAgentPage() {
                 </AlertDescription>
             </Alert>
             <div className="flex items-center gap-2">
-              <Input id="apiEndpoint" value={apiEndpoint} readOnly className="text-xs sm:text-sm"/>
-              <Button variant="outline" size="icon" onClick={() => handleCopy(apiEndpoint, "API Endpoint")} aria-label="Copy API Endpoint" disabled={!apiEndpoint} className="h-9 w-9 sm:h-10 sm:w-10">
-                {copied === "API Endpoint" ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+              <Input id="apiEndpointChat" value={apiEndpointChat} readOnly className="text-xs sm:text-sm"/>
+              <Button variant="outline" size="icon" onClick={() => handleCopy(apiEndpointChat, "Chat API Endpoint")} aria-label="Copy Chat API Endpoint" disabled={!apiEndpointChat} className="h-9 w-9 sm:h-10 sm:w-10">
+                {copied === "Chat API Endpoint" ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
               </Button>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Use this API endpoint for custom integrations if your client has specific technical needs beyond the standard embed.
+              Use this API endpoint for custom text chat integrations if your client has specific technical needs beyond the standard embed.
             </p>
              {!baseUrl && <p className="text-xs text-destructive mt-1">Base URL not yet available.</p>}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mt-3 sm:mt-4">
                 <div>
                     <Label htmlFor="apiRequestExampleMinimal" className="flex items-center mb-1 text-xs sm:text-sm">
-                    Example API Request (Simple):
+                    Example API Request (Simple Chat):
                     </Label>
                     <div className="relative">
                         <Textarea id="apiRequestExampleMinimal" value={apiRequestExampleMinimal} readOnly rows={3} className="font-code text-[10px] sm:text-xs bg-muted/50 p-2"/>
@@ -296,7 +337,7 @@ export default function ExportAgentPage() {
                 </div>
                  <div>
                     <Label htmlFor="apiRequestExampleWithFlow" className="flex items-center mb-1 text-xs sm:text-sm">
-                    Example API Request (Resume Conversation):
+                    Example API Request (Resume Chat Conversation):
                     </Label>
                     <div className="relative">
                         <Textarea id="apiRequestExampleWithFlow" value={apiRequestExampleWithFlow} readOnly rows={10} className="font-code text-[10px] sm:text-xs bg-muted/50 p-2"/>
@@ -307,10 +348,10 @@ export default function ExportAgentPage() {
                 </div>
             </div>
             <div className="space-y-2 mt-3 sm:mt-4">
-                <Label className="flex items-center mb-1 text-xs sm:text-sm">Example API Responses:</Label>
+                <Label className="flex items-center mb-1 text-xs sm:text-sm">Example Chat API Responses:</Label>
                 <div className="space-y-3">
                     <div>
-                        <Label htmlFor="apiFlowResponseExample" className="text-[11px] sm:text-xs font-medium">If Following a Conversation Design:</Label>
+                        <Label htmlFor="apiFlowResponseExample" className="text-[11px] sm:text-xs font-medium">If Following a Chat Conversation Design:</Label>
                         <div className="relative">
                             <Textarea id="apiFlowResponseExample" value={apiFlowResponseExample} readOnly rows={12} className="font-code text-[10px] sm:text-xs bg-muted/50 p-2"/>
                             <Button variant="outline" size="icon" className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 h-6 w-6 sm:h-7 sm:w-7" onClick={() => handleCopy(apiFlowResponseExample, "API Flow Response")} aria-label="Copy API Flow Response" disabled={!apiFlowResponseExample}>
@@ -319,7 +360,7 @@ export default function ExportAgentPage() {
                         </div>
                     </div>
                     <div>
-                        <Label htmlFor="apiAutonomousResponseExample" className="text-[11px] sm:text-xs font-medium">If Answering Freely (Using Trained Knowledge):</Label>
+                        <Label htmlFor="apiAutonomousResponseExample" className="text-[11px] sm:text-xs font-medium">If Answering Chat Freely (Using Trained Knowledge):</Label>
                          <div className="relative">
                             <Textarea id="apiAutonomousResponseExample" value={apiAutonomousResponseExample} readOnly rows={6} className="font-code text-[10px] sm:text-xs bg-muted/50 p-2"/>
                             <Button variant="outline" size="icon" className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 h-6 w-6 sm:h-7 sm:w-7" onClick={() => handleCopy(apiAutonomousResponseExample, "API Autonomous Response")} aria-label="Copy API Autonomous Response" disabled={!apiAutonomousResponseExample}>
@@ -333,7 +374,7 @@ export default function ExportAgentPage() {
                  <ShieldCheck className="h-4 w-4 text-primary" />
                  <AlertTitle className="text-sm sm:text-base">API Production Notes</AlertTitle>
                  <AlertDescription className="text-xs">
-                     If using the API directly in a production client application, consider API versioning, robust authentication mechanisms, rate limiting, and comprehensive logging & monitoring. The embed script handles most of this complexity for typical website use.
+                     If using APIs directly in a production client application, consider API versioning, robust authentication mechanisms, rate limiting, and comprehensive logging & monitoring. The embed script handles most of this complexity for typical website chat use.
                  </AlertDescription>
              </Alert>
           </div>
