@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAppContext } from "../../../layout";
 import type { Agent, AgentFlowDefinition, FlowNode as JsonFlowNode, FlowEdge as JsonFlowEdge, AgentType, AgentDirection } from "@/lib/types";
-import { Loader2, Save, AlertTriangle, Trash2, MousePointer, MessageSquare, Zap, HelpCircle, Play, ChevronsUpDown, Settings2, BookOpen, Bot as BotIcon, StopCircle, Info, Sigma, GripVertical, Timer, PanelLeft, PanelRight, FileQuestion, Users, Lightbulb } from "lucide-react";
+import { Loader2, Save, AlertTriangle, Trash2, MousePointer, MessageSquare, Zap, HelpCircle, Play, ChevronsUpDown, Settings2, BookOpen, Bot as BotIcon, StopCircle, Info, Sigma, GripVertical, Timer, PanelLeft, PanelRight, FileQuestion, Users, Lightbulb, Palette, Brain, Rocket } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
@@ -31,22 +31,22 @@ interface VisualNode extends Omit<JsonFlowNode, 'type' | 'position' | 'message' 
   label: string;
   x: number;
   y: number;
-  content?: string; 
-  message?: string; 
-  prompt?: string; 
-  variableName?: string; 
-  inputType?: string; 
-  validationRules?: string; 
-  llmPrompt?: string; 
-  outputVariable?: string; 
-  useKnowledge?: boolean; 
-  conditionVariable?: string; 
-  useLLMForDecision?: boolean; 
-  qnaQueryVariable?: string; 
+  content?: string;
+  message?: string;
+  prompt?: string;
+  variableName?: string;
+  inputType?: string;
+  validationRules?: string;
+  llmPrompt?: string;
+  outputVariable?: string;
+  useKnowledge?: boolean;
+  conditionVariable?: string;
+  useLLMForDecision?: boolean;
+  qnaQueryVariable?: string;
   qnaOutputVariable?: string;
-  qnaFallbackText?: string; 
-  waitDurationMs?: number; 
-  endOutputVariable?: string; 
+  qnaFallbackText?: string;
+  waitDurationMs?: number;
+  endOutputVariable?: string;
 }
 
 
@@ -54,89 +54,89 @@ interface VisualEdge extends JsonFlowEdge {}
 
 interface NodeDefinition {
   type: FlowNodeType;
-  paletteLabel: string; 
+  paletteLabel: string;
   icon: React.ElementType;
   defaultProperties?: Partial<VisualNode & JsonFlowNode>;
-  docs: { 
+  docs: {
     purpose: string;
-    keySettings: string; 
+    keySettings: string;
     connectingIt: string;
     importantTips: string;
   };
 }
 
 const NODE_DEFINITIONS: NodeDefinition[] = [
-  { 
-    type: 'start', paletteLabel: 'Start Conversation', icon: Play, defaultProperties: { label: "Start" }, 
-    docs: { 
-      purpose: "This is where every conversation your chatbot has will begin. Think of it as the entry point.", 
-      keySettings: "No settings needed! Just make sure it's the first step in your design.", 
-      connectingIt: "Drag a connection from its right-side port (circle) to the first thing your chatbot should do, like 'Send a Message' or 'Ask User & Save Answer'. For an outbound agent, this is the first action it takes. For an inbound agent, it often follows an initial greeting (if any, from the Personality page).", 
-      importantTips: "You must have exactly one 'Start Conversation' step. It's the official 'GO!' signal."
-    } 
+  {
+    type: 'start', paletteLabel: 'Start Conversation', icon: Play, defaultProperties: { label: "Start" },
+    docs: {
+      purpose: "This is where every conversation your chatbot has will begin. Think of it as the entry point or 'GO!' signal.",
+      keySettings: "No settings needed! It's automatically the first step. For an outbound agent, this is the first action it takes. For an inbound agent, it often follows an initial greeting (if any, from the Personality page).",
+      connectingIt: "Drag a connection from its right-side port (circle) to the first thing your chatbot should do, like 'Send a Message' or 'Ask User & Save Answer'.",
+      importantTips: "You must have exactly one 'Start Conversation' step in your design. It cannot have incoming connections."
+    }
   },
-  { 
-    type: 'sendMessage', paletteLabel: 'Send a Message', icon: MessageSquare, defaultProperties: { label: "Send Message", message: "Hello! How can I help you?" }, 
-    docs: { 
-      purpose: "Use this for your chatbot to say something to the user. Great for greetings, giving information, or confirming an action.", 
-      keySettings: "In 'Message Text', type exactly what you want the chatbot to say. To use information collected earlier (like a user's name), type `{{variableName}}`. Example: If you saved the user's name as `userName` in a previous 'Ask User & Save Answer' step, you could type: `Hello {{userName}}!`", 
-      connectingIt: "Connect this to the next step after the message is sent. This could be waiting for the user's reply ('Ask User & Save Answer'), making a decision, or ending the chat.", 
-      importantTips: "Keep messages clear and friendly. If you use `{{variables}}`, make sure they were saved in an earlier 'Ask User & Save Answer' step. For Voice agents, keep messages concise for a natural phone experience."
-    } 
+  {
+    type: 'sendMessage', paletteLabel: 'Send a Message', icon: MessageSquare, defaultProperties: { label: "Send Message", message: "Hello! How can I help you?" },
+    docs: {
+      purpose: "Use this for your chatbot to say something to the user. Great for greetings, giving information, or confirming an action.",
+      keySettings: "In 'Message Text', type exactly what you want the chatbot to say. To use information collected earlier (like a user's name), type `{{variableName}}` (e.g., `Hello {{userName}}!`). Make sure the variable was saved in a previous 'Ask User & Save Answer' step.",
+      connectingIt: "Connect this to the next step after the message is sent. This could be waiting for the user's reply ('Ask User & Save Answer'), making a decision, or ending the chat.",
+      importantTips: "Keep messages clear and friendly. For Voice agents, keep messages concise for a natural phone experience. If using variables, double-check the variable name for typos."
+    }
   },
-  { 
-    type: 'getUserInput', paletteLabel: 'Ask User & Save Answer', icon: HelpCircle, defaultProperties: { label: "Get User Name", prompt: "What's your name?", variableName: "userName" }, 
-    docs: { 
-      purpose: "Use this to ask the user a question and store their reply. The chatbot will pause and wait for the user to type something (for chat) or speak (for voice).", 
-      keySettings: "1. 'Chatbot's Question for User': Type the question the chatbot should ask (e.g., 'What is your email?').\n2. 'Save User's Answer as (Variable Name)': Give a short, memorable nickname for the user's answer (e.g., `userEmail`, `orderNumber`). **Important: Use only letters, numbers, and underscores; no spaces or special characters.** This nickname is how you'll use their answer later.", 
-      connectingIt: "Connect this to what happens *after* the user replies. Often, this is a 'Make a Decision' step (to check their answer) or an 'Ask AI' step to process what they said.", 
-      importantTips: "This step *always* waits for the user. Make your question clear. The variable name you choose is critical! You'll use it like `{{yourVariableName}}` in other steps."
-    } 
+  {
+    type: 'getUserInput', paletteLabel: 'Ask User & Save Answer', icon: HelpCircle, defaultProperties: { label: "Get User Name", prompt: "What's your name?", variableName: "userName" },
+    docs: {
+      purpose: "Use this to ask the user a question and store their reply. The chatbot will pause and wait for the user to type something (for chat) or speak (for voice).",
+      keySettings: "1. 'Chatbot's Question for User': Type the question the chatbot should ask (e.g., 'What is your email?').\n2. 'Save User's Answer as (Variable Name)': Give a short, memorable nickname for the user's answer (e.g., `userEmail`, `orderNumber`). **Important: Use only letters, numbers, and underscores; no spaces or special characters.** This nickname is how you'll use their answer later.",
+      connectingIt: "Connect this to what happens *after* the user replies. Often, this is a 'Make a Decision' step (to check their answer) or an 'Ask AI / Smart Response' step to process what they said.",
+      importantTips: "This step *always* waits for the user. Make your question clear. The variable name you choose is critical! You'll use it like `{{yourVariableName}}` in other steps. The flow will pause here until the user provides input."
+    }
   },
-  { 
-    type: 'callLLM', paletteLabel: 'Ask AI / Smart Response', icon: Zap, defaultProperties: { label: "AI Assistant Reply", llmPrompt: "The user said: {{lastUserInput}}. Respond helpfully and concisely.", outputVariable: "aiResponse", useKnowledge: true }, 
-    docs: { 
-      purpose: "This is your chatbot's 'brainpower' step! Use it to get the AI to generate text, answer complex questions, summarize information, or make intelligent choices based on the conversation so far.", 
-      keySettings: "1. 'Instruction for AI (Prompt)': Tell the AI *exactly* what to do. Be clear! Example: `User's problem: {{userProblem}}. Suggest three solutions.` You can use `{{variables}}` (like `{{userName}}` or `{{userQuery}}`) to give the AI context from earlier steps. Tip: Use `{{conversationHistory}}` to give the AI the last few messages for better context.\n2. 'Save AI's Response as (Variable Name)': Give a nickname to store what the AI generates (e.g., `aiSolution`, `summaryText`). Use only letters/numbers/underscores.\n3. 'Allow AI to use Trained Knowledge': Check this if you want the AI to also use information from documents/websites you've added in the 'Knowledge' tab.", 
-      connectingIt: "Usually, you'll connect this to a 'Send a Message' step to show the AI's response (e.g., by putting `{{aiSolution}}` in the message text) to the user.", 
-      importantTips: "Good instructions (prompts) are key! Test different phrasings. If the AI should use specific knowledge, make sure 'Use Trained Knowledge' is checked and that knowledge exists. For Voice agents, prompt the AI to give shorter, more spoken-language friendly responses."
-    } 
+  {
+    type: 'callLLM', paletteLabel: 'Ask AI / Smart Response', icon: Zap, defaultProperties: { label: "AI Assistant Reply", llmPrompt: "The user said: {{lastUserInput}}. Respond helpfully and concisely.", outputVariable: "aiResponse", useKnowledge: true },
+    docs: {
+      purpose: "This is your chatbot's 'brainpower' step! Use it to get the AI to generate text, answer complex questions, summarize information, or make intelligent choices based on the conversation so far.",
+      keySettings: "1. 'Instruction for AI (Prompt)': Tell the AI *exactly* what to do. Be clear! Example: `User's problem: {{userProblem}}. Suggest three solutions.` You can use `{{variables}}` (like `{{userName}}` or `{{userQuery}}`) to give the AI context from earlier steps. Tip: Use `{{conversationHistory}}` to give the AI the last few messages for better context.\n2. 'Save AI's Response as (Variable Name)': Give a nickname to store what the AI generates (e.g., `aiSolution`, `summaryText`). Use only letters/numbers/underscores.\n3. 'Allow AI to use Trained Knowledge': Check this if you want the AI to also use information from documents/websites you've added in the 'Knowledge' tab.",
+      connectingIt: "Usually, you'll connect this to a 'Send a Message' step to show the AI's response (e.g., by putting `{{aiSolution}}` in the message text) to the user.",
+      importantTips: "Good instructions (prompts) are key! Test different phrasings. If the AI should use specific knowledge, make sure 'Use Trained Knowledge' is checked and that knowledge exists. For Voice agents, instruct the AI here to give shorter, more spoken-language friendly responses."
+    }
   },
-  { 
-    type: 'condition', paletteLabel: 'Make a Decision', icon: ChevronsUpDown, defaultProperties: { label: "Check User Choice", conditionVariable: "userChoice", useLLMForDecision: false }, 
-    docs: { 
-      purpose: "Lets your chatbot take different paths based on a user's answer or other saved information. This is how you create branching conversations (if X, then Y, else Z).", 
-      keySettings: "1. 'Variable to Base Decision On': Enter the variable name (e.g., `userChoice` that you saved from an 'Ask User & Save Answer' step).\n2. For each outgoing connection (arrow) from this step, click the connection and in its 'Decision Outcome / User Input Value' field, type one possible value of the variable (e.g., 'Yes', 'No', 'OptionA').\n3. 'Use AI to Understand User's Intent': If checked, the AI tries to match the user's input to your connection labels even if it's not an exact word-for-word match. Good for free-text answers where users might say 'yeah' or 'yep' instead of 'Yes'.", 
-      connectingIt: "Draw one connection for each possible choice or outcome. **Crucially, always add one connection that has an *empty* 'Decision Outcome' field – this will be the 'Default / Other' path if the user says something unexpected.**", 
+  {
+    type: 'condition', paletteLabel: 'Make a Decision', icon: ChevronsUpDown, defaultProperties: { label: "Check User Choice", conditionVariable: "userChoice", useLLMForDecision: false },
+    docs: {
+      purpose: "Lets your chatbot take different paths based on a user's answer or other saved information. This is how you create branching conversations (if X, then Y, else Z).",
+      keySettings: "1. 'Variable to Base Decision On': Enter the variable name (e.g., `userChoice` that you saved from an 'Ask User & Save Answer' step).\n2. For each outgoing connection (arrow) from this step, click the connection and in its 'Decision Outcome / User Input Value' field, type one possible value of the variable (e.g., 'Yes', 'No', 'OptionA').\n3. 'Use AI to Understand User's Intent': If checked, the AI tries to match the user's input to your connection labels even if it's not an exact word-for-word match. Good for free-text answers where users might say 'yeah' or 'yep' instead of 'Yes'. Keep edge labels clear and distinct if using this.",
+      connectingIt: "Draw one connection for each possible choice or outcome. **Crucially, always add one connection that has an *empty* 'Decision Outcome' field – this will be the 'Default / Other' path if the user says something unexpected.**",
       importantTips: "Make sure every decision path eventually leads to another step or an 'End Conversation'. An empty 'Decision Outcome' on an edge makes it the default fallback path. This is essential to prevent users from getting stuck!"
-    } 
+    }
   },
-  { 
-    type: 'qnaLookup', paletteLabel: 'Answer from Knowledge', icon: FileQuestion, defaultProperties: { label: "FAQ Answer", qnaQueryVariable: "userQuestion", qnaOutputVariable: "kbAnswer", qnaFallbackText: "I couldn't find that in our knowledge base. Can you ask another way?" }, 
-    docs: { 
-      purpose: "Directly searches the chatbot's 'Trained Knowledge' (from the 'Knowledge' tab) to answer user questions. Perfect for FAQs or specific information retrieval.", 
-      keySettings: "1. 'User's Question (Variable)': Specify the variable holding the user's query (e.g., `{{userQuery}}` that you saved from an 'Ask User & Save Answer' step).\n2. 'Save Found Answer As (Variable)': Give a nickname to store the answer if found (e.g., `foundFaqAnswer`).\n3. 'Message if No Answer Found': What the chatbot should say if it doesn't find a relevant answer in its knowledge. This message will be sent to the user.", 
-      connectingIt: "Typically has two outgoing connections: one for 'If Answer Found' (click the edge and set its 'Connection Type' to `found`) and another for 'If Answer Not Found' (set 'Connection Type' to `notFound`). If these specific types aren't set, it will try a 'Default' connection.", 
-      importantTips: "This step needs good quality information in the 'Knowledge' tab to work well. The better the training data, the better the answers. The found answer or fallback text is automatically sent to the user by this node."
-    } 
+  {
+    type: 'qnaLookup', paletteLabel: 'Answer from Knowledge', icon: FileQuestion, defaultProperties: { label: "FAQ Answer", qnaQueryVariable: "userQuestion", qnaOutputVariable: "kbAnswer", qnaFallbackText: "I couldn't find that in our knowledge base. Can you ask another way?" },
+    docs: {
+      purpose: "Directly searches the chatbot's 'Trained Knowledge' (from the 'Knowledge' tab) to answer user questions. Perfect for FAQs or specific information retrieval.",
+      keySettings: "1. 'User's Question (Variable)': Specify the variable holding the user's query (e.g., `{{userQuery}}` that you saved from an 'Ask User & Save Answer' step).\n2. 'Save Found Answer As (Variable)': Give a nickname to store the answer if found (e.g., `foundFaqAnswer`).\n3. 'Message if No Answer Found': What the chatbot should say if it doesn't find a relevant answer in its knowledge. This message is automatically sent to the user if the answer is not found.",
+      connectingIt: "Typically has two outgoing connections: one for 'If Answer Found' (click the edge and set its 'Connection Type' to `found`) and another for 'If Answer Not Found' (set 'Connection Type' to `notFound`). If these specific types aren't set, it will try a 'Default' connection. The found answer or fallback text is automatically sent to the user by this node before proceeding.",
+      importantTips: "This step needs good quality information in the 'Knowledge' tab to work well. The better the training data, the better the answers."
+    }
   },
-   { 
-    type: 'wait', paletteLabel: 'Add Delay', icon: Timer, defaultProperties: { label: "Short Pause", waitDurationMs: 1500 }, 
-    docs: { 
-      purpose: "Makes the chatbot pause for a moment. Useful for simulating 'typing' to make the interaction feel more natural, or to give the user a moment to read a longer message before the next one appears.", 
-      keySettings: "Set the 'Delay Duration (ms)'. 1000ms = 1 second. (e.g., 1500 for 1.5 seconds).", 
-      connectingIt: "Connect to the step that should happen after the pause.", 
+   {
+    type: 'wait', paletteLabel: 'Add Delay', icon: Timer, defaultProperties: { label: "Short Pause", waitDurationMs: 1500 },
+    docs: {
+      purpose: "Makes the chatbot pause for a moment. Useful for simulating 'typing' to make the interaction feel more natural, or to give the user a moment to read a longer message before the next one appears.",
+      keySettings: "Set the 'Delay Duration (ms)'. 1000ms = 1 second. (e.g., 1500 for 1.5 seconds).",
+      connectingIt: "Connect to the step that should happen after the pause.",
       importantTips: "Use short delays (1-3 seconds) for a typing effect. Don't make users wait too long unnecessarily."
-    } 
+    }
   },
-  { 
-    type: 'end', paletteLabel: 'End Conversation', icon: StopCircle, defaultProperties: { label: "End Chat"}, 
-    docs: { 
-      purpose: "Marks the end of a particular path in your conversation design. This tells the system that this part of the chat is complete.", 
-      keySettings: "Optional: 'Final Message Variable'. If you provide a variable name here (e.g., `{{finalSummary}}`) and that variable has a value in the conversation context, its content will be sent as a final message to the user before the flow truly ends.", 
-      connectingIt: "This step should NOT have any outgoing connections. It's the final stop for a conversation branch.", 
+  {
+    type: 'end', paletteLabel: 'End Conversation', icon: StopCircle, defaultProperties: { label: "End Chat"},
+    docs: {
+      purpose: "Marks the end of a particular path in your conversation design. This tells the system that this part of the chat is complete.",
+      keySettings: "Optional: 'Final Message Variable'. If you provide a variable name here (e.g., `{{finalSummary}}`) and that variable has a value in the conversation context, its content will be sent as a final message to the user before the flow truly ends.",
+      connectingIt: "This step should NOT have any outgoing connections. It's the final stop for a conversation branch.",
       importantTips: "Ensure all possible paths in your conversation eventually reach an 'End Conversation' step. This prevents the chatbot from getting stuck or confused. If you want to say a final goodbye, use a 'Send a Message' step right before this 'End' step, or use the 'Final Message Variable' setting."
-    } 
+    }
   },
 ];
 
@@ -146,7 +146,7 @@ const WIRING_BEST_PRACTICES_DOCS = {
   points: [
     "Start Simple: Build a basic path first (e.g., Greet -> Ask Question -> Simple Reply -> End). Then add more complex branches.",
     "Always Connect Steps: Every step (except 'End Conversation') should have an arrow leading to the next step.",
-    "Use Variables Wisely: In 'Ask User & Save Answer', give clear nicknames (variables) to user replies (e.g., `customerName`, `issueType`). Use them with `{{variableName}}` in 'Send a Message' or 'Ask AI' steps to personalize responses or provide context.",
+    "Use Variables Wisely: In 'Ask User & Save Answer', give clear nicknames (variables) to user replies (e.g., `customerName`, `issueType`). Use them with `{{variableName}}` in 'Send a Message' or 'Ask AI / Smart Response' steps to personalize responses or provide context. Variable names can only contain letters, numbers, and underscores (no spaces).",
     "Test Decision Paths: For 'Make a Decision' steps, ensure every choice has a path. **Crucially, always have a 'Default / Other' path** (an edge with an empty 'Decision Outcome' value) for unexpected answers. This prevents users from getting stuck.",
     "Guide the User: Tell users what kind of answers you expect (e.g., 'Please type Yes or No', 'Enter your order number'). Make questions in 'Ask User & Save Answer' clear.",
     "Keep it Concise: Chatbot messages should be easy to read and understand quickly, especially for voice agents.",
@@ -169,7 +169,7 @@ const COMMON_PATTERNS_DOCS = {
       ]
     },
     {
-      name: "Basic FAQ Bot",
+      name: "Basic FAQ Bot (using Knowledge)",
       icon: FileQuestion,
       description: "Answer common questions using trained knowledge.",
       steps: [
@@ -200,8 +200,8 @@ export const minimalInitialFlow: AgentFlowDefinition = {
   nodes: [
     { id: "start_minimal", type: "start", label: "Start", position: { x: 50, y: 100 } },
     { id: "send_greeting_minimal", type: "sendMessage", label: "Greet User", message: "Hello! How can I assist you today?", position: { x: 250, y: 100 } },
-    { id: "get_user_query_minimal", type: "getUserInput", label: "Get Query", prompt: "What can I help you with?", variableName: "userInitialQuery", position: { x: 500, y: 100 } },
-    { id: "end_minimal", type: "end", label: "End", position: { x: 750, y: 100 } },
+    { id: "get_user_query_minimal", type: "getUserInput", label: "Get Initial Query", prompt: "What can I help you with?", variableName: "userInitialQuery", position: { x: 500, y: 100 } },
+    { id: "end_minimal", type: "end", label: "End Minimal", position: { x: 750, y: 100 } },
   ],
   edges: [
     { id: "e_minimal_start_greet", source: "start_minimal", target: "send_greeting_minimal" },
@@ -215,15 +215,15 @@ export const customerSupportFlow: AgentFlowDefinition = {
   name: "Simple Customer Support",
   description: "A very basic flow to guide users to product info or tech help.",
   nodes: [
-    { id: "cs_start", type: "start", label: "Start", position: { x: 50, y: 50 } },
-    { id: "cs_greet", type: "sendMessage", label: "Greet & Ask", message: "Welcome to Support! Are you looking for (A) Product Info or (B) Tech Help?", position: { x: 50, y: 150 } },
-    { id: "cs_get_choice", type: "getUserInput", label: "Get Choice", prompt: "Please type A or B.", variableName: "userSupportChoice", position: { x: 50, y: 250 } },
-    { id: "cs_check_choice", type: "condition", label: "Check Choice", conditionVariable: "userSupportChoice", useLLMForDecision: false, position: { x: 50, y: 350 } },
-    { id: "cs_send_prod_info", type: "sendMessage", label: "Product Info Msg", message: "For Product Info, please visit our website example.com/products.", position: { x: 250, y: 450 } },
+    { id: "cs_start", type: "start", label: "Start Support", position: { x: 50, y: 50 } },
+    { id: "cs_greet", type: "sendMessage", label: "Greet & Ask Topic", message: "Welcome to Support! Are you looking for (A) Product Info or (B) Tech Help?", position: { x: 50, y: 150 } },
+    { id: "cs_get_choice", type: "getUserInput", label: "Get Support Choice", prompt: "Please type A or B.", variableName: "userSupportChoice", position: { x: 50, y: 250 } },
+    { id: "cs_check_choice", type: "condition", label: "Check Support Choice", conditionVariable: "userSupportChoice", useLLMForDecision: false, position: { x: 50, y: 350 } },
+    { id: "cs_send_prod_info", type: "sendMessage", label: "Product Info Message", message: "For Product Info, please visit our website example.com/products.", position: { x: 250, y: 450 } },
     { id: "cs_end_prod", type: "end", label: "End Product Path", position: { x: 250, y: 550 } },
-    { id: "cs_send_tech_info", type: "sendMessage", label: "Tech Help Msg", message: "For Tech Help, please describe your issue. This demo can't create a ticket, but a real bot could!", position: { x: -150, y: 450 } },
+    { id: "cs_send_tech_info", type: "sendMessage", label: "Tech Help Message", message: "For Tech Help, please describe your issue. This demo can't create a ticket, but a real bot could assist further!", position: { x: -150, y: 450 } },
     { id: "cs_end_tech", type: "end", label: "End Tech Path", position: { x: -150, y: 550 } },
-    { id: "cs_default_reply", type: "sendMessage", label: "Invalid Choice Msg", message: "Sorry, I didn't understand that. Please type A for Product Info or B for Tech Help.", position: { x: 50, y: 480 } }
+    { id: "cs_default_reply", type: "sendMessage", label: "Invalid Choice Message", message: "Sorry, I didn't understand that. Please type A for Product Info or B for Tech Help.", position: { x: 50, y: 480 } }
   ],
   edges: [
     { id: "ecs_s_g", source: "cs_start", target: "cs_greet" },
@@ -241,35 +241,37 @@ export const customerSupportFlow: AgentFlowDefinition = {
 export const faqFlowMinimal: AgentFlowDefinition = {
   flowId: "faq-flow-minimal",
   name: "FAQ Agent (Knowledge)",
-  description: "Greets, asks a question, then uses knowledge to answer.",
+  description: "Greets, asks a question, then uses knowledge to answer, and asks if more help is needed.",
   nodes: [
     { id: "faq_start", type: "start", label: "Start FAQ", position: { x: 50, y: 50 } },
-    { id: "faq_greet", type: "sendMessage", label: "Greet", message: "Hello! I'm here to answer your questions about our services. What's on your mind?", position: { x: 50, y: 150 } },
+    { id: "faq_greet", type: "sendMessage", label: "FAQ Greet", message: "Hello! I'm here to answer your questions based on our knowledge base. What's on your mind?", position: { x: 50, y: 150 } },
     { id: "faq_get_question", type: "getUserInput", label: "Get User Question", prompt: "Please ask your question.", variableName: "userQuestionForFAQ", position: {x: 50, y: 250} },
-    { id: "faq_lookup", type: "qnaLookup", label: "Lookup in Knowledge", qnaQueryVariable: "userQuestionForFAQ", qnaOutputVariable: "faqAnswer", qnaFallbackText: "I couldn't find an answer to that. Try rephrasing, or ask about something else.", position: {x: 50, y: 350} },
-    { id: "faq_ask_again_prompt", type: "sendMessage", label: "Ask if More Help Needed", message: "Can I help with anything else?", position: {x: 50, y: 450}},
-    { id: "faq_get_ask_again_choice", type: "getUserInput", label: "Get More Help Choice", prompt: "Type Yes or No.", variableName: "faqMoreHelpChoice", position: {x: 50, y: 550}},
+    { id: "faq_lookup", type: "qnaLookup", label: "Lookup in Knowledge", qnaQueryVariable: "userQuestionForFAQ", qnaOutputVariable: "faqAnswer", qnaFallbackText: "I couldn't find an answer to that in my current knowledge. Try rephrasing, or ask about something else.", position: {x: 50, y: 350} },
+    { id: "faq_ask_again_prompt", type: "sendMessage", label: "Ask if More Help Needed", message: "Can I help with anything else? (Yes/No)", position: {x: 50, y: 450}},
+    { id: "faq_get_ask_again_choice", type: "getUserInput", label: "Get More Help Choice", prompt: "Please type Yes or No.", variableName: "faqMoreHelpChoice", position: {x: 50, y: 550}},
     { id: "faq_check_ask_again", type: "condition", label: "Check More Help", conditionVariable: "faqMoreHelpChoice", useLLMForDecision: true, position: {x: 50, y: 650}},
-    { id: "faq_end_after_qna", type: "end", label: "End FAQ", position: { x: 250, y: 750 } } 
+    { id: "faq_end_after_qna", type: "end", label: "End FAQ", position: { x: 250, y: 750 } },
+    { id: "faq_say_bye", type: "sendMessage", label: "Say Goodbye", message: "Alright, have a great day!", position: { x: 50, y: 850 } }
   ],
   edges: [
     { id: "efaq_s_g", source: "faq_start", target: "faq_greet" },
     { id: "efaq_g_gq", source: "faq_greet", target: "faq_get_question" },
     { id: "efaq_gq_l", source: "faq_get_question", target: "faq_lookup" },
-    { id: "efaq_l_ask_again", source: "faq_lookup", target: "faq_ask_again_prompt", edgeType: "default" }, // qnaLookup will send its own message
+    { id: "efaq_l_ask_again", source: "faq_lookup", target: "faq_ask_again_prompt", edgeType: "default" },
     { id: "efaq_ask_again_get_choice", source: "faq_ask_again_prompt", target: "faq_get_ask_again_choice" },
     { id: "efaq_get_choice_check", source: "faq_get_ask_again_choice", target: "faq_check_ask_again" },
-    { id: "efaq_check_yes", source: "faq_check_ask_again", target: "faq_get_question", condition: "Yes", label: "Yes" }, // Loop back
-    { id: "efaq_check_no_default", source: "faq_check_ask_again", target: "faq_end_after_qna", condition: "", label: "No/Other (Default)", edgeType: "default" },
+    { id: "efaq_check_yes", source: "faq_check_ask_again", target: "faq_get_question", condition: "Yes", label: "Yes" },
+    { id: "efaq_check_no_default", source: "faq_check_ask_again", target: "faq_say_bye", condition: "", label: "No/Other (Default)", edgeType: "default" },
+    { id: "efaq_say_bye_end", source: "faq_say_bye", target: "faq_end_after_qna" }
   ]
 };
 
 export const generalPurposeAssistantFlow: AgentFlowDefinition = {
   flowId: "general-assistant-flow",
-  name: "General Assistant (AI)",
+  name: "General Assistant (AI Response)",
   description: "Greets, asks for issue, uses AI to respond, then asks if resolved.",
   nodes: [
-    { id: "gpa_start", type: "start", label: "Start", position: { x: 50, y: 50 } },
+    { id: "gpa_start", type: "start", label: "Start Assistant", position: { x: 50, y: 50 } },
     { id: "gpa_greet", type: "sendMessage", label: "Greet User", message: "Hi there! I'm your AI Assistant. How can I help you today?", position: { x: 50, y: 150 } },
     { id: "gpa_get_issue", type: "getUserInput", label: "Get User Issue", prompt: "What can I do for you?", variableName: "userIssue", position: { x: 50, y: 250 } },
     { id: "gpa_ai_response", type: "callLLM", label: "AI Responds", llmPrompt: "The user's issue is: {{userIssue}}. Please provide a helpful and concise response. If you have relevant trained knowledge, use it. If you're unsure, politely say you cannot help with that specific request.", outputVariable: "aiGeneratedResponse", useKnowledge: true, position: { x: 50, y: 350 } },
@@ -280,7 +282,6 @@ export const generalPurposeAssistantFlow: AgentFlowDefinition = {
     { id: "gpa_resolved_yes_msg", type: "sendMessage", label: "Issue Resolved Message", message: "Great! I'm glad I could help. Have a wonderful day!", position: { x: 250, y: 850 } },
     { id: "gpa_end_yes", type: "end", label: "End (Resolved)", position: { x: 250, y: 950 } },
     { id: "gpa_resolved_no_msg", type: "sendMessage", label: "Issue Not Resolved Message", message: "I'm sorry to hear that. Please try rephrasing your issue, or you can ask for help on a different topic.", position: { x: -150, y: 850 } },
-    { id: "gpa_loop_back_to_issue", source: "gpa_resolved_no_msg", target: "gpa_get_issue", label: "Try Again", position: {x: -150, y: 950 } } // Loop instead of end
   ],
   edges: [
     { id: "egpa_s_g", source: "gpa_start", target: "gpa_greet" },
@@ -293,7 +294,7 @@ export const generalPurposeAssistantFlow: AgentFlowDefinition = {
     { id: "egpa_cr_yes", source: "gpa_check_resolution", target: "gpa_resolved_yes_msg", condition: "Yes", label: "Yes" },
     { id: "egpa_rym_endy", source: "gpa_resolved_yes_msg", target: "gpa_end_yes" },
     { id: "egpa_cr_no_default", source: "gpa_check_resolution", target: "gpa_resolved_no_msg", condition: "", label: "No/Other (Default)", edgeType: "default" },
-    { id: "egpa_rnm_loop", source: "gpa_resolved_no_msg", target: "gpa_get_issue" } // Connect "No" path to loop
+    { id: "egpa_rnm_loop", source: "gpa_resolved_no_msg", target: "gpa_get_issue" }
   ]
 };
 
@@ -362,7 +363,7 @@ export default function AgentStudioPage() {
     setNodes(loadedNodes);
     setEdges(loadedEdges);
     setCanvasOffset({ x: 0, y: 0 });
-    setSelectedNodeId(null); 
+    setSelectedNodeId(null);
   }, []);
 
   useEffect(() => {
@@ -379,10 +380,10 @@ export default function AgentStudioPage() {
         loadFlowToVisual(undefined);
       }
     } else if (!isLoadingAgents && !agentId) {
-      setCurrentAgent(null); 
+      setCurrentAgent(null);
       setAgentType(undefined);
       setAgentDirection(undefined);
-      loadFlowToVisual(undefined); 
+      loadFlowToVisual(undefined);
     }
   }, [agentId, getAgent, loadFlowToVisual, isLoadingAgents]);
 
@@ -406,14 +407,14 @@ export default function AgentStudioPage() {
     const virtualY = viewportY + canvasOffset.y;
 
     const nodeDef = NODE_DEFINITIONS.find(w => w.type === nodeType);
-    const defaultLabel = nodeDef?.defaultProperties?.label || nodeDef?.paletteLabel || 'Node'; 
+    const defaultLabel = nodeDef?.defaultProperties?.label || nodeDef?.paletteLabel || 'Node';
     const newNodeId = generateId(nodeType.replace(/\s+/g, '_').toLowerCase() + '_');
 
     const newNode: VisualNode = {
       id: newNodeId,
       type: nodeType,
       label: defaultLabel,
-      x: Math.max(0, virtualX - 75), 
+      x: Math.max(0, virtualX - 75),
       y: Math.max(0, virtualY - 25),
       ...(nodeDef?.defaultProperties || {}),
     };
@@ -448,8 +449,8 @@ export default function AgentStudioPage() {
     event.stopPropagation();
   };
 
-  const nodeWidth = 160; 
-  const nodeHeight = 60; 
+  const nodeWidth = 160;
+  const nodeHeight = 60;
 
   const handleCanvasMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
     if (event.target === canvasRef.current || event.target === canvasContentRef.current ) {
@@ -659,10 +660,10 @@ export default function AgentStudioPage() {
         toast({ title: "Invalid Conversation Design", description: "A conversation must have at least one 'Start Conversation' step.", variant: "destructive"});
         return null;
     }
-     if (!hasEndNode && nodes.length > 0) { 
+     if (!hasEndNode && nodes.length > 0) {
         toast({ title: "Incomplete Conversation", description: "Your conversation design should ideally have at least one 'End Conversation' step to properly conclude paths.", variant: "default"});
     }
-    
+
     for (const node of nodes) {
         const nodeDef = NODE_DEFINITIONS.find(d => d.type === node.type);
         if (!nodeDef) {
@@ -689,7 +690,7 @@ export default function AgentStudioPage() {
 
 
     function sanitizeNode(visualNode: VisualNode): JsonFlowNode {
-        const output: Partial<JsonFlowNode> = { 
+        const output: Partial<JsonFlowNode> = {
             id: visualNode.id,
             type: visualNode.type,
             label: visualNode.label || NODE_DEFINITIONS.find(def => def.type === visualNode.type)?.defaultProperties?.label || visualNode.id,
@@ -709,8 +710,8 @@ export default function AgentStudioPage() {
         if (visualNode.qnaFallbackText !== undefined) output.qnaFallbackText = visualNode.qnaFallbackText;
         if (visualNode.waitDurationMs !== undefined) output.waitDurationMs = visualNode.waitDurationMs;
         if (visualNode.endOutputVariable !== undefined) output.endOutputVariable = visualNode.endOutputVariable;
-        
-        return output as JsonFlowNode; 
+
+        return output as JsonFlowNode;
     }
 
     function sanitizeEdge(edge: VisualEdge): JsonFlowEdge {
@@ -744,7 +745,7 @@ export default function AgentStudioPage() {
     try {
       const agentFlowDef = convertToAgentFlowDefinition();
       if (!agentFlowDef) {
-        setIsSaving(false); 
+        setIsSaving(false);
         return;
       }
       updateAgentFlow(currentAgent.id, agentFlowDef);
@@ -793,7 +794,7 @@ export default function AgentStudioPage() {
         </Card>
     );
   }
-  if (!currentAgent && agentId) { 
+  if (!currentAgent && agentId) {
     return (
         <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
@@ -802,7 +803,7 @@ export default function AgentStudioPage() {
         </Alert>
     );
   }
-  if (!currentAgent && !agentId) { 
+  if (!currentAgent && !agentId) {
      return (
         <Alert variant="default">
              <Info className="h-4 w-4" />
@@ -813,15 +814,15 @@ export default function AgentStudioPage() {
   }
 
 
-  const portSize = 8; 
+  const portSize = 8;
 
   return (
     <TooltipProvider>
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-4 h-[calc(100vh-220px)] sm:h-[calc(100vh-200px)]">
-      
-      <Button 
-        variant="outline" 
-        size="icon" 
+
+      <Button
+        variant="outline"
+        size="icon"
         className="lg:hidden fixed top-[calc(4rem+0.5rem)] left-2 z-20 h-8 w-8 sm:h-9 sm:w-9"
         onClick={() => setIsToolsPanelOpen(!isToolsPanelOpen)}
         aria-label={isToolsPanelOpen ? "Close Tools Panel" : "Open Tools Panel"}
@@ -829,9 +830,9 @@ export default function AgentStudioPage() {
         {isToolsPanelOpen ? <PanelLeft size={18}/> : <PanelRight size={18}/>}
       </Button>
 
-      <Button 
-        variant="outline" 
-        size="icon" 
+      <Button
+        variant="outline"
+        size="icon"
         className="lg:hidden fixed top-[calc(4rem+0.5rem)] right-2 z-20 h-8 w-8 sm:h-9 sm:w-9"
         onClick={() => setIsPropsPanelOpen(!isPropsPanelOpen)}
         aria-label={isPropsPanelOpen ? "Close Properties Panel" : "Open Properties Panel"}
@@ -893,7 +894,7 @@ export default function AgentStudioPage() {
         className={cn(
             "h-full relative overflow-hidden bg-muted/20 border-dashed border-input cursor-grab",
             "lg:col-span-7",
-            isToolsPanelOpen || isPropsPanelOpen ? "col-span-12 order-2 lg:order-none min-h-[250px] sm:min-h-[300px]" : "col-span-12 order-1 lg:order-none" 
+            isToolsPanelOpen || isPropsPanelOpen ? "col-span-12 order-2 lg:order-none min-h-[250px] sm:min-h-[300px]" : "col-span-12 order-1 lg:order-none"
         )}
         ref={canvasRef}
         onDrop={handleDropOnCanvas}
@@ -906,10 +907,10 @@ export default function AgentStudioPage() {
       >
         <div
             ref={canvasContentRef}
-            className="absolute top-0 left-0 w-full h-full pointer-events-none" 
+            className="absolute top-0 left-0 w-full h-full pointer-events-none"
             style={{ transform: `translate(${-canvasOffset.x}px, ${-canvasOffset.y}px)` }}
         >
-            <svg className="absolute top-0 left-0 w-full h-full pointer-events-none"> 
+            <svg className="absolute top-0 left-0 w-full h-full pointer-events-none">
             {edges.map(edge => {
                 const sourceNode = nodes.find(n => n.id === edge.source);
                 const targetNode = nodes.find(n => n.id === edge.target);
@@ -924,7 +925,7 @@ export default function AgentStudioPage() {
                 const midY = (y1 + y2) / 2;
 
                 const angle = Math.atan2(y2 - y1, x2 - x1);
-                const arrowLength = 6; 
+                const arrowLength = 6;
                 const arrowPoint1X = x2 - arrowLength * Math.cos(angle - Math.PI / 6);
                 const arrowPoint1Y = y2 - arrowLength * Math.sin(angle - Math.PI / 6);
                 const arrowPoint2X = x2 - arrowLength * Math.cos(angle + Math.PI / 6);
@@ -950,7 +951,7 @@ export default function AgentStudioPage() {
                         y2={edgeDragInfo.currentY}
                         stroke="hsl(var(--ring))"
                         strokeWidth="2"
-                        strokeDasharray="3 1.5" 
+                        strokeDasharray="3 1.5"
                     />
                 )}
             </svg>
@@ -967,7 +968,7 @@ export default function AgentStudioPage() {
                     width: `${nodeWidth}px`,
                     height: `${nodeHeight}px`,
                     borderColor: selectedNodeId === node.id ? 'hsl(var(--ring))' : 'hsl(var(--border))',
-                    boxShadow: selectedNodeId === node.id ? '0 0 0 1.5px hsl(var(--ring))' : '0 1px 2px rgba(0,0,0,0.1)', 
+                    boxShadow: selectedNodeId === node.id ? '0 0 0 1.5px hsl(var(--ring))' : '0 1px 2px rgba(0,0,0,0.1)',
                     zIndex: draggingNodeInfo?.id === node.id || edgeDragInfo?.sourceNodeId === node.id ? 10 : 1,
                 }}
             >
@@ -976,10 +977,10 @@ export default function AgentStudioPage() {
                         data-port="in"
                         onMouseUp={(e) => handlePortMouseUp(e, node.id, 'in')}
                         title={`Connect to ${node.label}`}
-                        className="absolute -left-[5px] top-1/2 -translate-y-1/2 cursor-crosshair pointer-events-auto bg-background rounded-full" 
+                        className="absolute -left-[5px] top-1/2 -translate-y-1/2 cursor-crosshair pointer-events-auto bg-background rounded-full"
                         style={{width: `${portSize+2}px`, height: `${portSize+2}px`, display:'flex', alignItems:'center', justifyContent:'center'}}
                     >
-                    <div className="w-1.5 h-1.5 bg-primary/70 rounded-full border border-background ring-1 ring-primary/70 group-hover/node:bg-primary group-hover/node:ring-primary transition-all"/> 
+                    <div className="w-1.5 h-1.5 bg-primary/70 rounded-full border border-background ring-1 ring-primary/70 group-hover/node:bg-primary group-hover/node:ring-primary transition-all"/>
                     </div>
                 )}
 
@@ -1006,10 +1007,10 @@ export default function AgentStudioPage() {
                         data-port="out"
                         onMouseDown={(e) => handlePortMouseDown(e, node.id, 'out')}
                         title={`Connect from ${node.label}`}
-                        className="absolute -right-[5px] top-1/2 -translate-y-1/2 cursor-crosshair pointer-events-auto bg-background rounded-full" 
+                        className="absolute -right-[5px] top-1/2 -translate-y-1/2 cursor-crosshair pointer-events-auto bg-background rounded-full"
                         style={{width: `${portSize+2}px`, height: `${portSize+2}px`, display:'flex', alignItems:'center', justifyContent:'center'}}
                     >
-                        <div className="w-1.5 h-1.5 bg-primary/70 rounded-full border border-background ring-1 ring-primary/70 group-hover/node:bg-primary group-hover/node:ring-primary transition-all"/> 
+                        <div className="w-1.5 h-1.5 bg-primary/70 rounded-full border border-background ring-1 ring-primary/70 group-hover/node:bg-primary group-hover/node:ring-primary transition-all"/>
                     </div>
                 )}
             </div>
@@ -1054,7 +1055,7 @@ export default function AgentStudioPage() {
                     </div>
                     <div>
                         <Label htmlFor="nodeVariable" className="text-[10px] sm:text-xs">Save User's Answer as (Variable Name)</Label>
-                        <Input id="nodeVariable" value={selectedNodeDetails.variableName || ""} onChange={e => updateSelectedNodeProperties({ variableName: e.target.value })}  className="h-7 sm:h-8 text-xs sm:text-sm" placeholder="e.g., userEmail (no spaces)"/>
+                        <Input id="nodeVariable" value={selectedNodeDetails.variableName || ""} onChange={e => updateSelectedNodeProperties({ variableName: e.target.value })}  className="h-7 sm:h-8 text-xs sm:text-sm" placeholder="e.g., userEmail (no spaces, letters/numbers/underscores only)"/>
                         <p className="text-[10px] text-muted-foreground mt-0.5">Use this name like `{{userEmail}}` in other steps.</p>
                     </div>
                   </>
@@ -1063,7 +1064,7 @@ export default function AgentStudioPage() {
                   <>
                     <div>
                         <Label htmlFor="llmPrompt" className="text-[10px] sm:text-xs">Instruction for AI (Prompt)</Label>
-                        <Textarea id="llmPrompt" value={selectedNodeDetails.llmPrompt || ""} onChange={e => updateSelectedNodeProperties({ llmPrompt: e.target.value })} rows={4} className="text-xs sm:text-sm" placeholder="e.g., User said: {{userInputVar}}. Summarize it."/>
+                        <Textarea id="llmPrompt" value={selectedNodeDetails.llmPrompt || ""} onChange={e => updateSelectedNodeProperties({ llmPrompt: e.target.value })} rows={4} className="text-xs sm:text-sm" placeholder="e.g., User said: {{userInputVar}}. Summarize it politely. If unsure, say 'I am looking into that!'"/>
                         <p className="text-[10px] text-muted-foreground mt-0.5">Tip: Use `{{variableName}}` to give AI context from previous steps. Example: `{{conversationHistory}}`.</p>
                          {(agentType === 'voice' || agentType === 'hybrid') && (
                             <Alert variant="default" className="mt-1.5 p-2 text-[10px] bg-accent/10 dark:bg-accent/20 border-accent/30">
@@ -1088,7 +1089,7 @@ export default function AgentStudioPage() {
                    <>
                     <div>
                         <Label htmlFor="conditionVar" className="text-[10px] sm:text-xs">Variable to Base Decision On</Label>
-                        <Input id="conditionVar" value={selectedNodeDetails.conditionVariable || ""} onChange={e => updateSelectedNodeProperties({ conditionVariable: e.target.value })}  className="h-7 sm:h-8 text-xs sm:text-sm" placeholder="e.g., userChoice (from 'Ask User')"/>
+                        <Input id="conditionVar" value={selectedNodeDetails.conditionVariable || ""} onChange={e => updateSelectedNodeProperties({ conditionVariable: e.target.value })}  className="h-7 sm:h-8 text-xs sm:text-sm" placeholder="e.g., userChoice (from 'Ask User & Save Answer')"/>
                         <p className="text-[10px] text-muted-foreground mt-0.5">This variable's value will be checked.</p>
                     </div>
                     <div className="flex items-center space-x-1.5 pt-1">
@@ -1112,6 +1113,7 @@ export default function AgentStudioPage() {
                     <div>
                         <Label htmlFor="qnaFallback" className="text-[10px] sm:text-xs">Message if No Answer Found</Label>
                         <Textarea id="qnaFallback" value={selectedNodeDetails.qnaFallbackText || ""} onChange={e => updateSelectedNodeProperties({ qnaFallbackText: e.target.value })} rows={2} className="text-xs sm:text-sm" placeholder="e.g., Sorry, I don't have that information."/>
+                         <p className="text-[10px] text-muted-foreground mt-0.5">This message is automatically sent if no answer is found.</p>
                     </div>
                      <p className="text-[10px] text-muted-foreground mt-0.5">Connect 'Found' and 'Not Found' paths using edge types. The answer/fallback is automatically sent.</p>
                   </>
@@ -1138,14 +1140,14 @@ export default function AgentStudioPage() {
                       <span className="truncate" title={`To: ${nodes.find(n=>n.id===edge.target)?.label || edge.target}`}>To: {nodes.find(n=>n.id===edge.target)?.label || edge.target}</span>
                       <Button variant="ghost" size="icon" onClick={() => deleteEdge(edge.id)} className="h-5 w-5 shrink-0"><Trash2 className="h-3 w-3 text-destructive"/></Button>
                     </div>
-                    {(selectedNodeDetails.type === 'condition') && ( 
+                    {(selectedNodeDetails.type === 'condition') && (
                         <div>
                             <Label htmlFor={`edgeLabel-${edge.id}`} className="text-[9px] sm:text-[10px]">{selectedNodeDetails.type === 'condition' ? 'Decision Outcome / User Input Value (or AI Intent Label)' : 'Connection Label (Optional)'}</Label>
                             <Input id={`edgeLabel-${edge.id}`} placeholder={ selectedNodeDetails.type === 'condition' ? "e.g., 'Yes', 'Product A', or Intent Name" : "e.g., Next step after XYZ"} value={edge.label || ""} onChange={e => updateEdgeProperty(edge.id, { label: e.target.value, condition: e.target.value })} className="h-6 sm:h-7 text-[10px] sm:text-xs mt-0.5"/>
                             {edge.label?.trim() === "" && selectedNodeDetails.type === 'condition' && <p className="text-[9px] text-muted-foreground mt-0.5">Empty value makes this the 'Default / Other' path.</p>}
                         </div>
                     )}
-                     {(selectedNodeDetails.type === 'qnaLookup' || selectedNodeDetails.type === 'getUserInput' ) && ( 
+                     {(selectedNodeDetails.type === 'qnaLookup' || selectedNodeDetails.type === 'getUserInput' ) && (
                         <div>
                           <Label htmlFor={`edgeType-${edge.id}`} className="text-[9px] sm:text-[10px]">Connection Type (Path Logic)</Label>
                            <Select value={edge.edgeType || 'default'} onValueChange={value => updateEdgeProperty(edge.id, { edgeType: value as JsonFlowEdge['edgeType'] })}>
@@ -1166,7 +1168,7 @@ export default function AgentStudioPage() {
                 ))}
               </div>
               {selectedNodeDefinition && (
-                <Accordion type="single" collapsible className="w-full mt-3">
+                <Accordion type="single" className="w-full mt-3">
                   <AccordionItem value="docs">
                      <AccordionTrigger className="text-sm sm:text-base hover:no-underline py-2 sm:py-3">
                         <Tooltip>
@@ -1191,7 +1193,7 @@ export default function AgentStudioPage() {
                    <MousePointer className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground"/>
                    <p className="text-xs sm:text-sm text-muted-foreground">Select a step on the canvas to configure it. Drag the canvas background to pan around.</p>
                 </div>
-                <Accordion type="multiple" collapsible className="w-full space-y-2" defaultValue={['wiring-practices', 'common-patterns']}>
+                <Accordion type="multiple" defaultValue={['wiring-practices', 'common-patterns']} className="w-full space-y-2">
                   <AccordionItem value="wiring-practices" className="border rounded-md bg-background">
                      <AccordionTrigger className="text-sm sm:text-base hover:no-underline py-2 sm:py-3 px-3">
                        <Tooltip>
