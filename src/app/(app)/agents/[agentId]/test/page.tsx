@@ -25,6 +25,14 @@ declare global {
   }
 }
 
+// Helper function to strip emojis from text
+function stripEmojis(text: string): string {
+  if (!text) return "";
+  // Comprehensive regex for emojis, including variations and skin tones
+  return text.replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '').trim();
+}
+
+
 export default function TestAgentPage() {
   const params = useParams();
   const appContextValue = useAppContext();
@@ -61,12 +69,13 @@ export default function TestAgentPage() {
       const voices = speechSynthesis.getVoices();
       if (voices.length > 0) {
         setAvailableVoices(voices);
+        // Prioritize US English, then UK English, then any default, then first available
         const defaultUsVoice = voices.find(voice => voice.lang.startsWith('en-US') && voice.default && !voice.localService);
         const defaultUkVoice = voices.find(voice => voice.lang.startsWith('en-GB') && voice.default && !voice.localService);
         const anyDefaultVoice = voices.find(voice => voice.default);
         const firstUsVoice = voices.find(voice => voice.lang.startsWith('en-US'));
         const firstUkVoice = voices.find(voice => voice.lang.startsWith('en-GB'));
-
+        
         if (defaultUsVoice) setSelectedVoiceURI(defaultUsVoice.voiceURI);
         else if (defaultUkVoice) setSelectedVoiceURI(defaultUkVoice.voiceURI);
         else if (anyDefaultVoice) setSelectedVoiceURI(anyDefaultVoice.voiceURI);
@@ -100,7 +109,10 @@ export default function TestAgentPage() {
       speechSynthesis.cancel(); 
     }
 
-    const utterance = new SpeechSynthesisUtterance(text);
+    const cleanedText = stripEmojis(text);
+    if (!cleanedText) return; // Don't speak if only emojis were present
+
+    const utterance = new SpeechSynthesisUtterance(cleanedText);
     if (selectedVoiceURI) {
       const voice = availableVoices.find(v => v.voiceURI === selectedVoiceURI);
       if (voice) utterance.voice = voice;
@@ -109,7 +121,10 @@ export default function TestAgentPage() {
     utterance.onend = () => setIsSpeaking(false);
     utterance.onerror = (event) => {
       console.error("Speech synthesis error:", event.error);
-      toast({ title: "Speech Error", description: `Could not speak: ${event.error}`, variant: "destructive" });
+      // Avoid toasting for "interrupted" as it's often due to intentional user action or quick succession of messages.
+      if (event.error !== 'interrupted') {
+        toast({ title: "Speech Error", description: `Could not speak: ${event.error}`, variant: "destructive" });
+      }
       setIsSpeaking(false);
     };
     speechSynthesis.speak(utterance);
@@ -165,6 +180,7 @@ export default function TestAgentPage() {
         const transcript = event.results[0][0].transcript;
         if (chatInterfaceRef.current) {
           chatInterfaceRef.current.setInputText(transcript);
+          // Short delay to allow input to visually update before submitting
           setTimeout(() => { 
             chatInterfaceRef.current?.submitMessageFromText(transcript);
           }, 50);
@@ -175,6 +191,7 @@ export default function TestAgentPage() {
   };
   
   useEffect(() => {
+    // Cleanup function to abort recognition and cancel speech on component unmount
     return () => { 
       if (recognitionRef.current) {
         recognitionRef.current.abort();
@@ -214,13 +231,13 @@ export default function TestAgentPage() {
 
   return (
     <div className="space-y-4 md:space-y-6">
-      <Card className="h-full flex flex-col">
+      <Card className="h-[55vh] flex flex-col"> {/* Defined height for the chat card */}
         <CardHeader className="p-4 sm:p-6">
           <CardTitle className={cn("font-headline text-xl sm:text-2xl", "text-gradient-dynamic")}>Test Chatbot: {agent.generatedName || agent.name}</CardTitle>
           <CardDescription className="text-sm">Preview and interact with this chatbot. Test all conversation paths before deploying.</CardDescription>
         </CardHeader>
-        <CardContent className="flex-1 p-2 sm:p-4 md:p-6 min-h-0">
-          <div className="h-full max-h-[calc(100vh-400px)] sm:max-h-[calc(100vh-430px)]">
+        <CardContent className="flex-1 p-2 sm:p-4 md:p-6 min-h-0"> {/* flex-1 and min-h-0 allow content to fill Card */}
+          <div className="h-full"> {/* Wrapper div takes full height of CardContent */}
             <ChatInterface ref={chatInterfaceRef} agent={agent} appContext={appContextValue} onNewAgentMessage={handleNewAgentMessage} />
           </div>
         </CardContent>
@@ -246,7 +263,7 @@ export default function TestAgentPage() {
           <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
             <Button
               onClick={toggleListen}
-              disabled={!speechRecognitionSupported || isSpeaking}
+              disabled={!speechRecognitionSupported || isSpeaking} // Disable if agent is speaking
               variant={isListening ? "destructive" : "outline"}
               className="w-full sm:w-auto btn-interactive"
               size="lg"
@@ -303,6 +320,4 @@ export default function TestAgentPage() {
     </div>
   );
 }
-    
-
     
