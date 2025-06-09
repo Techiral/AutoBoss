@@ -14,8 +14,8 @@ import { useToast } from "@/hooks/use-toast";
 import { createAgent, CreateAgentOutput } from "@/ai/flows/agent-creation";
 import { useRouter } from "next/navigation";
 import { useAppContext } from "../../layout"; 
-import type { Agent, AgentType } from "@/lib/types"; 
-import { Loader2, Bot, MessageSquare, Phone } from "lucide-react";
+import type { Agent, AgentType, AgentLogicType } from "@/lib/types"; 
+import { Loader2, Bot, MessageSquare, Phone, Brain } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext"; 
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -23,6 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 const formSchema = z.object({
   agentType: z.enum(["chat", "voice", "hybrid"], { required_error: "Please select an agent type."}),
+  primaryLogic: z.enum(["flow", "autonomous", "hybrid"], { required_error: "Please select the agent's primary brain logic."}), // Added primaryLogic
   name: z.string().min(3, "Chatbot name must be at least 3 characters").max(100, "Name too long"),
   role: z.string().min(10, "Role description must be at least 10 characters").max(500, "Role too long"),
   personality: z.string().min(10, "Personality description must be at least 10 characters").max(500, "Personality too long"),
@@ -41,7 +42,8 @@ export default function CreateAgentPage() {
   const { control, register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      agentType: "chat", // Default to chat
+      agentType: "chat",
+      primaryLogic: "hybrid", // Default to hybrid
     }
   });
 
@@ -54,14 +56,15 @@ export default function CreateAgentPage() {
     setIsLoading(true);
     setGeneratedAgentDetails(null);
     try {
-      const agentDescription = `Type of Agent: ${data.agentType}\nBusiness Purpose: ${data.name}\nIntended Role for the Business: ${data.role}\nDesired Personality & Tone: ${data.personality}`;
-      const aiResult = await createAgent({ agentDescription, agentType: data.agentType }); // Pass agentType to the flow
+      const agentDescription = `Type of Agent: ${data.agentType}. Primary Logic: ${data.primaryLogic}.\nBusiness Purpose: ${data.name}\nIntended Role for the Business: ${data.role}\nDesired Personality & Tone: ${data.personality}`;
+      const aiResult = await createAgent({ agentDescription, agentType: data.agentType });
       setGeneratedAgentDetails(aiResult);
       
       const agentDataForContext: Omit<Agent, 'id' | 'createdAt' | 'knowledgeItems' | 'flow' | 'userId'> = {
         agentType: data.agentType as AgentType,
+        primaryLogic: data.primaryLogic as AgentLogicType, // Save primaryLogic
         name: data.name, 
-        description: `Role: ${data.role}. Personality: ${data.personality}. Ideal for business websites. Type: ${data.agentType}`, 
+        description: `Type: ${data.agentType}. Logic: ${data.primaryLogic}. Role: ${data.role}. Personality: ${data.personality}.`, 
         role: data.role,
         personality: data.personality,
         generatedName: aiResult.agentName,
@@ -74,9 +77,14 @@ export default function CreateAgentPage() {
       if (newAgent) {
         toast({
           title: "Agent Base Created!",
-          description: `Agent "${aiResult.agentName}" (${data.agentType}) is ready. Next, train it with specific business data. Redirecting...`,
+          description: `Agent "${aiResult.agentName}" (Type: ${data.agentType}, Logic: ${data.primaryLogic}) is ready. Next, train it or design its flow. Redirecting...`,
         });
-        router.push(`/agents/${newAgent.id}/knowledge`); 
+        // Redirect based on primary logic - e.g., to studio if 'flow', to knowledge if 'autonomous'
+        if (data.primaryLogic === 'flow' || data.primaryLogic === 'hybrid') {
+            router.push(`/agents/${newAgent.id}/studio`);
+        } else { // 'autonomous'
+            router.push(`/agents/${newAgent.id}/knowledge`);
+        }
       }
     } catch (error: any) {
       console.error("Error creating agent:", error);
@@ -97,31 +105,53 @@ export default function CreateAgentPage() {
         <CardHeader className="p-4 sm:p-6">
           <CardTitle className={cn("font-headline text-xl sm:text-2xl flex items-center gap-2", "text-gradient-dynamic")}> <Bot className="w-6 h-6 sm:w-7 sm:h-7"/>Step 1: Define Your New Business Agent</CardTitle>
           <CardDescription className="text-sm">
-            Tell us about the agent you want to build. AutoBoss will help generate its core personality and a friendly greeting. 
-            You'll train it with specific business data in the next step.
+            Tell us about the agent you want to build. Define its type, core logic, purpose, role, and personality.
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
           <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
-            <div className="space-y-1.5">
-              <Label htmlFor="agentType">Agent Type</Label>
-              <Controller
-                name="agentType"
-                control={control}
-                render={({ field }) => (
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <SelectTrigger id="agentType">
-                      <SelectValue placeholder="Select agent type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="chat"><div className="flex items-center gap-2"><MessageSquare className="w-4 h-4"/>Chatbot (Text-based)</div></SelectItem>
-                      <SelectItem value="voice"><div className="flex items-center gap-2"><Phone className="w-4 h-4"/>Voice Agent (Phone Calls)</div></SelectItem>
-                      <SelectItem value="hybrid"><div className="flex items-center gap-2"><Bot className="w-4 h-4"/>Hybrid (Chat & Voice Capabilities)</div></SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-              {errors.agentType && <p className="text-xs text-destructive">{errors.agentType.message}</p>}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="agentType">Agent Type</Label>
+                <Controller
+                  name="agentType"
+                  control={control}
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <SelectTrigger id="agentType">
+                        <SelectValue placeholder="Select agent type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="chat"><div className="flex items-center gap-2"><MessageSquare className="w-4 h-4"/>Chatbot (Text-based)</div></SelectItem>
+                        <SelectItem value="voice"><div className="flex items-center gap-2"><Phone className="w-4 h-4"/>Voice Agent (Phone Calls)</div></SelectItem>
+                        <SelectItem value="hybrid"><div className="flex items-center gap-2"><Bot className="w-4 h-4"/>Hybrid (Chat & Voice)</div></SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {errors.agentType && <p className="text-xs text-destructive">{errors.agentType.message}</p>}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="primaryLogic">Primary Brain Logic</Label>
+                <Controller
+                  name="primaryLogic"
+                  control={control}
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <SelectTrigger id="primaryLogic">
+                        <SelectValue placeholder="Select brain logic" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="flow"><div className="flex items-center gap-2"><Brain className="w-4 h-4"/>Visual Flow Builder</div></SelectItem>
+                        <SelectItem value="autonomous"><div className="flex items-center gap-2"><Bot className="w-4 h-4"/>Autonomous AI (Knowledge-based)</div></SelectItem>
+                        <SelectItem value="hybrid"><div className="flex items-center gap-2"><MessageSquare className="w-4 h-4"/><Phone className="w-3 h-3 -ml-1"/>Hybrid (Flow then Autonomous)</div></SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {errors.primaryLogic && <p className="text-xs text-destructive">{errors.primaryLogic.message}</p>}
+              </div>
             </div>
 
             <div className="space-y-1.5">
@@ -174,3 +204,5 @@ export default function CreateAgentPage() {
     </div>
   );
 }
+
+    

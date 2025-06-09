@@ -7,7 +7,7 @@ export const UserProfileSchema = z.object({
   email: z.string().email().optional(),
   displayName: z.string().optional(),
   photoDataUri: z.string().optional().describe("Base64 encoded Data URI for profile photo."),
-  phoneNumber: z.string().optional().describe("User's phone number, potentially for voice agent features or account recovery."),
+  phoneNumber: z.string().optional().describe("User's phone number, potentially for voice agent features or account recovery."), // Explicitly added
   createdAt: z.custom<Timestamp>(),
 });
 export type UserProfile = z.infer<typeof UserProfileSchema>;
@@ -137,11 +137,13 @@ export type FlowContext = z.infer<typeof FlowContextSchema>;
 
 // Agent interface now includes userId and agentType
 export type AgentType = 'chat' | 'voice' | 'hybrid';
+export type AgentLogicType = 'flow' | 'autonomous' | 'hybrid'; // New type for brain logic
 
 export interface Agent {
   id: string;
   userId: string;
-  agentType: AgentType; // New field to differentiate agent types
+  agentType: AgentType;
+  primaryLogic?: AgentLogicType; // Added primary brain logic
   name: string;
   description: string;
   role?: string;
@@ -164,5 +166,7 @@ export interface ChatMessage {
   reasoning?: string;
   flowNodeId?: string;
   flowContext?: FlowContext;
-  relevantKnowledgeIds?: string[]; // Added for RAG
+  relevantKnowledgeIds?: string[];
 }
+
+    

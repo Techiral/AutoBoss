@@ -5,7 +5,7 @@ import { autonomousReasoning, AutonomousReasoningInput } from '@/ai/flows/autono
 import { executeAgentFlow, ExecuteAgentFlowInput } from '@/ai/flows/execute-agent-flow';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, Timestamp } from 'firebase/firestore';
-import type { Agent, KnowledgeItem, FlowContext, AgentFlowDefinition } from '@/lib/types';
+import type { Agent, KnowledgeItem, FlowContext, AgentFlowDefinition, AgentLogicType } from '@/lib/types';
 
 // Helper to convert Firestore Timestamps in agent data
 const convertAgentForFlow = (agentData: any): Agent => {
@@ -88,92 +88,117 @@ export async function POST(
     
     const agent = convertAgentForFlow({ id: agentSnap.id, ...agentSnap.data() });
     const knowledgeItems = agent.knowledgeItems || [];
+    const primaryLogic = agent.primaryLogic || 'hybrid'; // Default to hybrid if not set
 
-    // --- Try Flow Execution First if applicable ---
-    if (agent.flow && agent.flow.nodes.find(n => n.type === 'start')) { // Ensure flow has a start node
-      let inputContext: FlowContext;
-      let nodeToExecute: string | undefined;
-
-      if (flowState?.context && flowState?.nextNodeId) {
-        // Resume existing flow
+    let inputContext: FlowContext;
+    if (flowState?.context) {
         inputContext = flowState.context;
         if (!inputContext.conversationHistory) inputContext.conversationHistory = [];
         inputContext.conversationHistory.push(`User: ${userInput}`);
-        nodeToExecute = flowState.nextNodeId;
-      } else {
-        // Start new flow
-        inputContext = { conversationHistory: [`Agent: ${agent.generatedGreeting || 'Hello!'}`, `User: ${userInput}`] }; 
-        nodeToExecute = agent.flow.nodes.find(n => n.type === 'start')?.id;
-      }
+    } else {
+        inputContext = { conversationHistory: [] }; // Initialize if not present
+        if (agent.generatedGreeting) {
+             inputContext.conversationHistory.push(`Agent: ${agent.generatedGreeting}`);
+        }
+        inputContext.conversationHistory.push(`User: ${userInput}`);
+    }
+
+    // --- Autonomous Logic Path ---
+    if (primaryLogic === 'autonomous') {
+      const reasoningInput: AutonomousReasoningInput = {
+        agentName: agent.generatedName,
+        agentPersona: agent.generatedPersona,
+        agentRole: agent.role,
+        context: inputContext.conversationHistory.join('\n'), // Use accumulated history
+        userInput: userInput,
+        knowledgeItems: knowledgeItems,
+      };
+      const result = await autonomousReasoning(reasoningInput);
+      // Update history for next turn, even in autonomous
+      inputContext.conversationHistory.push(`Agent: ${result.responseToUser}`);
+      return NextResponse.json({ 
+        type: 'autonomous',
+        reply: result.responseToUser,
+        reasoning: result.reasoning,
+        relevantKnowledgeIds: result.relevantKnowledgeIds,
+        newFlowState: { context: inputContext, nextNodeId: undefined } // Send back updated context
+      }, { status: 200 });
+    }
+
+    // --- Flow-based or Hybrid Logic Path ---
+    let flowResult: Awaited<ReturnType<typeof executeAgentFlow>> | null = null;
+    if (agent.flow && agent.flow.nodes.find(n => n.type === 'start') && (primaryLogic === 'flow' || primaryLogic === 'hybrid')) {
+      let nodeToExecute = flowState?.nextNodeId || agent.flow.nodes.find(n => n.type === 'start')?.id;
 
       if (nodeToExecute) {
         const flowInput: ExecuteAgentFlowInput = {
           flowDefinition: agent.flow,
-          currentContext: inputContext,
+          currentContext: inputContext, // Pass potentially modified inputContext
           currentMessage: userInput,
           startNodeId: nodeToExecute,
           knowledgeItems: knowledgeItems,
-          agent: agent, // Pass the full agent object
+          agent: agent,
         };
         
-        const flowResult = await executeAgentFlow(flowInput);
+        flowResult = await executeAgentFlow(flowInput);
         
         const agentMessagesForHistory = flowResult.messagesToSend.filter(m => !m.startsWith("(System:")).map(m => `Agent: ${m}`);
-        const finalContext = {
+        inputContext = { // Update inputContext with flow's output context
             ...flowResult.updatedContext,
             conversationHistory: [...(inputContext.conversationHistory || []), ...agentMessagesForHistory]
         };
-
 
         if (flowResult.error) {
            return NextResponse.json({
              type: 'flow',
              messages: flowResult.messagesToSend,
              debugLog: flowResult.debugLog,
-             newFlowState: flowResult.nextNodeId ? { context: finalContext, nextNodeId: flowResult.nextNodeId } : undefined,
+             newFlowState: flowResult.nextNodeId ? { context: inputContext, nextNodeId: flowResult.nextNodeId } : {context: inputContext, nextNodeId: undefined},
              isFlowFinished: flowResult.isFlowFinished,
              error: flowResult.error 
            }, { status: 200 });
         }
 
-        return NextResponse.json({ 
-          type: 'flow',
-          messages: flowResult.messagesToSend,
-          debugLog: flowResult.debugLog,
-          newFlowState: flowResult.nextNodeId ? { context: finalContext, nextNodeId: flowResult.nextNodeId } : undefined,
-          isFlowFinished: flowResult.isFlowFinished,
-        }, { status: 200 });
+        if (primaryLogic === 'flow' || (primaryLogic === 'hybrid' && !flowResult.isFlowFinished && flowResult.nextNodeId)) {
+          return NextResponse.json({ 
+            type: 'flow',
+            messages: flowResult.messagesToSend,
+            debugLog: flowResult.debugLog,
+            newFlowState: flowResult.nextNodeId ? { context: inputContext, nextNodeId: flowResult.nextNodeId } : {context: inputContext, nextNodeId: undefined},
+            isFlowFinished: flowResult.isFlowFinished,
+          }, { status: 200 });
+        }
       }
     }
-
-    // --- Fallback to Autonomous Reasoning ---
-    let reasoningContextString = conversationHistoryString || "";
-     if (flowState?.context?.conversationHistory && Array.isArray(flowState.context.conversationHistory)) {
-        reasoningContextString = flowState.context.conversationHistory.join('\n');
-    }
-    if (reasoningContextString) {
-        reasoningContextString += `\nUser: ${userInput}`;
-    } else {
-        reasoningContextString = `User: ${userInput}`;
+    
+    // --- Fallback to Autonomous Reasoning for Hybrid if flow finished, or if no flow was applicable ---
+    if (primaryLogic === 'hybrid' && (!flowResult || (flowResult.isFlowFinished && !flowResult.nextNodeId)) || (primaryLogic === 'flow' && !flowResult)) {
+        const reasoningInput: AutonomousReasoningInput = {
+            agentName: agent.generatedName,
+            agentPersona: agent.generatedPersona,
+            agentRole: agent.role,
+            context: inputContext.conversationHistory.join('\n'), // Use the latest context history
+            userInput: userInput,
+            knowledgeItems: knowledgeItems,
+        };
+        const result = await autonomousReasoning(reasoningInput);
+        inputContext.conversationHistory.push(`Agent: ${result.responseToUser}`); // Add autonomous response to history
+        return NextResponse.json({ 
+            type: 'autonomous',
+            reply: result.responseToUser,
+            reasoning: result.reasoning,
+            relevantKnowledgeIds: result.relevantKnowledgeIds,
+            newFlowState: { context: inputContext, nextNodeId: undefined } // Send back updated context
+        }, { status: 200 });
     }
     
-    const reasoningInput: AutonomousReasoningInput = {
-      agentName: agent.generatedName,
-      agentPersona: agent.generatedPersona,
-      agentRole: agent.role,
-      context: reasoningContextString,
-      userInput: userInput,
-      knowledgeItems: knowledgeItems,
-    };
-    
-    const result = await autonomousReasoning(reasoningInput);
+    // If primaryLogic is 'flow' but flow execution didn't yield a response (e.g., misconfigured flow)
+    if (primaryLogic === 'flow' && flowResult && (!flowResult.messagesToSend || flowResult.messagesToSend.length === 0) && !flowResult.nextNodeId) {
+        return createErrorResponse(500, "Flow logic executed but produced no response or next step.");
+    }
 
-    return NextResponse.json({ 
-      type: 'autonomous',
-      reply: result.responseToUser,
-      reasoning: result.reasoning,
-      relevantKnowledgeIds: result.relevantKnowledgeIds
-    }, { status: 200 });
+    // Fallback if no logic path was definitively taken (should be rare with default to hybrid)
+    return createErrorResponse(500, "Agent logic could not be determined or failed to produce a response.");
 
   } catch (error: any) {
     console.error(`API Error for agent ${agentId} | Message: ${userInput.substring(0,50)} | Error:`, error);
@@ -183,3 +208,5 @@ export async function POST(
     return createErrorResponse(500, 'An unexpected error occurred while processing your request.', { internalError: error.message });
   }
 }
+
+    

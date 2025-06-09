@@ -4,8 +4,8 @@
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bot, ArrowRight, Trash2, MessageSquare, Phone, Info } from "lucide-react"; 
-import type { Agent } from "@/lib/types";
+import { Bot, ArrowRight, Trash2, MessageSquare, Phone, Info, Brain } from "lucide-react"; 
+import type { Agent, AgentLogicType } from "@/lib/types";
 import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from "@/lib/utils";
@@ -28,6 +28,16 @@ function getAgentTypeIcon(agentType?: Agent['agentType']) {
   }
 }
 
+function getLogicTypeDisplay(logicType?: AgentLogicType) {
+  if (!logicType) return null;
+  const display: Record<AgentLogicType, string> = {
+    flow: "Flow",
+    autonomous: "AI Core",
+    hybrid: "Hybrid",
+  };
+  return display[logicType] || "Custom";
+}
+
 export function AgentCard({ agent, onDelete }: AgentCardProps) {
   const [formattedDate, setFormattedDate] = useState('');
 
@@ -38,6 +48,8 @@ export function AgentCard({ agent, onDelete }: AgentCardProps) {
     }
   }, [agent.createdAt]);
 
+  const logicTypeDisplay = getLogicTypeDisplay(agent.primaryLogic);
+
   return (
     <Card className="flex flex-col h-full">
       <CardHeader className="p-4 sm:p-5">
@@ -46,12 +58,19 @@ export function AgentCard({ agent, onDelete }: AgentCardProps) {
             <Bot className="w-7 h-7 sm:w-8 sm:h-8 text-primary shrink-0" />
             <CardTitle className="font-headline text-lg sm:text-xl break-all">{agent.generatedName || agent.name}</CardTitle>
           </div>
-          {agent.agentType && (
-            <Badge variant="outline" className="text-xs capitalize h-fit px-1.5 py-0.5 sm:px-2">
-              {getAgentTypeIcon(agent.agentType)}
-              <span className="ml-1">{agent.agentType}</span>
-            </Badge>
-          )}
+          <div className="flex flex-col items-end gap-1">
+            {agent.agentType && (
+              <Badge variant="outline" className="text-xs capitalize h-fit px-1.5 py-0.5 sm:px-2">
+                {getAgentTypeIcon(agent.agentType)}
+                <span className="ml-1">{agent.agentType}</span>
+              </Badge>
+            )}
+            {logicTypeDisplay && (
+              <Badge variant="secondary" className="text-xs capitalize h-fit px-1.5 py-0.5 sm:px-2">
+                <Brain className="w-3 h-3 mr-1" /> {logicTypeDisplay}
+              </Badge>
+            )}
+          </div>
         </div>
         <CardDescription className="line-clamp-2 h-10 text-xs sm:text-sm">{agent.description}</CardDescription>
       </CardHeader>
@@ -77,3 +96,5 @@ export function AgentCard({ agent, onDelete }: AgentCardProps) {
     </Card>
   );
 }
+
+    
