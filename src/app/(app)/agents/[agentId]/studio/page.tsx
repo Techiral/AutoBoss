@@ -7,8 +7,8 @@ import { Card, CardHeader, CardTitle, CardContent, CardFooter, CardDescription }
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAppContext } from "../../../layout";
-import type { Agent, AgentFlowDefinition, FlowNode as JsonFlowNode, FlowEdge as JsonFlowEdge, AgentType, AgentDirection } from "@/lib/types"; // Added AgentType, AgentDirection
-import { Loader2, Save, AlertTriangle, Trash2, MousePointer, ArrowRight, MessageSquare, Zap, HelpCircle, Play, ChevronsUpDown, Settings2, Link2, Cog, BookOpen, Bot as BotIcon, Share2, Network, SlidersHorizontal, FileCode, MessageCircleQuestion, Timer, ArrowRightLeft, Users, BrainCircuit, StopCircle, Info, Sigma, GripVertical, Library, PanelLeft, PanelRight, FileQuestion } from "lucide-react";
+import type { Agent, AgentFlowDefinition, FlowNode as JsonFlowNode, FlowEdge as JsonFlowEdge, AgentType, AgentDirection } from "@/lib/types";
+import { Loader2, Save, AlertTriangle, Trash2, MousePointer, MessageSquare, Zap, HelpCircle, Play, ChevronsUpDown, Settings2, BookOpen, Bot as BotIcon, StopCircle, Info, Sigma, GripVertical, Timer, PanelLeft, PanelRight, FileQuestion } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
@@ -26,43 +26,26 @@ const generateId = (prefix = "node_") => `${prefix}${Date.now()}_${Math.random()
 
 export type FlowNodeType = JsonFlowNode['type'];
 
-interface VisualNode extends Omit<JsonFlowNode, 'type' | 'position' | 'message' | 'prompt' | 'llmPrompt' | 'outputVariable' | 'conditionVariable' | 'actionInputArgs' | 'transitionVariablesToPass' | 'codeReturnVarMap' | 'qnaKnowledgeBaseId' | 'qnaThreshold' | 'waitDurationMs' | 'transitionTargetNodeId' | 'agentContextWindow'> {
+interface VisualNode extends Omit<JsonFlowNode, 'type' | 'position' | 'message' | 'prompt' | 'llmPrompt' | 'outputVariable' | 'conditionVariable' | 'qnaKnowledgeBaseId' | 'qnaThreshold' | 'waitDurationMs' | 'agentContextWindow'> {
   type: FlowNodeType;
   label: string;
   x: number;
   y: number;
-  content?: string;
-  message?: string;
-  prompt?: string;
-  variableName?: string;
-  inputType?: string;
-  validationRules?: string;
-  llmPrompt?: string;
-  outputVariable?: string;
-  conditionVariable?: string;
-  useLLMForDecision?: boolean;
-  useKnowledge?: boolean;
-  actionName?: string;
-  actionInputArgs?: Record<string, any> | string;
-  actionOutputVarMap?: Record<string, string> | string;
-  apiUrl?: string;
-  apiMethod?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
-  apiHeaders?: Record<string, string> | string;
-  apiBodyVariable?: string;
-  apiOutputVariable?: string;
-  codeScript?: string;
-  codeReturnVarMap?: Record<string, string> | string;
-  qnaKnowledgeBaseId?: string;
-  qnaQueryVariable?: string;
-  qnaFallbackText?: string;
-  qnaOutputVariable?: string;
-  qnaThreshold?: number;
-  waitDurationMs?: number;
-  transitionTargetFlowId?: string;
-  transitionVariablesToPass?: Record<string, any> | string;
-  agentSkillId?: string;
-  agentSkillsList?: string[];
-  endOutputVariable?: string;
+  content?: string; // Generic content holder for display on node
+  message?: string; // For sendMessage
+  prompt?: string; // For getUserInput
+  variableName?: string; // For getUserInput
+  inputType?: string; // For getUserInput (future validation hint)
+  validationRules?: string; // For getUserInput (future validation rules)
+  llmPrompt?: string; // For callLLM
+  outputVariable?: string; // For callLLM, qnaLookup
+  useKnowledge?: boolean; // For callLLM
+  conditionVariable?: string; // For condition
+  useLLMForDecision?: boolean; // For condition
+  qnaQueryVariable?: string; // For qnaLookup
+  qnaFallbackText?: string; // For qnaLookup
+  waitDurationMs?: number; // For wait
+  endOutputVariable?: string; // For end
 }
 
 
@@ -82,32 +65,91 @@ interface NodeDefinition {
 }
 
 const NODE_DEFINITIONS: NodeDefinition[] = [
-  { type: 'start', label: 'Start Conversation', icon: Play, defaultProperties: { label: "Start" }, docs: { purpose: "Marks the beginning of the chatbot's conversation path. For 'inbound' agents (customer starts interaction), this is the first step. For 'outbound' agents (bot starts interaction), this might be triggered by an external event not shown on this canvas.", settings: "No specific settings for this step. The conversation's initial greeting is usually managed on the 'Personality' page for the agent.", edges: "Connect this to the first step your chatbot should take (e.g., a 'Send a Message' for an opening statement, or 'Ask a Question' to gather initial info).", rules: "Every conversation design needs one 'Start Conversation' step. Ensure it connects to a logical next step."} },
-  { type: 'sendMessage', label: 'Send a Message', icon: MessageSquare, defaultProperties: { label: "Send Message", message: "Hello! How can I help you today?" }, docs: { purpose: "Makes the chatbot send a specific message to the user. This can be a greeting, information, a question before an 'Ask a Question' step, or a closing statement.", settings: "Write the chatbot's message in 'Message Text'. You can use {{variables}} from user inputs or AI responses (e.g., 'Hello {{userName}}, thanks for contacting us.').", edges: "Connects to the next step after the message is sent. This could be waiting for user input, making a decision, or ending the conversation.", rules: "Keep messages clear, concise, and helpful. For 'outbound' agents, the first 'Send a Message' after 'Start' could be its opening line." } },
-  { type: 'getUserInput', label: 'Ask a Question', icon: HelpCircle, defaultProperties: { label: "Ask Question", prompt: "What's your name?", variableName: "userName" }, docs: { purpose: "Asks the user a question and saves their answer into a variable to use later in the conversation flow.", settings: "Write the chatbot's question in 'Chatbot's Question'. Choose a 'Save User's Answer as (Variable Name)' (e.g., 'userName' or 'userEmail'). This name is how you'll refer to the user's answer in other steps. Example: Use {{userName}} in a later 'Send a Message' step.", edges: "Connects to what happens after the user answers (e.g., a 'Make a Decision' step based on their answer). You can optionally define a separate path if the user's input is considered 'invalid' (validation logic for this path is not yet implemented).", rules: "Make variable names unique and descriptive (e.g., 'customerOrderNumber' instead of just 'order'). This step inherently waits for user input." } },
-  { type: 'callLLM', label: 'Smart Response (AI)', icon: Zap, defaultProperties: { label: "Smart Response", llmPrompt: "User said: {{userInputVar}}. Respond intelligently to help them.", outputVariable: "aiResponse", useKnowledge: false }, docs: { purpose: "Uses AI (like Gemini) to understand context, generate human-like responses, make decisions, or extract information. This is where the 'magic' happens for dynamic interactions!", settings: "Write a clear 'Instruction for AI' in the prompt field (e.g., 'Based on the user's inquiry {{userInquiry}}, what product would you recommend?'). Check 'Allow AI to use Trained Knowledge' to let the AI access data you've uploaded from documents or websites for RAG-like behavior. Save the AI's answer in 'Save AI Response As (Variable Name)' (e.g., 'aiRecommendation'). Tip: Tell the AI how to respond if it's unsure, e.g., 'If you don't know, say: I can't find that specific information.' Use `{{conversationHistory}}` in your prompt to give the LLM access to recent turns.", edges: "Connects to the next step after the AI generates its response (e.g., send the `{{aiRecommendation}}` in a 'Send a Message' step).", rules: "Clear, specific instructions result in better AI responses. Using AI will consume processing credits (if applicable in the future). The AI will automatically receive the last few turns of conversation history." } },
-  { type: 'condition', label: 'Make a Decision', icon: ChevronsUpDown, defaultProperties: { label: "Decision Point", conditionVariable: "userChoice", useLLMForDecision: false }, docs: { purpose: "Changes the conversation path based on a user's answer or a previously saved variable. This is key for creating branching logic.", settings: "In 'Variable to Base Decision On', enter the variable name (e.g., 'userChoice' from an 'Ask a Question' step). Then, for each outgoing connection (edge) from this step, set its 'Decision Outcome / User Input Value' to match a possible value of that variable (e.g., 'Yes', 'No', 'Option A'). If 'Use AI to Understand User's Intent' is checked, the AI will try to match the variable's value to the edge labels even if it's not an exact match (good for natural language answers).", edges: "Create one connection for each possible choice or outcome. Always have a 'Default / Other' connection (edge with an empty condition value) for unexpected values or when AI decision doesn't match.", rules: "Ensure all decision paths lead to another step or end the conversation appropriately. Variable names are case-sensitive." } },
-  { type: 'qnaLookup', label: 'Answer from Knowledge', icon: FileQuestion, defaultProperties: { label: "Answer from Knowledge", qnaQueryVariable: "userQuery", qnaOutputVariable: "knowledgeAnswer", qnaFallbackText: "I'm not sure about that based on my current training. Could you ask in a different way?" }, docs: { purpose: "Searches the chatbot's 'Trained Knowledge' (from your uploaded documents/websites) to directly answer user questions. Ideal for FAQ bots or information retrieval.", settings: "In 'User's Question (Variable)', specify the variable containing the user's query (e.g., `{{lastUserMessage}}` or a variable from a 'Ask a Question' step). The found answer is saved in 'Save Found Answer As (Variable)'. 'Message if No Answer Found' is shown if the trained data doesn't have a good match.", edges: "Requires two outgoing connections: one for 'If Answer Found' (edge type: `found`) and another for 'If Answer Not Found' (edge type: `notFound`).", rules: "Ensure your chatbot is trained with relevant business data on the 'Knowledge' page for this step to be effective. This provides a basic RAG (Retrieval Augmented Generation) capability." } },
-  { type: 'end', label: 'End Conversation', icon: StopCircle, defaultProperties: { label: "End"}, docs: { purpose: "Marks the end of this particular path or the entire conversation. Properly ending flows ensures the agent doesn't get stuck.", settings: "No specific settings, unless you want to output a final variable from the context using 'Output Variable from Context' (advanced).", edges: "This step should not have any outgoing connections.", rules: "Ensure all conversation paths can eventually reach an 'End Conversation' step or loop back appropriately. For 'outbound' call agents, this might signify the end of their script for that call." } },
-  { type: 'action', label: 'Run Action (Placeholder)', icon: SlidersHorizontal, defaultProperties: { label: "Custom Action", actionName: "myCustomAction" }, docs: { purpose: "(Placeholder - Developer Setup Needed) Triggers a pre-defined custom action or function on your backend (e.g., update a database, send an email, integrate with a specific business system).", settings: "Define the 'Action Name' that corresponds to a function your developers have set up. 'Input Arguments' can be passed as JSON (e.g., `{\"userId\": \"{{userIdVar}}\"}`). Output can be mapped back to context variables.", edges: "Connects to the next step after the action is (conceptually) run. You might have 'success' and 'failure' paths.", rules: "Actions are placeholders in this visual builder and need separate coding by a developer to actually function. This is for more advanced integrations." } },
-  { type: 'apiCall', label: 'Connect to Tool (Placeholder)', icon: Network, defaultProperties: { label: "HTTP Request", apiUrl: "https://api.example.com/data", apiMethod: 'GET' }, docs: { purpose: "(Placeholder - Developer Setup Needed) Connects to external services or databases via HTTP/REST API (e.g., get weather, stock prices, client CRM data).", settings: "Provide the 'API URL' (can use {{variables}}). Choose the 'Method' (GET/POST etc.). Add 'Headers' (as JSON, e.g. for authentication tokens `{\"Authorization\": \"Bearer {{apiToken}}\"}`). For POST/PUT, specify the 'Body Variable' from context. Save the response to 'Save API Response As (Variable Name)'.", edges: "Typically has paths for 'On Success' (edge type `success`) and 'On Error' (edge type `error`).", rules: "APIs can be complex. This step simulates an API call during testing; actual integration may need developer assistance and secure credential management on a backend." } },
-  { type: 'code', label: 'Custom Code (Placeholder)', icon: FileCode, defaultProperties: { label: "JS Code", codeScript: "// Your JavaScript code here\n// return { myResult: 'value' };" }, docs: { purpose: "(Placeholder - Highly Advanced & Experimental) Executes a small piece of JavaScript code for custom logic or data manipulation. Use with extreme caution if ever fully implemented.", settings: "Write your JavaScript in 'JavaScript Code'. You can map returned object keys to context variables using 'Return Variable Map'.", edges: "Connects to the next step.", rules: "This step simulates code execution during testing. Incorrect code can break the flow. Requires JavaScript knowledge and a secure execution environment (not currently provided)." } },
-  { type: 'wait', label: 'Add Delay', icon: Timer, defaultProperties: { label: "Wait", waitDurationMs: 1000 }, docs: { purpose: "Pauses the conversation for a short time, for example, to simulate the chatbot 'thinking' or 'typing', or to wait before sending a follow-up message.", settings: "Set the 'Delay Duration (ms)' (1000ms = 1 second).", edges: "Connects to the next step after the delay.", rules: "Use short delays (1-3 seconds) to avoid making the user wait too long. For 'outbound' sequences, longer delays might be part of a drip campaign strategy." } },
-  { type: 'transition', label: 'Go to Another Flow (Placeholder)', icon: ArrowRightLeft, defaultProperties: { label: "Transition", transitionTargetFlowId: "another_flow_id" }, docs: { purpose: "(Placeholder) Jumps to a different conversation flow design. Useful for creating modular and reusable conversation parts (e.g., a standard 'address collection' flow).", settings: "Specify the 'Target Flow ID' of the conversation design to jump to. 'Variables to Pass' can send current context data to the new flow.", edges: "One outgoing connection.", rules: "This is a placeholder for flow transition logic; actual multi-flow execution with context passing is not fully implemented in this version." } },
-  { type: 'agentSkill', label: 'Use AI Skill (Placeholder)', icon: BrainCircuit, defaultProperties: { label: "Agent Skill", agentSkillId: "booking_skill" }, docs: { purpose: "(Placeholder) Activates a specialized AI capability, function, or even a sub-agent designed for a specific task (e.g., appointment booking, complex calculations, advanced language translation).", settings: "Specify the 'Skill ID'. Input/Output would be managed similarly to 'Action' or 'API Call' nodes.", edges: "Connects to the next step.", rules: "This is a placeholder for future advanced skill integration, potentially calling other Genkit flows or specialized models." } },
+  { 
+    type: 'start', label: 'Start Conversation', icon: Play, defaultProperties: { label: "Start" }, 
+    docs: { 
+      purpose: "Marks the very beginning of your chatbot's conversation. This is where the interaction flow kicks off.", 
+      settings: "No specific settings needed for this step. The agent's initial greeting message is usually configured on the 'Personality' page.", 
+      edges: "Connect this to the first action your chatbot should take, like sending an opening message or asking an initial question.", 
+      rules: "Every conversation design must have exactly one 'Start Conversation' step. Ensure it's connected to a follow-up step."
+    } 
+  },
+  { 
+    type: 'sendMessage', label: 'Send a Message', icon: MessageSquare, defaultProperties: { label: "Send Message", message: "Hello! How can I help you today?" }, 
+    docs: { 
+      purpose: "Allows the chatbot to send a specific text message to the user. Use this for greetings, providing information, or before asking a question.", 
+      settings: "In 'Message Text', write what you want the chatbot to say. You can include saved information using `{{variableName}}` (e.g., 'Hello {{userName}}, good to see you!').", 
+      edges: "Connects to the next step after the message is sent. This could be waiting for the user to reply, making a decision, or ending the chat.", 
+      rules: "Keep messages clear and concise. Ensure any `{{variables}}` you use have been defined in a previous 'Ask a Question' step."
+    } 
+  },
+  { 
+    type: 'getUserInput', label: 'Ask a Question', icon: HelpCircle, defaultProperties: { label: "Ask Question", prompt: "What's your name?", variableName: "userName" }, 
+    docs: { 
+      purpose: "Prompts the user for input and saves their answer into a variable for later use in the conversation.", 
+      settings: "In 'Chatbot's Question', type the question for the user. In 'Save User's Answer as (Variable Name)', give a descriptive name (e.g., `userEmail`, `orderNumber`) to store the user's response. This variable name can then be used in other steps, like `{{userEmail}}` in a 'Send a Message' step.", 
+      edges: "Connects to the next step after the user provides their input. You can also define an 'If Input Invalid' path (validation logic for this is basic currently).", 
+      rules: "Variable names should be unique and meaningful (e.g., `customerIssue` instead of just `issue`). This step always waits for the user to reply."
+    } 
+  },
+  { 
+    type: 'callLLM', label: 'Ask AI / Smart Response', icon: Zap, defaultProperties: { label: "AI Response", llmPrompt: "User said: {{userInputVar}}. Respond intelligently.", outputVariable: "aiResponse", useKnowledge: false }, 
+    docs: { 
+      purpose: "Uses a powerful AI (like Gemini) to understand context, generate human-like text, or make smart decisions within the flow. This is great for dynamic, intelligent interactions.", 
+      settings: "In 'Instruction for AI (Prompt)', give clear instructions to the AI (e.g., 'Based on the user's request: {{userRequest}}, suggest a suitable product.'). Check 'Allow AI to use Trained Knowledge' if you want the AI to access data from the 'Knowledge' tab. Store the AI's generated text in 'Save AI Response As (Variable Name)' (e.g., `aiRecommendation`). Tip: Guide the AI by telling it what to do if it's unsure, e.g., 'If you don't know, say: I can't find that specific information.' Use `{{conversationHistory}}` in your prompt to give the LLM access to recent turns of the conversation.", 
+      edges: "Connects to the next step after the AI generates its response (e.g., use a 'Send a Message' step to show the `{{aiRecommendation}}` to the user).", 
+      rules: "Specific and clear prompts lead to better AI responses. Using this step will consume AI processing resources. The AI automatically gets the last few turns of conversation history."
+    } 
+  },
+  { 
+    type: 'condition', label: 'Make a Decision', icon: ChevronsUpDown, defaultProperties: { label: "Decision Point", conditionVariable: "userChoice", useLLMForDecision: false }, 
+    docs: { 
+      purpose: "Changes the conversation path based on a user's answer or a previously saved variable. Essential for creating branching logic.", 
+      settings: "In 'Variable to Base Decision On', enter the variable name (e.g., `userChoice` from an 'Ask a Question' step). For each outgoing connection (edge), set its 'Decision Outcome / User Input Value' to a possible value of that variable (e.g., 'Yes', 'No', 'Option A'). If 'Use AI to Understand User's Intent' is checked, the AI will attempt to match the variable's value to the edge labels even if it's not an exact match (good for free-text answers).", 
+      edges: "Create one connection for each expected choice/outcome. Always include a 'Default / Other' connection (an edge with an empty condition value) for unexpected inputs or if the AI decision doesn't match.", 
+      rules: "Ensure all decision paths lead to another step or an 'End Conversation' step. Variable names are case-sensitive."
+    } 
+  },
+  { 
+    type: 'qnaLookup', label: 'Answer from Knowledge', icon: FileQuestion, defaultProperties: { label: "Knowledge Answer", qnaQueryVariable: "userQuery", qnaOutputVariable: "knowledgeAnswer", qnaFallbackText: "I'm not sure about that. Could you ask differently?" }, 
+    docs: { 
+      purpose: "Directly searches the chatbot's 'Trained Knowledge' (from uploaded documents/websites on the 'Knowledge' page) to answer user questions. Ideal for FAQs or info retrieval.", 
+      settings: "In 'User's Question (Variable)', specify the variable holding the user's query (e.g., `{{lastUserMessage}}` or a variable from an 'Ask a Question' step). The AI-found answer is saved in 'Save Found Answer As (Variable)'. 'Message if No Answer Found' is displayed if no good match is found in the trained data.", 
+      edges: "Typically has two outgoing connections: one for 'If Answer Found' (edge type: `found`) and another for 'If Answer Not Found' (edge type: `notFound`).", 
+      rules: "This step is most effective when your chatbot has been trained with relevant business data on the 'Knowledge' page. It provides a simple RAG (Retrieval Augmented Generation) capability."
+    } 
+  },
+   { 
+    type: 'wait', label: 'Add Delay', icon: Timer, defaultProperties: { label: "Wait", waitDurationMs: 1000 }, 
+    docs: { 
+      purpose: "Pauses the conversation for a specified time. Useful for simulating 'typing' or 'thinking', or for strategically delaying a follow-up message.", 
+      settings: "Set the 'Delay Duration (ms)' (e.g., 1000ms = 1 second).", 
+      edges: "Connects to the next step after the delay period has elapsed.", 
+      rules: "Use short delays (1-3 seconds) for simulating typing. Longer delays can be used in specific scenarios but be mindful of user experience."
+    } 
+  },
+  { 
+    type: 'end', label: 'End Conversation', icon: StopCircle, defaultProperties: { label: "End"}, 
+    docs: { 
+      purpose: "Marks the end of a particular path or the entire conversation. Properly ending flows prevents the chatbot from getting stuck.", 
+      settings: "No specific settings are usually needed. Advanced users can use 'Output Variable from Context' to pass a final piece of data out of the flow.", 
+      edges: "This step should not have any outgoing connections.", 
+      rules: "Ensure all conversation paths eventually lead to an 'End Conversation' step or loop back appropriately. For voice agents, this might signify the end of their script for that call."
+    } 
+  },
 ];
 
 
 const WIRING_BEST_PRACTICES_DOCS = {
   title: "Conversation Design Tips",
   points: [
-    "Every step (except 'End Conversation') should lead to another step. Avoid dead ends.",
-    "'Make a Decision' nodes need paths for each choice and a 'Default / Other' path for unexpected inputs.",
-    "Use 'Answer from Knowledge' for questions best answered by your trained business data (FAQs, product info).",
-    "Make sure variables are defined (e.g., in 'Ask a Question') before you use them in messages (like {{userName}}) or decisions.",
+    "Every step (except 'End Conversation') should lead to another step. Avoid dead ends in your logic.",
+    "'Make a Decision' steps need a path for each expected choice, plus a 'Default / Other' path for unexpected user inputs.",
+    "Use 'Answer from Knowledge' for questions best answered by your trained business data (FAQs, product info). Ensure your 'Knowledge' tab is populated.",
+    "Make sure variables are defined (e.g., in an 'Ask a Question' step) before you use them in messages (like `{{userName}}`) or decisions.",
     "Test all conversation paths thoroughly in the 'Test Chatbot' tab to ensure it behaves as expected for your client.",
-    "For 'voice' agents, keep messages concise. For 'chat' agents, you can be slightly more verbose.",
-    "Consider the 'inbound'/'outbound' nature. An 'inbound' flow starts with the user's query, while an 'outbound' flow might start with a specific message from the bot.",
+    "For 'voice' agents, keep messages concise and clear. For 'chat' agents, you can be slightly more verbose but still aim for clarity.",
+    "Consider the agent's 'direction' (inbound/outbound) when designing. An 'inbound' flow usually starts with the user's query, while an 'outbound' flow might start with a specific message from the bot.",
   ]
 };
 
@@ -126,18 +168,18 @@ export const minimalInitialFlow: AgentFlowDefinition = {
 
 export const customerSupportFlow: AgentFlowDefinition = {
   flowId: "customer-support-flow",
-  name: "Customer Support",
-  description: "Handles customer inquiries, routes to product info or tech support.",
+  name: "Customer Support Example",
+  description: "Handles customer inquiries, routes to product info or tech support using simplified logic.",
   nodes: [
     { id: "cs_start", type: "start", label: "Start", position: { x: 50, y: 50 } },
     { id: "cs_greet", type: "sendMessage", label: "Greet & Ask Category", message: "Welcome to support! Are you looking for (1) Product Information, (2) Technical Support, or (3) Billing help?", position: { x: 50, y: 150 } },
     { id: "cs_get_category", type: "getUserInput", label: "Get Category Choice", prompt: "Please enter 1, 2, or 3.", variableName: "supportCategory", position: { x: 50, y: 250 } },
     { id: "cs_check_category", type: "condition", label: "Route by Category", conditionVariable: "supportCategory", useLLMForDecision: false, position: { x: 50, y: 350 } },
     { id: "cs_prod_info_prompt", type: "getUserInput", label: "Ask Product Name", prompt: "Sure, which product are you interested in?", variableName: "productName", position: { x: 250, y: 450 } },
-    { id: "cs_prod_lookup", type: "qnaLookup", label: "Lookup Product in KB", qnaQueryVariable: "productName", qnaOutputVariable: "productInfo", qnaFallbackText: "I couldn't find specific details for that product in my knowledge base.", position: { x: 250, y: 550 } },
+    { id: "cs_prod_lookup", type: "qnaLookup", label: "Lookup Product in KB", qnaQueryVariable: "productName", qnaOutputVariable: "productInfo", qnaFallbackText: "I couldn't find specific details for that product. You can check our website or ask another question.", position: { x: 250, y: 550 } },
     { id: "cs_send_prod_info", type: "sendMessage", label: "Send Product Info", message: "{{productInfo}} \n\nIs there anything else I can help with regarding products?", position: { x: 250, y: 650 } },
     { id: "cs_tech_prompt", type: "getUserInput", label: "Ask Tech Issue", prompt: "Okay, technical support. Please describe the problem you're facing.", variableName: "techIssue", position: { x: -150, y: 450 } },
-    { id: "cs_tech_llm", type: "callLLM", label: "LLM Troubleshoot", llmPrompt: "User has a technical issue: {{techIssue}}. Provide troubleshooting steps based on available knowledge.", outputVariable: "techSolution", useKnowledge: true, position: { x: -150, y: 550 } },
+    { id: "cs_tech_llm", type: "callLLM", label: "AI Troubleshoot", llmPrompt: "User has a technical issue: {{techIssue}}. Provide troubleshooting steps. If you don't know, suggest contacting live support.", outputVariable: "techSolution", useKnowledge: true, position: { x: -150, y: 550 } },
     { id: "cs_send_tech_solution", type: "sendMessage", label: "Send Tech Solution", message: "{{techSolution}}\n\nDid these steps help?", position: { x: -150, y: 650 } },
     { id: "cs_billing_prompt", type: "sendMessage", label: "Billing Info", message: "For billing issues, please contact our billing department at billing@example.com or call 1-800-555-BILL.", position: { x: 50, y: 450 } },
     { id: "cs_further_help_q", type: "getUserInput", label: "Further Assistance?", prompt: "(Type 'yes' or 'no')", variableName: "furtherProductHelp", position: { x: 250, y: 750 } },
@@ -151,8 +193,8 @@ export const customerSupportFlow: AgentFlowDefinition = {
     { id: "ecs_gc_cc", source: "cs_get_category", target: "cs_check_category" },
     { id: "ecs_cc_pi", source: "cs_check_category", target: "cs_prod_info_prompt", condition: "1", label: "Product Info (1)" },
     { id: "ecs_pi_pl", source: "cs_prod_info_prompt", target: "cs_prod_lookup" },
-    { id: "ecs_pl_spi", source: "cs_prod_lookup", target: "cs_send_prod_info", edgeType: "found", label:"Found" },
-    { id: "ecs_pl_spi_nf", source: "cs_prod_lookup", target: "cs_send_prod_info", edgeType: "notFound", label:"Not Found" }, 
+    { id: "ecs_pl_spi_found", source: "cs_prod_lookup", target: "cs_send_prod_info", edgeType: "found", label:"Found" },
+    { id: "ecs_pl_spi_notfound", source: "cs_prod_lookup", target: "cs_send_prod_info", edgeType: "notFound", label:"Not Found" }, 
     { id: "ecs_spi_fh", source: "cs_send_prod_info", target: "cs_further_help_q" },
     { id: "ecs_fh_cfh", source: "cs_further_help_q", target: "cs_check_further_help" },
     { id: "ecs_cfh_pi_loop", source: "cs_check_further_help", target: "cs_prod_info_prompt", condition: "yes", label: "Yes (more product help)" },
@@ -164,45 +206,6 @@ export const customerSupportFlow: AgentFlowDefinition = {
     { id: "ecs_cc_b", source: "cs_check_category", target: "cs_billing_prompt", condition: "3", label: "Billing (3)" },
     { id: "ecs_bp_end", source: "cs_billing_prompt", target: "cs_end_billing"},
     { id: "ecs_cc_default_end", source: "cs_check_category", target: "cs_end_happy", condition: "", label: "Default/Other", edgeType: "default" }, 
-  ]
-};
-
-export const refundProcessingFlow: AgentFlowDefinition = {
-  flowId: "refund-processing-flow",
-  name: "Refund Processing",
-  description: "Guides users through the refund process, including verification.",
-  nodes: [
-    { id: "rf_start", type: "start", label: "Start Refund", position: { x: 50, y: 50 } },
-    { id: "rf_policy", type: "sendMessage", label: "Policy & Proceed?", message: "Refunds are typically processed within 5-7 business days for eligible items returned within 30 days. Would you like to start a refund request?", position: { x: 50, y: 150 } },
-    { id: "rf_get_proceed", type: "getUserInput", label: "Ask to Proceed", prompt: "Yes or No?", variableName: "proceedRefund", position: { x: 50, y: 250 } },
-    { id: "rf_check_proceed", type: "condition", label: "Check Proceed", conditionVariable: "proceedRefund", useLLMForDecision: true, position: { x: 50, y: 350 } }, 
-    { id: "rf_ask_order_id", type: "getUserInput", label: "Ask Order ID", prompt: "Please enter your Order ID.", variableName: "orderId", position: { x: 250, y: 450 } },
-    { id: "rf_verify_order_api", type: "apiCall", label: "Verify Order (API)", apiUrl: "https://api.example.com/orders/{{orderId}}/verify", apiMethod: "GET", apiOutputVariable: "orderStatus", position: { x: 250, y: 550 } },
-    { id: "rf_check_order_status", type: "condition", label: "Check Order Status", conditionVariable: "orderStatus", position: { x: 250, y: 650 } }, 
-    { id: "rf_ask_reason", type: "getUserInput", label: "Ask Refund Reason", prompt: "What is the reason for your refund request?", variableName: "refundReason", position: { x: 450, y: 750 } },
-    { id: "rf_process_refund_llm", type: "callLLM", label: "Process Refund (LLM)", llmPrompt: "User (Order ID: {{orderId}}) requests refund for reason: {{refundReason}}. Based on policy (30 day return, eligible items), decide if refund is approved and state amount or reason for denial.", outputVariable: "refundDecisionMsg", useKnowledge: true, position: { x: 450, y: 850 } },
-    { id: "rf_send_decision", type: "sendMessage", label: "Send Refund Decision", message: "{{refundDecisionMsg}}", position: { x: 450, y: 950 } },
-    { id: "rf_send_not_proceed", type: "sendMessage", label: "Not Proceeding", message: "Okay, if you change your mind, feel free to start a new request.", position: { x: -150, y: 450 } },
-    { id: "rf_order_invalid", type: "sendMessage", label: "Order Invalid/Error", message: "Sorry, I couldn't validate your order ID ({{orderId}}). Please check the ID or contact support if the issue persists. Response: {{orderStatus}}", position: { x: 50, y: 750 } },
-    { id: "rf_end", type: "end", label: "End Refund", position: { x: 250, y: 1050 } },
-  ],
-  edges: [
-    { id: "erf_s_p", source: "rf_start", target: "rf_policy" },
-    { id: "erf_p_gp", source: "rf_policy", target: "rf_get_proceed" },
-    { id: "erf_gp_cp", source: "rf_get_proceed", target: "rf_check_proceed" },
-    { id: "erf_cp_yes", source: "rf_check_proceed", target: "rf_ask_order_id", condition: "User wants to proceed with the refund.", label: "Yes" },
-    { id: "erf_aoi_voa", source: "rf_ask_order_id", target: "rf_verify_order_api" },
-    { id: "erf_voa_cos", source: "rf_verify_order_api", target: "rf_check_order_status", edgeType: "success", label:"Success" },
-    { id: "erf_voa_oi_err", source: "rf_verify_order_api", target: "rf_order_invalid", edgeType: "error", label:"Error" }, 
-    { id: "erf_cos_valid", source: "rf_check_order_status", target: "rf_ask_reason", condition: "valid", label: "Order Valid" },
-    { id: "erf_ar_prl", source: "rf_ask_reason", target: "rf_process_refund_llm" },
-    { id: "erf_prl_sd", source: "rf_process_refund_llm", target: "rf_send_decision" },
-    { id: "erf_sd_end", source: "rf_send_decision", target: "rf_end" },
-    { id: "erf_cos_invalid", source: "rf_check_order_status", target: "rf_order_invalid", condition: "invalid", label: "Order Invalid" },
-    { id: "erf_cos_default_invalid", source: "rf_check_order_status", target: "rf_order_invalid", condition: "", label: "Default/Error", edgeType: "default" },
-    { id: "erf_oi_end", source: "rf_order_invalid", target: "rf_end" },
-    { id: "erf_cp_no", source: "rf_check_proceed", target: "rf_send_not_proceed", condition: "User does not want to proceed.", label: "No" },
-    { id: "erf_snp_end", source: "rf_send_not_proceed", target: "rf_end" },
   ]
 };
 
@@ -229,18 +232,18 @@ export const generalPurposeAssistantFlow: AgentFlowDefinition = {
     { id: "start", type: "start", position: { x: 50, y: 50 }, label: "Start" },
     { id: "greet_user_node_1", type: "sendMessage", message: "Hi there! I’m your support agent. What can I help you with today?", position: { x: 50, y: 150 }, label: "Greet User" },
     { id: "get_issue_category_node_2", type: "getUserInput", prompt: "Please choose your issue category (e.g., Billing, Technical, Other):", variableName: "issueCategory", position: { x: 50, y: 250 }, label: "Get Issue Category" },
-    { id: "check_category_node_3", type: "condition", conditionVariable: "issueCategory", useLLMForDecision: true, position: { x: 50, y: 350 }, label: "Check Category (LLM)" },
+    { id: "check_category_node_3", type: "condition", conditionVariable: "issueCategory", useLLMForDecision: true, position: { x: 50, y: 350 }, label: "Check Category (AI)" },
     { id: "ask_billing_details_node_4", type: "getUserInput", prompt: "Got it—billing issue. Can you share your account ID or invoice number?", variableName: "billingInfo", position: { x: 250, y: 450 }, label: "Ask Billing Details" },
-    { id: "resolve_billing_node_5", type: "callLLM", llmPrompt: "You are a billing support agent. User '{{userName}}' has a billing issue regarding '{{billingInfo}}'. Provide a concise, accurate solution or next steps. Knowledge may be available.", outputVariable: "billingSolution", useKnowledge: true, position: { x: 250, y: 550 }, label: "Resolve Billing (LLM)" },
+    { id: "resolve_billing_node_5", type: "callLLM", llmPrompt: "You are a billing support agent. User '{{userName}}' has a billing issue regarding '{{billingInfo}}'. Provide a concise, accurate solution or next steps. Knowledge may be available.", outputVariable: "billingSolution", useKnowledge: true, position: { x: 250, y: 550 }, label: "Resolve Billing (AI)" },
     { id: "send_billing_solution_node_6", type: "sendMessage", message: "{{billingSolution}}", position: { x: 250, y: 650 }, label: "Send Billing Solution" },
     { id: "ask_tech_details_node_7", type: "getUserInput", prompt: "Alright—technical issue. Could you describe the error or what’s not working?", variableName: "techDetails", position: { x: 50, y: 450 }, label: "Ask Tech Details" },
-    { id: "resolve_technical_node_8", type: "callLLM", llmPrompt: "You’re a technical support agent. User '{{userName}}' is facing: '{{techDetails}}'. Provide step-by-step troubleshooting. Knowledge may be available.", outputVariable: "techSolution", useKnowledge: true, position: { x: 50, y: 550 }, label: "Resolve Tech (LLM)" },
+    { id: "resolve_technical_node_8", type: "callLLM", llmPrompt: "You’re a technical support agent. User '{{userName}}' is facing: '{{techDetails}}'. Provide step-by-step troubleshooting. Knowledge may be available.", outputVariable: "techSolution", useKnowledge: true, position: { x: 50, y: 550 }, label: "Resolve Tech (AI)" },
     { id: "send_tech_solution_node_9", type: "sendMessage", message: "{{techSolution}}", position: { x: 50, y: 650 }, label: "Send Tech Solution" },
     { id: "ask_general_details_node_10", type: "getUserInput", prompt: "Sure—other issue. Can you give me more details about '{{issueCategory}}'?", variableName: "generalDetails", position: { x: -150, y: 450 }, label: "Ask General Details" },
-    { id: "resolve_general_node_11", type: "callLLM", llmPrompt: "You’re a customer support agent. User '{{userName}}' has an issue about '{{issueCategory}}' with details '{{generalDetails}}'. Provide a helpful next step or resource. Knowledge may be available.", outputVariable: "generalSolution", useKnowledge: true, position: { x: -150, y: 550 }, label: "Resolve General (LLM)" },
+    { id: "resolve_general_node_11", type: "callLLM", llmPrompt: "You’re a customer support agent. User '{{userName}}' has an issue about '{{issueCategory}}' with details '{{generalDetails}}'. Provide a helpful next step or resource. Knowledge may be available.", outputVariable: "generalSolution", useKnowledge: true, position: { x: -150, y: 550 }, label: "Resolve General (AI)" },
     { id: "send_general_solution_node_12", type: "sendMessage", message: "{{generalSolution}}", position: { x: -150, y: 650 }, label: "Send General Solution" },
     { id: "ask_resolution_node_13", type: "getUserInput", prompt: "Did that solve your problem? (yes/no)", variableName: "resolvedConfirmation", position: { x: 50, y: 750 }, label: "Ask Resolution" },
-    { id: "check_resolution_node_14", type: "condition", conditionVariable: "resolvedConfirmation", useLLMForDecision: true, position: { x: 50, y: 850 }, label: "Check Resolution (LLM)" },
+    { id: "check_resolution_node_14", type: "condition", conditionVariable: "resolvedConfirmation", useLLMForDecision: true, position: { x: 50, y: 850 }, label: "Check Resolution (AI)" },
     { id: "resolved_yes_node_15", type: "sendMessage", message: "Awesome! Glad I could help. If there’s anything else, just let me know. 👍", position: { x: 250, y: 950 }, label: "Resolved: Yes" },
     { id: "end_resolved_yes_node_16", type: "end", position: { x: 250, y: 1050 }, label: "End (Yes)" },
     { id: "resolved_no_node_17", type: "sendMessage", message: "I’m sorry it’s still not sorted. I’ll escalate this to our specialist team—expect an email or call soon.", position: { x: -150, y: 950 }, label: "Resolved: No" },
@@ -273,10 +276,10 @@ export const generalPurposeAssistantFlow: AgentFlowDefinition = {
   ]
 };
 
+
 const sampleFlows: Record<string, { name: string; flow: AgentFlowDefinition }> = {
   minimal: { name: "Minimal (Start & End)", flow: minimalInitialFlow },
   support: { name: "Customer Support Example", flow: customerSupportFlow },
-  refund: { name: "Refund Process Example", flow: refundProcessingFlow },
   faq: { name: "FAQ Agent (Minimal Greeting)", flow: faqFlowMinimal },
   general: { name: "General Purpose Assistant", flow: generalPurposeAssistantFlow },
 };
@@ -289,7 +292,6 @@ export default function AgentStudioPage() {
 
   const agentId = Array.isArray(params.agentId) ? params.agentId[0] : params.agentId;
   const [currentAgent, setCurrentAgent] = useState<Agent | null | undefined>(undefined);
-  // Store agentType and direction in state to be accessible
   const [agentType, setAgentType] = useState<AgentType | undefined>(undefined);
   const [agentDirection, setAgentDirection] = useState<AgentDirection | undefined>(undefined);
 
@@ -330,7 +332,7 @@ export default function AgentStudioPage() {
       label: jsonNode.label || NODE_DEFINITIONS.find(def => def.type === jsonNode.type)?.defaultProperties?.label || jsonNode.id,
       x: jsonNode.position?.x || Math.random() * 400,
       y: jsonNode.position?.y || Math.random() * 300,
-      content: jsonNode.message || jsonNode.prompt || jsonNode.llmPrompt || jsonNode.codeScript,
+      content: jsonNode.message || jsonNode.prompt || jsonNode.llmPrompt,
     }));
     const loadedEdges: VisualEdge[] = (flowToLoad.edges || []).map((jsonEdge: JsonFlowEdge) => ({
       ...jsonEdge,
@@ -550,7 +552,6 @@ export default function AgentStudioPage() {
 
     if (sourceNode?.type === 'condition') { defaultEdgeLabel = "Outcome"; }
     else if (sourceNode?.type === 'qnaLookup') { defaultEdgeLabel = "Found Answer"; defaultEdgeType = "found"; }
-    else if (sourceNode?.type === 'apiCall') { defaultEdgeLabel = "Successful Call"; defaultEdgeType = "success"; }
     else if (sourceNode?.type === 'getUserInput') { defaultEdgeLabel = "User Responded"; }
 
 
@@ -576,7 +577,6 @@ export default function AgentStudioPage() {
             if (updatedProps.message !== undefined) newProps.content = updatedProps.message;
             else if (updatedProps.prompt !== undefined) newProps.content = updatedProps.prompt;
             else if (updatedProps.llmPrompt !== undefined) newProps.content = updatedProps.llmPrompt;
-            else if (updatedProps.codeScript !== undefined) newProps.content = updatedProps.codeScript;
             return newProps;
         }
         return n;
@@ -640,7 +640,7 @@ export default function AgentStudioPage() {
         toast({ title: "Invalid Conversation Design", description: "A conversation must have at least one 'Start Conversation' step.", variant: "destructive"});
         return null;
     }
-     if (!hasEndNode && nodes.length > 0) { // Warn but allow saving if it's a work-in-progress
+     if (!hasEndNode && nodes.length > 0) { 
         toast({ title: "Incomplete Conversation", description: "Your conversation design should ideally have at least one 'End Conversation' step to properly conclude paths.", variant: "default"});
     }
     
@@ -650,9 +650,9 @@ export default function AgentStudioPage() {
              toast({ title: "Invalid Step Type", description: `Step '${node.label}' has an unrecognized type '${node.type}'.`, variant: "destructive"});
             return null;
         }
-        // Basic validation for key fields
+        // Basic validation for key fields based on the simplified set
         if (node.type === 'callLLM' && (!node.llmPrompt || !node.outputVariable)) {
-            toast({ title: "Incomplete Step Config", description: `Smart Response step '${node.label}' is missing an 'Instruction for AI' or 'Save AI Response As' variable.`, variant: "destructive"});
+            toast({ title: "Incomplete Step Config", description: `Ask AI / Smart Response step '${node.label}' is missing an 'Instruction for AI' or 'Save AI Response As' variable.`, variant: "destructive"});
             return null;
         }
         if (node.type === 'getUserInput' && (!node.prompt || !node.variableName)) {
@@ -663,121 +663,40 @@ export default function AgentStudioPage() {
              toast({ title: "Incomplete Step Config", description: `Make a Decision step '${node.label}' is missing a 'Variable to Base Decision On'.`, variant: "destructive"});
             return null;
         }
+         if (node.type === 'qnaLookup' && (!node.qnaQueryVariable || !node.qnaOutputVariable)) {
+             toast({ title: "Incomplete Step Config", description: `Answer from Knowledge step '${node.label}' is missing 'User's Question (Variable)' or 'Save Found Answer As (Variable)'.`, variant: "destructive"});
+            return null;
+        }
     }
 
-    function recursivelyStripUndefined(obj: any): any {
-      if (typeof obj !== 'object' || obj === null) {
-        return obj;
-      }
-    
-      if (Array.isArray(obj)) {
-        const newArray = obj
-          .map(item => recursivelyStripUndefined(item))
-          .filter(item => item !== undefined);
-        return newArray.length > 0 ? newArray : undefined; 
-      }
-    
-      const newObj: { [key: string]: any } = {};
-      let hasKeys = false;
-      for (const key in obj) {
-        if (Object.prototype.hasOwnProperty.call(obj, key)) {
-          const value = recursivelyStripUndefined(obj[key]);
-          if (value !== undefined) {
-            newObj[key] = value;
-            hasKeys = true;
-          }
-        }
-      }
-      return hasKeys ? newObj : undefined; 
-    }
 
     function sanitizeNode(visualNode: VisualNode): JsonFlowNode {
-        const output: any = {
+        const output: Partial<JsonFlowNode> = { // Use Partial to build up
             id: visualNode.id,
             type: visualNode.type,
             label: visualNode.label || NODE_DEFINITIONS.find(def => def.type === visualNode.type)?.defaultProperties?.label || visualNode.id,
             position: { x: visualNode.x, y: visualNode.y },
         };
 
-        const allProps: (keyof VisualNode)[] = [
-            'message', 'prompt', 'variableName', 'inputType', 'validationRules', 'llmPrompt', 
-            'outputVariable', 'useKnowledge', 'conditionVariable', 'useLLMForDecision', 
-            'conditionExpressions', 'apiUrl', 'apiMethod', 'apiHeaders', 'apiBodyVariable', 
-            'apiTimeout', 'apiRetryAttempts', 'apiOutputVariable', 'endOutputVariable', 
-            'actionName', 'actionInputArgs', 'actionOutputVarMap', 'codeScript', 'codeReturnVarMap', 
-            'qnaKnowledgeBaseId', 'qnaQueryVariable', 'qnaThreshold', 'qnaOutputVariable', 
-            'qnaFallbackText', 'waitDurationMs', 'transitionTargetFlowId', 'transitionTargetNodeId', 
-            'transitionVariablesToPass', 'agentSkillId', 'agentSkillsList', 'agentContextWindow'
-        ];
+        // Add properties based on node type and if they have a value
+        if (visualNode.message !== undefined) output.message = visualNode.message;
+        if (visualNode.prompt !== undefined) output.prompt = visualNode.prompt;
+        if (visualNode.variableName !== undefined) output.variableName = visualNode.variableName;
+        if (visualNode.inputType !== undefined) output.inputType = visualNode.inputType;
+        if (visualNode.validationRules !== undefined) output.validationRules = visualNode.validationRules;
+        if (visualNode.llmPrompt !== undefined) output.llmPrompt = visualNode.llmPrompt;
+        if (visualNode.outputVariable !== undefined) output.outputVariable = visualNode.outputVariable;
+        if (visualNode.useKnowledge !== undefined) output.useKnowledge = visualNode.useKnowledge;
+        if (visualNode.conditionVariable !== undefined) output.conditionVariable = visualNode.conditionVariable;
+        if (visualNode.useLLMForDecision !== undefined) output.useLLMForDecision = visualNode.useLLMForDecision;
+        if (visualNode.qnaQueryVariable !== undefined) output.qnaQueryVariable = visualNode.qnaQueryVariable;
+        if (visualNode.qnaOutputVariable !== undefined) output.qnaOutputVariable = visualNode.qnaOutputVariable;
+        if (visualNode.qnaFallbackText !== undefined) output.qnaFallbackText = visualNode.qnaFallbackText;
+        if (visualNode.waitDurationMs !== undefined) output.waitDurationMs = visualNode.waitDurationMs;
+        if (visualNode.endOutputVariable !== undefined) output.endOutputVariable = visualNode.endOutputVariable;
+        if (visualNode.agentContextWindow !== undefined) output.agentContextWindow = visualNode.agentContextWindow;
 
-        allProps.forEach(propKey => {
-            const visualValue = visualNode[propKey as keyof VisualNode];
-
-            if (visualValue === undefined || visualValue === null) {
-                return; 
-            }
-
-            let valueToSet: any;
-            const jsonStringOrObjectProps: (keyof VisualNode)[] = [
-                'apiHeaders', 'actionInputArgs', 'actionOutputVarMap', 
-                'codeReturnVarMap', 'transitionVariablesToPass'
-            ];
-
-            if (jsonStringOrObjectProps.includes(propKey)) {
-                let objectToSanitize: any;
-                if (typeof visualValue === 'string') {
-                    if (visualValue.trim() === '') {
-                        objectToSanitize = {}; 
-                    } else {
-                        try {
-                            objectToSanitize = JSON.parse(visualValue);
-                        } catch (e) {
-                            console.warn(`Invalid JSON string in ${String(propKey)} for step ${visualNode.label}: "${visualValue}". Skipping.`);
-                            return;
-                        }
-                    }
-                } else if (typeof visualValue === 'object') {
-                    objectToSanitize = visualValue;
-                } else {
-                    console.warn(`Unexpected type for ${String(propKey)} in step ${visualNode.label}. Expected string or object, got ${typeof visualValue}. Skipping.`);
-                    return;
-                }
-                
-                if (typeof objectToSanitize === 'object' && objectToSanitize !== null) {
-                    valueToSet = recursivelyStripUndefined(objectToSanitize);
-                } else {
-                    if (!(typeof visualValue === 'string' && visualValue.trim() === '')) { // Only warn if original visualValue was not an empty string
-                         console.warn(`Value for ${String(propKey)} in step ${visualNode.label} parsed to non-object:`, objectToSanitize, `. Original visual value:`, visualValue, `. Skipping.`);
-                         return;
-                    }
-                    valueToSet = {}; // Default to empty object if parsing failed from empty string
-                }
-
-            } else if (Array.isArray(visualValue)) {
-                const sanitizedArray = visualValue
-                    .map(item => recursivelyStripUndefined(item))
-                    .filter(item => item !== undefined);
-                if (sanitizedArray.length > 0) {
-                    valueToSet = sanitizedArray;
-                } else {
-                    valueToSet = []; // Store empty array if all items were undefined
-                }
-            } else if (typeof visualValue === 'object') {
-                 valueToSet = recursivelyStripUndefined(visualValue);
-            }
-            else {
-                valueToSet = visualValue; 
-            }
-
-            // Ensure only non-undefined values are set (boolean false is okay, empty string is okay)
-            if (valueToSet !== undefined) {
-                // Booleans are fine, non-null objects are fine, other non-null/non-undefined primitives are fine
-                if (typeof valueToSet === 'boolean' || (typeof valueToSet === 'object' && valueToSet !== null) || (typeof valueToSet !== 'object' && valueToSet !== null && valueToSet !== undefined ) ) {
-                    output[propKey as keyof JsonFlowNode] = valueToSet;
-                }
-            }
-        });
-        return output as JsonFlowNode;
+        return output as JsonFlowNode; // Cast to full type after construction
     }
 
     function sanitizeEdge(edge: VisualEdge): JsonFlowEdge {
@@ -1062,13 +981,8 @@ export default function AgentStudioPage() {
                     node.type === 'getUserInput' ? (node.variableName ? `Var: ${node.variableName}`: '...') :
                     node.type === 'callLLM' ? (node.outputVariable ? `Out: ${node.outputVariable}`: '...') :
                     node.type === 'condition' ? (node.conditionVariable ? `If: ${node.conditionVariable}`: '...') :
-                    node.type === 'action' ? (node.actionName || 'Action') :
-                    node.type === 'apiCall' ? (node.apiUrl ? node.apiUrl.substring(0,15)+'...' : 'HTTP Req') : 
-                    node.type === 'code' ? 'JS Code' :
                     node.type === 'qnaLookup' ? (node.qnaOutputVariable || 'Q&A') :
                     node.type === 'wait' ? `${node.waitDurationMs || 0}ms Wait` :
-                    node.type === 'transition' ? (node.transitionTargetFlowId || 'Transition') :
-                    node.type === 'agentSkill' ? (node.agentSkillId || 'Agent Skill') :
                     NODE_DEFINITIONS.find(d=>d.type === node.type)?.label || node.type
                 }
                 </p>
@@ -1118,13 +1032,11 @@ export default function AgentStudioPage() {
                   <>
                     <div><Label htmlFor="nodePrompt" className="text-[10px] sm:text-xs">Chatbot's Question for User</Label><Textarea id="nodePrompt" value={selectedNodeDetails.prompt || ""} onChange={e => updateSelectedNodeProperties({ prompt: e.target.value })} rows={2} className="text-xs sm:text-sm"/></div>
                     <div><Label htmlFor="nodeVariable" className="text-[10px] sm:text-xs">Save User's Answer as (Variable Name)</Label><Input id="nodeVariable" value={selectedNodeDetails.variableName || ""} onChange={e => updateSelectedNodeProperties({ variableName: e.target.value })}  className="h-7 sm:h-8 text-xs sm:text-sm" placeholder="e.g., customerEmail"/></div>
-                    <div><Label htmlFor="nodeInputType" className="text-[10px] sm:text-xs">Input Type (e.g. text, number - for future validation)</Label><Input id="nodeInputType" value={selectedNodeDetails.inputType || ""} onChange={e => updateSelectedNodeProperties({ inputType: e.target.value })}  className="h-7 sm:h-8 text-xs sm:text-sm" placeholder="e.g., text, number"/></div>
-                    <div><Label htmlFor="nodeValidation" className="text-[10px] sm:text-xs">Validation Rules (e.g. must be email - for future use)</Label><Input id="nodeValidation" value={selectedNodeDetails.validationRules || ""} onChange={e => updateSelectedNodeProperties({ validationRules: e.target.value })}  className="h-7 sm:h-8 text-xs sm:text-sm" placeholder="e.g., regex for email"/></div>
                   </>
                 )}
                 { selectedNodeDetails.type === 'callLLM' && (
                   <>
-                    <div><Label htmlFor="llmPrompt" className="text-[10px] sm:text-xs">Instruction for AI (Use {{variableName}} for user data)</Label><Textarea id="llmPrompt" value={selectedNodeDetails.llmPrompt || ""} onChange={e => updateSelectedNodeProperties({ llmPrompt: e.target.value })} rows={3} className="text-xs sm:text-sm"/><p className="text-[10px] text-muted-foreground mt-0.5">Tip: Tell the AI how to respond if it's unsure, e.g., "If you don't know, say: I can't find that specific information."</p></div>
+                    <div><Label htmlFor="llmPrompt" className="text-[10px] sm:text-xs">Instruction for AI (Use {{variableName}} for context data)</Label><Textarea id="llmPrompt" value={selectedNodeDetails.llmPrompt || ""} onChange={e => updateSelectedNodeProperties({ llmPrompt: e.target.value })} rows={3} className="text-xs sm:text-sm"/><p className="text-[10px] text-muted-foreground mt-0.5">Tip: Include `{{conversationHistory}}` for context. End with how the AI should respond if unsure.</p></div>
                     <div><Label htmlFor="llmOutputVar" className="text-[10px] sm:text-xs">Save AI's Response as (Variable Name)</Label><Input id="llmOutputVar" value={selectedNodeDetails.outputVariable || ""} onChange={e => updateSelectedNodeProperties({ outputVariable: e.target.value })}  className="h-7 sm:h-8 text-xs sm:text-sm" placeholder="e.g., aiGeneratedSummary"/></div>
                     <div className="flex items-center space-x-1.5 pt-1"><Checkbox id="useKnowledge" checked={!!selectedNodeDetails.useKnowledge} onCheckedChange={(checked) => updateSelectedNodeProperties({ useKnowledge: !!checked })}/><Label htmlFor="useKnowledge" className="text-[10px] sm:text-xs font-normal cursor-pointer">Allow AI to use Trained Knowledge</Label></div>
                   </>
@@ -1132,61 +1044,44 @@ export default function AgentStudioPage() {
                 { selectedNodeDetails.type === 'condition' && (
                    <>
                     <div><Label htmlFor="conditionVar" className="text-[10px] sm:text-xs">Variable to Base Decision On</Label><Input id="conditionVar" value={selectedNodeDetails.conditionVariable || ""} onChange={e => updateSelectedNodeProperties({ conditionVariable: e.target.value })}  className="h-7 sm:h-8 text-xs sm:text-sm" placeholder="e.g., userChoice"/></div>
-                    <div className="flex items-center space-x-1.5 pt-1"><Checkbox id="useLLMForDecision" checked={!!selectedNodeDetails.useLLMForDecision} onCheckedChange={(checked) => updateSelectedNodeProperties({ useLLMForDecision: !!checked })}/><Label htmlFor="useLLMForDecision" className="text-[10px] sm:text-xs font-normal cursor-pointer">Use AI to Understand User's Intent for Decision</Label></div>
+                    <div className="flex items-center space-x-1.5 pt-1"><Checkbox id="useLLMForDecision" checked={!!selectedNodeDetails.useLLMForDecision} onCheckedChange={(checked) => updateSelectedNodeProperties({ useLLMForDecision: !!checked })}/><Label htmlFor="useLLMForDecision" className="text-[10px] sm:text-xs font-normal cursor-pointer">Use AI to Match User Intent for Decision</Label></div>
                    </>
-                )}
-                 { selectedNodeDetails.type === 'apiCall' && (
-                    <>
-                        <div><Label htmlFor="apiUrl" className="text-[10px] sm:text-xs">API URL</Label><Input id="apiUrl" value={selectedNodeDetails.apiUrl || ""} onChange={e => updateSelectedNodeProperties({ apiUrl: e.target.value })} className="h-7 sm:h-8 text-xs sm:text-sm"/></div>
-                        <div><Label htmlFor="apiMethod" className="text-[10px] sm:text-xs">Method</Label>
-                            <Select value={selectedNodeDetails.apiMethod || 'GET'} onValueChange={value => updateSelectedNodeProperties({ apiMethod: value as JsonFlowNode['apiMethod'] })}>
-                                <SelectTrigger className="h-7 sm:h-8 text-xs sm:text-sm"><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                    {['GET', 'POST', 'PUT', 'DELETE', 'PATCH'].map(m => <SelectItem key={m} value={m} className="text-xs sm:text-sm">{m}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div><Label htmlFor="apiHeaders" className="text-[10px] sm:text-xs">Headers (JSON String, e.g., {"{\"Auth\":\"Bearer {{token}}\"} "})</Label><Textarea id="apiHeaders" placeholder='{ "Content-Type": "application/json" }' value={typeof selectedNodeDetails.apiHeaders === 'string' ? selectedNodeDetails.apiHeaders : JSON.stringify(selectedNodeDetails.apiHeaders || {})} onChange={e => updateSelectedNodeProperties({ apiHeaders: e.target.value })} rows={2} className="text-xs sm:text-sm font-code"/></div>
-                        <div><Label htmlFor="apiBodyVar" className="text-[10px] sm:text-xs">Body Variable (from context, for POST/PUT)</Label><Input id="apiBodyVar" value={selectedNodeDetails.apiBodyVariable || ""} onChange={e => updateSelectedNodeProperties({ apiBodyVariable: e.target.value })} className="h-7 sm:h-8 text-xs sm:text-sm"/></div>
-                        <div><Label htmlFor="apiOutputVar" className="text-[10px] sm:text-xs">Save API Response As (Variable Name)</Label><Input id="apiOutputVar" value={selectedNodeDetails.apiOutputVariable || selectedNodeDetails.outputVariable || ""} onChange={e => updateSelectedNodeProperties({ apiOutputVariable: e.target.value, outputVariable: e.target.value })} className="h-7 sm:h-8 text-xs sm:text-sm" placeholder="e.g., apiData"/></div>
-                    </>
                 )}
                 { selectedNodeDetails.type === 'qnaLookup' && (
                   <>
-                    <div><Label htmlFor="qnaQueryVar" className="text-[10px] sm:text-xs">User's Question (Variable Name, e.g. {{userInput}})</Label><Input id="qnaQueryVar" value={selectedNodeDetails.qnaQueryVariable || ""} onChange={e => updateSelectedNodeProperties({ qnaQueryVariable: e.target.value })} className="h-7 sm:h-8 text-xs sm:text-sm" placeholder="e.g., lastUserMessage"/></div>
-                    <div><Label htmlFor="qnaOutputVar" className="text-[10px] sm:text-xs">Save Found Answer as (Variable Name)</Label><Input id="qnaOutputVar" value={selectedNodeDetails.qnaOutputVariable || ""} onChange={e => updateSelectedNodeProperties({ qnaOutputVariable: e.target.value })} className="h-7 sm:h-8 text-xs sm:text-sm" placeholder="e.g., knowledgeBaseAnswer"/></div>
-                    <div><Label htmlFor="qnaFallback" className="text-[10px] sm:text-xs">Message if No Answer Found in Knowledge</Label><Textarea id="qnaFallback" value={selectedNodeDetails.qnaFallbackText || ""} onChange={e => updateSelectedNodeProperties({ qnaFallbackText: e.target.value })} rows={2} className="text-xs sm:text-sm" placeholder="e.g., Sorry, I don't have that info."/></div>
+                    <div><Label htmlFor="qnaQueryVar" className="text-[10px] sm:text-xs">User's Question (Variable, e.g. {{userInput}})</Label><Input id="qnaQueryVar" value={selectedNodeDetails.qnaQueryVariable || ""} onChange={e => updateSelectedNodeProperties({ qnaQueryVariable: e.target.value })} className="h-7 sm:h-8 text-xs sm:text-sm" placeholder="e.g., lastUserMessage"/></div>
+                    <div><Label htmlFor="qnaOutputVar" className="text-[10px] sm:text-xs">Save Found Answer as (Variable)</Label><Input id="qnaOutputVar" value={selectedNodeDetails.qnaOutputVariable || ""} onChange={e => updateSelectedNodeProperties({ qnaOutputVariable: e.target.value })} className="h-7 sm:h-8 text-xs sm:text-sm" placeholder="e.g., knowledgeBaseAnswer"/></div>
+                    <div><Label htmlFor="qnaFallback" className="text-[10px] sm:text-xs">Message if No Answer Found</Label><Textarea id="qnaFallback" value={selectedNodeDetails.qnaFallbackText || ""} onChange={e => updateSelectedNodeProperties({ qnaFallbackText: e.target.value })} rows={2} className="text-xs sm:text-sm" placeholder="e.g., Sorry, I don't have that info."/></div>
                   </>
+                )}
+                 { selectedNodeDetails.type === 'wait' && (
+                  <div><Label htmlFor="waitDuration" className="text-[10px] sm:text-xs">Delay Duration (milliseconds)</Label><Input id="waitDuration" type="number" value={selectedNodeDetails.waitDurationMs || 1000} onChange={e => updateSelectedNodeProperties({ waitDurationMs: parseInt(e.target.value) || 0 })} className="h-7 sm:h-8 text-xs sm:text-sm"/></div>
                 )}
                 <Button variant="outline" size="sm" onClick={() => deleteNode(selectedNodeDetails.id)} className="text-destructive border-destructive hover:bg-destructive/10 w-full mt-2 h-8 text-xs sm:text-sm">
                   <Trash2 className="mr-2 h-3 w-3" /> Delete Step
                 </Button>
                 <hr className="my-2 sm:my-3"/>
                 <Label className="text-[10px] sm:text-xs text-muted-foreground block mb-1">Connections from this Step:</Label>
-                {edges.filter(e => e.source === selectedNodeDetails.id).length === 0 && <p className="text-[10px] sm:text-xs text-muted-foreground italic">No outgoing connections. Drag from the right port of this step to another step's left port.</p>}
+                {edges.filter(e => e.source === selectedNodeDetails.id).length === 0 && <p className="text-[10px] sm:text-xs text-muted-foreground italic">No outgoing connections. Drag from this step's right port to another step's left port.</p>}
                 {edges.filter(e => e.source === selectedNodeDetails.id).map(edge => (
                   <div key={edge.id} className="text-[10px] sm:text-xs space-y-1 border p-1.5 rounded mb-1 bg-muted/30">
                     <div className="flex justify-between items-center">
                       <span className="truncate" title={`To: ${nodes.find(n=>n.id===edge.target)?.label || edge.target}`}>To: {nodes.find(n=>n.id===edge.target)?.label || edge.target}</span>
                       <Button variant="ghost" size="icon" onClick={() => deleteEdge(edge.id)} className="h-5 w-5 shrink-0"><Trash2 className="h-3 w-3 text-destructive"/></Button>
                     </div>
-                    {(selectedNodeDetails.type === 'condition' || selectedNodeDetails.type === 'apiCall' || selectedNodeDetails.type === 'qnaLookup' || selectedNodeDetails.type === 'getUserInput') && (
+                    {(selectedNodeDetails.type === 'condition' || selectedNodeDetails.type === 'qnaLookup' || selectedNodeDetails.type === 'getUserInput') && (
                         <div>
                             <Label htmlFor={`edgeLabel-${edge.id}`} className="text-[9px] sm:text-[10px]">{selectedNodeDetails.type === 'condition' ? 'Decision Outcome / User Input Value' : 'Connection Label (Optional)'}</Label>
-                            <Input id={`edgeLabel-${edge.id}`} placeholder={ selectedNodeDetails.type === 'condition' ? "e.g., 'Yes', 'Product A', 'Invalid'" : "e.g., Next step after XYZ"} value={edge.label || ""} onChange={e => updateEdgeProperty(edge.id, { label: e.target.value })} className="h-6 sm:h-7 text-[10px] sm:text-xs mt-0.5"/>
+                            <Input id={`edgeLabel-${edge.id}`} placeholder={ selectedNodeDetails.type === 'condition' ? "e.g., 'Yes', 'Product A'" : "e.g., Next step after XYZ"} value={edge.label || ""} onChange={e => updateEdgeProperty(edge.id, { label: e.target.value })} className="h-6 sm:h-7 text-[10px] sm:text-xs mt-0.5"/>
                         </div>
                     )}
-                     {(selectedNodeDetails.type === 'apiCall' || selectedNodeDetails.type === 'qnaLookup' || selectedNodeDetails.type === 'getUserInput' ) && (
+                     {(selectedNodeDetails.type === 'qnaLookup' || selectedNodeDetails.type === 'getUserInput' ) && (
                         <div>
                           <Label htmlFor={`edgeType-${edge.id}`} className="text-[9px] sm:text-[10px]">Connection Type (Path Logic)</Label>
                            <Select value={edge.edgeType || 'default'} onValueChange={value => updateEdgeProperty(edge.id, { edgeType: value as JsonFlowEdge['edgeType'] })}>
                                 <SelectTrigger className="h-6 sm:h-7 text-[10px] sm:text-xs"><SelectValue /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="default" className="text-xs sm:text-sm">Default / Next Step</SelectItem>
-                                    {selectedNodeDetails.type === 'apiCall' && <>
-                                      <SelectItem value="success" className="text-xs sm:text-sm">On Successful API Call</SelectItem>
-                                      <SelectItem value="error" className="text-xs sm:text-sm">On API Call Error</SelectItem>
-                                    </>}
                                     {selectedNodeDetails.type === 'getUserInput' && <>
                                       <SelectItem value="invalid" className="text-xs sm:text-sm">If User Input is Invalid (Future)</SelectItem>
                                     </>}

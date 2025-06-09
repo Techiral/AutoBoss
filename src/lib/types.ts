@@ -60,56 +60,48 @@ export const FlowNodeSchema = z.object({
     'start',
     'sendMessage',
     'getUserInput',
-    'callLLM',
-    'condition',
-    'apiCall',
-    'end',
-    'action',
-    'code',
-    'qnaLookup',
-    'wait',
-    'transition',
-    'agentSkill'
+    'callLLM', // "Ask AI / Smart Response"
+    'condition', // "Make a Decision"
+    'qnaLookup', // "Answer from Knowledge"
+    'wait', // "Add Delay"
+    'end'
   ]),
   position: z.object({ x: z.number(), y: z.number() }).optional(),
 
-  message: z.string().optional(),
-  prompt: z.string().optional(),
-  variableName: z.string().optional(),
-  inputType: z.string().optional().describe("e.g., text, number, email, choice, date"),
-  validationRules: z.string().optional().describe("e.g., regex, ranges"),
-  llmPrompt: z.string().optional(),
-  outputVariable: z.string().optional(),
-  useKnowledge: z.boolean().optional(),
-  conditionVariable: z.string().optional(),
-  useLLMForDecision: z.boolean().optional().describe("If true, uses an LLM to match conditionVariable's value against edge conditions."),
-  conditionExpressions: z.array(z.string()).optional().describe("List of JS/Nunjucks expressions for condition node (currently not used if useLLMForDecision is true)"),
-  apiUrl: z.string().optional(),
-  apiMethod: z.enum(['GET', 'POST', 'PUT', 'DELETE', 'PATCH']).optional().default('GET'),
-  apiHeaders: z.record(z.string()).or(z.string()).optional().describe("e.g. {\"Authorization\": \"Bearer {{token}}\", \"Content-Type\": \"application/json\"}"),
-  apiBodyVariable: z.string().optional().describe("Variable from context for request body (e.g. if POST/PUT)"),
-  apiTimeout: z.number().optional().default(10000),
-  apiRetryAttempts: z.number().optional().default(0),
-  apiOutputVariable: z.string().optional().describe("Variable to store the API response text/JSON string"),
-  endOutputVariable: z.string().optional().describe("Variable from context to output from the flow"),
-  actionName: z.string().optional(),
-  actionInputArgs: z.record(z.any()).or(z.string()).optional().describe("Key-value pairs for action inputs, e.g. {\"userId\": \"{{userIdVar}}\", \"product\": \"Laptop\"}"),
-  actionOutputVarMap: z.record(z.string()).or(z.string()).optional().describe("Map action's output fields to context variables, e.g. {\"contextVar\": \"actionOutputField\"}"),
-  codeScript: z.string().optional().describe("JavaScript snippet. Warning: Direct execution is unsafe. Use with extreme caution and sandboxing."),
-  codeReturnVarMap: z.record(z.string()).or(z.string()).optional().describe("Map returned object keys to context variables, e.g. {\"contextVar\": \"returnedKey\"}"),
-  qnaKnowledgeBaseId: z.string().optional().describe("ID of the knowledge base to search (conceptual)."),
-  qnaQueryVariable: z.string().optional().describe("Context variable holding the user's query for Q&A lookup (replaces conditionVariable for this node type)."),
-  qnaThreshold: z.number().optional().default(0.7),
-  qnaOutputVariable: z.string().optional().describe("Context variable to store the found Q&A answer text."),
-  qnaFallbackText: z.string().optional().describe("Fallback text if Q&A lookup finds no answer."),
-  waitDurationMs: z.number().optional().default(1000),
-  transitionTargetFlowId: z.string().optional(),
-  transitionTargetNodeId: z.string().optional(),
-  transitionVariablesToPass: z.record(z.any()).or(z.string()).optional().describe("Key-value pairs of variables to pass to the new flow's context"),
-  agentSkillId: z.string().optional(),
-  agentSkillsList: z.array(z.string()).optional(),
-  agentContextWindow: z.number().optional(),
+  // Common properties
   label: z.string().optional(),
+
+  // sendMessage
+  message: z.string().optional(),
+
+  // getUserInput
+  prompt: z.string().optional(), // Question for the user
+  variableName: z.string().optional(), // Variable to store user's answer
+  inputType: z.string().optional().describe("e.g., text, number, email - for future validation hints"),
+  validationRules: z.string().optional().describe("e.g., regex for email - for future validation"),
+
+  // callLLM ("Ask AI / Smart Response")
+  llmPrompt: z.string().optional().describe("Instructions for the AI. Use {{variable}} for context."),
+  outputVariable: z.string().optional().describe("Variable to store AI's response."),
+  useKnowledge: z.boolean().optional().describe("Allow AI to use trained knowledge."),
+  
+  // condition ("Make a Decision")
+  conditionVariable: z.string().optional().describe("Variable from context to base the decision on."),
+  useLLMForDecision: z.boolean().optional().describe("If true, AI tries to match variable value to edge conditions."),
+
+  // qnaLookup ("Answer from Knowledge")
+  qnaQueryVariable: z.string().optional().describe("Context variable holding the user's query."),
+  qnaOutputVariable: z.string().optional().describe("Context variable to store the found answer."),
+  qnaFallbackText: z.string().optional().describe("Text to show if no answer is found in knowledge."),
+  
+  // wait ("Add Delay")
+  waitDurationMs: z.number().optional().default(1000),
+
+  // end
+  endOutputVariable: z.string().optional().describe("Variable from context to output when flow ends (advanced)."),
+
+  // Kept for potential future light use if simplified or specific to a node
+  agentContextWindow: z.number().optional(), 
 });
 export type FlowNode = z.infer<typeof FlowNodeSchema>;
 
@@ -118,8 +110,8 @@ export const FlowEdgeSchema = z.object({
   source: z.string(),
   target: z.string(),
   label: z.string().optional(),
-  condition: z.string().optional(),
-  edgeType: z.enum(['default', 'success', 'error', 'invalid', 'found', 'notFound']).optional().default('default').describe("Semantic type for edge, e.g. for HTTP error paths or Q&A results")
+  condition: z.string().optional().describe("For 'condition' nodes, this is the value the conditionVariable is checked against."),
+  edgeType: z.enum(['default', 'success', 'error', 'invalid', 'found', 'notFound']).optional().default('default').describe("Semantic type for edge logic (e.g., for Q&A found/not found paths).")
 });
 export type FlowEdge = z.infer<typeof FlowEdgeSchema>;
 
@@ -145,7 +137,7 @@ export interface Agent {
   userId: string;
   agentType: AgentType;
   primaryLogic?: AgentLogicType;
-  direction?: AgentDirection; // Added agent direction
+  direction?: AgentDirection;
   name: string;
   description: string;
   role?: string;

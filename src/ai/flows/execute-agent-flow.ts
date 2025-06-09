@@ -10,10 +10,9 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import type { FlowNode, FlowEdge, AgentFlowDefinition, FlowContext, KnowledgeItem, Agent } from '@/lib/types'; // Import types
-import { AgentFlowDefinitionSchema, FlowContextSchema, KnowledgeItemSchema } from '@/lib/types'; // Import Zod schemas
+import type { FlowNode, FlowEdge, AgentFlowDefinition, FlowContext, KnowledgeItem, Agent } from '@/lib/types'; 
+import { AgentFlowDefinitionSchema, FlowContextSchema, KnowledgeItemSchema } from '@/lib/types'; 
 
-// Input schema for the Genkit flow, using imported Zod schemas
 const ExecuteAgentFlowInputSchema = z.object({
   flowDefinition: AgentFlowDefinitionSchema.describe("The JSON definition of the agent's conversational flow."),
   currentContext: FlowContextSchema.describe("The current state of conversation variables."),
@@ -24,7 +23,6 @@ const ExecuteAgentFlowInputSchema = z.object({
 });
 export type ExecuteAgentFlowInput = z.infer<typeof ExecuteAgentFlowInputSchema>;
 
-// Output schema for the Genkit flow, using imported Zod schemas
 const ExecuteAgentFlowOutputSchema = z.object({
   messagesToSend: z.array(z.string()).describe("An array of messages the agent should send to the user."),
   debugLog: z.array(z.string()).optional().describe("Internal system messages for debugging flow execution."),
@@ -36,7 +34,6 @@ const ExecuteAgentFlowOutputSchema = z.object({
 export type ExecuteAgentFlowOutput = z.infer<typeof ExecuteAgentFlowOutputSchema>;
 
 
-// Helper to replace {{variables}} in a string
 function templatize(templateString: string, context: FlowContext): string {
   if (!templateString) return "";
   return templateString.replace(/\{\{(\w+)\}\}/g, (match, varName) => {
@@ -44,14 +41,12 @@ function templatize(templateString: string, context: FlowContext): string {
   });
 }
 
-// Helper function to find the next edge based on various criteria
 function findNextEdge(currentNodeId: string, flowDefinition: AgentFlowDefinition, preferredEdgeType?: FlowEdge['edgeType']): FlowEdge | undefined {
     const outgoingEdges = flowDefinition.edges.filter(edge => edge.source === currentNodeId);
     if (preferredEdgeType) {
         const typedEdge = outgoingEdges.find(edge => edge.edgeType === preferredEdgeType);
         if (typedEdge) return typedEdge;
     }
-    // Fallback to default or first available edge
     return outgoingEdges.find(edge => edge.edgeType === 'default' || !edge.condition || edge.condition === "") || outgoingEdges[0];
 }
 
@@ -74,7 +69,7 @@ export async function executeAgentFlow(input: ExecuteAgentFlowInput): Promise<Ex
     }
     debugLog.push(`(System: Starting flow from node '${currentNodeId}')`);
 
-    let maxSteps = 20; // Safety break for loops
+    let maxSteps = 20; 
 
     while (currentNodeId && maxSteps > 0) {
       maxSteps--;
@@ -86,7 +81,7 @@ export async function executeAgentFlow(input: ExecuteAgentFlowInput): Promise<Ex
         break;
       }
       
-      currentContext.currentNodeId = currentNode.id; // Store current node in context
+      currentContext.currentNodeId = currentNode.id; 
       debugLog.push(`(System: Executing node '${currentNode.label || currentNode.id}' of type '${currentNode.type}')`);
       let nextEdge: FlowEdge | undefined;
 
@@ -110,10 +105,11 @@ export async function executeAgentFlow(input: ExecuteAgentFlowInput): Promise<Ex
               debugLog.push(`(System: Set context.${currentNode.variableName} = "${currentMessage}")`);
             }
             currentContext.waitingForInput = undefined; 
-            const isValid = true; 
+            const isValid = true; // Basic validation for now
             if (isValid) {
                  nextEdge = findNextEdge(currentNode.id, flowDefinition, 'default');
             } else {
+                 // In future, this could use a specific 'invalid' edge type if defined
                  nextEdge = findNextEdge(currentNode.id, flowDefinition, 'invalid');
                  if (!nextEdge) debugLog.push(`(System: Input for ${currentNode.id} was invalid, but no 'invalid' path defined.)`);
             }
@@ -136,10 +132,9 @@ export async function executeAgentFlow(input: ExecuteAgentFlowInput): Promise<Ex
             let knowledgePreamble = "";
             let conversationHistorySnippet = "";
 
-            // Prepare conversation history snippet (last 5 turns = 10 messages)
             if (currentContext.conversationHistory && Array.isArray(currentContext.conversationHistory) && currentContext.conversationHistory.length > 0) {
               const history = currentContext.conversationHistory as string[];
-              const lastNTurns = history.slice(-10); // Get last 5 user and 5 agent messages
+              const lastNTurns = history.slice(-10); 
               if (lastNTurns.length > 0) {
                 const turnCount = Math.ceil(lastNTurns.length / 2);
                 conversationHistorySnippet = `
@@ -168,7 +163,6 @@ ${knowledgeSummaries}
               }
             }
             
-            // Construct the full prompt with persona, history, knowledge, and specific node prompt
             const fullPromptForLLM = `${agentPersonaSystemMessage ? agentPersonaSystemMessage + '\n\n' : ''}${conversationHistorySnippet ? conversationHistorySnippet + '\n\n' : ''}${knowledgePreamble ? knowledgePreamble + '\n\n' : ''}Original Prompt for this step:\n${populatedNodePrompt}\n\nBased on the Original Prompt, your persona, any relevant knowledge, and the conversation history provided, generate the response for this step.`;
             
             debugLog.push(`(System: Calling LLM for node '${currentNode.id}'. History snippet: ${conversationHistorySnippet ? 'Yes' : 'No'}. Knowledge: ${knowledgePreamble ? 'Yes' : 'No'})`);
@@ -235,43 +229,13 @@ ${knowledgeSummaries}
           }
           if (!nextEdge && currentNode.type === 'condition') {
             debugLog.push(`(System: Condition node '${currentNode.id}' did not find a matching edge or default path. Flow cannot continue from this node.)`);
-            currentNodeId = undefined; // Stop flow
+            currentNodeId = undefined; 
             continue;
           }
           break;
-
-        case 'apiCall': 
-           debugLog.push(`(System: HTTP Request (apiCall) node '${currentNode.id}' - Placeholder. Would call ${currentNode.apiMethod || 'GET'} ${templatize(currentNode.apiUrl || '', currentContext)})`);
-           currentContext[currentNode.apiOutputVariable || 'apiResult'] = "Placeholder API Response";
-           nextEdge = findNextEdge(currentNode.id, flowDefinition, 'success');
-           if (!nextEdge) nextEdge = findNextEdge(currentNode.id, flowDefinition, 'default');
-          break;
         
-        case 'action': 
-          debugLog.push(`(System: Action node '${currentNode.id}' - Placeholder. Action: ${currentNode.actionName || 'N/A'})`);
-          nextEdge = findNextEdge(currentNode.id, flowDefinition);
-          break;
-
-        case 'code': 
-            debugLog.push(`(System: Code (JS) node '${currentNode.id}' - Placeholder. Script: '${currentNode.codeScript?.substring(0, 50)}...')`);
-            if (currentNode.codeScript && currentNode.codeReturnVarMap) {
-                const match = currentNode.codeScript.match(/return\s*{\s*["']([^"']+)["']\s*:\s*["']([^"']+)["']\s*};?/);
-                if (match) {
-                    const returnKey = match[1];
-                    const returnValue = match[2];
-                    for (const [contextVar, scriptVar] of Object.entries(currentNode.codeReturnVarMap)) {
-                        if (scriptVar === returnKey) {
-                            currentContext[contextVar] = returnValue;
-                            debugLog.push(`(System: Code node simulated setting context.${contextVar} to "${returnValue}")`);
-                        }
-                    }
-                }
-            }
-            nextEdge = findNextEdge(currentNode.id, flowDefinition);
-            break;
-
         case 'qnaLookup': 
-            debugLog.push(`(System: Q&A Lookup node '${currentNode.id}' - Placeholder)`);
+            debugLog.push(`(System: Q&A Lookup node '${currentNode.id}')`);
             let found = false;
             const query = currentNode.qnaQueryVariable ? String(currentContext[currentNode.qnaQueryVariable] || '') : currentMessage;
 
@@ -281,7 +245,10 @@ ${knowledgeSummaries}
                     if (item.summary?.toLowerCase().includes(lowerQuery) || item.keywords?.some(k => k.toLowerCase().includes(lowerQuery))) {
                         found = true;
                         if (currentNode.qnaOutputVariable) {
-                            currentContext[currentNode.qnaOutputVariable] = item.summary || "Found relevant information.";
+                            currentContext[currentNode.qnaOutputVariable] = item.summary || "Found relevant information from knowledge base.";
+                             messagesToSend.push(templatize(item.summary || "Found relevant information from knowledge base.", currentContext));
+                        } else {
+                             messagesToSend.push(templatize(item.summary || "Found relevant information from knowledge base.", currentContext));
                         }
                         break;
                     }
@@ -290,8 +257,13 @@ ${knowledgeSummaries}
             if (found) {
                 nextEdge = findNextEdge(currentNode.id, flowDefinition, 'found');
             } else {
-                if (currentNode.qnaOutputVariable) {
+                if (currentNode.qnaOutputVariable) { // Save fallback to variable if specified
                      currentContext[currentNode.qnaOutputVariable] = currentNode.qnaFallbackText || "No specific answer found in knowledge base.";
+                }
+                if (currentNode.qnaFallbackText) { // Send fallback if specified
+                    messagesToSend.push(templatize(currentNode.qnaFallbackText, currentContext));
+                } else if (!found) { // Default message if no fallback and not found
+                    messagesToSend.push("I couldn't find an answer for that in my current knowledge.");
                 }
                 nextEdge = findNextEdge(currentNode.id, flowDefinition, 'notFound');
             }
@@ -307,20 +279,10 @@ ${knowledgeSummaries}
             nextEdge = findNextEdge(currentNode.id, flowDefinition);
             break;
 
-        case 'transition': 
-            debugLog.push(`(System: Transition node '${currentNode.id}' - Placeholder. Would transition to flow '${currentNode.transitionTargetFlowId}')`);
-            isFlowFinished = true; 
-            currentNodeId = undefined;
-            continue;
-
-        case 'agentSkill': 
-            debugLog.push(`(System: Agent Skill node '${currentNode.id}' - Placeholder. Skill: ${currentNode.agentSkillId || 'N/A'})`);
-            nextEdge = findNextEdge(currentNode.id, flowDefinition);
-            break;
-
         case 'end':
           if (currentNode.endOutputVariable && currentContext[currentNode.endOutputVariable] !== undefined) {
             debugLog.push(`(System: Flow ended. Output from '${currentNode.endOutputVariable}': ${currentContext[currentNode.endOutputVariable]})`);
+             messagesToSend.push(templatize(String(currentContext[currentNode.endOutputVariable]), currentContext));
           } else if (currentNode.endOutputVariable) {
             debugLog.push(`(System: Flow ended. Output variable '${currentNode.endOutputVariable}' was specified but not found in context.)`);
           } else {
@@ -331,16 +293,24 @@ ${knowledgeSummaries}
           continue; 
 
         default:
-          debugLog.push(`(System: Unknown node type '${(currentNode as any).type}' encountered for node '${currentNode.id}')`);
-          nextEdge = findNextEdge(currentNode.id, flowDefinition); 
+          // This should ideally not be reached if FlowNode type enum is correctly maintained
+          debugLog.push(`(System: Unknown or unsupported node type '${(currentNode as any).type}' encountered for node '${currentNode.id}'. This may indicate a flow definition error or an outdated flow executor.)`);
+          // Attempt to find a default edge to prevent flow from completely stalling if possible
+          nextEdge = findNextEdge(currentNode.id, flowDefinition, 'default') || findNextEdge(currentNode.id, flowDefinition); 
+          if (!nextEdge) {
+             error = `Unsupported node type '${(currentNode as any).type}' and no default path. Flow stuck.`;
+             debugLog.push(`(System: ${error})`);
+          }
       }
       
       if (nextEdge) {
-        debugLog.push(`(System: Next node is '${flowDefinition.nodes.find(n=>n.id===nextEdge.target)?.label || nextEdge.target}' via edge '${nextEdge.label || nextEdge.id}')`);
+        debugLog.push(`(System: Next node is '${flowDefinition.nodes.find(n=>n.id===nextEdge.target)?.label || nextEdge.target}' via edge '${nextEdge.label || nextEdge.edgeType || nextEdge.id}')`);
         currentNodeId = nextEdge.target;
       } else {
         if (currentNode.type !== 'end' && !isFlowFinished) { 
            debugLog.push(`(System: No outgoing edge from node '${currentNode.id}' and it's not an end node. Flow may be stuck.)`);
+           // If it's not an end node and has no outgoing edge, and isn't waiting for input, it's stuck.
+           if (!currentContext.waitingForInput) isFlowFinished = true; 
         }
         currentNodeId = undefined; 
       }
@@ -382,4 +352,3 @@ const agentJsonFlow = ai.defineFlow(
     return executeAgentFlow(input);
   }
 );
-    
