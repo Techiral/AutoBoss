@@ -20,7 +20,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { Home, PlusCircle, Bot, Settings, BookOpen, MessageSquare, Share2, Cog, LifeBuoy, Loader2, LogIn } from 'lucide-react';
-import type { Agent, KnowledgeItem, AgentFlowDefinition } from '@/lib/types';
+import type { Agent, KnowledgeItem, AgentFlowDefinition, AgentLogicType } from '@/lib/types';
 import { minimalInitialFlow } from '@/app/(app)/agents/[agentId]/studio/page';
 import { db } from '@/lib/firebase';
 import {
@@ -167,7 +167,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         userId: currentUser.uid,
         createdAt: Timestamp.now(),
         knowledgeItems: [],
-        flow: minimalInitialFlow,
+        flow: minimalInitialFlow, // Assign minimal flow by default
       };
 
       const { id, ...dataToSave } = newAgentWithUser;
@@ -436,7 +436,8 @@ function AppSidebar() {
   const pathname = usePathname();
   const { state: sidebarState, isMobile, setOpenMobile } = useSidebar(); 
   const collapsed = !isMobile && sidebarState === 'collapsed'; 
-  const { currentUser } = useAuth();
+  const { currentUser, loading: authLoading } = useAuth();
+  const { getAgent, isLoadingAgents: isAppContextLoading } = useAppContext(); // Get getAgent from context
 
   const handleMobileLinkClick = () => {
     if (isMobile) {
@@ -446,18 +447,55 @@ function AppSidebar() {
 
   const agentIdMatch = pathname.match(/^\/agents\/([a-zA-Z0-9_-]+)/);
   const currentAgentId = agentIdMatch ? agentIdMatch[1] : null;
+  
+  const [currentAgent, setCurrentAgent] = useState<Agent | undefined>(undefined);
 
-  const agentNavItems = currentAgentId ? [
-    { href: `/agents/${currentAgentId}/studio`, label: 'Studio', icon: Cog },
-    { href: `/agents/${currentAgentId}/knowledge`, label: 'Knowledge', icon: BookOpen },
-    { href: `/agents/${currentAgentId}/personality`, label: 'Personality', icon: Bot },
-    { href: `/agents/${currentAgentId}/test`, label: 'Test Agent', icon: MessageSquare },
-    { href: `/agents/${currentAgentId}/export`, label: 'Export', icon: Share2 },
-  ] : [];
+  useEffect(() => {
+    if (currentAgentId && !isAppContextLoading) {
+      setCurrentAgent(getAgent(currentAgentId));
+    } else if (!currentAgentId) {
+      setCurrentAgent(undefined);
+    }
+  }, [currentAgentId, getAgent, isAppContextLoading]);
+
+
+  let agentNavItems: { href: string; label: string; icon: React.ElementType; primaryLogic?: AgentLogicType[] }[] = [];
+
+  if (currentAgentId && currentAgent) {
+    const baseItems = [
+      { href: `/agents/${currentAgentId}/personality`, label: 'Personality', icon: Bot },
+      { href: `/agents/${currentAgentId}/test`, label: 'Test Agent', icon: MessageSquare },
+      { href: `/agents/${currentAgentId}/export`, label: 'Export', icon: Share2 },
+    ];
+
+    const studioItem = { href: `/agents/${currentAgentId}/studio`, label: 'Studio', icon: Cog };
+    const knowledgeItem = { href: `/agents/${currentAgentId}/knowledge`, label: 'Knowledge', icon: BookOpen };
+    
+    agentNavItems = [...baseItems];
+
+    if (currentAgent.primaryLogic === 'flow' || currentAgent.primaryLogic === 'hybrid') {
+      agentNavItems.push(studioItem);
+    }
+    if (currentAgent.primaryLogic === 'rag' || currentAgent.primaryLogic === 'hybrid' || currentAgent.primaryLogic === 'prompt') {
+      agentNavItems.push(knowledgeItem);
+    }
+     // Ensure Studio is typically first if present, then Knowledge, then others, or adjust order as preferred.
+    agentNavItems.sort((a, b) => {
+        const order = { Studio: 0, Knowledge: 1, Personality: 2, "Test Agent": 3, Export: 4 };
+        // @ts-ignore
+        return (order[a.label] || 99) - (order[b.label] || 99);
+    });
+
+
+  }
+
 
   if (!currentUser && !(pathname.startsWith('/chat/'))) { 
     return <Sidebar><SidebarHeader className="p-3 sm:p-4"><Link href="/" aria-label="AutoBoss Homepage" className="hover:opacity-80 transition-opacity"><Logo collapsed={collapsed} className="h-7 sm:h-8 px-1 sm:px-2 py-1"/></Link></SidebarHeader></Sidebar>;
   }
+  
+  const isAgentLoading = authLoading || (currentAgentId && isAppContextLoading);
+
 
   return (
     <Sidebar>
@@ -485,7 +523,20 @@ function AppSidebar() {
             </Link>
           </SidebarMenuItem>
 
-          {currentAgentId && (
+          {isAgentLoading && currentAgentId && (
+             <>
+              <SidebarMenuItem className="mt-3 sm:mt-4 mb-1 px-2 sm:px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                <span className={collapsed ? 'hidden' : ''}>Agent Menu</span>
+              </SidebarMenuItem>
+              {[...Array(3)].map((_, i) => (
+                <SidebarMenuItem key={`skeleton-${i}`} className="px-2">
+                    <div className="h-8 w-full bg-muted/50 animate-pulse rounded-md my-0.5"></div>
+                </SidebarMenuItem>
+              ))}
+            </>
+          )}
+
+          {!isAgentLoading && currentAgentId && agentNavItems.length > 0 && (
             <>
               <SidebarMenuItem className="mt-3 sm:mt-4 mb-1 px-2 sm:px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 <span className={collapsed ? 'hidden' : ''}>Agent Menu</span>
@@ -521,3 +572,6 @@ function AppSidebar() {
     </Sidebar>
   );
 }
+
+
+    
