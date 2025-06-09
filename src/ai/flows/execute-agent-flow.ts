@@ -134,6 +134,20 @@ export async function executeAgentFlow(input: ExecuteAgentFlowInput): Promise<Ex
           if (currentNode.llmPrompt && currentNode.outputVariable) {
             let populatedNodePrompt = templatize(currentNode.llmPrompt, currentContext);
             let knowledgePreamble = "";
+            let conversationHistorySnippet = "";
+
+            // Prepare conversation history snippet (last 5 turns = 10 messages)
+            if (currentContext.conversationHistory && Array.isArray(currentContext.conversationHistory) && currentContext.conversationHistory.length > 0) {
+              const history = currentContext.conversationHistory as string[];
+              const lastNTurns = history.slice(-10); // Get last 5 user and 5 agent messages
+              if (lastNTurns.length > 0) {
+                const turnCount = Math.ceil(lastNTurns.length / 2);
+                conversationHistorySnippet = `
+--- CONVERSATION HISTORY (Last ~${turnCount} turns) ---
+${lastNTurns.join('\n')}
+--- END CONVERSATION HISTORY ---`;
+              }
+            }
             
             if (currentNode.useKnowledge && knowledgeItems && knowledgeItems.length > 0) {
               const knowledgeSummaries = knowledgeItems
@@ -154,18 +168,13 @@ ${knowledgeSummaries}
               }
             }
             
-            const fullPromptForLLM = `${agentPersonaSystemMessage ? agentPersonaSystemMessage + '\n\n' : ''}${knowledgePreamble}\n\nOriginal Prompt for this step:\n${populatedNodePrompt}\n\nBased on the Original Prompt, your persona, and any relevant knowledge, generate the response for this step.`;
-            debugLog.push(`(System: Calling LLM for node '${currentNode.id}' with prompt (condensed): ${fullPromptForLLM.substring(0, 100)}...)`);
+            // Construct the full prompt with persona, history, knowledge, and specific node prompt
+            const fullPromptForLLM = `${agentPersonaSystemMessage ? agentPersonaSystemMessage + '\n\n' : ''}${conversationHistorySnippet ? conversationHistorySnippet + '\n\n' : ''}${knowledgePreamble ? knowledgePreamble + '\n\n' : ''}Original Prompt for this step:\n${populatedNodePrompt}\n\nBased on the Original Prompt, your persona, any relevant knowledge, and the conversation history provided, generate the response for this step.`;
+            
+            debugLog.push(`(System: Calling LLM for node '${currentNode.id}'. History snippet: ${conversationHistorySnippet ? 'Yes' : 'No'}. Knowledge: ${knowledgePreamble ? 'Yes' : 'No'})`);
 
             const llmResponse = await ai.generate({ prompt: fullPromptForLLM });
             currentContext[currentNode.outputVariable] = llmResponse.text;
-            // The LLM response itself is a "messageToSend" if it's meant to be directly relayed.
-            // For now, assume the primary output of a callLLM node is to store in context.
-            // If this node should also *send* the LLM response, it should be followed by a sendMessage node.
-            // However, to simplify, let's assume if an output variable is set, it *might* be used as a message by a subsequent step
-            // OR a common pattern is for the callLLM to directly provide the next message.
-            // For now, we will NOT automatically add llmResponse.text to messagesToSend here.
-            // The flow designer should use a subsequent 'sendMessage' node with {{aiResponseVariable}} if they want to send it.
             debugLog.push(`(System: LLM Call Node '${currentNode.id}' output: "${llmResponse.text ? llmResponse.text.substring(0, 70) + '...' : 'empty'}")`);
             nextEdge = findNextEdge(currentNode.id, flowDefinition);
           } else {
