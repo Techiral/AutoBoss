@@ -13,11 +13,13 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 // Intersection Observer Hook
 const useIntersectionObserver = (options?: IntersectionObserverInit) => {
   const [node, setNode] = useState<HTMLElement | null>(null);
-  const [isIntersecting, setIsIntersecting] = useState(false); // Always init to false for SSR
+  const [isIntersecting, setIsIntersecting] = useState(false);
   const observerRef = useRef<IntersectionObserver | null>(null);
 
   useEffect(() => {
+    // Ensure IntersectionObserver is available
     if (typeof window === 'undefined' || !window.IntersectionObserver) {
+      setIsIntersecting(true); // Fallback for SSR or old browsers
       return;
     }
 
@@ -84,7 +86,7 @@ const SimpleFeatureCard: React.FC<SimpleFeatureCardProps> = ({ icon, title, desc
   );
 };
 
-const heroPainPoint = "AI Teammates."; // Shortened text
+const heroPainPoint = "AI Teammates.";
 
 export default function MarketingPageClient() {
   const typewriterRef = useRef<HTMLSpanElement>(null);
@@ -100,11 +102,12 @@ export default function MarketingPageClient() {
   useEffect(() => {
     if (typewriterRef.current) {
       typewriterRef.current.textContent = heroPainPoint;
+      // Ensure the animation re-triggers if text content changes by toggling the class
       typewriterRef.current.classList.remove("typewriter-text");
-      void typewriterRef.current.offsetWidth;
+      void typewriterRef.current.offsetWidth; // Force reflow
       typewriterRef.current.classList.add("typewriter-text");
     }
-  }, []);
+  }, []); // Empty dependency array, runs once on mount.
 
   const observerOptions = { threshold: 0.1 };
   const [heroRef, heroVisible] = useIntersectionObserver(observerOptions);
@@ -203,7 +206,7 @@ export default function MarketingPageClient() {
           <div className="container mx-auto px-4 md:px-6 relative z-10 max-w-screen-xl">
             <div className="max-w-2xl mx-auto space-y-3 md:space-y-4">
               <h1 className="marketing-h1 text-3xl sm:text-4xl md:text-5xl lg:text-6xl">
-                <span ref={typewriterRef} className="block gradient-text-on-dark min-h-[38px] sm:min-h-[48px] md:min-h-[60px] lg:min-h-[72px]">
+                <span ref={typewriterRef} className="gradient-text-on-dark min-h-[38px] sm:min-h-[48px] md:min-h-[60px] lg:min-h-[72px]">
                   {/* Content set by useEffect */}
                 </span>
               </h1>
@@ -451,3 +454,4 @@ export default function MarketingPageClient() {
     </TooltipProvider>
   );
 }
+
