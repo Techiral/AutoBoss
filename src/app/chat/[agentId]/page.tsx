@@ -90,7 +90,7 @@ export default function PublicChatPage() {
           <AlertDescription className="text-sm">{error}</AlertDescription>
         </Alert>
          <div className="mt-6 sm:mt-8">
-           <Link href="/" aria-label="Go to AutoBoss Homepage">
+           <Link href="/" aria-label="AutoBoss Homepage">
             <Logo collapsed={false} className="h-7 sm:h-8"/>
            </Link>
          </div>
@@ -108,7 +108,7 @@ export default function PublicChatPage() {
             <AlertDescription className="text-sm">The specified agent could not be loaded.</AlertDescription>
         </Alert>
          <div className="mt-6 sm:mt-8">
-           <Link href="/" aria-label="Go to AutoBoss Homepage">
+           <Link href="/" aria-label="AutoBoss Homepage">
             <Logo collapsed={false} className="h-7 sm:h-8"/>
            </Link>
          </div>
@@ -120,7 +120,7 @@ export default function PublicChatPage() {
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
         <header className="p-3 sm:p-4 border-b flex items-center justify-between bg-card sticky top-0 z-10">
-           <Link href="/" aria-label="Go to AutoBoss Homepage" className="hover:opacity-80 transition-opacity">
+           <Link href="/" aria-label="AutoBoss Homepage" className="hover:opacity-80 transition-opacity">
             <Logo collapsed={false} className="h-7 sm:h-8"/>
            </Link>
            <div className="text-right">
@@ -139,5 +139,3 @@ export default function PublicChatPage() {
     </div>
   );
 }
-
-    

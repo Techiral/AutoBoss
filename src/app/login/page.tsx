@@ -60,7 +60,7 @@ export default function LoginPage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-muted/30 p-4 sm:p-6">
       <div className="mb-6 sm:mb-8">
-        <Link href="/" aria-label="Go to AutoBoss Homepage" className="hover:opacity-80 transition-opacity">
+        <Link href="/" aria-label="AutoBoss Homepage" className="hover:opacity-80 transition-opacity">
           <Logo collapsed={false} className="h-8 sm:h-9"/>
         </Link>
       </div>
@@ -104,5 +104,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    

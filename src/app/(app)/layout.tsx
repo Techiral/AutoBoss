@@ -429,7 +429,7 @@ function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="p-3 sm:p-4">
-        <Link href="/dashboard" className="hover:opacity-80 transition-opacity" aria-label="Go to dashboard">
+        <Link href="/dashboard" className="hover:opacity-80 transition-opacity" aria-label="Go to AutoBoss Homepage">
             <Logo collapsed={collapsed} className="h-7 sm:h-8 px-1 sm:px-2 py-1"/>
         </Link>
       </SidebarHeader>
@@ -488,5 +488,3 @@ function AppSidebar() {
     </Sidebar>
   );
 }
-
-    

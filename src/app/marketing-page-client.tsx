@@ -10,22 +10,17 @@ import { Logo } from "@/components/logo";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-// Intersection Observer Hook - MODIFIED FOR HYDRATION SAFETY
+// Intersection Observer Hook
 const useIntersectionObserver = (options?: IntersectionObserverInit) => {
   const [node, setNode] = useState<HTMLElement | null>(null);
-  const [isIntersecting, setIsIntersecting] = useState(false); // Always initialize to false
+  const [isIntersecting, setIsIntersecting] = useState(false);
   const observerRef = useRef<IntersectionObserver | null>(null);
 
   useEffect(() => {
-    // IntersectionObserver is a client-side API
     if (typeof window === 'undefined' || !window.IntersectionObserver) {
-      // On the server, or if IntersectionObserver is not supported,
-      // isIntersecting remains false. Elements will not get the 'visible' class from this hook.
-      // For unsupported browsers, this means no animation, elements remain in their 'scroll-reveal' initial state.
       return;
     }
 
-    // Disconnect previous observer if any
     if (observerRef.current) {
       observerRef.current.disconnect();
     }
@@ -34,7 +29,7 @@ const useIntersectionObserver = (options?: IntersectionObserverInit) => {
       setIsIntersecting(entry.isIntersecting);
     }, options);
 
-    const currentObserver = observerRef.current; // Capture for cleanup
+    const currentObserver = observerRef.current;
 
     if (node) {
       currentObserver.observe(node);
@@ -44,14 +39,8 @@ const useIntersectionObserver = (options?: IntersectionObserverInit) => {
       if (node) {
         currentObserver.unobserve(node);
       }
-      // It's good practice to disconnect the observer when the component unmounts
-      // or when dependencies of the effect change in a way that requires a new observer.
-      // currentObserver.disconnect(); // Disconnecting here might be too aggressive if options object changes frequently.
-                                 // Better to disconnect only when the hook itself is "done" or node/options fundamentally change.
-                                 // For now, unobserve(node) is the most critical part of cleanup for individual nodes.
-                                 // Disconnecting at the start of the effect handles re-creation on dep change.
     };
-  }, [node, options]); // `options` is an object; if it's not memoized by the caller, this effect might run more than optimal.
+  }, [node, options]);
 
   return [setNode, isIntersecting] as const;
 };
@@ -66,7 +55,7 @@ interface SimpleFeatureCardProps {
 }
 
 const SimpleFeatureCard: React.FC<SimpleFeatureCardProps> = ({ icon, title, description, caseStudy, animationDelay }) => {
-  const [ref, isVisible] = useIntersectionObserver({ threshold: 0.1 }); // No initialIsVisible
+  const [ref, isVisible] = useIntersectionObserver({ threshold: 0.1 });
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -116,7 +105,7 @@ export default function MarketingPageClient() {
     }
   }, []);
 
-  const observerOptions = { threshold: 0.1 }; // Define once if options are static
+  const observerOptions = { threshold: 0.1 };
   const [heroRef, heroVisible] = useIntersectionObserver(observerOptions);
   const [solveProblemsRef, solveProblemsVisible] = useIntersectionObserver(observerOptions);
   const [superpowersRef, superpowersVisible] = useIntersectionObserver(observerOptions);
@@ -139,7 +128,7 @@ export default function MarketingPageClient() {
     {
       type: "testimonial",
       image: "https://placehold.co/32x32/1A202C/E2E8F0.png?text=AR&font=nunito", alt: "Alex R.", name: "Alex R.", role: "Support Lead",
-      quote: "AgentVerse revolutionized our support, handling 80% of inquiries. A true game-changer.",
+      quote: "AutoBoss revolutionized our support, handling 80% of inquiries. A true game-changer.",
       delay: "delay-100",
     },
     {
@@ -229,7 +218,7 @@ export default function MarketingPageClient() {
                 </Button>
                 <Button size="lg" variant="outline" asChild className="btn-outline-themed transition-all duration-300 hover:scale-105 px-6 py-2.5 sm:py-3 text-sm border-muted-foreground/40 text-primary hover:text-accent-foreground hover:bg-accent hover:border-accent bg-background/10 backdrop-blur-sm btn-interactive w-full sm:w-auto">
                   <Link href="#video-demo-placeholder" className="flex items-center gap-1.5">
-                    Watch 60s Demo <PlayCircle className="h-4 w-4 sm:h-5 sm:w-5" />
+                    Watch 60s Demo <PlayCircle className="h-4 w-4 sm:h-5 sm:h-5" />
                   </Link>
                 </Button>
               </div>
@@ -241,7 +230,7 @@ export default function MarketingPageClient() {
             <div className="container mx-auto px-4 md:px-6 text-center max-w-screen-xl">
                 <h2 className="marketing-h2 text-card-foreground">Solve Real Problems</h2>
                  <p className="section-description !mb-6 md:!mb-8">
-                  AgentVerse empowers you to build specialized AI assistants that drive efficiency and engagement.
+                  AutoBoss empowers you to build specialized AI assistants that drive efficiency and engagement.
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-5 max-w-4xl mx-auto">
                   {[
@@ -268,7 +257,7 @@ export default function MarketingPageClient() {
           <div className="container mx-auto px-4 md:px-6 text-center max-w-screen-xl">
             <h2 className="marketing-h2">Your AI Workforce</h2>
             <p className="section-description">
-              AgentVerse agents are teammates, not just tools. Here's how they deliver results:
+              AutoBoss agents are teammates, not just tools. Here's how they deliver results:
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5 max-w-3xl mx-auto text-left">
               <SimpleFeatureCard
@@ -339,10 +328,10 @@ export default function MarketingPageClient() {
 
         <section ref={videoDemoRef} id="video-demo-placeholder" className={cn("scroll-reveal section-dark w-full py-12 md:py-16 lg:py-20 text-center", videoDemoVisible && "visible")}>
           <div className="container mx-auto px-4 md:px-6 max-w-screen-xl">
-            <h2 className="marketing-h2">See AgentVerse in Action</h2>
+            <h2 className="marketing-h2">See AutoBoss in Action</h2>
             <p className="section-description mt-1 mb-6">Watch how easy it is to build an intelligent AI teammate.</p>
             <div className="max-w-2xl mx-auto aspect-video bg-muted/20 rounded-lg shadow-xl flex items-center justify-center text-muted-foreground border border-border/50 relative overflow-hidden cursor-pointer group" data-ai-hint="video player modern dark sleek elegant">
-                <Image src="https://placehold.co/1280x720/0A0D13/0A0D13.png" alt="AgentVerse Demo Video Thumbnail" layout="fill" objectFit="cover" className="opacity-20 group-hover:opacity-10 transition-opacity" data-ai-hint="dark tech abstract thumbnail" loading="lazy"/>
+                <Image src="https://placehold.co/1280x720/0A0D13/0A0D13.png" alt="AutoBoss Demo Video Thumbnail" layout="fill" objectFit="cover" className="opacity-20 group-hover:opacity-10 transition-opacity" data-ai-hint="dark tech abstract thumbnail" loading="lazy"/>
                 <div className="video-placeholder-text z-10">
                      <PlayCircle size={40} className="sm:size-50 text-primary cursor-pointer group-hover:scale-110 group-hover:text-neon-lime transition-all duration-300"/>
                      <p className="mt-2 text-xs font-semibold">Watch Quick Demo (1:03)</p>
@@ -354,7 +343,7 @@ export default function MarketingPageClient() {
         <section ref={socialProofRef} id="proof" className={cn("scroll-reveal section-light-accent w-full py-12 md:py-16 lg:py-20", socialProofVisible && "visible")}>
             <div className="container mx-auto px-4 md:px-6 text-center max-w-screen-xl">
                 <h2 className="marketing-h2 text-card-foreground">Real Results, Real Trust</h2>
-                 <p className="section-description">Join innovators transforming their businesses with AgentVerse.</p>
+                 <p className="section-description">Join innovators transforming their businesses with AutoBoss.</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 max-w-5xl mx-auto text-left">
                     {socialProofItems.map((item, index) => {
                       const [cardRef, cardIsVisible] = useIntersectionObserver({ threshold: 0.2 });
@@ -397,18 +386,18 @@ export default function MarketingPageClient() {
           <div className="container mx-auto px-4 md:px-6 text-center max-w-screen-xl">
             <h2 className="marketing-h2">Built for Breakthroughs</h2>
             <p className="section-description">
-              We're dedicated to making sophisticated AI accessible. AgentVerse is your partner in innovation.
+              We're dedicated to making sophisticated AI accessible. AutoBoss is your partner in innovation.
             </p>
             <aside ref={founderQuoteAsideRef} className={cn(
                 "scroll-reveal max-w-lg mx-auto bg-card p-5 sm:p-6 rounded-lg shadow-xl transform hover:scale-103 transition-transform text-card-foreground delay-150",
                 founderQuoteAsideIsVisible && "visible"
             )}>
-              <p className="italic text-sm text-muted-foreground leading-relaxed">"I started AgentVerse frustrated by clunky automation. My vision: a platform so intuitive, anyone can build truly intelligent AI agents that *actually work*."</p>
+              <p className="italic text-sm text-muted-foreground leading-relaxed">"I started AutoBoss frustrated by clunky automation. My vision: a platform so intuitive, anyone can build truly intelligent AI agents that *actually work*."</p>
               <div className="flex items-center justify-center gap-2 mt-3">
                 <Image loading="lazy" src="https://placehold.co/36x36/1A202C/E2E8F0.png?text=AC&font=nunito" alt="Alex Chen, Founder (Placeholder)" width={32} height={32} className="rounded-full shadow-md" data-ai-hint="founder portrait friendly modern person" />
                 <div>
                   <p className="font-semibold text-xs text-card-foreground">Alex Chen (Placeholder)</p>
-                  <p className="text-xs text-primary">Founder & CEO, AgentVerse</p>
+                  <p className="text-xs text-primary">Founder & CEO, AutoBoss</p>
                 </div>
               </div>
             </aside>
@@ -422,7 +411,7 @@ export default function MarketingPageClient() {
                 Start Your AI Journey
               </h2>
               <p className="text-muted-foreground text-xs md:text-sm !mb-5">
-                AgentVerse is free to try. No credit card needed.
+                AutoBoss is free to try. No credit card needed.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center items-center pt-1">
                 <Button size="lg" asChild className="shadow-xl bg-gradient-to-r from-electric-teal to-neon-lime text-background font-bold text-sm px-6 py-2.5 hover:opacity-90 transition-all duration-300 hover:scale-105 group w-full sm:w-auto btn-interactive">
@@ -432,7 +421,7 @@ export default function MarketingPageClient() {
                   </Link>
                 </Button>
                 <Button size="lg" variant="outline" asChild className="btn-outline-themed transition-all duration-300 hover:scale-105 px-6 py-2.5 text-sm text-primary hover:text-accent-foreground hover:bg-accent hover:border-accent border-muted-foreground/50 bg-background/20 dark:bg-card/20 backdrop-blur-sm w-full sm:w-auto btn-interactive">
-                  <Link href="mailto:demo@agentverse.dev?subject=AgentVerse%20Demo%20Request" className="flex items-center gap-1.5">
+                  <Link href="mailto:demo@autoboss.dev?subject=AutoBoss%20Demo%20Request" className="flex items-center gap-1.5">
                     Request a Demo <Eye className="h-4 w-4 sm:h-5 sm:h-5"/>
                   </Link>
                 </Button>
@@ -445,15 +434,15 @@ export default function MarketingPageClient() {
       <footer className="w-full py-3 border-t border-border/30 bg-background text-center">
         <div className="container mx-auto px-4 md:px-6 flex flex-col sm:flex-row items-center justify-between gap-1 max-w-screen-xl">
           <div className="flex items-center gap-2">
-             <Link href="/" aria-label="AgentVerse Homepage" className="flex items-center justify-center">
+             <Link href="/" aria-label="AutoBoss Homepage" className="flex items-center justify-center">
                 <Logo className="text-foreground hover:opacity-80 transition-opacity h-4 sm:h-5 w-auto" collapsed={false}/>
             </Link>
-            <p className="text-[10px] text-muted-foreground">&copy; {new Date().getFullYear()} AgentVerse. All rights reserved.</p>
+            <p className="text-[10px] text-muted-foreground">&copy; {new Date().getFullYear()} AutoBoss. All rights reserved.</p>
           </div>
           <nav className="flex flex-wrap justify-center gap-1 sm:gap-2 mt-1 sm:mt-0">
             <Link href="#" className="text-[10px] text-muted-foreground hover:text-primary transition-colors" prefetch={false}>Terms</Link>
             <Link href="#" className="text-[10px] text-muted-foreground hover:text-primary transition-colors" prefetch={false}>Privacy</Link>
-            <Link href="mailto:support@agentverse.dev" className="text-[10px] text-muted-foreground hover:text-primary transition-colors" prefetch={false}>Support</Link>
+            <Link href="mailto:support@autoboss.dev" className="text-[10px] text-muted-foreground hover:text-primary transition-colors" prefetch={false}>Support</Link>
           </nav>
         </div>
       </footer>
