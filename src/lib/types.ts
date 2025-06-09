@@ -7,8 +7,8 @@ export const UserProfileSchema = z.object({
   email: z.string().email().optional(),
   displayName: z.string().optional(),
   photoDataUri: z.string().optional().describe("Base64 encoded Data URI for profile photo."),
-  phoneNumber: z.string().optional(), 
-  createdAt: z.custom<Timestamp>(), 
+  phoneNumber: z.string().optional(),
+  createdAt: z.custom<Timestamp>(),
 });
 export type UserProfile = z.infer<typeof UserProfileSchema>;
 
@@ -43,6 +43,14 @@ export const KnowledgeExtractionOutputSchema = z.object({
     .describe('A list of keywords that represent the main topics covered in the document.'),
 });
 export type KnowledgeExtractionOutput = z.infer<typeof KnowledgeExtractionOutputSchema>;
+
+// Zod Schema for ProcessedUrlOutput
+export const ProcessedUrlOutputSchema = z.object({
+  url: z.string().url(),
+  title: z.string().optional(),
+  extractedText: z.string(),
+});
+export type ProcessedUrlOutput = z.infer<typeof ProcessedUrlOutputSchema>;
 
 
 // Zod Schemas for Flow Definition
@@ -130,7 +138,7 @@ export type FlowContext = z.infer<typeof FlowContextSchema>;
 // Agent interface now includes userId
 export interface Agent {
   id: string;
-  userId: string; 
+  userId: string;
   name: string;
   description: string;
   role?: string;
@@ -138,7 +146,7 @@ export interface Agent {
   generatedName?: string;
   generatedPersona?: string;
   generatedGreeting?: string;
-  createdAt: string | Timestamp; 
+  createdAt: string | Timestamp;
   knowledgeItems?: KnowledgeItem[];
   flow?: AgentFlowDefinition;
 }

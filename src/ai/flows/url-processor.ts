@@ -5,25 +5,25 @@
  *
  * - processUrl - Fetches content from a URL, extracts text, and gets the title.
  * - ProcessUrlInput - The input type for the processUrl function.
- * - ProcessUrlOutput - The return type for the processUrl function.
+ * - ProcessedUrlOutput - The return type for the processUrl function. (Type imported from types.ts)
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import axios from 'axios';
-import { convert as htmlToTextConverter } from 'html-to-text'; // Renamed to avoid conflict
-import { 
-  ProcessedUrlOutputSchema, // Import the correct schema
-  type ProcessedUrlOutput    // Import the correct type
-} from '@/lib/types'; 
+import { convert as htmlToTextConverter } from 'html-to-text';
+import {
+  ProcessedUrlOutputSchema, // This schema is for the flow's output
+  type ProcessedUrlOutput    // This is the type for the flow's output
+} from '@/lib/types';
 
 const ProcessUrlInputSchema = z.object({
   url: z.string().url().describe('The URL to process.'),
 });
 export type ProcessUrlInput = z.infer<typeof ProcessUrlInputSchema>;
 
-// Re-export ProcessUrlOutput for clarity if this file is imported elsewhere for its types
-export type { ProcessedUrlOutput }; 
+// Re-export ProcessedUrlOutput type for clarity if this file is imported elsewhere for its types
+export type { ProcessedUrlOutput };
 
 export async function processUrl(input: ProcessUrlInput): Promise<ProcessedUrlOutput> {
   return processUrlFlow(input);
@@ -78,7 +78,7 @@ const processUrlFlow = ai.defineFlow(
   {
     name: 'processUrlFlow',
     inputSchema: ProcessUrlInputSchema,
-    outputSchema: ProcessedUrlOutputSchema, // Use the correct output schema
+    outputSchema: ProcessedUrlOutputSchema, // Use the imported schema for the flow's output
   },
   async (input: ProcessUrlInput): Promise<ProcessedUrlOutput> => { // Return the correct type
     let htmlContent: string;
@@ -100,7 +100,7 @@ const processUrlFlow = ai.defineFlow(
           timeout: 10000
         });
         htmlContent = response.data;
-         if (response.headers['content-type'] && 
+         if (response.headers['content-type'] &&
             !response.headers['content-type'].includes('text/html') &&
             !response.headers['content-type'].includes('text/plain')) {
              throw new Error(`Content type is not HTML or plain text: ${response.headers['content-type']}. Only web pages or plain text URLs are supported for direct fetch.`);
@@ -142,8 +142,8 @@ const processUrlFlow = ai.defineFlow(
       if (!textContent.trim()) {
         throw new Error('No meaningful text content extracted from the URL. The page might be empty, heavily JavaScript-based and failed to render, or an unsupported format.');
       }
-      
-      // Do NOT call extractKnowledge here. Return the raw extracted data.
+
+      // Return the structured output matching ProcessedUrlOutputSchema
       return {
         url: input.url,
         title: pageTitle,
@@ -152,8 +152,8 @@ const processUrlFlow = ai.defineFlow(
 
     } catch (error: any) {
       console.error(`Error processing URL ${input.url}:`, error.message);
-      // Re-throw or handle error to ensure flow communicates failure
-      throw new Error(`Failed to fetch content from URL ${input.url}. ${error.message}`);
+      // Propagate the error with a more generic message for the flow, specific details are logged above or in fetchRenderedPageViaScrapingAPI
+      throw new Error(`Failed to fetch and process content from URL ${input.url}. Reason: ${error.message}`);
     }
   }
 );
@@ -165,7 +165,7 @@ const processUrlFlow = ai.defineFlow(
  * @param maxLength The maximum length of each chunk (default: 800 characters).
  * @returns An array of text chunks.
  */
-function chunkText(text: string, maxLength = 800): string[] {
+function chunkText(text: string, maxLength = 800): string[] { // Removed 'export'
   if (!text) return [];
   // Normalize whitespace and split into sentences
   const normalizedText = text.replace(/\s+/g, ' ').trim();
