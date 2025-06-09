@@ -389,12 +389,12 @@ function AppHeader() {
     <header className={cn(
       "sticky top-0 z-30 flex h-14 sm:h-16 items-center gap-2 sm:gap-4 border-b bg-card px-3 sm:px-4 md:px-6",
       sidebarState === "collapsed" ? "md:pl-[calc(var(--sidebar-width-icon)_+_1rem)]" : "md:pl-[calc(var(--sidebar-width)_+_1rem)]",
-      "transition-all duration-300 ease-in-out" // Added transition for padding
+      "transition-all duration-300 ease-in-out"
     )}>
-      <div className="md:hidden"> {/* Only show trigger on mobile/tablet */}
+      <div className="md:hidden">
         <SidebarTrigger />
       </div>
-      <div className="hidden md:block"> {/* Placeholder for desktop trigger if needed or for spacing */}
+      <div className="hidden md:block">
          <SidebarTrigger />
       </div>
       <div className="flex-grow" />
@@ -407,9 +407,15 @@ function AppHeader() {
 
 function AppSidebar() {
   const pathname = usePathname();
-  const { state: sidebarState, isMobile } = useSidebar(); // use isMobile from context
-  const collapsed = !isMobile && sidebarState === 'collapsed'; // collapsed is only true on desktop when state is collapsed
+  const { state: sidebarState, isMobile, setOpenMobile } = useSidebar(); 
+  const collapsed = !isMobile && sidebarState === 'collapsed'; 
   const { currentUser } = useAuth();
+
+  const handleMobileLinkClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
 
   const agentIdMatch = pathname.match(/^\/agents\/([a-zA-Z0-9_-]+)/);
   const currentAgentId = agentIdMatch ? agentIdMatch[1] : null;
@@ -423,20 +429,20 @@ function AppSidebar() {
   ] : [];
 
   if (!currentUser && !(pathname.startsWith('/chat/'))) { 
-    return <Sidebar><SidebarHeader className="p-3 sm:p-4"><Link href="/" aria-label="Go to AutoBoss Homepage" className="hover:opacity-80 transition-opacity"><Logo collapsed={collapsed} className="h-7 sm:h-8 px-1 sm:px-2 py-1"/></Link></SidebarHeader></Sidebar>;
+    return <Sidebar><SidebarHeader className="p-3 sm:p-4"><Link href="/" aria-label="AutoBoss Homepage" className="hover:opacity-80 transition-opacity"><Logo collapsed={collapsed} className="h-7 sm:h-8 px-1 sm:px-2 py-1"/></Link></SidebarHeader></Sidebar>;
   }
 
   return (
     <Sidebar>
       <SidebarHeader className="p-3 sm:p-4">
-        <Link href="/dashboard" className="hover:opacity-80 transition-opacity" aria-label="Go to AutoBoss Homepage">
+        <Link href="/dashboard" className="hover:opacity-80 transition-opacity" aria-label="AutoBoss Homepage" onClick={handleMobileLinkClick}>
             <Logo collapsed={collapsed} className="h-7 sm:h-8 px-1 sm:px-2 py-1"/>
         </Link>
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
           <SidebarMenuItem>
-            <Link href="/dashboard">
+            <Link href="/dashboard" onClick={handleMobileLinkClick}>
               <SidebarMenuButton isActive={pathname === '/dashboard'} tooltip={collapsed ? 'Dashboard' : undefined}>
                 <Home />
                 <span>Dashboard</span>
@@ -444,7 +450,7 @@ function AppSidebar() {
             </Link>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <Link href="/agents/create">
+            <Link href="/agents/create" onClick={handleMobileLinkClick}>
               <SidebarMenuButton isActive={pathname === '/agents/create'} tooltip={collapsed ? 'Create Agent' : undefined}>
                 <PlusCircle />
                 <span>Create Agent</span>
@@ -459,7 +465,7 @@ function AppSidebar() {
               </SidebarMenuItem>
               {agentNavItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
-                  <Link href={item.href}>
+                  <Link href={item.href} onClick={handleMobileLinkClick}>
                     <SidebarMenuButton isActive={pathname.startsWith(item.href)} tooltip={collapsed ? item.label : undefined}>
                       <item.icon />
                       <span>{item.label}</span>
@@ -472,13 +478,13 @@ function AppSidebar() {
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="p-3 sm:p-4 space-y-1 sm:space-y-2">
-        <Link href="/support">
+        <Link href="/support" onClick={handleMobileLinkClick}>
           <SidebarMenuButton tooltip={collapsed ? 'Support' : undefined} isActive={pathname === '/support'}>
             <LifeBuoy />
             <span>Support</span>
           </SidebarMenuButton>
         </Link>
-        <Link href="/settings">
+        <Link href="/settings" onClick={handleMobileLinkClick}>
           <SidebarMenuButton tooltip={collapsed ? 'Settings' : undefined} isActive={pathname === '/settings'}>
             <Settings />
             <span>Settings</span>

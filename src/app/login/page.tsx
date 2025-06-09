@@ -15,6 +15,7 @@ import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2, LogIn, Mail } from "lucide-react";
 import { Logo } from "@/components/logo";
+import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -66,7 +67,7 @@ export default function LoginPage() {
       </div>
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center p-4 sm:p-6">
-          <CardTitle className="font-headline text-2xl sm:text-3xl flex items-center justify-center gap-2">
+          <CardTitle className={cn("font-headline text-2xl sm:text-3xl flex items-center justify-center gap-2", "text-gradient-dynamic")}>
             <LogIn className="w-6 h-6 sm:w-7 sm:h-7" /> Login to AutoBoss
           </CardTitle>
           <CardDescription className="text-sm">
@@ -85,7 +86,7 @@ export default function LoginPage() {
               <Input id="password" type="password" placeholder="••••••••" {...register("password")} />
               {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
             </div>
-            <Button type="submit" disabled={isSubmitting} className="w-full py-2.5">
+            <Button type="submit" disabled={isSubmitting} className={cn("w-full py-2.5", "btn-gradient-primary")}>
               {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
               {isSubmitting ? "Signing In..." : "Sign In with Email"}
             </Button>

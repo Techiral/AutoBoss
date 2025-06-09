@@ -121,7 +121,7 @@
     letter-spacing: -0.03em;
   }
   .marketing-h2 {
-     @apply text-3xl sm:text-4xl font-bold tracking-tight text-center mb-3 md:mb-4; /* Adjusted from previous versions */
+     @apply text-3xl sm:text-4xl font-bold tracking-tight text-center mb-3 md:mb-4;
      letter-spacing: -0.02em;
   }
   h3 { @apply text-lg sm:text-xl font-semibold font-headline; }
@@ -163,7 +163,7 @@
   margin: 0 auto;
   letter-spacing: .03em;
   animation:
-    typing 1.5s steps(29, end) forwards, /* "AutoBoss builds AI teammates." is 29 chars */
+    typing 1.5s steps(13, end) forwards, /* "AI Teammates." is 13 chars */
     blink-caret .75s step-end infinite;
   animation-delay: 0.2s;
   width: 0%;
@@ -190,15 +190,18 @@
 }
 
 /* Gradient Text Helpers */
-.gradient-text-on-dark {
+.gradient-text-on-dark { /* For dark backgrounds, e.g., hero */
     @apply bg-clip-text text-transparent bg-gradient-to-r from-electric-teal via-neon-lime to-primary;
 }
-.dark .gradient-text-on-dark {
+.dark .gradient-text-on-dark { /* Ensure dark mode consistency */
     @apply bg-gradient-to-r from-[hsl(var(--electric-teal))] via-[hsl(var(--neon-lime))] to-[hsl(var(--primary))];
 }
 
-.gradient-text-on-light {
-     @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-electric-teal to-neon-lime;
+.text-gradient-dynamic { /* For general use on titles, potentially on lighter card backgrounds */
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-neon-lime to-primary;
+}
+.dark .text-gradient-dynamic {
+    @apply bg-gradient-to-r from-[hsl(var(--primary))] via-[hsl(var(--neon-lime))] to-[hsl(var(--primary))];
 }
 
 
@@ -211,7 +214,7 @@
     @apply p-2 sm:p-2.5 rounded-lg bg-primary/10 text-primary mb-2 sm:mb-3 inline-block;
 }
 .simple-feature-card-title {
-    @apply font-headline text-lg sm:text-lg font-bold text-foreground mb-1 sm:mb-1.5; /* Changed from text-base */
+    @apply font-headline text-lg font-bold text-foreground mb-1 sm:mb-1.5;
     @apply relative pt-1;
 }
 .simple-feature-card-title::before {
@@ -309,10 +312,12 @@ div[data-ai-hint] {
 .step-card-container > :nth-child(1) .dashed-connector::before { @apply content-none; }
 .step-card-container > :nth-child(3) .dashed-connector::after { @apply content-none; }
 
-/* Removed .pulse-cta-btn and @keyframes pulse-cta-gentle as continuous pulsing was removed */
-/* The @keyframes pulse-cta-gentle and .pulse-cta-btn class were fully removed in a previous step */
-/* No orphaned braces should exist from their removal. */
-    
-/* CSS for Logo Marquee (Powering AI Breakthroughs section) */
-/* This section was removed and replaced by "Solve Real Problems..." cards. */
-/* No marquee CSS should be present */
+/* New Gradient Button Style */
+.btn-gradient-primary {
+  @apply bg-gradient-to-r from-primary to-neon-lime text-primary-foreground shadow-md hover:opacity-90 transition-opacity;
+}
+/* Ensure dark mode compatibility if text-primary-foreground (dark text) clashes with neon-lime */
+.dark .btn-gradient-primary {
+  @apply text-primary-foreground; /* This is already dark, should be okay */
+}
+

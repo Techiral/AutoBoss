@@ -13,7 +13,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 // Intersection Observer Hook
 const useIntersectionObserver = (options?: IntersectionObserverInit) => {
   const [node, setNode] = useState<HTMLElement | null>(null);
-  const [isIntersecting, setIsIntersecting] = useState(false);
+  const [isIntersecting, setIsIntersecting] = useState(false); // Always init to false for SSR
   const observerRef = useRef<IntersectionObserver | null>(null);
 
   useEffect(() => {
@@ -21,6 +21,7 @@ const useIntersectionObserver = (options?: IntersectionObserverInit) => {
       return;
     }
 
+    // Disconnect previous observer if node changes
     if (observerRef.current) {
       observerRef.current.disconnect();
     }
@@ -40,7 +41,7 @@ const useIntersectionObserver = (options?: IntersectionObserverInit) => {
         currentObserver.unobserve(node);
       }
     };
-  }, [node, options]);
+  }, [node, options]); // Re-run effect if node or options change
 
   return [setNode, isIntersecting] as const;
 };
@@ -83,7 +84,7 @@ const SimpleFeatureCard: React.FC<SimpleFeatureCardProps> = ({ icon, title, desc
   );
 };
 
-const heroPainPoint = "AutoBoss builds AI teammates.";
+const heroPainPoint = "AI Teammates."; // Shortened text
 
 export default function MarketingPageClient() {
   const typewriterRef = useRef<HTMLSpanElement>(null);
@@ -159,7 +160,7 @@ export default function MarketingPageClient() {
             <Button variant="outline" size="sm" asChild className="btn-outline-themed transition-colors btn-interactive text-xs ml-2">
               <Link href="/login" className="flex items-center gap-1">Login</Link>
             </Button>
-            <Button size="sm" asChild className="font-semibold bg-gradient-to-r from-electric-teal to-neon-lime text-background shadow-md hover:opacity-90 transition-opacity btn-interactive text-xs">
+            <Button size="sm" asChild className="btn-gradient-primary font-semibold shadow-md hover:opacity-90 transition-opacity btn-interactive text-xs">
               <Link href="/dashboard" className="flex items-center gap-1">
                  Try AutoBoss Free <ArrowRight className="h-4 w-4"/>
               </Link>
@@ -184,7 +185,7 @@ export default function MarketingPageClient() {
             <Link key={link.href} href={link.href} className="block py-1.5 text-sm text-card-foreground hover:text-primary" onClick={toggleMobileMenu}>{link.label}</Link>
           ))}
           <Link href="/login" className="block py-1.5 text-sm text-card-foreground hover:text-primary" onClick={toggleMobileMenu}>Login</Link>
-          <Button asChild className="w-full font-semibold bg-gradient-to-r from-electric-teal to-neon-lime text-background shadow-md hover:opacity-90 transition-opacity btn-interactive text-sm mt-2">
+          <Button asChild className="w-full btn-gradient-primary font-semibold shadow-md hover:opacity-90 transition-opacity btn-interactive text-sm mt-2">
             <Link href="/dashboard" onClick={toggleMobileMenu} className="flex items-center justify-center gap-1">
               Try AutoBoss Free
             </Link>
@@ -210,7 +211,7 @@ export default function MarketingPageClient() {
                 Upgrade your business with AI agents that think, decide, &amp; execute.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center items-center pt-1">
-                <Button size="lg" asChild className="shadow-lg bg-gradient-to-r from-electric-teal to-neon-lime text-background font-bold text-sm px-6 py-2.5 sm:py-3 hover:opacity-90 transition-all duration-300 hover:scale-105 group btn-interactive w-full sm:w-auto">
+                <Button size="lg" asChild className="btn-gradient-primary shadow-lg font-bold text-sm px-6 py-2.5 sm:py-3 hover:opacity-90 transition-all duration-300 hover:scale-105 group btn-interactive w-full sm:w-auto">
                   <Link href="/dashboard" className="flex items-center gap-1.5">
                     Launch Agent Free
                     <Rocket className="h-4 w-4 sm:h-5 sm:h-5 group-hover:animate-bounce" />
@@ -407,21 +408,21 @@ export default function MarketingPageClient() {
         <section ref={finalCtaRef} className={cn("scroll-reveal section-cta-final w-full py-12 md:py-16 lg:py-20", finalCtaVisible && "visible")}>
           <div className="container mx-auto px-4 md:px-6 text-center max-w-screen-xl">
             <div className="mx-auto max-w-md space-y-3 bg-card/80 dark:bg-background/70 backdrop-blur-md p-5 sm:p-6 md:p-8 rounded-xl shadow-2xl">
-              <h2 className="marketing-h2 !text-2xl sm:!text-3xl gradient-text-on-dark">
+              <h2 className="marketing-h2 !text-2xl sm:!text-3xl text-gradient-dynamic">
                 Start Your AI Journey
               </h2>
               <p className="text-muted-foreground text-xs md:text-sm !mb-5">
                 AutoBoss is free to try. No credit card needed.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center items-center pt-1">
-                <Button size="lg" asChild className="shadow-xl bg-gradient-to-r from-electric-teal to-neon-lime text-background font-bold text-sm px-6 py-2.5 hover:opacity-90 transition-all duration-300 hover:scale-105 group w-full sm:w-auto btn-interactive">
+                <Button size="lg" asChild className="btn-gradient-primary shadow-xl font-bold text-sm px-6 py-2.5 hover:opacity-90 transition-all duration-300 hover:scale-105 group w-full sm:w-auto btn-interactive">
                   <Link href="/dashboard" className="flex items-center gap-1.5">
                     Start Building Free
                     <Rocket className="h-4 w-4 sm:h-5 sm:h-5 group-hover:animate-bounce" />
                   </Link>
                 </Button>
                 <Button size="lg" variant="outline" asChild className="btn-outline-themed transition-all duration-300 hover:scale-105 px-6 py-2.5 text-sm text-primary hover:text-accent-foreground hover:bg-accent hover:border-accent border-muted-foreground/50 bg-background/20 dark:bg-card/20 backdrop-blur-sm w-full sm:w-auto btn-interactive">
-                  <Link href="mailto:demo@autoboss.dev?subject=AutoBoss%20Demo%20Request" className="flex items-center gap-1.5">
+                  <Link href="mailto:support@autoboss.dev?subject=AutoBoss%20Demo%20Request" className="flex items-center gap-1.5">
                     Request a Demo <Eye className="h-4 w-4 sm:h-5 sm:h-5"/>
                   </Link>
                 </Button>
