@@ -10,7 +10,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { extractKnowledge } from "@/ai/flows/knowledge-extraction";
 import { processUrl } from "@/ai/flows/url-processor"; 
-import { Upload, Loader2, FileText, Tag, AlertTriangle, Link as LinkIcon } from "lucide-react";
+import { Upload, Loader2, FileText, Tag, AlertTriangle, Link as LinkIcon, Brain } from "lucide-react";
 import type { KnowledgeItem, Agent } from "@/lib/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAppContext } from "../../../layout";
@@ -74,7 +74,7 @@ export default function KnowledgePage() {
     addKnowledgeItem(agentId, newKnowledgeItem);
     toast({
         title: "Knowledge Added!",
-        description: `Successfully processed and added "${fileName}".`,
+        description: `Successfully processed and added "${fileName}". Your chatbot is now smarter!`,
     });
   }
 
@@ -187,12 +187,12 @@ export default function KnowledgePage() {
     return (
       <Card>
         <CardHeader className="p-4 sm:p-6">
-          <CardTitle className="text-lg sm:text-xl">Loading Knowledge...</CardTitle>
+          <CardTitle className={cn("font-headline text-lg sm:text-xl", "text-gradient-dynamic")}>Train Chatbot</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col items-center justify-center min-h-[calc(100vh-300px)]">
           <Logo className="mb-3 h-8" />
           <Loader2 className="h-8 w-8 sm:h-10 sm:w-10 animate-spin text-primary" />
-          <p className="text-xs text-muted-foreground mt-2">Fetching knowledge base...</p>
+          <p className="text-xs text-muted-foreground mt-2">Loading training data...</p>
         </CardContent>
       </Card>
     )
@@ -202,7 +202,7 @@ export default function KnowledgePage() {
     return (
        <Alert variant="destructive">
         <AlertTriangle className="h-4 w-4" />
-        <AlertTitle>Agent Not Found</AlertTitle>
+        <AlertTitle>Chatbot Not Found</AlertTitle>
       </Alert>
     );
   }
@@ -211,18 +211,18 @@ export default function KnowledgePage() {
     <div className="grid gap-4 md:gap-6 grid-cols-1 lg:grid-cols-3">
       <Card className="lg:col-span-1">
         <CardHeader className="p-4 sm:p-6">
-          <CardTitle className={cn("font-headline text-lg sm:text-2xl", "text-gradient-dynamic")}>Add Knowledge</CardTitle>
-          <CardDescription className="text-sm">Upload documents or process URLs to build agent <span className="font-semibold">{currentAgent.generatedName || currentAgent.name}</span>'s knowledge.</CardDescription>
+          <CardTitle className={cn("font-headline text-lg sm:text-2xl", "text-gradient-dynamic")}>Train Your Chatbot</CardTitle>
+          <CardDescription className="text-sm">Upload documents or add website URLs to train <span className="font-semibold">{currentAgent.generatedName || currentAgent.name}</span> on specific business data.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
             <div className="space-y-1.5">
-                <Label htmlFor="document">Upload Document</Label>
+                <Label htmlFor="document">Upload Document (e.g., FAQ, Product Info)</Label>
                 <Input id="document" type="file" onChange={handleFileChange} accept=".txt,.pdf,.md,.docx,.json,.csv,.html,.htm,image/png,image/jpeg" disabled={isLoadingFile || isProcessingUrl}/>
                 {selectedFile && <p className="text-xs sm:text-sm text-muted-foreground">Selected: {selectedFile.name}</p>}
             </div>
             <Button onClick={handleSubmitFile} disabled={isLoadingFile || !selectedFile || isProcessingUrl} className={cn("w-full", "btn-gradient-primary")}>
                 {isLoadingFile ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                {isLoadingFile ? "Processing File..." : "Extract from File"}
+                {isLoadingFile ? "Processing File..." : "Train from File"}
             </Button>
 
             <div className="relative my-3 sm:my-4">
@@ -235,12 +235,12 @@ export default function KnowledgePage() {
             </div>
 
             <div className="space-y-1.5">
-                <Label htmlFor="url">Process URL</Label>
-                <Input id="url" type="url" placeholder="https://example.com/article" value={urlInput} onChange={handleUrlInputChange} disabled={isProcessingUrl || isLoadingFile}/>
+                <Label htmlFor="url">Train from Website URL</Label>
+                <Input id="url" type="url" placeholder="https://example.com/about-us" value={urlInput} onChange={handleUrlInputChange} disabled={isProcessingUrl || isLoadingFile}/>
             </div>
             <Button onClick={handleProcessUrl} disabled={isProcessingUrl || !urlInput.trim() || isLoadingFile} className={cn("w-full", "btn-gradient-primary")}>
                 {isProcessingUrl ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LinkIcon className="mr-2 h-4 w-4" />}
-                {isProcessingUrl ? "Processing URL..." : "Process URL"}
+                {isProcessingUrl ? "Processing URL..." : "Train from URL"}
             </Button>
         </CardContent>
       </Card>
@@ -248,7 +248,10 @@ export default function KnowledgePage() {
       {knowledgeItems.length > 0 && (
         <Card className="lg:col-span-2">
           <CardHeader className="p-4 sm:p-6">
-            <CardTitle className={cn("font-headline text-lg sm:text-xl", "text-gradient-dynamic")}>Knowledge Base for {currentAgent.generatedName || currentAgent.name}</CardTitle>
+            <CardTitle className={cn("font-headline text-lg sm:text-xl flex items-center gap-2", "text-gradient-dynamic")}>
+                <Brain className="w-5 h-5 sm:w-6 sm:h-6 text-primary"/> Chatbot Knowledge Base: {currentAgent.generatedName || currentAgent.name}
+            </CardTitle>
+             <CardDescription className="text-sm">This is the custom data your chatbot uses to answer questions.</CardDescription>
           </CardHeader>
           <CardContent className="p-4 sm:p-6 pt-0">
             <ScrollArea className="h-[calc(100vh-350px)] sm:h-[calc(100vh-300px)] max-h-[500px] sm:max-h-[600px] pr-3 sm:pr-4"> 
@@ -260,7 +263,7 @@ export default function KnowledgePage() {
                         {item.fileName.startsWith('http') ? <LinkIcon className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0"/> : <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0"/>} 
                         <span className="truncate text-sm sm:text-base" title={item.fileName}>{item.fileName}</span>
                     </CardTitle>
-                    <CardDescription className="text-xs">Added: {new Date(item.uploadedAt).toLocaleString()}</CardDescription>
+                    <CardDescription className="text-xs">Trained: {new Date(item.uploadedAt).toLocaleString()}</CardDescription>
                   </CardHeader>
                   <CardContent className="p-3 sm:p-4 pt-0">
                     {item.summary && (
@@ -292,15 +295,19 @@ export default function KnowledgePage() {
        {knowledgeItems.length === 0 && (
          <Card className="lg:col-span-2">
           <CardHeader className="p-4 sm:p-6">
-            <CardTitle className={cn("font-headline text-lg sm:text-xl", "text-gradient-dynamic")}>Knowledge Base Empty</CardTitle>
+            <CardTitle className={cn("font-headline text-lg sm:text-xl flex items-center gap-2", "text-gradient-dynamic")}>
+                 <Brain className="w-5 h-5 sm:w-6 sm:h-6 text-primary"/>Chatbot Knowledge Base Empty
+            </CardTitle>
           </CardHeader>
            <CardContent className="flex flex-col items-center justify-center min-h-[200px] sm:min-h-[300px] p-4 sm:p-6">
             <FileText className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground mb-3 sm:mb-4" />
-            <p className="text-sm sm:text-base text-muted-foreground">No documents or URLs processed yet.</p>
-            <p className="text-xs text-muted-foreground mt-1">Use the panel on the left to add knowledge.</p>
+            <p className="text-sm sm:text-base text-muted-foreground">Your chatbot hasn't been trained yet.</p>
+            <p className="text-xs text-muted-foreground mt-1">Use the panel on the left to add website content or documents.</p>
           </CardContent>
         </Card>
        )}
     </div>
   );
 }
+
+    

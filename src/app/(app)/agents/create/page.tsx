@@ -15,12 +15,12 @@ import { createAgent, CreateAgentOutput } from "@/ai/flows/agent-creation";
 import { useRouter } from "next/navigation";
 import { useAppContext } from "../../layout"; 
 import type { Agent } from "@/lib/types"; 
-import { Loader2 } from "lucide-react";
+import { Loader2, Bot } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext"; 
 import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
-  name: z.string().min(3, "Name must be at least 3 characters").max(100, "Name too long"),
+  name: z.string().min(3, "Chatbot name must be at least 3 characters").max(100, "Name too long"),
   role: z.string().min(10, "Role description must be at least 10 characters").max(500, "Role too long"),
   personality: z.string().min(10, "Personality description must be at least 10 characters").max(500, "Personality too long"),
 });
@@ -41,20 +41,20 @@ export default function CreateAgentPage() {
 
   const onSubmit: SubmitHandler<FormData> = async (data) => {
     if (!currentUser) {
-      toast({ title: "Not Authenticated", description: "Please log in to create an agent.", variant: "destructive" });
+      toast({ title: "Not Authenticated", description: "Please log in to create a chatbot.", variant: "destructive" });
       router.push('/login');
       return;
     }
     setIsLoading(true);
     setGeneratedAgentDetails(null);
     try {
-      const agentDescription = `Name: ${data.name}\nRole: ${data.role}\nPersonality: ${data.personality}`;
+      const agentDescription = `Chatbot Name/Purpose: ${data.name}\nIntended Role for Business: ${data.role}\nDesired Personality/Tone: ${data.personality}`;
       const aiResult = await createAgent({ agentDescription });
       setGeneratedAgentDetails(aiResult);
       
       const agentDataForContext: Omit<Agent, 'id' | 'createdAt' | 'knowledgeItems' | 'flow' | 'userId'> = {
         name: data.name, 
-        description: `Role: ${data.role}. Personality: ${data.personality}.`, 
+        description: `Role: ${data.role}. Personality: ${data.personality}. Ideal for business websites.`, 
         role: data.role,
         personality: data.personality,
         generatedName: aiResult.agentName,
@@ -66,14 +66,14 @@ export default function CreateAgentPage() {
 
       if (newAgent) {
         toast({
-          title: "Agent Configured!",
-          description: `Agent "${aiResult.agentName}" saved. Redirecting to Studio...`,
+          title: "Chatbot Configured!",
+          description: `Chatbot "${aiResult.agentName}" saved. Next, train it with business data and design its conversation. Redirecting...`,
         });
-        router.push(`/agents/${newAgent.id}/studio`);
+        router.push(`/agents/${newAgent.id}/knowledge`); // Redirect to knowledge page first
       }
     } catch (error: any) {
-      console.error("Error creating agent:", error);
-      const errorMessage = error.message || "Failed to create agent. Please try again.";
+      console.error("Error creating chatbot:", error);
+      const errorMessage = error.message || "Failed to create chatbot. Please try again.";
       toast({
         title: "Error",
         description: errorMessage,
@@ -88,35 +88,36 @@ export default function CreateAgentPage() {
     <div className="max-w-2xl mx-auto">
       <Card>
         <CardHeader className="p-4 sm:p-6">
-          <CardTitle className={cn("font-headline text-xl sm:text-2xl", "text-gradient-dynamic")}>Configure New AI Agent</CardTitle>
+          <CardTitle className={cn("font-headline text-xl sm:text-2xl flex items-center gap-2", "text-gradient-dynamic")}> <Bot className="w-6 h-6 sm:w-7 sm:h-7"/>Create Your Business Chatbot</CardTitle>
           <CardDescription className="text-sm">
-            Define the core characteristics of your new agent. The AI will help refine its persona.
+            Define the core characteristics of your new AI chatbot. This information helps AutoBoss generate a base persona, which you can then refine.
+            You'll train it with specific business data in the next step.
             <br />
-            <span className="text-xs text-muted-foreground">Agent data will be stored in Firestore, associated with your account.</span>
+            <span className="text-xs text-muted-foreground">Chatbot data is stored securely, associated with your account.</span>
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
           <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
             <div className="space-y-1.5">
-              <Label htmlFor="name">Agent Name / Concept</Label>
-              <Input id="name" placeholder="e.g., Helpful Support Bot" {...register("name")} />
+              <Label htmlFor="name">Chatbot Name / Business Purpose</Label>
+              <Input id="name" placeholder="e.g., 'Acme Corp Support Bot', 'Website Lead Qualifier'" {...register("name")} />
               {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="role">Role & Objectives</Label>
-              <Textarea id="role" placeholder="Describe the agent's primary function and goals..." {...register("role")} rows={3} />
+              <Label htmlFor="role">Role & Objectives for the Business</Label>
+              <Textarea id="role" placeholder="e.g., 'Answer customer questions about our products', 'Collect contact info from potential leads and schedule demos'" {...register("role")} rows={3} />
               {errors.role && <p className="text-xs text-destructive">{errors.role.message}</p>}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="personality">Personality & Tone</Label>
-              <Textarea id="personality" placeholder="Describe the desired personality..." {...register("personality")} rows={3} />
+              <Label htmlFor="personality">Desired Personality & Tone</Label>
+              <Textarea id="personality" placeholder="e.g., 'Friendly and helpful', 'Professional and concise', 'Enthusiastic and engaging'" {...register("personality")} rows={3} />
               {errors.personality && <p className="text-xs text-destructive">{errors.personality.message}</p>}
             </div>
           </CardContent>
           <CardFooter className="p-4 sm:p-6">
             <Button type="submit" disabled={isLoading} className={cn("w-full", "btn-gradient-primary")}>
               {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              {isLoading ? "Configuring Agent..." : "Configure Agent & Generate Details"}
+              {isLoading ? "Configuring Chatbot..." : "Configure Chatbot & Generate Details"}
             </Button>
           </CardFooter>
         </form>
@@ -125,24 +126,27 @@ export default function CreateAgentPage() {
       {generatedAgentDetails && (
         <Card className="mt-6 sm:mt-8">
           <CardHeader className="p-4 sm:p-6">
-            <CardTitle className={cn("font-headline text-lg sm:text-xl", "text-gradient-dynamic")}>AI Generated Details</CardTitle>
+            <CardTitle className={cn("font-headline text-lg sm:text-xl", "text-gradient-dynamic")}>AI Generated Details (Suggestions)</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6">
             <div>
-              <Label className="text-xs font-semibold">Generated Name</Label>
+              <Label className="text-xs font-semibold">Suggested Chatbot Name</Label>
               <p className="text-sm p-2 bg-muted rounded-md mt-1">{generatedAgentDetails.agentName}</p>
             </div>
             <div>
-              <Label className="text-xs font-semibold">Generated Persona</Label>
+              <Label className="text-xs font-semibold">Suggested Persona</Label>
               <p className="text-sm p-2 bg-muted rounded-md whitespace-pre-wrap mt-1">{generatedAgentDetails.agentPersona}</p>
             </div>
             <div>
               <Label className="text-xs font-semibold">Sample Greeting</Label>
               <p className="text-sm p-2 bg-muted rounded-md mt-1">{generatedAgentDetails.agentGreeting}</p>
             </div>
+            <p className="text-xs text-muted-foreground italic">You can further refine these details in the 'Personality' section after creation.</p>
           </CardContent>
         </Card>
       )}
     </div>
   );
 }
+
+    

@@ -3,31 +3,31 @@
 
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { LifeBuoy, MessageCircleQuestion, AlertTriangle, Mail } from "lucide-react";
+import { LifeBuoy, MessageCircleQuestion, AlertTriangle, Mail, Cog, BookOpen, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export default function SupportPage() {
   const faqs = [
     {
-      question: "How do I create a new AI agent?",
-      answer: "Navigate to the 'Dashboard' and click the 'Create New Agent' button. Fill in the initial details like name, role, and personality. The system will then guide you to the Agent Studio to further configure its flow and knowledge.",
+      question: "How do I create a new AI chatbot for a business?",
+      answer: "Navigate to the 'Dashboard' and click 'Create New Chatbot'. You'll define its name (e.g., 'Acme Corp Support'), its role for the business (e.g., 'Handles customer inquiries'), and desired personality. AutoBoss will then guide you to train it and design its conversation.",
     },
     {
-      question: "Where is my agent data stored?",
-      answer: "Agent configurations (personality, knowledge items, flows) are stored in Firebase Firestore. This allows your data to be persistent and accessible, associated with your user account.",
+      question: "How do I 'train' my chatbot with custom business data?",
+      answer: "Go to the 'Knowledge' section for your chatbot. You can upload documents (like PDFs, TXT files of FAQs, product specifications) or provide website URLs (e.g., the business's 'About Us' or 'Services' page). AutoBoss will process this content to make your chatbot an expert on that specific business.",
     },
     {
-      question: "How does the Knowledge Base work?",
-      answer: "You can add knowledge to your agent by uploading documents (like TXT, PDF, MD) or processing URLs. The system extracts text content, generates a summary and keywords using AI, and makes this information available to your agent for answering questions or informing its responses, primarily through the 'Autonomous Reasoning' mode or 'callLLM' nodes with 'Use Knowledge' enabled.",
+      question: "What is the 'Design Conversation' (Studio) page for?",
+      answer: "The Studio is where you visually map out how your chatbot should interact. You can create step-by-step conversation paths, ask questions, make decisions based on user input, send specific messages, and use AI for smart responses. This allows for highly customized chatbot behavior.",
     },
     {
-      question: "What is the difference between 'Flow' and 'Autonomous' mode in the chat?",
-      answer: "'Flow' mode prioritizes executing the visual flow you designed in the Studio. The agent will follow the defined steps. 'Autonomous' mode lets the agent use its general AI capabilities (powered by Gemini) and knowledge base to respond more freely to your inputs without strictly following a predefined flow.",
+      question: "How can I give the chatbot I built to my client or put it on their website?",
+      answer: "The 'Export' tab for each chatbot provides an 'Embeddable Chat Launcher' script. Simply copy this script and paste it into the HTML of your client's website. This will add a chat widget to their site. You can also share a direct link to the chatbot.",
     },
     {
-        question: "Can I export my agent to use elsewhere?",
-        answer: "Yes, the 'Export' tab for each agent provides a direct chatbot link (opens a public chat page), an illustrative API endpoint, and an iframe embed code for the chat widget, allowing integration into external websites or systems."
+        question: "Do I need to know coding to use AutoBoss?",
+        answer: "No! AutoBoss is designed for non-technical users. You can build, train, and deploy sophisticated AI chatbots using our visual tools without writing any code."
     }
   ];
 
@@ -38,7 +38,7 @@ export default function SupportPage() {
           <CardTitle className={cn("font-headline text-xl sm:text-2xl flex items-center gap-2", "text-gradient-dynamic")}>
             <LifeBuoy className="w-5 h-5 sm:w-6 sm:h-6 text-primary" /> Support & Help Center
           </CardTitle>
-          <CardDescription className="text-sm">Find answers to common questions and get help with AutoBoss.</CardDescription>
+          <CardDescription className="text-sm">Get help building and selling AI chatbots with AutoBoss.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6 sm:space-y-8 p-4 sm:p-6">
           <section>
@@ -58,22 +58,26 @@ export default function SupportPage() {
           <section className="p-3 sm:p-4 border rounded-lg bg-muted/30">
             <h2 className={cn("text-lg sm:text-xl font-semibold mb-2 sm:mb-3 flex items-center gap-2", "text-gradient-dynamic")}><AlertTriangle className="w-4 h-4 sm:w-5 sm:w-5 text-primary"/>Basic Troubleshooting</h2>
             <ul className="list-disc list-inside space-y-1 text-xs sm:text-sm text-muted-foreground">
-              <li>If you encounter unexpected behavior, try refreshing the page.</li>
-              <li>Ensure your internet connection is stable, especially when interacting with AI features.</li>
-              <li>If you suspect data issues, you can clear all agent data from the 'Settings' page.</li>
-              <li>Make sure your web browser is up to date for the best compatibility.</li>
+              <li>If your chatbot isn't responding as expected, double-check its 'Conversation Design' in the Studio for any broken paths.</li>
+              <li>Ensure the chatbot has been trained with relevant information in the 'Knowledge' section.</li>
+              <li>Always test your chatbot thoroughly in the 'Test Chatbot' tab before deploying it for a client.</li>
+              <li>If you encounter errors, try refreshing the page or logging out and back in.</li>
             </ul>
           </section>
 
           <section className="p-3 sm:p-4 border rounded-lg bg-muted/30">
-            <h2 className={cn("text-lg sm:text-xl font-semibold mb-2 sm:mb-3 flex items-center gap-2", "text-gradient-dynamic")}><Mail className="w-4 h-4 sm:w-5 sm:w-5 text-primary"/>Contact Us</h2>
+            <h2 className={cn("text-lg sm:text-xl font-semibold mb-2 sm:mb-3 flex items-center gap-2", "text-gradient-dynamic")}><Mail className="w-4 h-4 sm:w-5 sm:w-5 text-primary"/>Contact Support</h2>
             <p className="text-xs sm:text-sm text-muted-foreground">
-              For further assistance or to report a bug, please reach out to our support team.
+              Need more help or want to discuss partnership opportunities for your agency?
             </p>
-            <Button variant="outline" className="mt-2 sm:mt-3 text-xs sm:text-sm" disabled>Contact Support (Coming Soon)</Button>
+            <Button variant="outline" className="mt-2 sm:mt-3 text-xs sm:text-sm" asChild>
+                <Link href="mailto:support@autoboss.dev?subject=AutoBoss%20Support%20Request">Contact Support</Link>
+            </Button>
           </section>
         </CardContent>
       </Card>
     </div>
   );
 }
+
+    

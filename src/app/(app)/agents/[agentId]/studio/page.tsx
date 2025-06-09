@@ -3,12 +3,12 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAppContext } from "../../../layout";
 import type { Agent, AgentFlowDefinition, FlowNode as JsonFlowNode, FlowEdge as JsonFlowEdge } from "@/lib/types";
-import { Loader2, Save, AlertTriangle, Trash2, MousePointer, ArrowRight, MessageSquare, Zap, HelpCircle, Play, ChevronsUpDown, Settings2, Link2, Cog, BookOpen, Bot as BotIcon, Share2, Network, SlidersHorizontal, FileCode, MessageCircleQuestion, Timer, ArrowRightLeft, Users, BrainCircuit, StopCircle, Info, Sigma, GripVertical, Library, PanelLeft, PanelRight } from "lucide-react";
+import { Loader2, Save, AlertTriangle, Trash2, MousePointer, ArrowRight, MessageSquare, Zap, HelpCircle, Play, ChevronsUpDown, Settings2, Link2, Cog, BookOpen, Bot as BotIcon, Share2, Network, SlidersHorizontal, FileCode, MessageCircleQuestion, Timer, ArrowRightLeft, Users, BrainCircuit, StopCircle, Info, Sigma, GripVertical, Library, PanelLeft, PanelRight, FileQuestion } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
@@ -70,10 +70,10 @@ interface VisualEdge extends JsonFlowEdge {}
 
 interface NodeDefinition {
   type: FlowNodeType;
-  label: string;
+  label: string; // User-friendly label
   icon: React.ElementType;
   defaultProperties?: Partial<VisualNode & JsonFlowNode>;
-  docs: {
+  docs: { // Simplified descriptions
     purpose: string;
     settings: string;
     edges: string;
@@ -82,30 +82,31 @@ interface NodeDefinition {
 }
 
 const NODE_DEFINITIONS: NodeDefinition[] = [
-  { type: 'start', label: 'Start', icon: Play, defaultProperties: { label: "Start" }, docs: { purpose: "Marks the entry of a flow. Always first.", settings: "None.", edges: "Exactly 1 outgoing.", rules: "Every flow requires one Start; cannot be downstream of any other node."} },
-  { type: 'sendMessage', label: 'Send Message', icon: MessageSquare, defaultProperties: { label: "Send Message", message: "New message" }, docs: { purpose: "Delivers text, cards, quick replies, or carousels to user.", settings: "Channel selector, typing simulation, templates (`{{var}}`).", edges: "1 outgoing edge to next node.", rules: "For long text (>640 chars) split across nodes; ensure channel compatibility." } },
-  { type: 'getUserInput', label: 'Ask Question', icon: HelpCircle, defaultProperties: { label: "Ask Question", prompt: "Ask something...", variableName: "userInput" }, docs: { purpose: "Prompts user and captures reply.", settings: "Input type (text, number, email, choice, date), validation (regex, ranges), variable name.", edges: "1 happy-path; optional invalid path (edgeType 'invalid').", rules: "If validation on, wire both valid & invalid outputs; otherwise fallback can drop." } },
-  { type: 'callLLM', label: 'LLM Call', icon: Zap, defaultProperties: { label: "LLM Call", llmPrompt: "Your LLM prompt for {{variable}}", outputVariable: "llmOutput", useKnowledge: false }, docs: { purpose: "Invokes an LLM prompt (e.g., Gemini) inline.", settings: "Prompt template, `useKnowledge` flag, output var.", edges: "1 outgoing.", rules: "Prompts must be clear; beware latency. Handle missing or malformed responses with fallback." } },
-  { type: 'condition', label: 'Condition', icon: ChevronsUpDown, defaultProperties: { label: "Condition", conditionVariable: "varToCheck", useLLMForDecision: false }, docs: { purpose: "Routes based on expressions (`{{state.age}} > 18`) or LLM decision.", settings: "Variable to check. Edge conditions (labels) act as intents if using LLM. `useLLMForDecision` flag.", edges: "One per branch (with condition label) + optional default (empty condition label).", rules: "Evaluated in order if not LLM; always include default to catch unmatched cases. If using LLM, edge `condition` labels act as intents." } },
-  { type: 'action', label: 'Action', icon: SlidersHorizontal, defaultProperties: { label: "Action", actionName: "myCustomAction" }, docs: { purpose: "Runs a registered action (CRM update, DB write, custom logic). Conceptual placeholder.", settings: "Action name, input args (JSON string or {{vars}}), output map (JSON string).", edges: "1 outgoing; errors bubble to global fallback.", rules: "Custom actions must exist in code; handle errors via fallback flow. Placeholder execution." } },
-  { type: 'apiCall', label: 'HTTP Request', icon: Network, defaultProperties: { label: "HTTP Request", apiUrl: "https://api.example.com/data", apiMethod: 'GET' }, docs: { purpose: "Calls external REST endpoint. Conceptual placeholder.", settings: "URL (templated), method, headers (JSON string), body variable, output variable, timeout, retry.", edges: "Success (edgeType 'success') + error (edgeType 'error').", rules: "Non-2xx → error edge; account for rate limits and retries. Placeholder execution." } },
-  { type: 'code', label: 'Code (JS)', icon: FileCode, defaultProperties: { label: "JS Code", codeScript: "// Your JS code here\n// return { outputKey: 'value' };" }, docs: { purpose: "Executes inline JavaScript. Conceptual placeholder - NO ACTUAL EXECUTION.", settings: "Script editor, return var mapping (JSON string: `{\"contextVar\": \"returnedKey\"}`).", edges: "1 outgoing; exceptions → flow error.", rules: "Highly simplified simulation. Real JS execution is complex and needs sandboxing." } },
-  { type: 'qnaLookup', label: 'Q&A Lookup', icon: MessageCircleQuestion, defaultProperties: { label: "Q&A Lookup", qnaQueryVariable: "userQuery", qnaOutputVariable: "qnaAnswer", qnaFallbackText: "No answer found." }, docs: { purpose: "Hits a Q&A (KB) for best match to user input. Basic keyword match simulation.", settings: "KB ID (conceptual), query variable, threshold, fallback text, output variable.", edges: "Found (edgeType 'found') + Not found (edgeType 'notFound').", rules: "Always wire both edges or user can get stuck without response." } },
-  { type: 'wait', label: 'Wait / Delay', icon: Timer, defaultProperties: { label: "Wait", waitDurationMs: 1000 }, docs: { purpose: "Pauses flow to simulate typing or timing.", settings: "Delay duration (ms).", edges: "1 outgoing.", rules: "Use sparingly (<2s) to avoid user frustration." } },
-  { type: 'transition', label: 'Transition', icon: ArrowRightLeft, defaultProperties: { label: "Transition", transitionTargetFlowId: "another_flow_id" }, docs: { purpose: "Moves execution to another flow. Conceptual placeholder.", settings: "Target flow ID, entry node, variables to pass (JSON string: `{\"targetVar\": \"{{currentVar}}\"}`).", edges: "1 outgoing.", rules: "Avoid infinite loops; ensure variables exist upstream. Placeholder execution." } },
-  { type: 'agentSkill', label: 'Agent Skill', icon: BrainCircuit, defaultProperties: { label: "Agent Skill", agentSkillId: "booking_skill" }, docs: { purpose: "Spins up an AI agent with a predefined persona & toolset. Conceptual placeholder.", settings: "Agent ID, skills list (comma-sep), context window.", edges: "Typically single outgoing to resume flow after agent completes.", rules: "Define clear handoff points; manage token/context limits. Placeholder execution." } },
-  { type: 'end', label: 'End', icon: StopCircle, defaultProperties: { label: "End"}, docs: { purpose: "Terminates the conversation path.", settings: "Optional `endOutputVariable` from context to return data.", edges: "No outgoing edges.", rules: "Must be reachable from all branches to avoid dead‑ends." } },
+  { type: 'start', label: 'Start Conversation', icon: Play, defaultProperties: { label: "Start" }, docs: { purpose: "Marks the beginning of the chatbot's conversation path.", settings: "None.", edges: "Connects to the first step your chatbot takes.", rules: "Every conversation needs one Start node."} },
+  { type: 'sendMessage', label: 'Send a Message', icon: MessageSquare, defaultProperties: { label: "Send Message", message: "Hello! How can I help?" }, docs: { purpose: "Makes the chatbot send a message to the user.", settings: "Write the chatbot's message. You can use {{variables}} from user inputs.", edges: "Connects to the next step after the message.", rules: "Keep messages clear and concise." } },
+  { type: 'getUserInput', label: 'Ask a Question', icon: HelpCircle, defaultProperties: { label: "Ask Question", prompt: "What's your name?", variableName: "userName" }, docs: { purpose: "Asks the user a question and saves their answer.", settings: "Write the chatbot's question. Choose a 'Variable Name' to save the answer (e.g., 'userName').", edges: "Connects to what happens after the user answers. Can have a separate path for 'invalid' answers (e.g. if user types letters for a number question).", rules: "Make sure your variable names are unique." } },
+  { type: 'callLLM', label: 'Smart Response (AI)', icon: Zap, defaultProperties: { label: "Smart Response", llmPrompt: "User said: {{userInputVar}}. Respond intelligently.", outputVariable: "aiResponse", useKnowledge: false }, docs: { purpose: "Uses AI (like Gemini) to generate a smart, contextual response.", settings: "Write a prompt for the AI based on user input (e.g., {{userInputVar}}). Check 'Use Knowledge' to allow AI to use trained data. Save AI's response in 'Output Variable'.", edges: "Connects to the next step.", rules: "Clear prompts give better AI responses. This uses AI credits." } },
+  { type: 'condition', label: 'Make a Decision', icon: ChevronsUpDown, defaultProperties: { label: "Decision Point", conditionVariable: "userChoice", useLLMForDecision: false }, docs: { purpose: "Changes the conversation path based on user input or a variable.", settings: "'Variable to Check' is what the decision is based on. Edge labels become choices (e.g., 'Yes', 'No'). Can use AI to understand user's intent if 'Use AI for Decision' is checked.", edges: "One connection for each possible choice/outcome. Always have a 'Default' path.", rules: "Ensure all choices lead somewhere." } },
+  { type: 'qnaLookup', label: 'Answer from Knowledge', icon: FileQuestion, defaultProperties: { label: "Answer from Knowledge", qnaQueryVariable: "userQuery", qnaOutputVariable: "knowledgeAnswer", qnaFallbackText: "I'm not sure about that based on my current training." }, docs: { purpose: "Searches the chatbot's trained knowledge (from uploaded docs/URLs) for an answer.", settings: "Use 'Query Variable' (e.g. {{userInput}}) for what to search. 'Output Variable' stores the answer. 'Fallback Text' is used if no answer is found.", edges: "One path if 'Found', another if 'Not Found'.", rules: "Make sure your chatbot is trained with relevant data on the Knowledge page." } },
+  { type: 'end', label: 'End Conversation', icon: StopCircle, defaultProperties: { label: "End"}, docs: { purpose: "Ends this specific path of the conversation.", settings: "None, unless you want to output a final variable.", edges: "No outgoing connections.", rules: "Ensure all conversation paths can reach an End node or loop appropriately." } },
+  // Potentially "Advanced" nodes to de-emphasize initially for non-technical users
+  { type: 'action', label: 'Run Action (Advanced)', icon: SlidersHorizontal, defaultProperties: { label: "Custom Action", actionName: "myCustomAction" }, docs: { purpose: "(Advanced) Triggers a pre-defined custom action (e.g., update a database). Requires developer setup.", settings: "Action name, input arguments.", edges: "Connects to next step.", rules: "Actions are placeholders here and need separate coding." } },
+  { type: 'apiCall', label: 'Call API (Advanced)', icon: Network, defaultProperties: { label: "HTTP Request", apiUrl: "https://api.example.com/data", apiMethod: 'GET' }, docs: { purpose: "(Advanced) Connects to external services via API (e.g., get weather, stock prices). Requires technical setup.", settings: "URL, method (GET/POST), headers, etc.", edges: "Paths for 'Success' and 'Error'.", rules: "APIs can be complex. Placeholder execution in test." } },
+  { type: 'code', label: 'Run Code (Advanced)', icon: FileCode, defaultProperties: { label: "JS Code", codeScript: "// Your JS code here" }, docs: { purpose: "(Advanced) Executes a small piece of JavaScript. For complex logic. Use with caution.", settings: "JavaScript code.", edges: "Connects to next step.", rules: "Placeholder execution in test. Requires careful coding." } },
+  { type: 'wait', label: 'Add Delay', icon: Timer, defaultProperties: { label: "Wait", waitDurationMs: 1000 }, docs: { purpose: "Pauses the conversation for a short time (e.g., to simulate typing).", settings: "Duration in milliseconds (1000ms = 1 second).", edges: "Connects to next step.", rules: "Use short delays." } },
+  { type: 'transition', label: 'Go to Another Flow (Advanced)', icon: ArrowRightLeft, defaultProperties: { label: "Transition", transitionTargetFlowId: "another_flow_id" }, docs: { purpose: "(Advanced) Jumps to a different conversation flow. For modular design.", settings: "Target flow ID.", edges: "One outgoing.", rules: "Placeholder execution." } },
+  { type: 'agentSkill', label: 'Use AI Skill (Advanced)', icon: BrainCircuit, defaultProperties: { label: "Agent Skill", agentSkillId: "booking_skill" }, docs: { purpose: "(Advanced) Activates a specialized AI capability or sub-agent.", settings: "Skill ID.", edges: "Connects to next step.", rules: "Placeholder execution." } },
 ];
 
+
 const WIRING_BEST_PRACTICES_DOCS = {
-  title: "Wiring & Best Practices",
+  title: "Conversation Design Tips",
   points: [
-    "Every non-End node needs at least one outgoing edge.",
-    "Match edges to node type: 'condition' supports multiple labeled branches; 'apiCall' and 'qnaLookup' use 'success'/'error' or 'found'/'notFound' edgeTypes.",
-    "Handle errors: For 'apiCall', wire an 'error' edgeType path. For 'code', errors are logged (no error path yet).",
-    "Variable order: Define variables (e.g., via 'Ask Question') before using them in templates or other nodes.",
-    "Avoid deep nesting: Break complex logic into sub-flows and use 'Transition' (conceptual for now).",
-    "Test branches: Simulate all paths, including defaults and error conditions.",
+    "Every step (except 'End Conversation') should lead to another step.",
+    "'Make a Decision' nodes need paths for each choice and a 'Default' path.",
+    "Use 'Answer from Knowledge' for questions best answered by your trained data.",
+    "Make sure variables are defined (e.g., in 'Ask a Question') before you use them in messages or decisions.",
+    "Test all conversation paths thoroughly in the 'Test Chatbot' tab.",
   ]
 };
 
@@ -272,10 +273,10 @@ export const generalPurposeAssistantFlow: AgentFlowDefinition = {
 };
 
 const sampleFlows: Record<string, { name: string; flow: AgentFlowDefinition }> = {
-  minimal: { name: "Minimal Flow", flow: minimalInitialFlow },
-  support: { name: "Customer Support", flow: customerSupportFlow },
-  refund: { name: "Refund Processing", flow: refundProcessingFlow },
-  faq: { name: "FAQ Agent", flow: faqFlowMinimal },
+  minimal: { name: "Minimal (Start & End)", flow: minimalInitialFlow },
+  support: { name: "Customer Support Example", flow: customerSupportFlow },
+  refund: { name: "Refund Process Example", flow: refundProcessingFlow },
+  faq: { name: "FAQ Agent (Minimal Greeting)", flow: faqFlowMinimal },
   general: { name: "General Purpose Assistant", flow: generalPurposeAssistantFlow },
 };
 
@@ -342,8 +343,8 @@ export default function AgentStudioPage() {
       setCurrentAgent(agent);
       loadFlowToVisual(agent?.flow);
     } else if (!isLoadingAgents && !agentId) {
-      setCurrentAgent(null); // No agent Id, clear currentAgent
-      loadFlowToVisual(undefined); // Load minimal flow
+      setCurrentAgent(null); 
+      loadFlowToVisual(undefined); 
     }
   }, [agentId, getAgent, loadFlowToVisual, isLoadingAgents]);
 
@@ -481,7 +482,7 @@ export default function AgentStudioPage() {
     const sourceNode = nodes.find(n => n.id === nodeId);
     if (!sourceNode || portType !== 'out' || sourceNode.type === 'end') {
         if (sourceNode && sourceNode.type === 'end') {
-            toast({title: "Invalid Start", description: "Cannot drag an edge from an 'End' node.", variant: "destructive"});
+            toast({title: "Invalid Start", description: "Cannot drag an edge from an 'End Conversation' node.", variant: "destructive"});
         }
         return;
     }
@@ -510,7 +511,7 @@ export default function AgentStudioPage() {
 
     const targetNode = nodes.find(n => n.id === targetNodeId);
     if (!targetNode || targetNode.type === 'start') {
-        toast({title: "Invalid Connection", description: "Cannot connect to a 'Start' node's input.", variant:"destructive"});
+        toast({title: "Invalid Connection", description: "Cannot connect to a 'Start Conversation' node's input.", variant:"destructive"});
         setEdgeDragInfo(null);
         return;
     }
@@ -523,7 +524,7 @@ export default function AgentStudioPage() {
 
     const existingEdge = edges.find(e => e.source === edgeDragInfo.sourceNodeId && e.target === targetNodeId);
     if (existingEdge) {
-        toast({title: "Connection Exists", description: "An edge already exists between these nodes."});
+        toast({title: "Connection Exists", description: "A connection already exists between these nodes."});
         setEdgeDragInfo(null);
         return;
     }
@@ -547,7 +548,7 @@ export default function AgentStudioPage() {
         edgeType: defaultEdgeType,
     };
     setEdges((eds) => eds.concat(newEdge));
-    toast({ title: "Edge Created!", description: `Connected ${sourceNode?.label || 'source'} to ${targetNode.label}. Configure edge in properties panel.`});
+    toast({ title: "Connection Created!", description: `Connected ${sourceNode?.label || 'source'} to ${targetNode.label}. Configure connection in properties panel.`});
     setEdgeDragInfo(null);
   };
 
@@ -619,11 +620,11 @@ export default function AgentStudioPage() {
     const hasEndNode = nodes.some(n => n.type === 'end');
 
     if (!hasStartNode && nodes.length > 0) {
-        toast({ title: "Invalid Flow", description: "A flow must have at least one 'Start' node.", variant: "destructive"});
+        toast({ title: "Invalid Conversation Design", description: "A conversation must have at least one 'Start Conversation' node.", variant: "destructive"});
         return null;
     }
      if (!hasEndNode && nodes.length > 0) {
-        toast({ title: "Invalid Flow", description: "A flow should have at least one 'End' node.", variant: "destructive"});
+        toast({ title: "Invalid Conversation Design", description: "A conversation should have at least one 'End Conversation' node.", variant: "destructive"});
     }
     
     for (const node of nodes) {
@@ -633,7 +634,7 @@ export default function AgentStudioPage() {
             return null;
         }
         if (node.type === 'callLLM' && (!node.llmPrompt || !node.outputVariable)) {
-            toast({ title: "Invalid Node Config", description: `LLM Call node '${node.label}' is missing a prompt or output variable.`, variant: "destructive"});
+            toast({ title: "Invalid Node Config", description: `Smart Response node '${node.label}' is missing a prompt or output variable.`, variant: "destructive"});
             return null;
         }
         if (node.type === 'getUserInput' && (!node.prompt || !node.variableName)) {
@@ -641,7 +642,7 @@ export default function AgentStudioPage() {
             return null;
         }
          if (node.type === 'condition' && !node.conditionVariable) {
-             toast({ title: "Invalid Node Config", description: `Condition node '${node.label}' is missing a 'Variable to Check'.`, variant: "destructive"});
+             toast({ title: "Invalid Node Config", description: `Decision Point node '${node.label}' is missing a 'Variable to Check'.`, variant: "destructive"});
             return null;
         }
     }
@@ -781,7 +782,7 @@ export default function AgentStudioPage() {
 
   const handleSaveFlow = useCallback(() => {
     if (!currentAgent) {
-      toast({ title: "Agent Not Found", description: "Cannot save flow as current agent is not loaded.", variant: "destructive" });
+      toast({ title: "Chatbot Not Found", description: "Cannot save conversation as current chatbot is not loaded.", variant: "destructive" });
       return;
     }
     setIsSaving(true);
@@ -794,10 +795,10 @@ export default function AgentStudioPage() {
         return;
       }
       updateAgentFlow(currentAgent.id, agentFlowDef);
-      toast({ title: "Flow Saved!", description: `Flow "${agentFlowDef.name}" for agent "${currentAgent.generatedName || currentAgent.name}" has been updated.` });
+      toast({ title: "Conversation Saved!", description: `Conversation design for chatbot "${currentAgent.generatedName || currentAgent.name}" has been updated.` });
     } catch (error: any) {
-      console.error("Error saving flow:", error);
-      toast({ title: "Save Error", description: error.message || "Could not save the flow due to an unexpected error.", variant: "destructive" });
+      console.error("Error saving conversation:", error);
+      toast({ title: "Save Error", description: error.message || "Could not save the conversation design due to an unexpected error.", variant: "destructive" });
     } finally {
       setIsSaving(false);
     }
@@ -807,9 +808,9 @@ export default function AgentStudioPage() {
     const selectedSample = sampleFlows[flowKey];
     if (selectedSample) {
       loadFlowToVisual(selectedSample.flow);
-      toast({ title: "Sample Flow Loaded", description: `"${selectedSample.name}" loaded into the editor.` });
+      toast({ title: "Sample Conversation Loaded", description: `"${selectedSample.name}" loaded into the editor.` });
     } else {
-      toast({ title: "Error", description: "Could not load the selected sample flow.", variant: "destructive" });
+      toast({ title: "Error", description: "Could not load the selected sample conversation.", variant: "destructive" });
     }
   };
 
@@ -828,31 +829,32 @@ export default function AgentStudioPage() {
     return (
         <Card>
             <CardHeader className="p-4 sm:p-6">
-                <CardTitle className="text-lg sm:text-xl">Loading Studio...</CardTitle>
+                <CardTitle className={cn("font-headline text-lg sm:text-xl", "text-gradient-dynamic")}>Design Chatbot Conversation</CardTitle>
+                 <CardDescription className="text-sm">Loading conversation designer...</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col items-center justify-center min-h-[calc(100vh-300px)] p-4 sm:p-6">
                 <Logo className="mb-3 h-8" />
-                <Loader2 className="h-8 w-8 sm:h-10 sm:w-10 animate-spin text-primary" />
-                <p className="text-xs text-muted-foreground mt-2">Initializing flow editor...</p>
+                <Loader2 className="h-8 w-8 sm:h-10 sm:h-10 animate-spin text-primary" />
+                <p className="text-xs text-muted-foreground mt-2">Initializing conversation studio...</p>
             </CardContent>
         </Card>
     );
   }
-  if (!currentAgent && agentId) { // Agent ID provided but agent not found after loading
+  if (!currentAgent && agentId) { 
     return (
         <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Agent Not Found</AlertTitle>
-            <AlertDescription>The agent for studio (ID: {agentId}) could not be loaded. Please select a valid agent.</AlertDescription>
+            <AlertTitle>Chatbot Not Found</AlertTitle>
+            <AlertDescription>The chatbot for studio (ID: {agentId}) could not be loaded. Please select a valid chatbot.</AlertDescription>
         </Alert>
     );
   }
-  if (!currentAgent && !agentId) { // No agent ID at all (e.g. direct navigation to /studio, unlikely but handle)
+  if (!currentAgent && !agentId) { 
      return (
         <Alert variant="default">
              <Info className="h-4 w-4" />
-            <AlertTitle>No Agent Selected</AlertTitle>
-            <AlertDescription>Please select an agent from the dashboard to use the studio.</AlertDescription>
+            <AlertTitle>No Chatbot Selected</AlertTitle>
+            <AlertDescription>Please select a chatbot from the dashboard to design its conversation.</AlertDescription>
         </Alert>
     );
   }
@@ -890,7 +892,8 @@ export default function AgentStudioPage() {
           isToolsPanelOpen ? "col-span-12 flex order-1 lg:order-none max-h-[40vh] lg:max-h-full" : "hidden"
       )}>
         <CardHeader className="pb-1 sm:pb-2 pt-3 sm:pt-4 px-2 sm:px-3">
-          <CardTitle className={cn("text-base sm:text-lg", "text-gradient-dynamic")}>Node Tools</CardTitle>
+          <CardTitle className={cn("text-base sm:text-lg", "text-gradient-dynamic")}>Conversation Steps</CardTitle>
+          <CardDescription className="text-xs">Drag these onto the canvas to build your chatbot's logic.</CardDescription>
         </CardHeader>
         <ScrollArea className="flex-grow">
         <CardContent className="space-y-1.5 sm:space-y-2 p-2 sm:p-3">
@@ -916,7 +919,7 @@ export default function AgentStudioPage() {
         </ScrollArea>
          <CardFooter className="p-2 sm:p-3 border-t mt-auto">
             <div className="w-full space-y-1.5">
-                <Label htmlFor="sampleFlowSelect" className="text-xs text-muted-foreground">Load Sample Flow:</Label>
+                <Label htmlFor="sampleFlowSelect" className="text-xs text-muted-foreground">Load Sample Conversation:</Label>
                 <Select onValueChange={handleLoadSampleFlow}>
                   <SelectTrigger id="sampleFlowSelect" className="h-8 sm:h-9 text-xs sm:text-sm">
                     <SelectValue placeholder="Select a sample..." />
@@ -1074,7 +1077,7 @@ export default function AgentStudioPage() {
         <CardHeader className="pb-1 sm:pb-2 pt-3 sm:pt-4 px-2 sm:px-3">
           <CardTitle className={cn("text-base sm:text-lg flex items-center gap-1.5 sm:gap-2", "text-gradient-dynamic")}>
             <Settings2 className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
-            {selectedNodeDetails ? `Edit: ${selectedNodeDetails.label}` : "Node Guide"}
+            {selectedNodeDetails ? `Edit Step: ${selectedNodeDetails.label}` : "Step Guide"}
           </CardTitle>
         </CardHeader>
         <ScrollArea className="flex-grow">
@@ -1084,7 +1087,7 @@ export default function AgentStudioPage() {
               <div className="space-y-2 sm:space-y-3 p-1.5 sm:p-2 border rounded-md bg-background">
                 <h3 className="font-semibold text-sm sm:text-base mb-1">Properties</h3>
                 <div>
-                  <Label htmlFor="nodeLabel" className="text-[10px] sm:text-xs">Node Label (ID: {selectedNodeDetails.id})</Label>
+                  <Label htmlFor="nodeLabel" className="text-[10px] sm:text-xs">Step Label (ID: {selectedNodeDetails.id})</Label>
                   <Input id="nodeLabel" value={selectedNodeDetails.label} onChange={e => updateSelectedNodeProperties({ label: e.target.value })} className="h-7 sm:h-8 text-xs sm:text-sm"/>
                 </div>
 
@@ -1093,23 +1096,23 @@ export default function AgentStudioPage() {
                 )}
                  { selectedNodeDetails.type === 'getUserInput' && (
                   <>
-                    <div><Label htmlFor="nodePrompt" className="text-[10px] sm:text-xs">Prompt Text</Label><Textarea id="nodePrompt" value={selectedNodeDetails.prompt || ""} onChange={e => updateSelectedNodeProperties({ prompt: e.target.value })} rows={2} className="text-xs sm:text-sm"/></div>
-                    <div><Label htmlFor="nodeVariable" className="text-[10px] sm:text-xs">Output Variable Name</Label><Input id="nodeVariable" value={selectedNodeDetails.variableName || ""} onChange={e => updateSelectedNodeProperties({ variableName: e.target.value })}  className="h-7 sm:h-8 text-xs sm:text-sm"/></div>
-                    <div><Label htmlFor="nodeInputType" className="text-[10px] sm:text-xs">Input Type (Conceptual)</Label><Input id="nodeInputType" value={selectedNodeDetails.inputType || ""} onChange={e => updateSelectedNodeProperties({ inputType: e.target.value })}  className="h-7 sm:h-8 text-xs sm:text-sm" placeholder="e.g., text, number"/></div>
-                    <div><Label htmlFor="nodeValidation" className="text-[10px] sm:text-xs">Validation Rules (Conceptual)</Label><Input id="nodeValidation" value={selectedNodeDetails.validationRules || ""} onChange={e => updateSelectedNodeProperties({ validationRules: e.target.value })}  className="h-7 sm:h-8 text-xs sm:text-sm" placeholder="e.g., regex"/></div>
+                    <div><Label htmlFor="nodePrompt" className="text-[10px] sm:text-xs">Chatbot's Question</Label><Textarea id="nodePrompt" value={selectedNodeDetails.prompt || ""} onChange={e => updateSelectedNodeProperties({ prompt: e.target.value })} rows={2} className="text-xs sm:text-sm"/></div>
+                    <div><Label htmlFor="nodeVariable" className="text-[10px] sm:text-xs">Save User's Answer as (Variable Name)</Label><Input id="nodeVariable" value={selectedNodeDetails.variableName || ""} onChange={e => updateSelectedNodeProperties({ variableName: e.target.value })}  className="h-7 sm:h-8 text-xs sm:text-sm"/></div>
+                    <div><Label htmlFor="nodeInputType" className="text-[10px] sm:text-xs">Input Type (e.g. text, number - conceptual)</Label><Input id="nodeInputType" value={selectedNodeDetails.inputType || ""} onChange={e => updateSelectedNodeProperties({ inputType: e.target.value })}  className="h-7 sm:h-8 text-xs sm:text-sm" placeholder="e.g., text, number"/></div>
+                    <div><Label htmlFor="nodeValidation" className="text-[10px] sm:text-xs">Validation Rules (e.g. must be email - conceptual)</Label><Input id="nodeValidation" value={selectedNodeDetails.validationRules || ""} onChange={e => updateSelectedNodeProperties({ validationRules: e.target.value })}  className="h-7 sm:h-8 text-xs sm:text-sm" placeholder="e.g., regex"/></div>
                   </>
                 )}
                 { selectedNodeDetails.type === 'callLLM' && (
                   <>
-                    <div><Label htmlFor="llmPrompt" className="text-[10px] sm:text-xs">LLM Prompt</Label><Textarea id="llmPrompt" value={selectedNodeDetails.llmPrompt || ""} onChange={e => updateSelectedNodeProperties({ llmPrompt: e.target.value })} rows={3} className="text-xs sm:text-sm"/></div>
-                    <div><Label htmlFor="llmOutputVar" className="text-[10px] sm:text-xs">Output Variable Name</Label><Input id="llmOutputVar" value={selectedNodeDetails.outputVariable || ""} onChange={e => updateSelectedNodeProperties({ outputVariable: e.target.value })}  className="h-7 sm:h-8 text-xs sm:text-sm"/></div>
-                    <div className="flex items-center space-x-1.5 pt-1"><Checkbox id="useKnowledge" checked={!!selectedNodeDetails.useKnowledge} onCheckedChange={(checked) => updateSelectedNodeProperties({ useKnowledge: !!checked })}/><Label htmlFor="useKnowledge" className="text-[10px] sm:text-xs font-normal cursor-pointer">Use Knowledge Base</Label></div>
+                    <div><Label htmlFor="llmPrompt" className="text-[10px] sm:text-xs">Prompt for AI (Use {{variableName}} for user data)</Label><Textarea id="llmPrompt" value={selectedNodeDetails.llmPrompt || ""} onChange={e => updateSelectedNodeProperties({ llmPrompt: e.target.value })} rows={3} className="text-xs sm:text-sm"/></div>
+                    <div><Label htmlFor="llmOutputVar" className="text-[10px] sm:text-xs">Save AI's Response as (Variable Name)</Label><Input id="llmOutputVar" value={selectedNodeDetails.outputVariable || ""} onChange={e => updateSelectedNodeProperties({ outputVariable: e.target.value })}  className="h-7 sm:h-8 text-xs sm:text-sm"/></div>
+                    <div className="flex items-center space-x-1.5 pt-1"><Checkbox id="useKnowledge" checked={!!selectedNodeDetails.useKnowledge} onCheckedChange={(checked) => updateSelectedNodeProperties({ useKnowledge: !!checked })}/><Label htmlFor="useKnowledge" className="text-[10px] sm:text-xs font-normal cursor-pointer">Allow AI to use Trained Knowledge</Label></div>
                   </>
                 )}
                 { selectedNodeDetails.type === 'condition' && (
                    <>
-                    <div><Label htmlFor="conditionVar" className="text-[10px] sm:text-xs">Variable to Check</Label><Input id="conditionVar" value={selectedNodeDetails.conditionVariable || ""} onChange={e => updateSelectedNodeProperties({ conditionVariable: e.target.value })}  className="h-7 sm:h-8 text-xs sm:text-sm"/></div>
-                    <div className="flex items-center space-x-1.5 pt-1"><Checkbox id="useLLMForDecision" checked={!!selectedNodeDetails.useLLMForDecision} onCheckedChange={(checked) => updateSelectedNodeProperties({ useLLMForDecision: !!checked })}/><Label htmlFor="useLLMForDecision" className="text-[10px] sm:text-xs font-normal cursor-pointer">Use LLM for Decision</Label></div>
+                    <div><Label htmlFor="conditionVar" className="text-[10px] sm:text-xs">Variable to Base Decision On</Label><Input id="conditionVar" value={selectedNodeDetails.conditionVariable || ""} onChange={e => updateSelectedNodeProperties({ conditionVariable: e.target.value })}  className="h-7 sm:h-8 text-xs sm:text-sm"/></div>
+                    <div className="flex items-center space-x-1.5 pt-1"><Checkbox id="useLLMForDecision" checked={!!selectedNodeDetails.useLLMForDecision} onCheckedChange={(checked) => updateSelectedNodeProperties({ useLLMForDecision: !!checked })}/><Label htmlFor="useLLMForDecision" className="text-[10px] sm:text-xs font-normal cursor-pointer">Use AI to Understand User's Intent for Decision</Label></div>
                    </>
                 )}
                  { selectedNodeDetails.type === 'apiCall' && (
@@ -1128,12 +1131,19 @@ export default function AgentStudioPage() {
                         <div><Label htmlFor="apiOutputVar" className="text-[10px] sm:text-xs">Output Variable (for response)</Label><Input id="apiOutputVar" value={selectedNodeDetails.apiOutputVariable || selectedNodeDetails.outputVariable || ""} onChange={e => updateSelectedNodeProperties({ apiOutputVariable: e.target.value, outputVariable: e.target.value })} className="h-7 sm:h-8 text-xs sm:text-sm"/></div>
                     </>
                 )}
+                { selectedNodeDetails.type === 'qnaLookup' && (
+                  <>
+                    <div><Label htmlFor="qnaQueryVar" className="text-[10px] sm:text-xs">User's Question (Variable Name, e.g. {{userInput}})</Label><Input id="qnaQueryVar" value={selectedNodeDetails.qnaQueryVariable || ""} onChange={e => updateSelectedNodeProperties({ qnaQueryVariable: e.target.value })} className="h-7 sm:h-8 text-xs sm:text-sm"/></div>
+                    <div><Label htmlFor="qnaOutputVar" className="text-[10px] sm:text-xs">Save Found Answer as (Variable Name)</Label><Input id="qnaOutputVar" value={selectedNodeDetails.qnaOutputVariable || ""} onChange={e => updateSelectedNodeProperties({ qnaOutputVariable: e.target.value })} className="h-7 sm:h-8 text-xs sm:text-sm"/></div>
+                    <div><Label htmlFor="qnaFallback" className="text-[10px] sm:text-xs">Message if No Answer Found in Knowledge</Label><Textarea id="qnaFallback" value={selectedNodeDetails.qnaFallbackText || ""} onChange={e => updateSelectedNodeProperties({ qnaFallbackText: e.target.value })} rows={2} className="text-xs sm:text-sm"/></div>
+                  </>
+                )}
                 <Button variant="outline" size="sm" onClick={() => deleteNode(selectedNodeDetails.id)} className="text-destructive border-destructive hover:bg-destructive/10 w-full mt-2 h-8 text-xs sm:text-sm">
-                  <Trash2 className="mr-2 h-3 w-3" /> Delete Node
+                  <Trash2 className="mr-2 h-3 w-3" /> Delete Step
                 </Button>
                 <hr className="my-2 sm:my-3"/>
-                <Label className="text-[10px] sm:text-xs text-muted-foreground block mb-1">Outgoing Edges:</Label>
-                {edges.filter(e => e.source === selectedNodeDetails.id).length === 0 && <p className="text-[10px] sm:text-xs text-muted-foreground italic">No outgoing edges.</p>}
+                <Label className="text-[10px] sm:text-xs text-muted-foreground block mb-1">Connections from this Step:</Label>
+                {edges.filter(e => e.source === selectedNodeDetails.id).length === 0 && <p className="text-[10px] sm:text-xs text-muted-foreground italic">No outgoing connections.</p>}
                 {edges.filter(e => e.source === selectedNodeDetails.id).map(edge => (
                   <div key={edge.id} className="text-[10px] sm:text-xs space-y-1 border p-1.5 rounded mb-1 bg-muted/30">
                     <div className="flex justify-between items-center">
@@ -1142,27 +1152,27 @@ export default function AgentStudioPage() {
                     </div>
                     {(selectedNodeDetails.type === 'condition' || selectedNodeDetails.type === 'apiCall' || selectedNodeDetails.type === 'qnaLookup' || selectedNodeDetails.type === 'getUserInput') && (
                         <div>
-                            <Label htmlFor={`edgeLabel-${edge.id}`} className="text-[9px] sm:text-[10px]">{selectedNodeDetails.type === 'condition' ? 'Condition/Case Label' : 'Edge Label'}</Label>
-                            <Input id={`edgeLabel-${edge.id}`} placeholder="Edge Label / Condition Value" value={edge.label || ""} onChange={e => updateEdgeProperty(edge.id, { label: e.target.value })} className="h-6 sm:h-7 text-[10px] sm:text-xs mt-0.5"/>
+                            <Label htmlFor={`edgeLabel-${edge.id}`} className="text-[9px] sm:text-[10px]">{selectedNodeDetails.type === 'condition' ? 'Decision Outcome / User Input Value' : 'Connection Label'}</Label>
+                            <Input id={`edgeLabel-${edge.id}`} placeholder="e.g., 'Yes', 'Product A', 'Invalid'" value={edge.label || ""} onChange={e => updateEdgeProperty(edge.id, { label: e.target.value })} className="h-6 sm:h-7 text-[10px] sm:text-xs mt-0.5"/>
                         </div>
                     )}
                      {(selectedNodeDetails.type === 'apiCall' || selectedNodeDetails.type === 'qnaLookup' || selectedNodeDetails.type === 'getUserInput' ) && (
                         <div>
-                          <Label htmlFor={`edgeType-${edge.id}`} className="text-[9px] sm:text-[10px]">Edge Type</Label>
+                          <Label htmlFor={`edgeType-${edge.id}`} className="text-[9px] sm:text-[10px]">Connection Type</Label>
                            <Select value={edge.edgeType || 'default'} onValueChange={value => updateEdgeProperty(edge.id, { edgeType: value as JsonFlowEdge['edgeType'] })}>
                                 <SelectTrigger className="h-6 sm:h-7 text-[10px] sm:text-xs"><SelectValue /></SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="default" className="text-xs sm:text-sm">Default</SelectItem>
+                                    <SelectItem value="default" className="text-xs sm:text-sm">Default / Next Step</SelectItem>
                                     {selectedNodeDetails.type === 'apiCall' && <>
-                                      <SelectItem value="success" className="text-xs sm:text-sm">Success</SelectItem>
-                                      <SelectItem value="error" className="text-xs sm:text-sm">Error</SelectItem>
+                                      <SelectItem value="success" className="text-xs sm:text-sm">On Success</SelectItem>
+                                      <SelectItem value="error" className="text-xs sm:text-sm">On Error</SelectItem>
                                     </>}
                                     {selectedNodeDetails.type === 'getUserInput' && <>
-                                      <SelectItem value="invalid" className="text-xs sm:text-sm">Invalid Input</SelectItem>
+                                      <SelectItem value="invalid" className="text-xs sm:text-sm">If Input is Invalid</SelectItem>
                                     </>}
                                     {selectedNodeDetails.type === 'qnaLookup' && <>
-                                       <SelectItem value="found" className="text-xs sm:text-sm">Found</SelectItem>
-                                       <SelectItem value="notFound" className="text-xs sm:text-sm">Not Found</SelectItem>
+                                       <SelectItem value="found" className="text-xs sm:text-sm">If Answer Found</SelectItem>
+                                       <SelectItem value="notFound" className="text-xs sm:text-sm">If Answer Not Found</SelectItem>
                                     </>}
                                 </SelectContent>
                             </Select>
@@ -1177,15 +1187,15 @@ export default function AgentStudioPage() {
                      <AccordionTrigger className="text-sm sm:text-base hover:no-underline py-2 sm:py-3">
                         <Tooltip>
                             <TooltipTrigger asChild><Info className="mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary"/></TooltipTrigger>
-                            <TooltipContent side="top" className="z-[60] max-w-xs"><p>Documentation for the <strong>{selectedNodeDefinition.label}</strong> node type.</p></TooltipContent>
+                            <TooltipContent side="top" className="z-[60] max-w-xs"><p>Guide for the <strong>{selectedNodeDefinition.label}</strong> step.</p></TooltipContent>
                         </Tooltip>
-                       Node Guide: {selectedNodeDefinition.label}
+                       Step Guide: {selectedNodeDefinition.label}
                     </AccordionTrigger>
                     <AccordionContent className="space-y-1.5 text-[10px] sm:text-xs p-1.5 sm:p-2 border-t bg-muted/30 rounded-b-md">
                       <div><strong className="block text-primary">Purpose:</strong> {selectedNodeDefinition.docs.purpose}</div>
                       <div><strong className="block text-primary">Key Settings:</strong> {selectedNodeDefinition.docs.settings}</div>
-                      <div><strong className="block text-primary">Connections/Edges:</strong> {selectedNodeDefinition.docs.edges}</div>
-                      <div><strong className="block text-primary">Usage Rules & Best Practices:</strong> {selectedNodeDefinition.docs.rules}</div>
+                      <div><strong className="block text-primary">Connections:</strong> {selectedNodeDefinition.docs.edges}</div>
+                      <div><strong className="block text-primary">Tips:</strong> {selectedNodeDefinition.docs.rules}</div>
                     </AccordionContent>
                   </AccordionItem>
                 </Accordion>
@@ -1195,14 +1205,14 @@ export default function AgentStudioPage() {
             <div className="text-left py-2 space-y-3">
                 <div className="flex items-center gap-2">
                    <MousePointer className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground"/>
-                   <p className="text-xs sm:text-sm text-muted-foreground">Select a node for details & editing. Drag the canvas background to pan.</p>
+                   <p className="text-xs sm:text-sm text-muted-foreground">Select a step on the canvas to edit its properties. Drag the canvas background to pan.</p>
                 </div>
                 <Accordion type="single" collapsible className="w-full">
                   <AccordionItem value="wiring-practices">
                      <AccordionTrigger className="text-sm sm:text-base hover:no-underline py-2 sm:py-3">
                        <Tooltip>
                         <TooltipTrigger asChild><Sigma className="mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary"/></TooltipTrigger>
-                        <TooltipContent side="top" className="z-[60]"><p>General Wiring Guide</p></TooltipContent>
+                        <TooltipContent side="top" className="z-[60]"><p>General Conversation Design Guide</p></TooltipContent>
                       </Tooltip>
                       {WIRING_BEST_PRACTICES_DOCS.title}
                     </AccordionTrigger>
@@ -1220,7 +1230,7 @@ export default function AgentStudioPage() {
          <CardFooter className="p-2 sm:p-3 border-t mt-auto space-y-1.5 sm:space-y-2 flex-col items-stretch">
              {mermaidCode && (
                 <details className="w-full">
-                  <summary className="text-xs cursor-pointer text-muted-foreground hover:text-foreground">View Mermaid Code</summary>
+                  <summary className="text-xs cursor-pointer text-muted-foreground hover:text-foreground">View Technical Diagram (Mermaid Code)</summary>
                   <ScrollArea className="h-[80px] sm:h-[100px] bg-muted/50 p-1.5 rounded mt-1">
                     <pre className="text-[9px] sm:text-[10px] whitespace-pre-wrap">{mermaidCode}</pre>
                   </ScrollArea>
@@ -1228,7 +1238,7 @@ export default function AgentStudioPage() {
               )}
           <Button onClick={handleSaveFlow} disabled={isSaving} className={cn("w-full h-8 sm:h-9 text-xs sm:text-sm", "btn-gradient-primary")}>
             {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-            Save Visual Flow
+            Save Conversation Design
           </Button>
         </CardFooter>
       </Card>
@@ -1236,3 +1246,5 @@ export default function AgentStudioPage() {
     </TooltipProvider>
   );
 }
+
+    

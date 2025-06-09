@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { AgentCard } from "@/components/agent-card";
-import { PlusCircle, Info } from "lucide-react";
+import { PlusCircle, Info, Bot } from "lucide-react";
 import { useAppContext } from "../layout"; 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
@@ -34,10 +34,10 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6 sm:space-y-8">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
-        <h1 className={cn("font-headline text-2xl sm:text-3xl font-bold", "text-gradient-dynamic")}>Your Agents</h1>
+        <h1 className={cn("font-headline text-2xl sm:text-3xl font-bold flex items-center gap-2", "text-gradient-dynamic")}> <Bot className="w-7 h-7 sm:w-8 sm:h-8"/>Your AI Chatbots</h1>
         <Button asChild size="sm" className={cn("w-full sm:w-auto", "btn-gradient-primary")}>
           <Link href="/agents/create">
-            <PlusCircle className="mr-2 h-4 w-4 sm:h-5 sm:w-5" /> Create New Agent
+            <PlusCircle className="mr-2 h-4 w-4 sm:h-5 sm:w-5" /> Create New Chatbot
           </Link>
         </Button>
       </div>
@@ -45,9 +45,9 @@ export default function DashboardPage() {
       {agents.length === 0 ? (
          <Alert className="mt-4">
             <Info className="h-4 w-4" />
-            <AlertTitle>No Agents Yet!</AlertTitle>
+            <AlertTitle>No Chatbots Yet!</AlertTitle>
             <AlertDescription className="text-sm">
-              You haven't created any AI agents. Click the "Create New Agent" button to get started.
+              You haven't created any AI chatbots. Click the "Create New Chatbot" button to build one for your business or clients.
             </AlertDescription>
           </Alert>
       ) : (
@@ -64,7 +64,7 @@ export default function DashboardPage() {
             <AlertDialogHeader>
               <AlertDialogTitle>Are you sure?</AlertDialogTitle>
               <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete the agent
+                This action cannot be undone. This will permanently delete the AI chatbot
                 "{agents.find(a => a.id === agentToDelete)?.generatedName || agents.find(a => a.id === agentToDelete)?.name}".
               </AlertDialogDescription>
             </AlertDialogHeader>
@@ -80,3 +80,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
