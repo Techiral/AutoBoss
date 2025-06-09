@@ -10,28 +10,48 @@ import { Logo } from "@/components/logo";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-// Intersection Observer Hook
-const useIntersectionObserver = (options?: IntersectionObserverInit & { initialIsVisible?: boolean }) => {
+// Intersection Observer Hook - MODIFIED FOR HYDRATION SAFETY
+const useIntersectionObserver = (options?: IntersectionObserverInit) => {
   const [node, setNode] = useState<HTMLElement | null>(null);
-  const [isIntersecting, setIsIntersecting] = useState(
-    typeof window === 'undefined' && options?.initialIsVisible !== undefined
-      ? options.initialIsVisible
-      : (options?.initialIsVisible ?? false)
-  );
+  const [isIntersecting, setIsIntersecting] = useState(false); // Always initialize to false
   const observerRef = useRef<IntersectionObserver | null>(null);
 
   useEffect(() => {
-    if (observerRef.current) observerRef.current.disconnect();
-    if (typeof window.IntersectionObserver === "undefined") {
-      // Fallback for SSR or old browsers if not handled by initialIsVisible
-      if (options?.initialIsVisible === undefined) setIsIntersecting(true);
+    // IntersectionObserver is a client-side API
+    if (typeof window === 'undefined' || !window.IntersectionObserver) {
+      // On the server, or if IntersectionObserver is not supported,
+      // isIntersecting remains false. Elements will not get the 'visible' class from this hook.
+      // For unsupported browsers, this means no animation, elements remain in their 'scroll-reveal' initial state.
       return;
     }
-    observerRef.current = new IntersectionObserver(([entry]) => setIsIntersecting(entry.isIntersecting), options);
-    const { current: currentObserver } = observerRef;
-    if (node) currentObserver.observe(node);
-    return () => { if (node && currentObserver) currentObserver.unobserve(node); };
-  }, [node, options]);
+
+    // Disconnect previous observer if any
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+    }
+
+    observerRef.current = new IntersectionObserver(([entry]) => {
+      setIsIntersecting(entry.isIntersecting);
+    }, options);
+
+    const currentObserver = observerRef.current; // Capture for cleanup
+
+    if (node) {
+      currentObserver.observe(node);
+    }
+
+    return () => {
+      if (node) {
+        currentObserver.unobserve(node);
+      }
+      // It's good practice to disconnect the observer when the component unmounts
+      // or when dependencies of the effect change in a way that requires a new observer.
+      // currentObserver.disconnect(); // Disconnecting here might be too aggressive if options object changes frequently.
+                                 // Better to disconnect only when the hook itself is "done" or node/options fundamentally change.
+                                 // For now, unobserve(node) is the most critical part of cleanup for individual nodes.
+                                 // Disconnecting at the start of the effect handles re-creation on dep change.
+    };
+  }, [node, options]); // `options` is an object; if it's not memoized by the caller, this effect might run more than optimal.
 
   return [setNode, isIntersecting] as const;
 };
@@ -46,7 +66,7 @@ interface SimpleFeatureCardProps {
 }
 
 const SimpleFeatureCard: React.FC<SimpleFeatureCardProps> = ({ icon, title, description, caseStudy, animationDelay }) => {
-  const [ref, isVisible] = useIntersectionObserver({ threshold: 0.1, initialIsVisible: typeof window === 'undefined' });
+  const [ref, isVisible] = useIntersectionObserver({ threshold: 0.1 }); // No initialIsVisible
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -74,7 +94,7 @@ const SimpleFeatureCard: React.FC<SimpleFeatureCardProps> = ({ icon, title, desc
   );
 };
 
-const heroPainPoint = "AutoBoss builds AI teammates."; // 29 characters including period
+const heroPainPoint = "AutoBoss builds AI teammates.";
 
 export default function MarketingPageClient() {
   const typewriterRef = useRef<HTMLSpanElement>(null);
@@ -91,22 +111,21 @@ export default function MarketingPageClient() {
     if (typewriterRef.current) {
       typewriterRef.current.textContent = heroPainPoint;
       typewriterRef.current.classList.remove("typewriter-text");
-      void typewriterRef.current.offsetWidth; 
+      void typewriterRef.current.offsetWidth;
       typewriterRef.current.classList.add("typewriter-text");
     }
   }, []);
 
-
-  const sectionObserverOptions = { threshold: 0.1, rootMargin: "0px 0px -50px 0px", initialIsVisible: typeof window === 'undefined' };
-  const [heroRef, heroVisible] = useIntersectionObserver(sectionObserverOptions);
-  const [solveProblemsRef, solveProblemsVisible] = useIntersectionObserver(sectionObserverOptions);
-  const [superpowersRef, superpowersVisible] = useIntersectionObserver(sectionObserverOptions);
-  const [howItWorksRef, howItWorksVisible] = useIntersectionObserver(sectionObserverOptions);
-  const [videoDemoRef, videoDemoVisible] = useIntersectionObserver(sectionObserverOptions);
-  const [socialProofRef, socialProofVisible] = useIntersectionObserver(sectionObserverOptions);
-  const [humanizeRef, humanizeVisible] = useIntersectionObserver(sectionObserverOptions);
-  const [founderQuoteAsideRef, founderQuoteAsideIsVisible] = useIntersectionObserver({ threshold: 0.1, initialIsVisible: typeof window === 'undefined' });
-  const [finalCtaRef, finalCtaVisible] =  useIntersectionObserver(sectionObserverOptions);
+  const observerOptions = { threshold: 0.1 }; // Define once if options are static
+  const [heroRef, heroVisible] = useIntersectionObserver(observerOptions);
+  const [solveProblemsRef, solveProblemsVisible] = useIntersectionObserver(observerOptions);
+  const [superpowersRef, superpowersVisible] = useIntersectionObserver(observerOptions);
+  const [howItWorksRef, howItWorksVisible] = useIntersectionObserver(observerOptions);
+  const [videoDemoRef, videoDemoVisible] = useIntersectionObserver(observerOptions);
+  const [socialProofRef, socialProofVisible] = useIntersectionObserver(observerOptions);
+  const [humanizeRef, humanizeVisible] = useIntersectionObserver(observerOptions);
+  const [founderQuoteAsideRef, founderQuoteAsideIsVisible] = useIntersectionObserver(observerOptions);
+  const [finalCtaRef, finalCtaVisible] =  useIntersectionObserver(observerOptions);
 
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
 
@@ -135,7 +154,6 @@ export default function MarketingPageClient() {
       delay: "delay-300",
     }
   ];
-
 
   return (
     <TooltipProvider>
@@ -206,7 +224,7 @@ export default function MarketingPageClient() {
                 <Button size="lg" asChild className="shadow-lg bg-gradient-to-r from-electric-teal to-neon-lime text-background font-bold text-sm px-6 py-2.5 sm:py-3 hover:opacity-90 transition-all duration-300 hover:scale-105 group btn-interactive w-full sm:w-auto">
                   <Link href="/dashboard" className="flex items-center gap-1.5">
                     Launch Agent Free
-                    <Rocket className="h-4 w-4 sm:h-5 sm:w-5 group-hover:animate-bounce" />
+                    <Rocket className="h-4 w-4 sm:h-5 sm:h-5 group-hover:animate-bounce" />
                   </Link>
                 </Button>
                 <Button size="lg" variant="outline" asChild className="btn-outline-themed transition-all duration-300 hover:scale-105 px-6 py-2.5 sm:py-3 text-sm border-muted-foreground/40 text-primary hover:text-accent-foreground hover:bg-accent hover:border-accent bg-background/10 backdrop-blur-sm btn-interactive w-full sm:w-auto">
@@ -231,7 +249,7 @@ export default function MarketingPageClient() {
                     { icon: <Users className="w-5 h-5" />, title: "Personalized Onboarding", description: "Guide new users effectively with interactive, AI-driven onboarding flows.", hint: "user journey map", delay: "delay-200" },
                     { icon: <Filter className="w-5 h-5" />, title: "Automated Lead Qualifiers", description: "Qualify leads and book meetings around the clock with intelligent sales agents.", hint: "sales funnel graph", delay: "delay-300" },
                   ].map((item, index) => {
-                    const [cardRef, cardIsVisible] = useIntersectionObserver({ threshold: 0.2, initialIsVisible: typeof window === 'undefined' });
+                    const [cardRef, cardIsVisible] = useIntersectionObserver({ threshold: 0.2 });
                     return (
                       <div ref={cardRef} key={index} className={cn("scroll-reveal bg-background p-4 sm:p-5 rounded-lg shadow-lg text-left transform hover:scale-105 transition-transform duration-300", item.delay, cardIsVisible && "visible")}>
                         <div className="p-2 rounded-lg bg-primary/10 text-primary mb-2 inline-block" data-ai-hint={item.hint}>
@@ -297,7 +315,7 @@ export default function MarketingPageClient() {
                     { number: "2", title: "Enrich Knowledge", description: "Upload docs or URLs. Train it on your specific data.", icon: <Brain className="w-5 h-5 text-neon-lime"/>, animationDelay:"delay-200" },
                     { number: "3", title: "Deploy & Dominate", description: "Integrate via widget, API, or direct link.", icon: <Rocket className="w-5 h-5 text-primary"/>, animationDelay:"delay-300" },
                 ].map((step, index) => {
-                  const [stepRef, stepIsVisible] = useIntersectionObserver({ threshold: 0.3, initialIsVisible: typeof window === 'undefined' });
+                  const [stepRef, stepIsVisible] = useIntersectionObserver({ threshold: 0.3 });
                   return (
                     <div key={step.title} ref={stepRef} className={cn("relative scroll-reveal", step.animationDelay, index < 2 ? "md:dashed-connector md:right" : "", stepIsVisible && "visible")}>
                       <article className={cn("relative flex flex-col items-center gap-2 p-4 sm:p-5 rounded-lg bg-background shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 text-foreground z-10 h-full")}>
@@ -310,7 +328,7 @@ export default function MarketingPageClient() {
                   );
                 })}
             </div>
-            <div ref={useIntersectionObserver(sectionObserverOptions)[0]} className={cn("scroll-reveal mt-8 md:mt-10 max-w-2xl mx-auto delay-400", useIntersectionObserver(sectionObserverOptions)[1] && "visible")}>
+            <div ref={useIntersectionObserver(observerOptions)[0]} className={cn("scroll-reveal mt-8 md:mt-10 max-w-2xl mx-auto delay-400", useIntersectionObserver(observerOptions)[1] && "visible")}>
                  <div className="aspect-video bg-muted/30 rounded-lg shadow-inner flex flex-col items-center justify-center text-muted-foreground p-4 border border-dashed border-border/50" data-ai-hint="interactive ui demo clean minimal">
                     <Cog className="w-6 h-6 sm:w-8 sm:h-8 opacity-40 mb-2"/>
                     <p className="text-xs sm:text-sm">Illustrative Studio Demo UI</p>
@@ -339,7 +357,7 @@ export default function MarketingPageClient() {
                  <p className="section-description">Join innovators transforming their businesses with AgentVerse.</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 max-w-5xl mx-auto text-left">
                     {socialProofItems.map((item, index) => {
-                      const [cardRef, cardIsVisible] = useIntersectionObserver({ threshold: 0.2, initialIsVisible: typeof window === 'undefined' });
+                      const [cardRef, cardIsVisible] = useIntersectionObserver({ threshold: 0.2 });
                       return (
                        <article ref={cardRef} key={index} className={cn("scroll-reveal transform hover:scale-103 transition-transform duration-300",
                          item.delay, cardIsVisible && "visible",
@@ -410,12 +428,12 @@ export default function MarketingPageClient() {
                 <Button size="lg" asChild className="shadow-xl bg-gradient-to-r from-electric-teal to-neon-lime text-background font-bold text-sm px-6 py-2.5 hover:opacity-90 transition-all duration-300 hover:scale-105 group w-full sm:w-auto btn-interactive">
                   <Link href="/dashboard" className="flex items-center gap-1.5">
                     Start Building Free
-                    <Rocket className="h-4 w-4 sm:h-5 sm:w-5 group-hover:animate-bounce" />
+                    <Rocket className="h-4 w-4 sm:h-5 sm:h-5 group-hover:animate-bounce" />
                   </Link>
                 </Button>
                 <Button size="lg" variant="outline" asChild className="btn-outline-themed transition-all duration-300 hover:scale-105 px-6 py-2.5 text-sm text-primary hover:text-accent-foreground hover:bg-accent hover:border-accent border-muted-foreground/50 bg-background/20 dark:bg-card/20 backdrop-blur-sm w-full sm:w-auto btn-interactive">
                   <Link href="mailto:demo@agentverse.dev?subject=AgentVerse%20Demo%20Request" className="flex items-center gap-1.5">
-                    Request a Demo <Eye className="h-4 w-4 sm:h-5 sm:w-5"/>
+                    Request a Demo <Eye className="h-4 w-4 sm:h-5 sm:h-5"/>
                   </Link>
                 </Button>
               </div>
@@ -443,4 +461,3 @@ export default function MarketingPageClient() {
     </TooltipProvider>
   );
 }
-
