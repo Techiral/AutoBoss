@@ -36,8 +36,13 @@ export type ExecuteAgentFlowOutput = z.infer<typeof ExecuteAgentFlowOutputSchema
 
 function templatize(templateString: string, context: FlowContext): string {
   if (!templateString) return "";
+  // Ensure conversationHistory is always an array before joining
+  const safeContext = {
+    ...context,
+    conversationHistory: Array.isArray(context.conversationHistory) ? context.conversationHistory.join('\n') : ''
+  };
   return templateString.replace(/\{\{(\w+)\}\}/g, (match, varName) => {
-    return context[varName] !== undefined ? String(context[varName]) : match;
+    return safeContext[varName] !== undefined ? String(safeContext[varName]) : match;
   });
 }
 
@@ -47,7 +52,14 @@ function findNextEdge(currentNodeId: string, flowDefinition: AgentFlowDefinition
         const typedEdge = outgoingEdges.find(edge => edge.edgeType === preferredEdgeType);
         if (typedEdge) return typedEdge;
     }
-    return outgoingEdges.find(edge => edge.edgeType === 'default' || !edge.condition || edge.condition === "") || outgoingEdges[0];
+    // Prioritize default edges that are explicitly marked or have no condition
+    const explicitDefault = outgoingEdges.find(edge => edge.edgeType === 'default');
+    if (explicitDefault) return explicitDefault;
+    const noConditionEdge = outgoingEdges.find(edge => !edge.condition || edge.condition.trim() === "");
+    if (noConditionEdge) return noConditionEdge;
+    
+    // Fallback to any other edge if no specific default found (should be rare if flows are well-designed)
+    return outgoingEdges[0];
 }
 
 
@@ -60,6 +72,11 @@ export async function executeAgentFlow(input: ExecuteAgentFlowInput): Promise<Ex
   let error: string | undefined = undefined;
   let isFlowFinished = false;
 
+  // Ensure conversationHistory is an array
+  if (!currentContext.conversationHistory || !Array.isArray(currentContext.conversationHistory)) {
+    currentContext.conversationHistory = [];
+  }
+
   const agentPersonaSystemMessage = agent?.generatedPersona ? `You are ${agent.generatedName || agent.name}. Your persona: ${agent.generatedPersona}. Your role: ${agent.role || 'an AI assistant'}.` : '';
 
   try {
@@ -67,7 +84,7 @@ export async function executeAgentFlow(input: ExecuteAgentFlowInput): Promise<Ex
     if (!currentNodeId) {
       return { messagesToSend, debugLog, updatedContext: currentContext, error: "No start node found or specified.", isFlowFinished: true };
     }
-    debugLog.push(`(System: Starting flow from node '${currentNodeId}')`);
+    debugLog.push(`(System: Starting flow from step '${flowDefinition.nodes.find(n=>n.id===currentNodeId)?.label || currentNodeId}')`);
 
     let maxSteps = 20; 
 
@@ -76,13 +93,13 @@ export async function executeAgentFlow(input: ExecuteAgentFlowInput): Promise<Ex
       const currentNode = flowDefinition.nodes.find(n => n.id === currentNodeId);
 
       if (!currentNode) {
-        error = `Node with ID ${currentNodeId} not found.`;
+        error = `Step with ID ${currentNodeId} not found.`;
         debugLog.push(`(System: Error - ${error})`);
         break;
       }
       
       currentContext.currentNodeId = currentNode.id; 
-      debugLog.push(`(System: Executing node '${currentNode.label || currentNode.id}' of type '${currentNode.type}')`);
+      debugLog.push(`(System: Executing step '${currentNode.label || currentNode.id}' (Type: '${currentNode.type}'))`);
       let nextEdge: FlowEdge | undefined;
 
       switch (currentNode.type) {
@@ -92,36 +109,41 @@ export async function executeAgentFlow(input: ExecuteAgentFlowInput): Promise<Ex
 
         case 'sendMessage':
           if (currentNode.message) {
-            messagesToSend.push(templatize(currentNode.message, currentContext));
+            const templatedMessage = templatize(currentNode.message, currentContext);
+            messagesToSend.push(templatedMessage);
+            currentContext.conversationHistory.push(`Agent: ${templatedMessage}`);
+            debugLog.push(`(System: Step '${currentNode.label}' sent message: "${templatedMessage.substring(0,70)}...")`);
           }
           nextEdge = findNextEdge(currentNode.id, flowDefinition);
           break;
 
         case 'getUserInput':
           if (currentMessage && currentContext.waitingForInput === currentNode.id) {
-            debugLog.push(`(System: Received input "${currentMessage}" for node '${currentNode.id}')`);
+            debugLog.push(`(System: Step '${currentNode.label}' received user input: "${currentMessage}". Saved to '{{${currentNode.variableName}}}'.)`);
             if (currentNode.variableName) {
               currentContext[currentNode.variableName] = currentMessage;
-              debugLog.push(`(System: Set context.${currentNode.variableName} = "${currentMessage}")`);
             }
+            currentContext.conversationHistory.push(`User: ${currentMessage}`);
             currentContext.waitingForInput = undefined; 
-            const isValid = true; // Basic validation for now
+            // TODO: Add actual validation logic here if/when implemented
+            const isValid = true; 
             if (isValid) {
                  nextEdge = findNextEdge(currentNode.id, flowDefinition, 'default');
             } else {
-                 // In future, this could use a specific 'invalid' edge type if defined
                  nextEdge = findNextEdge(currentNode.id, flowDefinition, 'invalid');
-                 if (!nextEdge) debugLog.push(`(System: Input for ${currentNode.id} was invalid, but no 'invalid' path defined.)`);
+                 if (!nextEdge) debugLog.push(`(System: Input for '${currentNode.label}' was invalid, but no 'invalid' path defined.)`);
             }
-          } else if (!currentContext.waitingForInput) {
+          } else if (!currentContext.waitingForInput) { // First time reaching this node in the current turn
             if (currentNode.prompt) {
-              messagesToSend.push(templatize(currentNode.prompt, currentContext));
+              const templatedPrompt = templatize(currentNode.prompt, currentContext);
+              messagesToSend.push(templatedPrompt);
+              currentContext.conversationHistory.push(`Agent: ${templatedPrompt}`);
+              debugLog.push(`(System: Step '${currentNode.label}' is now asking '${templatedPrompt.substring(0,70)}...' and waiting for user input. Will save to '{{${currentNode.variableName}}}'.)`);
             }
             currentContext.waitingForInput = currentNode.id; 
-            debugLog.push(`(System: Now waiting for input at node '${currentNode.id}')`);
-            return { messagesToSend, debugLog, updatedContext: currentContext, nextNodeId: currentNode.id, isFlowFinished };
-          } else {
-            debugLog.push(`(System: Stuck at getUserInput '${currentNode.id}', still waiting for message. This call had no currentMessage.)`);
+            return { messagesToSend, debugLog, updatedContext: currentContext, nextNodeId: currentNode.id, isFlowFinished }; // Stop execution and wait for user
+          } else { // Still waiting for input, but this call didn't provide it
+            debugLog.push(`(System: Stuck at Ask User step '${currentNode.label}', still waiting for message. This call had no currentMessage for this step.)`);
             return { messagesToSend, debugLog, updatedContext: currentContext, nextNodeId: currentNode.id, isFlowFinished };
           }
           break;
@@ -136,11 +158,7 @@ export async function executeAgentFlow(input: ExecuteAgentFlowInput): Promise<Ex
               const history = currentContext.conversationHistory as string[];
               const lastNTurns = history.slice(-10); 
               if (lastNTurns.length > 0) {
-                const turnCount = Math.ceil(lastNTurns.length / 2);
-                conversationHistorySnippet = `
---- CONVERSATION HISTORY (Last ~${turnCount} turns) ---
-${lastNTurns.join('\n')}
---- END CONVERSATION HISTORY ---`;
+                conversationHistorySnippet = `\n\n--- CONVERSATION HISTORY (Last few turns) ---\n${lastNTurns.join('\n')}\n--- END CONVERSATION HISTORY ---`;
               }
             }
             
@@ -151,28 +169,22 @@ ${lastNTurns.join('\n')}
                 .join("\n\n---\n\n");
               
               if (knowledgeSummaries) {
-                knowledgePreamble = `
-You have access to the following information from a knowledge base.
-Your primary task is to respond to the "Original Prompt" below.
-Before responding, review the "Available Knowledge Items" and determine if any are relevant to the Original Prompt.
-If relevant items are found, use them to inform your response. If you use knowledge, cite the source document name.
-
---- AVAILABLE KNOWLEDGE ITEMS START ---
-${knowledgeSummaries}
---- AVAILABLE KNOWLEDGE ITEMS END ---`;
+                knowledgePreamble = `\nYou have access to the following information from a knowledge base. Review it and use it if relevant to the Original Prompt.\n--- AVAILABLE KNOWLEDGE ITEMS START ---\n${knowledgeSummaries}\n--- AVAILABLE KNOWLEDGE ITEMS END ---`;
               }
             }
             
-            const fullPromptForLLM = `${agentPersonaSystemMessage ? agentPersonaSystemMessage + '\n\n' : ''}${conversationHistorySnippet ? conversationHistorySnippet + '\n\n' : ''}${knowledgePreamble ? knowledgePreamble + '\n\n' : ''}Original Prompt for this step:\n${populatedNodePrompt}\n\nBased on the Original Prompt, your persona, any relevant knowledge, and the conversation history provided, generate the response for this step.`;
+            const fullPromptForLLM = `${agentPersonaSystemMessage ? agentPersonaSystemMessage + '\n\n' : ''}${knowledgePreamble ? knowledgePreamble + '\n\n' : ''}Original Prompt for this step:\n${populatedNodePrompt}${conversationHistorySnippet ? conversationHistorySnippet + '\n\n' : ''}\n\nBased on the Original Prompt, your persona, any relevant knowledge, and the conversation history provided, generate the response for this step.`;
             
-            debugLog.push(`(System: Calling LLM for node '${currentNode.id}'. History snippet: ${conversationHistorySnippet ? 'Yes' : 'No'}. Knowledge: ${knowledgePreamble ? 'Yes' : 'No'})`);
+            debugLog.push(`(System: Calling AI for step '${currentNode.label}'. Prompt starts with: "${fullPromptForLLM.substring(0, 100)}...")`);
 
             const llmResponse = await ai.generate({ prompt: fullPromptForLLM });
-            currentContext[currentNode.outputVariable] = llmResponse.text;
-            debugLog.push(`(System: LLM Call Node '${currentNode.id}' output: "${llmResponse.text ? llmResponse.text.substring(0, 70) + '...' : 'empty'}")`);
+            const aiResponseText = llmResponse.text || "";
+            currentContext[currentNode.outputVariable] = aiResponseText;
+            currentContext.conversationHistory.push(`Agent: ${aiResponseText}`); // Add AI's response to history
+            debugLog.push(`(System: AI response for '${currentNode.label}' saved to '{{${currentNode.outputVariable}}}'. Response: "${aiResponseText ? aiResponseText.substring(0, 70) + '...' : 'empty'}")`);
             nextEdge = findNextEdge(currentNode.id, flowDefinition);
           } else {
-            debugLog.push(`(System: LLM node '${currentNode.id}' misconfigured - missing prompt or outputVariable)`);
+            debugLog.push(`(System: AI step '${currentNode.label}' misconfigured - missing 'Instruction for AI' or 'Save AI Response As' variable)`);
             nextEdge = findNextEdge(currentNode.id, flowDefinition);
           }
           break;
@@ -180,137 +192,149 @@ ${knowledgeSummaries}
         case 'condition':
           const variableName = currentNode.conditionVariable;
           const outgoingEdges = flowDefinition.edges.filter(edge => edge.source === currentNodeId);
+          const contextValue = variableName ? String(currentContext[variableName] || '').trim().toLowerCase() : '';
+          
+          debugLog.push(`(System: Decision step '${currentNode.label}' evaluating variable '{{${variableName}}}' (current value: '${contextValue}'). Use AI for decision: ${!!currentNode.useLLMForDecision})`);
+
 
           if (!variableName || currentContext[variableName] === undefined || currentContext[variableName] === null) {
-            debugLog.push(`(System: Condition node '${currentNode.id}' - variable '${variableName || 'undefined'}' not found or not set in context. Value: ${currentContext[variableName]}. Attempting default path.)`);
-            nextEdge = outgoingEdges.find(edge => edge.edgeType === 'default' || !edge.condition || edge.condition === "");
+            debugLog.push(`(System: Decision step '${currentNode.label}' - variable '{{${variableName || 'undefined'}}}' not found or not set in context. Attempting default path.)`);
+            nextEdge = outgoingEdges.find(edge => edge.edgeType === 'default' || !edge.condition || edge.condition.trim() === "");
           } else {
-            const valueToEvaluate = String(currentContext[variableName]).trim().toLowerCase();
-            debugLog.push(`(System: Condition node '${currentNode.id}' evaluating variable '${variableName}', value: '${valueToEvaluate}')`);
-
             if (currentNode.useLLMForDecision) {
               const edgeConditionLabels = outgoingEdges
                 .map(edge => edge.condition?.trim()) 
                 .filter((condition): condition is string => typeof condition === 'string' && condition !== ""); 
               
               if (edgeConditionLabels.length > 0) {
-                debugLog.push(`(System: Using LLM for decision. Edge conditions/intents: ${JSON.stringify(edgeConditionLabels)})`);
-                const llmPromptForDecision = `${agentPersonaSystemMessage ? agentPersonaSystemMessage + '\n\n' : ''}Value to evaluate: "${valueToEvaluate}". Based on this value, which of the following categories or intents best describes it? Categories: ${JSON.stringify(edgeConditionLabels)}. Respond with *only* the text of the chosen category. If none directly match, and there's an edge with an empty condition label (acting as a default), respond with that empty label's implied category.`;
+                debugLog.push(`(System: Using AI for decision for step '${currentNode.label}'. Input: "${contextValue}". Edge conditions/intents: ${JSON.stringify(edgeConditionLabels)})`);
+                // Simple prompt for LLM to pick a category.
+                const llmPromptForDecision = `The user's input related to a choice was: "${contextValue}". Which of the following categories best describes this input? Categories: ${JSON.stringify(edgeConditionLabels)}. Respond with *only* the text of the chosen category. If none clearly match, respond with an empty string or a category that implies 'other'.`;
                 try {
                   const decisionResponse = await ai.generate({ prompt: llmPromptForDecision });
                   let chosenCategory = decisionResponse.text?.trim().toLowerCase();
-                  debugLog.push(`(System: LLM decision for '${currentNode.id}': '${chosenCategory}')`);
+                  debugLog.push(`(System: AI decision for '${currentNode.label}': '${chosenCategory}')`);
                   
                   nextEdge = outgoingEdges.find(edge => edge.condition?.trim().toLowerCase() === chosenCategory);
                   if (!nextEdge) { 
-                     debugLog.push(`(System: LLM decision '${chosenCategory}' for node '${currentNode.id}' did not match any edge condition. Trying default.)`);
-                    nextEdge = outgoingEdges.find(edge => edge.edgeType === 'default' || !edge.condition || edge.condition === "");
+                     debugLog.push(`(System: AI decision '${chosenCategory}' for step '${currentNode.label}' did not match any edge condition. Trying default.)`);
+                    nextEdge = outgoingEdges.find(edge => edge.edgeType === 'default' || !edge.condition || edge.condition.trim() === "");
                   }
                 } catch (llmError: any) {
-                  debugLog.push(`(System: LLM decision error for node '${currentNode.id}': ${llmError.message}. Trying default.)`);
-                  nextEdge = outgoingEdges.find(edge => edge.edgeType === 'default' || !edge.condition || edge.condition === "");
+                  debugLog.push(`(System: AI decision error for step '${currentNode.label}': ${llmError.message}. Trying default.)`);
+                  nextEdge = outgoingEdges.find(edge => edge.edgeType === 'default' || !edge.condition || edge.condition.trim() === "");
                 }
-              } else {
-                 debugLog.push(`(System: Condition node '${currentNode.id}' set to useLLMForDecision, but no valid edge conditions found. Trying default.)`);
-                nextEdge = outgoingEdges.find(edge => edge.edgeType === 'default' || !edge.condition || edge.condition === "");
+              } else { // No edge conditions to give to LLM
+                 debugLog.push(`(System: Decision step '${currentNode.label}' set to use AI, but no valid edge conditions found. Trying default.)`);
+                nextEdge = outgoingEdges.find(edge => edge.edgeType === 'default' || !edge.condition || edge.condition.trim() === "");
               }
             } else { // Exact match (non-LLM)
-              nextEdge = outgoingEdges.find(edge => edge.condition?.trim().toLowerCase() === valueToEvaluate);
+              nextEdge = outgoingEdges.find(edge => edge.condition?.trim().toLowerCase() === contextValue);
               if (nextEdge) {
-                debugLog.push(`(System: Condition matched edge with condition '${nextEdge.condition}'. Next node: ${nextEdge.target})`);
+                debugLog.push(`(System: Decision matched edge with condition '${nextEdge.condition}'. Next step: ${flowDefinition.nodes.find(n=>n.id===nextEdge?.target)?.label || nextEdge?.target})`);
               } else {
-                debugLog.push(`(System: No exact condition match for '${valueToEvaluate}'. Trying default path.)`);
+                debugLog.push(`(System: No exact condition match for '${contextValue}'. Trying default path.)`);
                 nextEdge = outgoingEdges.find(edge => edge.edgeType === 'default' || !edge.condition || edge.condition?.trim() === "");
                 if (nextEdge) {
-                    debugLog.push(`(System: Took default edge. Next node: ${nextEdge.target})`);
+                    debugLog.push(`(System: Took default edge. Next step: ${flowDefinition.nodes.find(n=>n.id===nextEdge?.target)?.label || nextEdge?.target})`);
                 }
               }
             }
           }
           if (!nextEdge && currentNode.type === 'condition') {
-            debugLog.push(`(System: Condition node '${currentNode.id}' did not find a matching edge or default path. Flow cannot continue from this node.)`);
+            const errorMessage = `Decision step '${currentNode.label}' - No matching path for value '${contextValue}' in '{{${variableName}}}' and no default path found! Flow cannot continue.`;
+            debugLog.push(`(System: ERROR - ${errorMessage})`);
+            error = errorMessage;
+            isFlowFinished = true; // Mark as finished to stop processing
             currentNodeId = undefined; 
             continue;
           }
           break;
         
         case 'qnaLookup': 
-            debugLog.push(`(System: Q&A Lookup node '${currentNode.id}')`);
+            debugLog.push(`(System: Q&A Lookup step '${currentNode.label}')`);
             let found = false;
             const query = currentNode.qnaQueryVariable ? String(currentContext[currentNode.qnaQueryVariable] || '') : currentMessage;
+            let qnaResponseMessage = "";
 
             if (query && knowledgeItems && knowledgeItems.length > 0) {
                 const lowerQuery = query.toLowerCase();
+                // Basic search for now - in a real app, this would use vector search/embeddings
                 for (const item of knowledgeItems) {
                     if (item.summary?.toLowerCase().includes(lowerQuery) || item.keywords?.some(k => k.toLowerCase().includes(lowerQuery))) {
                         found = true;
+                        qnaResponseMessage = item.summary || "Found relevant information from knowledge base.";
                         if (currentNode.qnaOutputVariable) {
-                            currentContext[currentNode.qnaOutputVariable] = item.summary || "Found relevant information from knowledge base.";
-                             messagesToSend.push(templatize(item.summary || "Found relevant information from knowledge base.", currentContext));
-                        } else {
-                             messagesToSend.push(templatize(item.summary || "Found relevant information from knowledge base.", currentContext));
+                            currentContext[currentNode.qnaOutputVariable] = qnaResponseMessage;
                         }
                         break;
                     }
                 }
             }
+
             if (found) {
+                debugLog.push(`(System: Q&A Lookup step '${currentNode.label}' found answer for query "${query.substring(0,50)}...". Sending: "${qnaResponseMessage.substring(0,70)}...")`);
+                messagesToSend.push(qnaResponseMessage);
+                currentContext.conversationHistory.push(`Agent: ${qnaResponseMessage}`);
                 nextEdge = findNextEdge(currentNode.id, flowDefinition, 'found');
             } else {
+                qnaResponseMessage = currentNode.qnaFallbackText || "I couldn't find an answer for that in my current knowledge.";
+                debugLog.push(`(System: Q&A Lookup step '${currentNode.label}' did NOT find answer for query "${query.substring(0,50)}...". Sending fallback: "${qnaResponseMessage.substring(0,70)}...")`);
                 if (currentNode.qnaOutputVariable) { // Save fallback to variable if specified
-                     currentContext[currentNode.qnaOutputVariable] = currentNode.qnaFallbackText || "No specific answer found in knowledge base.";
+                     currentContext[currentNode.qnaOutputVariable] = qnaResponseMessage;
                 }
-                if (currentNode.qnaFallbackText) { // Send fallback if specified
-                    messagesToSend.push(templatize(currentNode.qnaFallbackText, currentContext));
-                } else if (!found) { // Default message if no fallback and not found
-                    messagesToSend.push("I couldn't find an answer for that in my current knowledge.");
-                }
+                messagesToSend.push(qnaResponseMessage);
+                currentContext.conversationHistory.push(`Agent: ${qnaResponseMessage}`);
                 nextEdge = findNextEdge(currentNode.id, flowDefinition, 'notFound');
             }
             if (!nextEdge) nextEdge = findNextEdge(currentNode.id, flowDefinition, 'default'); 
             break;
 
         case 'wait':
-            debugLog.push(`(System: Wait node '${currentNode.id}' starting for ${currentNode.waitDurationMs || 0}ms)`);
-            if (currentNode.waitDurationMs && currentNode.waitDurationMs > 0) {
-                await new Promise(resolve => setTimeout(resolve, currentNode.waitDurationMs));
+            const waitDuration = currentNode.waitDurationMs || 0;
+            debugLog.push(`(System: Wait step '${currentNode.label}' starting for ${waitDuration}ms)`);
+            if (waitDuration > 0) {
+                await new Promise(resolve => setTimeout(resolve, waitDuration));
             }
-            debugLog.push(`(System: Wait node '${currentNode.id}' finished)`);
+            debugLog.push(`(System: Wait step '${currentNode.label}' finished)`);
             nextEdge = findNextEdge(currentNode.id, flowDefinition);
             break;
 
         case 'end':
+          let finalMessage = "";
           if (currentNode.endOutputVariable && currentContext[currentNode.endOutputVariable] !== undefined) {
-            debugLog.push(`(System: Flow ended. Output from '${currentNode.endOutputVariable}': ${currentContext[currentNode.endOutputVariable]})`);
-             messagesToSend.push(templatize(String(currentContext[currentNode.endOutputVariable]), currentContext));
+            finalMessage = templatize(String(currentContext[currentNode.endOutputVariable]), currentContext);
+            messagesToSend.push(finalMessage);
+            currentContext.conversationHistory.push(`Agent: ${finalMessage}`);
+            debugLog.push(`(System: Flow ended at step '${currentNode.label}'. Final output from '{{${currentNode.endOutputVariable}}}': ${finalMessage.substring(0,70)}...)`);
           } else if (currentNode.endOutputVariable) {
-            debugLog.push(`(System: Flow ended. Output variable '${currentNode.endOutputVariable}' was specified but not found in context.)`);
+            debugLog.push(`(System: Flow ended at step '${currentNode.label}'. Output variable '{{${currentNode.endOutputVariable}}}' was specified but not found in context.)`);
           } else {
-            debugLog.push("(System: Flow ended.)");
+            debugLog.push(`(System: Flow ended at step '${currentNode.label}'.)`);
           }
           isFlowFinished = true;
           currentNodeId = undefined; 
           continue; 
 
         default:
-          // This should ideally not be reached if FlowNode type enum is correctly maintained
-          debugLog.push(`(System: Unknown or unsupported node type '${(currentNode as any).type}' encountered for node '${currentNode.id}'. This may indicate a flow definition error or an outdated flow executor.)`);
-          // Attempt to find a default edge to prevent flow from completely stalling if possible
+          const unknownNodeType = (currentNode as any).type;
+          debugLog.push(`(System: Unknown or unsupported node type '${unknownNodeType}' encountered for node '${currentNode.id}'. This may indicate a flow definition error or an outdated flow executor.)`);
           nextEdge = findNextEdge(currentNode.id, flowDefinition, 'default') || findNextEdge(currentNode.id, flowDefinition); 
           if (!nextEdge) {
-             error = `Unsupported node type '${(currentNode as any).type}' and no default path. Flow stuck.`;
+             error = `Unsupported node type '${unknownNodeType}' and no default path. Flow stuck.`;
              debugLog.push(`(System: ${error})`);
           }
       }
       
       if (nextEdge) {
-        debugLog.push(`(System: Next node is '${flowDefinition.nodes.find(n=>n.id===nextEdge.target)?.label || nextEdge.target}' via edge '${nextEdge.label || nextEdge.edgeType || nextEdge.id}')`);
+        const targetNodeInfo = flowDefinition.nodes.find(n=>n.id===nextEdge.target);
+        debugLog.push(`(System: Next step is '${targetNodeInfo?.label || nextEdge.target}' via connection '${nextEdge.label || nextEdge.edgeType || nextEdge.id}')`);
         currentNodeId = nextEdge.target;
       } else {
-        if (currentNode.type !== 'end' && !isFlowFinished) { 
-           debugLog.push(`(System: No outgoing edge from node '${currentNode.id}' and it's not an end node. Flow may be stuck.)`);
-           // If it's not an end node and has no outgoing edge, and isn't waiting for input, it's stuck.
-           if (!currentContext.waitingForInput) isFlowFinished = true; 
+        if (currentNode.type !== 'end' && !isFlowFinished && !currentContext.waitingForInput) { 
+           // Only log as stuck if it's not an end node, not already finished, and not waiting for input.
+           debugLog.push(`(System: No outgoing connection from step '${currentNode.label || currentNode.id}' and it's not an end step or waiting for input. Flow may be stuck.)`);
+           isFlowFinished = true; 
         }
         currentNodeId = undefined; 
       }
@@ -319,17 +343,20 @@ ${knowledgeSummaries}
     if (maxSteps <= 0) {
       error = "Flow execution exceeded maximum steps.";
       debugLog.push(`(System: ${error})`);
+      isFlowFinished = true; // If max steps exceeded, consider it finished to prevent further processing
     }
 
   } catch (e: any) {
     console.error("Error executing agent flow:", e);
     error = e.message || "An unexpected error occurred during flow execution.";
     debugLog.push(`(System: Flow execution error - ${error})`);
+    isFlowFinished = true; // Error means flow is effectively finished
   }
   
+  // If flow ended or an error occurred, ensure no pending input state
   if (isFlowFinished || error) {
     currentContext.waitingForInput = undefined;
-    currentContext.currentNodeId = undefined;
+    currentContext.currentNodeId = undefined; // Clear current node if flow is done or errored
   }
 
   return { 
@@ -337,11 +364,14 @@ ${knowledgeSummaries}
     debugLog,
     updatedContext: currentContext, 
     error, 
-    nextNodeId: currentContext.waitingForInput, 
+    nextNodeId: currentContext.waitingForInput, // This should be set if a getUserInput is waiting
     isFlowFinished 
   };
 }
 
+// This is the Genkit flow definition that wraps the main execution logic.
+// It's kept for potential future use if Genkit's flow management features are needed.
+// Currently, the exported executeAgentFlow function is called directly by the API route.
 const agentJsonFlow = ai.defineFlow(
   {
     name: 'agentJsonFlow', 
@@ -349,6 +379,7 @@ const agentJsonFlow = ai.defineFlow(
     outputSchema: ExecuteAgentFlowOutputSchema,
   },
   async (input) => {
-    return executeAgentFlow(input);
+    return executeAgentFlow(input); // Call the main logic function
   }
 );
+
