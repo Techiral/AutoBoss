@@ -11,13 +11,14 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import type { AgentType } from '@/lib/types';
+import type { AgentType, AgentDirection } from '@/lib/types';
 
 const CreateAgentInputSchema = z.object({
   agentDescription: z
     .string()
     .describe('A description of the agent, including its role and personality.'),
-  agentType: z.custom<AgentType>().optional().describe("The type of agent: 'chat', 'voice', or 'hybrid'. This can influence the generated persona and greeting.")
+  agentType: z.custom<AgentType>().optional().describe("The type of agent: 'chat', 'voice', or 'hybrid'. This can influence the generated persona and greeting."),
+  direction: z.custom<AgentDirection>().optional().describe("The direction of the agent: 'inbound' or 'outbound'. This can influence tone or initial greeting strategy.")
 });
 export type CreateAgentInput = z.infer<typeof CreateAgentInputSchema>;
 
@@ -44,10 +45,15 @@ const prompt = ai.definePrompt({
 3. A sample "agentGreeting" that the agent would use to introduce itself.
 
 {{#if agentType}}
-The agent is intended to be a "{{agentType}}" agent. Consider this when crafting the persona and greeting.
+The agent is intended to be a "{{agentType}}" agent.
+{{#if direction}}
+It is also an "{{direction}}" agent.
+{{/if}}
+Consider these characteristics when crafting the persona and greeting.
 For example:
 - A 'voice' agent's greeting should be natural and concise for a phone call (e.g., "Hello, this is [Agent Name], how can I help you?").
-- A 'chat' agent's greeting can be slightly more detailed for a website (e.g., "Hi there! I'm [Agent Name], your virtual assistant for [Business]. How can I assist you today?").
+- An 'inbound' chat agent might have a welcoming greeting for a website visitor (e.g., "Hi there! I'm [Agent Name], your virtual assistant for [Business]. How can I assist you today?").
+- An 'outbound' agent might have a more direct but polite opening if initiating contact (though full outbound logic is complex, its initial greeting tone can be considered).
 - A 'hybrid' agent should have a versatile greeting.
 {{/if}}
 

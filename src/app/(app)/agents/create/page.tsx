@@ -14,8 +14,8 @@ import { useToast } from "@/hooks/use-toast";
 import { createAgent, CreateAgentOutput } from "@/ai/flows/agent-creation";
 import { useRouter } from "next/navigation";
 import { useAppContext } from "../../layout"; 
-import type { Agent, AgentType, AgentLogicType } from "@/lib/types"; 
-import { Loader2, Bot, MessageSquare, Phone, Brain, DatabaseZap, Workflow } from "lucide-react"; // Added DatabaseZap, Workflow
+import type { Agent, AgentType, AgentLogicType, AgentDirection } from "@/lib/types"; 
+import { Loader2, Bot, MessageSquare, Phone, Brain, DatabaseZap, Workflow, ArrowDownCircle, ArrowUpCircle } from "lucide-react"; 
 import { useAuth } from "@/contexts/AuthContext"; 
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -23,7 +23,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 const formSchema = z.object({
   agentType: z.enum(["chat", "voice", "hybrid"], { required_error: "Please select an agent type."}),
-  primaryLogic: z.enum(["flow", "prompt", "rag", "hybrid"], { required_error: "Please select the agent's primary brain logic."}), // Updated logic types
+  direction: z.enum(["inbound", "outbound"], { required_error: "Please select agent direction."}),
+  primaryLogic: z.enum(["flow", "prompt", "rag", "hybrid"], { required_error: "Please select the agent's primary brain logic."}),
   name: z.string().min(3, "Chatbot name must be at least 3 characters").max(100, "Name too long"),
   role: z.string().min(10, "Role description must be at least 10 characters").max(500, "Role too long"),
   personality: z.string().min(10, "Personality description must be at least 10 characters").max(500, "Personality too long"),
@@ -43,7 +44,8 @@ export default function CreateAgentPage() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       agentType: "chat",
-      primaryLogic: "hybrid", // Default to hybrid
+      direction: "inbound",
+      primaryLogic: "hybrid", 
     }
   });
   
@@ -68,15 +70,16 @@ export default function CreateAgentPage() {
     setGeneratedAgentDetails(null);
     try {
       const logicTypeLabel = getLogicTypeLabel(data.primaryLogic as AgentLogicType);
-      const agentDescription = `Type: ${data.agentType}. Primary Logic: ${logicTypeLabel}.\nBusiness Purpose: ${data.name}\nIntended Role for the Business: ${data.role}\nDesired Personality & Tone: ${data.personality}`;
-      const aiResult = await createAgent({ agentDescription, agentType: data.agentType });
+      const agentDescription = `Type: ${data.agentType}. Direction: ${data.direction}. Primary Logic: ${logicTypeLabel}.\nBusiness Purpose: ${data.name}\nIntended Role for the Business: ${data.role}\nDesired Personality & Tone: ${data.personality}`;
+      const aiResult = await createAgent({ agentDescription, agentType: data.agentType, direction: data.direction as AgentDirection });
       setGeneratedAgentDetails(aiResult);
       
       const agentDataForContext: Omit<Agent, 'id' | 'createdAt' | 'knowledgeItems' | 'flow' | 'userId'> = {
         agentType: data.agentType as AgentType,
+        direction: data.direction as AgentDirection,
         primaryLogic: data.primaryLogic as AgentLogicType, 
         name: data.name, 
-        description: `Type: ${data.agentType}. Logic: ${logicTypeLabel}. Role: ${data.role}. Personality: ${data.personality}.`, 
+        description: `Type: ${data.agentType}. Direction: ${data.direction}. Logic: ${logicTypeLabel}. Role: ${data.role}. Personality: ${data.personality}.`, 
         role: data.role,
         personality: data.personality,
         generatedName: aiResult.agentName,
@@ -89,15 +92,15 @@ export default function CreateAgentPage() {
       if (newAgent) {
         toast({
           title: "Agent Base Created!",
-          description: `Agent "${aiResult.agentName}" (Type: ${data.agentType}, Logic: ${logicTypeLabel}) is ready. Next, customize it further. Redirecting...`,
+          description: `Agent "${aiResult.agentName}" (Type: ${data.agentType}, Direction: ${data.direction}, Logic: ${logicTypeLabel}) is ready. Next, customize it further. Redirecting...`,
         });
         
-        if (data.primaryLogic === 'flow') {
+        if (data.primaryLogic === 'flow' || data.primaryLogic === 'hybrid') {
             router.push(`/agents/${newAgent.id}/studio`);
-        } else if (data.primaryLogic === 'rag' || data.primaryLogic === 'prompt') {
+        } else if (data.primaryLogic === 'prompt' || data.primaryLogic === 'rag') {
              router.push(`/agents/${newAgent.id}/knowledge`);
-        } else { // hybrid or default
-            router.push(`/agents/${newAgent.id}/studio`); // Hybrid starts with flow
+        } else { 
+            router.push(`/agents/${newAgent.id}/studio`); 
         }
       }
     } catch (error: any) {
@@ -119,7 +122,7 @@ export default function CreateAgentPage() {
         <CardHeader className="p-4 sm:p-6">
           <CardTitle className={cn("font-headline text-xl sm:text-2xl flex items-center gap-2", "text-gradient-dynamic")}> <Bot className="w-6 h-6 sm:w-7 sm:h-7"/>Step 1: Define Your New Business Agent</CardTitle>
           <CardDescription className="text-sm">
-            Tell us about the agent you want to build. Define its type, core logic, purpose, role, and personality.
+            Tell us about the agent you want to build. Define its type, direction, core logic, purpose, role, and personality.
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
@@ -147,6 +150,26 @@ export default function CreateAgentPage() {
               </div>
 
               <div className="space-y-1.5">
+                <Label htmlFor="direction">Agent Direction</Label>
+                <Controller
+                  name="direction"
+                  control={control}
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <SelectTrigger id="direction">
+                        <SelectValue placeholder="Select direction" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="inbound"><div className="flex items-center gap-2"><ArrowDownCircle className="w-4 h-4"/>Inbound (Handles incoming)</div></SelectItem>
+                        <SelectItem value="outbound"><div className="flex items-center gap-2"><ArrowUpCircle className="w-4 h-4"/>Outbound (Initiates contact)</div></SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {errors.direction && <p className="text-xs text-destructive">{errors.direction.message}</p>}
+              </div>
+            </div>
+             <div className="space-y-1.5">
                 <Label htmlFor="primaryLogic">Primary Brain Logic</Label>
                 <Controller
                   name="primaryLogic"
@@ -160,14 +183,14 @@ export default function CreateAgentPage() {
                         <SelectItem value="flow"><div className="flex items-center gap-2"><Workflow className="w-4 h-4"/>Visual Flow Builder</div></SelectItem>
                         <SelectItem value="prompt"><div className="flex items-center gap-2"><Brain className="w-4 h-4"/>Direct AI Prompt</div></SelectItem>
                         <SelectItem value="rag"><div className="flex items-center gap-2"><DatabaseZap className="w-4 h-4"/>Knowledge Q&A (RAG)</div></SelectItem>
-                        <SelectItem value="hybrid"><div className="flex items-center gap-2"><MessageSquare className="w-3 h-3"/><Workflow className="w-3 h-3 -ml-1"/>Hybrid (Flow then RAG/Prompt)</div></SelectItem>
+                        <SelectItem value="hybrid"><div className="flex items-center gap-2"><Bot className="w-3 h-3"/><Workflow className="w-3 h-3 -ml-1"/>Hybrid (Flow then RAG/Prompt)</div></SelectItem>
                       </SelectContent>
                     </Select>
                   )}
                 />
                 {errors.primaryLogic && <p className="text-xs text-destructive">{errors.primaryLogic.message}</p>}
               </div>
-            </div>
+
 
             <div className="space-y-1.5">
               <Label htmlFor="name">Agent Name / Business Purpose</Label>

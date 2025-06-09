@@ -4,8 +4,8 @@
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bot, ArrowRight, Trash2, MessageSquare, Phone, Info, Brain, Workflow, DatabaseZap } from "lucide-react"; 
-import type { Agent, AgentLogicType } from "@/lib/types";
+import { Bot, ArrowRight, Trash2, MessageSquare, Phone, Info, Brain, Workflow, DatabaseZap, ArrowDownCircle, ArrowUpCircle } from "lucide-react"; 
+import type { Agent, AgentLogicType, AgentType, AgentDirection } from "@/lib/types";
 import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from "@/lib/utils";
@@ -15,7 +15,7 @@ interface AgentCardProps {
   onDelete: (agentId: string) => void;
 }
 
-function getAgentTypeIcon(agentType?: Agent['agentType']) {
+function getAgentTypeIcon(agentType?: AgentType) {
   switch (agentType) {
     case 'chat':
       return <MessageSquare className="w-3 h-3" />;
@@ -38,11 +38,24 @@ function getLogicTypeDisplayInfo(logicType?: AgentLogicType): { label: string | 
     case 'rag':
       return { label: "RAG Q&A", icon: <DatabaseZap className="w-3 h-3 mr-1" /> };
     case 'hybrid':
-      return { label: "Hybrid", icon: <Bot className="w-3 h-3 mr-1" /> }; // Could also be a combination icon
+      return { label: "Hybrid", icon: <Bot className="w-3 h-3 mr-1" /> };
     default:
       return { label: "Custom", icon: <Info className="w-3 h-3 mr-1" /> };
   }
 }
+
+function getDirectionDisplayInfo(direction?: AgentDirection): { label: string | null; icon: React.ReactNode | null } {
+  if (!direction) return { label: null, icon: null };
+  switch (direction) {
+    case 'inbound':
+      return { label: "Inbound", icon: <ArrowDownCircle className="w-3 h-3 mr-1" /> };
+    case 'outbound':
+      return { label: "Outbound", icon: <ArrowUpCircle className="w-3 h-3 mr-1" /> };
+    default:
+      return { label: "N/A", icon: <Info className="w-3 h-3 mr-1" /> };
+  }
+}
+
 
 export function AgentCard({ agent, onDelete }: AgentCardProps) {
   const [formattedDate, setFormattedDate] = useState('');
@@ -55,6 +68,8 @@ export function AgentCard({ agent, onDelete }: AgentCardProps) {
   }, [agent.createdAt]);
 
   const { label: logicTypeLabel, icon: logicTypeIcon } = getLogicTypeDisplayInfo(agent.primaryLogic);
+  const { label: directionLabel, icon: directionIcon } = getDirectionDisplayInfo(agent.direction);
+
 
   return (
     <Card className="flex flex-col h-full">
@@ -69,6 +84,11 @@ export function AgentCard({ agent, onDelete }: AgentCardProps) {
               <Badge variant="outline" className="text-xs capitalize h-fit px-1.5 py-0.5 sm:px-2">
                 {getAgentTypeIcon(agent.agentType)}
                 <span className="ml-1">{agent.agentType}</span>
+              </Badge>
+            )}
+            {directionLabel && (
+              <Badge variant="outline" className="text-xs capitalize h-fit px-1.5 py-0.5 sm:px-2 bg-accent/10 text-accent-foreground border-accent/30">
+                {directionIcon} {directionLabel}
               </Badge>
             )}
             {logicTypeLabel && (
@@ -94,8 +114,10 @@ export function AgentCard({ agent, onDelete }: AgentCardProps) {
           <Trash2 className="w-3.5 h-3.5 mr-1 sm:mr-1.5" /> Delete
         </Button>
         <Button asChild size="sm" className={cn("text-xs px-2 py-1 h-auto", "btn-gradient-primary")}>
-          <Link href={`/agents/${agent.id}/${agent.primaryLogic === 'flow' || agent.primaryLogic === 'hybrid' ? 'studio' : 'knowledge'}`}>
-            {agent.primaryLogic === 'flow' || agent.primaryLogic === 'hybrid' ? 'Open Studio' : 'Manage Knowledge'} <ArrowRight className="ml-1 sm:ml-1.5 w-3.5 h-3.5" />
+          <Link href={`/agents/${agent.id}/${agent.primaryLogic === 'flow' || agent.primaryLogic === 'hybrid' ? 'studio' : (agent.primaryLogic === 'prompt' || agent.primaryLogic === 'rag' ? 'knowledge' : 'studio')}`}>
+            {agent.primaryLogic === 'flow' || agent.primaryLogic === 'hybrid' ? 'Open Studio' : 
+             (agent.primaryLogic === 'prompt' || agent.primaryLogic === 'rag' ? 'Manage Knowledge' : 'Open Studio')} 
+            <ArrowRight className="ml-1 sm:ml-1.5 w-3.5 h-3.5" />
           </Link>
         </Button>
       </CardFooter>
