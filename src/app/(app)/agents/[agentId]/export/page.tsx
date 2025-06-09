@@ -208,33 +208,20 @@ export default function ExportAgentPage() {
     <div className="space-y-4 md:space-y-6">
       <Card>
         <CardHeader className="p-4 sm:p-6">
-          <CardTitle className={cn("font-headline text-xl sm:text-2xl flex items-center gap-2", "text-gradient-dynamic")}> <Share2 className="w-6 h-6 sm:w-7 sm:h-7"/>Export Chatbot: {agent.generatedName || agent.name}</CardTitle>
-          <CardDescription className="text-sm">Integrate your AI chatbot into any website or application. Provide these details to your clients or use them for your own business.</CardDescription>
+          <CardTitle className={cn("font-headline text-xl sm:text-2xl flex items-center gap-2", "text-gradient-dynamic")}> <Share2 className="w-6 h-6 sm:w-7 sm:h-7"/>Deploy & Share Your Client's Chatbot: {agent.generatedName || agent.name}</CardTitle>
+          <CardDescription className="text-sm">Easily embed this AI chatbot on your client's website or provide them with a direct link. Ready to go live and start generating value!</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6 sm:space-y-8 p-4 sm:p-6">
+          
           <div>
-            <Label htmlFor="chatbotLink" className="flex items-center mb-1 text-sm sm:text-base font-semibold">
-              <Globe className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary" /> Direct Chatbot Link
-            </Label>
-            <div className="flex items-center gap-2">
-              <Input id="chatbotLink" value={chatbotLink} readOnly className="text-xs sm:text-sm"/>
-              <Button variant="outline" size="icon" onClick={() => handleCopy(chatbotLink, "Chatbot Link")} aria-label="Copy Chatbot Link" disabled={!chatbotLink} className="h-9 w-9 sm:h-10 sm:w-10">
-                {copied === "Chatbot Link" ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">Share this link for direct access to the chatbot. Ideal for testing or direct sharing with clients.</p>
-             {!baseUrl && <p className="text-xs text-destructive mt-1">Base URL not yet available.</p>}
-          </div>
-
-           <div>
             <Label htmlFor="chatLauncherScript" className="flex items-center mb-1 text-sm sm:text-base font-semibold">
-              <Code className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary" /> Embeddable Chat Launcher for Websites
+              <Code className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary" /> Embed Chatbot on Any Website (Recommended)
             </Label>
             <Alert variant="default" className="mb-2 p-3 sm:p-4">
                 <Info className="h-4 w-4 text-accent" />
-                <AlertTitle className="text-sm sm:text-base text-accent">How to Use</AlertTitle>
+                <AlertTitle className="text-sm sm:text-base text-accent">How to Use This Script</AlertTitle>
                 <AlertDescription className="text-xs text-accent/90">
-                  Copy and paste this script tag just before the closing &lt;/body&gt; tag on any HTML page. It will add a floating chat launcher button to the website.
+                  To add this chatbot to your client's website, copy the script below and paste it just before the closing &lt;/body&gt; tag on any page of their site. It will add a floating chat launcher button.
                 </AlertDescription>
             </Alert>
             <div className="relative">
@@ -243,24 +230,39 @@ export default function ExportAgentPage() {
                 {copied === "Chat Launcher Script" ? <Check className="w-3 h-3 sm:w-4 sm:w-4 text-green-500" /> : <Copy className="w-3 h-3 sm:w-4 sm:w-4" />}
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">This script creates a floating button that opens the chatbot in a popup on any website.</p>
-            <Alert variant="default" className="mt-2 p-3 sm:p-4 bg-accent/10 dark:bg-accent/20 border-accent/30">
+            <p className="text-xs text-muted-foreground mt-1">This script creates a floating button that opens the chatbot in a popup. It's the easiest way to integrate the chatbot for most businesses.</p>
+          </div>
+
+          <div className="border-t pt-6 sm:pt-8">
+            <Label htmlFor="chatbotLink" className="flex items-center mb-1 text-sm sm:text-base font-semibold">
+              <Globe className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary" /> Direct Chatbot Link (For Sharing or Testing)
+            </Label>
+            <div className="flex items-center gap-2">
+              <Input id="chatbotLink" value={chatbotLink} readOnly className="text-xs sm:text-sm"/>
+              <Button variant="outline" size="icon" onClick={() => handleCopy(chatbotLink, "Chatbot Link")} aria-label="Copy Chatbot Link" disabled={!chatbotLink} className="h-9 w-9 sm:h-10 sm:w-10">
+                {copied === "Chatbot Link" ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Share this link for direct access to the chatbot. Useful for quick previews or when embedding isn't an option.</p>
+             {!baseUrl && <p className="text-xs text-destructive mt-1">Base URL not yet available. Refresh page if needed.</p>}
+             <Alert variant="default" className="mt-2 p-3 sm:p-4 bg-accent/10 dark:bg-accent/20 border-accent/30">
                 <MessageSquare className="h-4 w-4 text-accent" />
                 <AlertTitle className="text-accent text-sm sm:text-base">Embedding Note</AlertTitle>
                 <AlertDescription className="text-accent/80 dark:text-accent/90 text-xs">
-                The chat pages (e.g., <code>{chatbotLink ? chatbotLink.substring(0,30)+'...' : ''}</code>) are designed to be embedded in iframes from any website.
+                The chat pages (like the direct link above) are designed to be embedded in iframes from any website, which is how the launcher script works.
                 </AlertDescription>
             </Alert>
           </div>
+          
 
-          <div className="space-y-3">
+          <div className="space-y-3 border-t pt-6 sm:pt-8">
             <Label htmlFor="apiEndpoint" className="flex items-center text-sm sm:text-base font-semibold">
-              <Server className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary" /> API Endpoint (For Developers / Advanced Integration)
+              <Server className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary" /> For Developers / Advanced Integration (API Endpoint)
             </Label>
-             <Alert variant="default" className="p-3 sm:p-4 bg-accent/10 dark:bg-accent/20 border-accent/30">
-                <Info className="h-4 w-4 text-accent" />
-                <AlertTitle className="text-accent text-sm sm:text-base">API Capabilities</AlertTitle>
-                <AlertDescription className="text-accent/80 dark:text-accent/90 text-xs">
+             <Alert variant="default" className="p-3 sm:p-4 bg-muted/30 dark:bg-card/80 border-border/50">
+                <Info className="h-4 w-4 text-muted-foreground" />
+                <AlertTitle className="text-sm sm:text-base">Technical API Details</AlertTitle>
+                <AlertDescription className="text-xs text-muted-foreground">
                   This POST endpoint allows programmatic interaction with the chatbot. It can continue designed conversation flows or provide direct AI-generated responses.
                   <ul className="list-disc list-inside pl-3 mt-1 text-[11px] sm:text-xs">
                     <li><strong>message (string, required):</strong> User's input.</li>
@@ -276,14 +278,14 @@ export default function ExportAgentPage() {
               </Button>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Use this API endpoint for custom integrations with external systems or applications.
+              Use this API endpoint for custom integrations if your client has specific technical needs beyond the standard embed.
             </p>
              {!baseUrl && <p className="text-xs text-destructive mt-1">Base URL not yet available.</p>}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mt-3 sm:mt-4">
                 <div>
                     <Label htmlFor="apiRequestExampleMinimal" className="flex items-center mb-1 text-xs sm:text-sm">
-                    Example Request (Simple):
+                    Example API Request (Simple):
                     </Label>
                     <div className="relative">
                         <Textarea id="apiRequestExampleMinimal" value={apiRequestExampleMinimal} readOnly rows={3} className="font-code text-[10px] sm:text-xs bg-muted/50 p-2"/>
@@ -294,7 +296,7 @@ export default function ExportAgentPage() {
                 </div>
                  <div>
                     <Label htmlFor="apiRequestExampleWithFlow" className="flex items-center mb-1 text-xs sm:text-sm">
-                    Example Request (Resume Conversation Flow):
+                    Example API Request (Resume Conversation):
                     </Label>
                     <div className="relative">
                         <Textarea id="apiRequestExampleWithFlow" value={apiRequestExampleWithFlow} readOnly rows={10} className="font-code text-[10px] sm:text-xs bg-muted/50 p-2"/>
@@ -305,10 +307,10 @@ export default function ExportAgentPage() {
                 </div>
             </div>
             <div className="space-y-2 mt-3 sm:mt-4">
-                <Label className="flex items-center mb-1 text-xs sm:text-sm">Example Responses (Illustrative):</Label>
+                <Label className="flex items-center mb-1 text-xs sm:text-sm">Example API Responses:</Label>
                 <div className="space-y-3">
                     <div>
-                        <Label htmlFor="apiFlowResponseExample" className="text-[11px] sm:text-xs font-medium">Flow Response:</Label>
+                        <Label htmlFor="apiFlowResponseExample" className="text-[11px] sm:text-xs font-medium">If Following a Conversation Design:</Label>
                         <div className="relative">
                             <Textarea id="apiFlowResponseExample" value={apiFlowResponseExample} readOnly rows={12} className="font-code text-[10px] sm:text-xs bg-muted/50 p-2"/>
                             <Button variant="outline" size="icon" className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 h-6 w-6 sm:h-7 sm:w-7" onClick={() => handleCopy(apiFlowResponseExample, "API Flow Response")} aria-label="Copy API Flow Response" disabled={!apiFlowResponseExample}>
@@ -317,7 +319,7 @@ export default function ExportAgentPage() {
                         </div>
                     </div>
                     <div>
-                        <Label htmlFor="apiAutonomousResponseExample" className="text-[11px] sm:text-xs font-medium">Direct AI Response:</Label>
+                        <Label htmlFor="apiAutonomousResponseExample" className="text-[11px] sm:text-xs font-medium">If Answering Freely (Using Trained Knowledge):</Label>
                          <div className="relative">
                             <Textarea id="apiAutonomousResponseExample" value={apiAutonomousResponseExample} readOnly rows={6} className="font-code text-[10px] sm:text-xs bg-muted/50 p-2"/>
                             <Button variant="outline" size="icon" className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 h-6 w-6 sm:h-7 sm:w-7" onClick={() => handleCopy(apiAutonomousResponseExample, "API Autonomous Response")} aria-label="Copy API Autonomous Response" disabled={!apiAutonomousResponseExample}>
@@ -329,9 +331,9 @@ export default function ExportAgentPage() {
             </div>
              <Alert variant="default" className="mt-3 sm:mt-4 p-3 sm:p-4">
                  <ShieldCheck className="h-4 w-4 text-primary" />
-                 <AlertTitle className="text-sm sm:text-base">API Production Considerations</AlertTitle>
+                 <AlertTitle className="text-sm sm:text-base">API Production Notes</AlertTitle>
                  <AlertDescription className="text-xs">
-                     For production use, consider API versioning, robust authentication mechanisms, rate limiting, and comprehensive logging & monitoring for the API endpoint.
+                     If using the API directly in a production client application, consider API versioning, robust authentication mechanisms, rate limiting, and comprehensive logging & monitoring. The embed script handles most of this complexity for typical website use.
                  </AlertDescription>
              </Alert>
           </div>
@@ -340,5 +342,3 @@ export default function ExportAgentPage() {
     </div>
   );
 }
-
-    

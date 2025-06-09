@@ -17,16 +17,15 @@ import { extractKnowledge } from './knowledge-extraction';
 import { 
   KnowledgeExtractionOutputSchema, 
   type KnowledgeExtractionInput,
-  type KnowledgeExtractionOutput // Import the type as well for ProcessUrlOutput
-} from '@/lib/types'; // Updated import path
+  type KnowledgeExtractionOutput 
+} from '@/lib/types'; 
 
 const ProcessUrlInputSchema = z.object({
   url: z.string().url().describe('The URL to process.'),
 });
 export type ProcessUrlInput = z.infer<typeof ProcessUrlInputSchema>;
 
-// Output is the same as KnowledgeExtractionOutput
-export type ProcessUrlOutput = KnowledgeExtractionOutput; // Use the imported type
+export type ProcessUrlOutput = KnowledgeExtractionOutput; 
 
 export async function processUrl(input: ProcessUrlInput): Promise<ProcessUrlOutput> {
   return processUrlFlow(input);
@@ -36,33 +35,30 @@ const processUrlFlow = ai.defineFlow(
   {
     name: 'processUrlFlow',
     inputSchema: ProcessUrlInputSchema,
-    outputSchema: KnowledgeExtractionOutputSchema, // Uses imported schema
+    outputSchema: KnowledgeExtractionOutputSchema, 
   },
   async (input: ProcessUrlInput): Promise<ProcessUrlOutput> => {
     let textContent: string;
     try {
       const response = await axios.get(input.url, {
         headers: {
-          // Some websites might block requests without a common User-Agent
           'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)'
         },
-        timeout: 10000 // 10 seconds timeout
+        timeout: 10000 
       });
 
       if (response.headers['content-type'] && !response.headers['content-type'].includes('text/html')) {
-        // If not HTML, try to get text directly if it's a plain text type, otherwise throw error
         if (response.headers['content-type'].includes('text/plain')) {
             textContent = response.data;
         } else {
-            throw new Error(`Content type is not HTML or plain text: ${response.headers['content-type']}`);
+            throw new Error(`Content type is not HTML or plain text: ${response.headers['content-type']}. Only web pages or plain text URLs are supported.`);
         }
       } else if (response.headers['content-type'] && response.headers['content-type'].includes('text/html')) {
             textContent = convert(response.data, {
-                wordwrap: false, // Disable auto-wrapping
+                wordwrap: false, 
                 selectors: [
-                { selector: 'img', format: 'skip' }, // Skip images
-                { selector: 'a', options: { ignoreHref: true } }, // Keep link text, ignore href
-                // Add more selectors to skip unwanted elements like nav, footer, script, style
+                { selector: 'img', format: 'skip' }, 
+                { selector: 'a', options: { ignoreHref: true } }, 
                 { selector: 'nav', format: 'skip' },
                 { selector: 'footer', format: 'skip' },
                 { selector: 'script', format: 'skip' },
@@ -72,27 +68,25 @@ const processUrlFlow = ai.defineFlow(
                 ],
             });
       } else {
-        // Fallback for unknown or missing content-type, attempt to treat as text
         textContent = typeof response.data === 'string' ? response.data : '';
       }
 
 
       if (!textContent.trim()) {
-        throw new Error('No meaningful text content extracted from the URL.');
+        throw new Error('No meaningful text content extracted from the URL. The page might be empty, heavily JavaScript-based, or an image.');
       }
 
     } catch (error: any) {
       console.error(`Error fetching or parsing URL ${input.url}:`, error.message);
       if (axios.isAxiosError(error)) {
-        throw new Error(`Failed to fetch URL ${input.url}. Status: ${error.response?.status || 'N/A'}. Message: ${error.message}`);
+        throw new Error(`Failed to fetch URL ${input.url}. Status: ${error.response?.status || 'N/A'}. Please ensure the URL is correct and publicly accessible.`);
       }
       throw new Error(`Error processing URL ${input.url}: ${error.message}`);
     }
 
-    // Create a data URI from the extracted text
     const plainTextDataUri = `data:text/plain;charset=utf-8;base64,${Buffer.from(textContent).toString('base64')}`;
 
-    const knowledgeInput: KnowledgeExtractionInput = { // Use imported type
+    const knowledgeInput: KnowledgeExtractionInput = { 
       documentDataUri: plainTextDataUri,
     };
 
@@ -101,7 +95,7 @@ const processUrlFlow = ai.defineFlow(
       return knowledgeOutput;
     } catch (extractionError: any) {
       console.error(`Error extracting knowledge from URL ${input.url} content:`, extractionError.message);
-      throw new Error(`Failed to extract knowledge from URL content: ${extractionError.message}`);
+      throw new Error(`Failed to extract knowledge from the website content: ${extractionError.message}`);
     }
   }
 );

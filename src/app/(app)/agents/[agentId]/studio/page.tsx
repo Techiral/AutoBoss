@@ -70,10 +70,10 @@ interface VisualEdge extends JsonFlowEdge {}
 
 interface NodeDefinition {
   type: FlowNodeType;
-  label: string; // User-friendly label
+  label: string; 
   icon: React.ElementType;
   defaultProperties?: Partial<VisualNode & JsonFlowNode>;
-  docs: { // Simplified descriptions
+  docs: { 
     purpose: string;
     settings: string;
     edges: string;
@@ -82,20 +82,19 @@ interface NodeDefinition {
 }
 
 const NODE_DEFINITIONS: NodeDefinition[] = [
-  { type: 'start', label: 'Start Conversation', icon: Play, defaultProperties: { label: "Start" }, docs: { purpose: "Marks the beginning of the chatbot's conversation path.", settings: "None.", edges: "Connects to the first step your chatbot takes.", rules: "Every conversation needs one Start node."} },
-  { type: 'sendMessage', label: 'Send a Message', icon: MessageSquare, defaultProperties: { label: "Send Message", message: "Hello! How can I help?" }, docs: { purpose: "Makes the chatbot send a message to the user.", settings: "Write the chatbot's message. You can use {{variables}} from user inputs.", edges: "Connects to the next step after the message.", rules: "Keep messages clear and concise." } },
-  { type: 'getUserInput', label: 'Ask a Question', icon: HelpCircle, defaultProperties: { label: "Ask Question", prompt: "What's your name?", variableName: "userName" }, docs: { purpose: "Asks the user a question and saves their answer.", settings: "Write the chatbot's question. Choose a 'Variable Name' to save the answer (e.g., 'userName').", edges: "Connects to what happens after the user answers. Can have a separate path for 'invalid' answers (e.g. if user types letters for a number question).", rules: "Make sure your variable names are unique." } },
-  { type: 'callLLM', label: 'Smart Response (AI)', icon: Zap, defaultProperties: { label: "Smart Response", llmPrompt: "User said: {{userInputVar}}. Respond intelligently.", outputVariable: "aiResponse", useKnowledge: false }, docs: { purpose: "Uses AI (like Gemini) to generate a smart, contextual response.", settings: "Write a prompt for the AI based on user input (e.g., {{userInputVar}}). Check 'Use Knowledge' to allow AI to use trained data. Save AI's response in 'Output Variable'.", edges: "Connects to the next step.", rules: "Clear prompts give better AI responses. This uses AI credits." } },
-  { type: 'condition', label: 'Make a Decision', icon: ChevronsUpDown, defaultProperties: { label: "Decision Point", conditionVariable: "userChoice", useLLMForDecision: false }, docs: { purpose: "Changes the conversation path based on user input or a variable.", settings: "'Variable to Check' is what the decision is based on. Edge labels become choices (e.g., 'Yes', 'No'). Can use AI to understand user's intent if 'Use AI for Decision' is checked.", edges: "One connection for each possible choice/outcome. Always have a 'Default' path.", rules: "Ensure all choices lead somewhere." } },
-  { type: 'qnaLookup', label: 'Answer from Knowledge', icon: FileQuestion, defaultProperties: { label: "Answer from Knowledge", qnaQueryVariable: "userQuery", qnaOutputVariable: "knowledgeAnswer", qnaFallbackText: "I'm not sure about that based on my current training." }, docs: { purpose: "Searches the chatbot's trained knowledge (from uploaded docs/URLs) for an answer.", settings: "Use 'Query Variable' (e.g. {{userInput}}) for what to search. 'Output Variable' stores the answer. 'Fallback Text' is used if no answer is found.", edges: "One path if 'Found', another if 'Not Found'.", rules: "Make sure your chatbot is trained with relevant data on the Knowledge page." } },
-  { type: 'end', label: 'End Conversation', icon: StopCircle, defaultProperties: { label: "End"}, docs: { purpose: "Ends this specific path of the conversation.", settings: "None, unless you want to output a final variable.", edges: "No outgoing connections.", rules: "Ensure all conversation paths can reach an End node or loop appropriately." } },
-  // Potentially "Advanced" nodes to de-emphasize initially for non-technical users
-  { type: 'action', label: 'Run Action (Advanced)', icon: SlidersHorizontal, defaultProperties: { label: "Custom Action", actionName: "myCustomAction" }, docs: { purpose: "(Advanced) Triggers a pre-defined custom action (e.g., update a database). Requires developer setup.", settings: "Action name, input arguments.", edges: "Connects to next step.", rules: "Actions are placeholders here and need separate coding." } },
-  { type: 'apiCall', label: 'Call API (Advanced)', icon: Network, defaultProperties: { label: "HTTP Request", apiUrl: "https://api.example.com/data", apiMethod: 'GET' }, docs: { purpose: "(Advanced) Connects to external services via API (e.g., get weather, stock prices). Requires technical setup.", settings: "URL, method (GET/POST), headers, etc.", edges: "Paths for 'Success' and 'Error'.", rules: "APIs can be complex. Placeholder execution in test." } },
-  { type: 'code', label: 'Run Code (Advanced)', icon: FileCode, defaultProperties: { label: "JS Code", codeScript: "// Your JS code here" }, docs: { purpose: "(Advanced) Executes a small piece of JavaScript. For complex logic. Use with caution.", settings: "JavaScript code.", edges: "Connects to next step.", rules: "Placeholder execution in test. Requires careful coding." } },
-  { type: 'wait', label: 'Add Delay', icon: Timer, defaultProperties: { label: "Wait", waitDurationMs: 1000 }, docs: { purpose: "Pauses the conversation for a short time (e.g., to simulate typing).", settings: "Duration in milliseconds (1000ms = 1 second).", edges: "Connects to next step.", rules: "Use short delays." } },
-  { type: 'transition', label: 'Go to Another Flow (Advanced)', icon: ArrowRightLeft, defaultProperties: { label: "Transition", transitionTargetFlowId: "another_flow_id" }, docs: { purpose: "(Advanced) Jumps to a different conversation flow. For modular design.", settings: "Target flow ID.", edges: "One outgoing.", rules: "Placeholder execution." } },
-  { type: 'agentSkill', label: 'Use AI Skill (Advanced)', icon: BrainCircuit, defaultProperties: { label: "Agent Skill", agentSkillId: "booking_skill" }, docs: { purpose: "(Advanced) Activates a specialized AI capability or sub-agent.", settings: "Skill ID.", edges: "Connects to next step.", rules: "Placeholder execution." } },
+  { type: 'start', label: 'Start Conversation', icon: Play, defaultProperties: { label: "Start" }, docs: { purpose: "Marks the beginning of the chatbot's conversation path.", settings: "No settings for this step.", edges: "Connect this to the first step your chatbot should take (e.g., 'Send a Message').", rules: "Every conversation design needs one 'Start Conversation' step."} },
+  { type: 'sendMessage', label: 'Send a Message', icon: MessageSquare, defaultProperties: { label: "Send Message", message: "Hello! How can I help you today?" }, docs: { purpose: "Makes the chatbot send a specific message to the user.", settings: "Write the chatbot's message in 'Message Text'. You can use {{variables}} from user inputs or AI responses (e.g., {{userName}}).", edges: "Connects to the next step after the message is sent.", rules: "Keep messages clear, concise, and helpful for the user." } },
+  { type: 'getUserInput', label: 'Ask a Question', icon: HelpCircle, defaultProperties: { label: "Ask Question", prompt: "What's your name?", variableName: "userName" }, docs: { purpose: "Asks the user a question and saves their answer to use later.", settings: "Write the chatbot's question in 'Chatbot's Question'. Choose a 'Save User's Answer as (Variable Name)' (e.g., 'userName' or 'userEmail'). This name is how you'll refer to the user's answer in other steps.", edges: "Connects to what happens after the user answers. You can optionally define a separate path if the user's input is considered 'invalid' (not yet implemented).", rules: "Make variable names unique and descriptive (e.g., 'customerOrderNumber' instead of just 'order')." } },
+  { type: 'callLLM', label: 'Smart Response (AI)', icon: Zap, defaultProperties: { label: "Smart Response", llmPrompt: "User said: {{userInputVar}}. Respond intelligently to help them.", outputVariable: "aiResponse", useKnowledge: false }, docs: { purpose: "Uses AI (like Gemini) to understand context and generate human-like responses or make decisions. This is where the 'magic' happens!", settings: "Write a clear 'Instruction for AI' in the prompt field (e.g., 'Based on {{userInquiry}}, what product would you recommend?'). Check 'Allow AI to use Trained Knowledge' to let the AI access data you've uploaded from documents or websites. Save the AI's answer in 'Save AI Response As (Variable Name)' (e.g., 'aiRecommendation'). Tip: Tell the AI how to respond if it's unsure, e.g., 'If you don't know, say: I can't find that specific information.'", edges: "Connects to the next step after the AI generates its response.", rules: "Clear, specific instructions result in better AI responses. Using AI will consume processing credits (if applicable in the future)." } },
+  { type: 'condition', label: 'Make a Decision', icon: ChevronsUpDown, defaultProperties: { label: "Decision Point", conditionVariable: "userChoice", useLLMForDecision: false }, docs: { purpose: "Changes the conversation path based on a user's answer or a previously saved variable.", settings: "In 'Variable to Base Decision On', enter the variable name (e.g., 'userChoice'). Then, for each outgoing connection (edge) from this step, set its 'Decision Outcome / User Input Value' to match a possible value of that variable (e.g., 'Yes', 'No', 'Option A'). If 'Use AI to Understand User's Intent' is checked, the AI will try to match the variable's value to the edge labels even if it's not an exact match.", edges: "Create one connection for each possible choice or outcome. Always have a 'Default / Other' connection for unexpected values.", rules: "Ensure all decision paths lead to another step or end the conversation appropriately." } },
+  { type: 'qnaLookup', label: 'Answer from Knowledge', icon: FileQuestion, defaultProperties: { label: "Answer from Knowledge", qnaQueryVariable: "userQuery", qnaOutputVariable: "knowledgeAnswer", qnaFallbackText: "I'm not sure about that based on my current training. Could you ask in a different way?" }, docs: { purpose: "Searches the chatbot's 'Trained Knowledge' (from your uploaded documents/websites) to directly answer user questions.", settings: "In 'User's Question (Variable)', specify where to get the user's query (e.g., `{{lastUserMessage}}` or a variable where you stored their question). The found answer is saved in 'Save Found Answer As (Variable)'. 'Message if No Answer Found' is shown if the trained data doesn't have a good match.", edges: "Connect one path for 'If Answer Found' and another for 'If Answer Not Found'.", rules: "Ensure your chatbot is trained with relevant business data on the 'Knowledge' page for this step to be effective." } },
+  { type: 'end', label: 'End Conversation', icon: StopCircle, defaultProperties: { label: "End"}, docs: { purpose: "Marks the end of this particular path or the entire conversation.", settings: "No specific settings, unless you want to output a final variable from the context (advanced).", edges: "This step should not have any outgoing connections.", rules: "Ensure all conversation paths can eventually reach an 'End Conversation' step or loop back appropriately." } },
+  { type: 'action', label: 'Run Action (Advanced)', icon: SlidersHorizontal, defaultProperties: { label: "Custom Action", actionName: "myCustomAction" }, docs: { purpose: "(Advanced) Triggers a pre-defined custom action or function (e.g., update a database, send an email). Requires developer setup outside of AutoBoss.", settings: "Define the 'Action Name' and any 'Input Arguments' it needs (as JSON).", edges: "Connects to the next step after the action is (conceptually) run.", rules: "Actions are placeholders in this visual builder and need separate coding by a developer to actually function." } },
+  { type: 'apiCall', label: 'Connect to External Tool (Advanced)', icon: Network, defaultProperties: { label: "HTTP Request", apiUrl: "https://api.example.com/data", apiMethod: 'GET' }, docs: { purpose: "(Advanced) Connects to external services or databases via API (e.g., get weather, stock prices, client CRM data). Requires technical understanding of APIs.", settings: "Provide the 'API URL', choose the 'Method' (GET/POST etc.), and add 'Headers' (as JSON, e.g. for authentication tokens).", edges: "Typically has paths for 'On Success' and 'On Error'.", rules: "APIs can be complex. This step simulates an API call during testing; actual integration may need developer assistance." } },
+  { type: 'code', label: 'Custom Code (Advanced)', icon: FileCode, defaultProperties: { label: "JS Code", codeScript: "// Your JavaScript code here\n// return { myResult: 'value' };" }, docs: { purpose: "(Advanced) Executes a small piece of JavaScript code for custom logic or data manipulation. Use with extreme caution.", settings: "Write your JavaScript in 'JavaScript Code'. You can map returned object keys to context variables.", edges: "Connects to the next step.", rules: "This step simulates code execution during testing. Incorrect code can break the flow. Requires JavaScript knowledge." } },
+  { type: 'wait', label: 'Add Delay', icon: Timer, defaultProperties: { label: "Wait", waitDurationMs: 1000 }, docs: { purpose: "Pauses the conversation for a short time, for example, to simulate the chatbot 'thinking' or 'typing'.", settings: "Set the 'Delay Duration (ms)' (1000ms = 1 second).", edges: "Connects to the next step after the delay.", rules: "Use short delays to avoid making the user wait too long." } },
+  { type: 'transition', label: 'Go to Another Flow (Advanced)', icon: ArrowRightLeft, defaultProperties: { label: "Transition", transitionTargetFlowId: "another_flow_id" }, docs: { purpose: "(Advanced) Jumps to a different conversation flow design. Useful for creating modular and reusable conversation parts.", settings: "Specify the 'Target Flow ID' of the conversation design to jump to.", edges: "One outgoing connection.", rules: "This is a placeholder for flow transition logic; actual multi-flow execution is not fully implemented in this version." } },
+  { type: 'agentSkill', label: 'Use AI Skill (Advanced)', icon: BrainCircuit, defaultProperties: { label: "Agent Skill", agentSkillId: "booking_skill" }, docs: { purpose: "(Advanced) Activates a specialized AI capability, function, or even a sub-agent designed for a specific task (e.g., appointment booking, complex calculations).", settings: "Specify the 'Skill ID'.", edges: "Connects to the next step.", rules: "This is a placeholder for future advanced skill integration." } },
 ];
 
 
@@ -103,8 +102,8 @@ const WIRING_BEST_PRACTICES_DOCS = {
   title: "Conversation Design Tips",
   points: [
     "Every step (except 'End Conversation') should lead to another step.",
-    "'Make a Decision' nodes need paths for each choice and a 'Default' path.",
-    "Use 'Answer from Knowledge' for questions best answered by your trained data.",
+    "'Make a Decision' nodes need paths for each choice and a 'Default / Other' path.",
+    "Use 'Answer from Knowledge' for questions best answered by your trained business data.",
     "Make sure variables are defined (e.g., in 'Ask a Question') before you use them in messages or decisions.",
     "Test all conversation paths thoroughly in the 'Test Chatbot' tab.",
   ]
@@ -482,7 +481,7 @@ export default function AgentStudioPage() {
     const sourceNode = nodes.find(n => n.id === nodeId);
     if (!sourceNode || portType !== 'out' || sourceNode.type === 'end') {
         if (sourceNode && sourceNode.type === 'end') {
-            toast({title: "Invalid Start", description: "Cannot drag an edge from an 'End Conversation' node.", variant: "destructive"});
+            toast({title: "Invalid Start", description: "Cannot drag an edge from an 'End Conversation' step.", variant: "destructive"});
         }
         return;
     }
@@ -511,20 +510,20 @@ export default function AgentStudioPage() {
 
     const targetNode = nodes.find(n => n.id === targetNodeId);
     if (!targetNode || targetNode.type === 'start') {
-        toast({title: "Invalid Connection", description: "Cannot connect to a 'Start Conversation' node's input.", variant:"destructive"});
+        toast({title: "Invalid Connection", description: "Cannot connect to a 'Start Conversation' step's input.", variant:"destructive"});
         setEdgeDragInfo(null);
         return;
     }
 
     if (edgeDragInfo.sourceNodeId === targetNodeId) {
-        toast({title: "Invalid Connection", description: "Cannot connect a node to itself.", variant:"destructive"});
+        toast({title: "Invalid Connection", description: "Cannot connect a step to itself.", variant:"destructive"});
         setEdgeDragInfo(null);
         return;
     }
 
     const existingEdge = edges.find(e => e.source === edgeDragInfo.sourceNodeId && e.target === targetNodeId);
     if (existingEdge) {
-        toast({title: "Connection Exists", description: "A connection already exists between these nodes."});
+        toast({title: "Connection Exists", description: "A connection already exists between these steps."});
         setEdgeDragInfo(null);
         return;
     }
@@ -533,10 +532,10 @@ export default function AgentStudioPage() {
     let defaultEdgeLabel = "";
     let defaultEdgeType: JsonFlowEdge['edgeType'] = 'default';
 
-    if (sourceNode?.type === 'condition') { defaultEdgeLabel = "Case"; }
-    else if (sourceNode?.type === 'qnaLookup') { defaultEdgeLabel = "Found"; defaultEdgeType = "found"; }
-    else if (sourceNode?.type === 'apiCall') { defaultEdgeLabel = "Success"; defaultEdgeType = "success"; }
-    else if (sourceNode?.type === 'getUserInput') { defaultEdgeLabel = "Valid"; }
+    if (sourceNode?.type === 'condition') { defaultEdgeLabel = "Outcome"; }
+    else if (sourceNode?.type === 'qnaLookup') { defaultEdgeLabel = "Found Answer"; defaultEdgeType = "found"; }
+    else if (sourceNode?.type === 'apiCall') { defaultEdgeLabel = "Successful Call"; defaultEdgeType = "success"; }
+    else if (sourceNode?.type === 'getUserInput') { defaultEdgeLabel = "User Responded"; }
 
 
     const newEdge: VisualEdge = {
@@ -548,7 +547,7 @@ export default function AgentStudioPage() {
         edgeType: defaultEdgeType,
     };
     setEdges((eds) => eds.concat(newEdge));
-    toast({ title: "Connection Created!", description: `Connected ${sourceNode?.label || 'source'} to ${targetNode.label}. Configure connection in properties panel.`});
+    toast({ title: "Connection Created!", description: `Connected '${sourceNode?.label || 'source step'}' to '${targetNode.label}'. Configure connection details in the 'Step Settings' panel.`});
     setEdgeDragInfo(null);
   };
 
@@ -557,6 +556,7 @@ export default function AgentStudioPage() {
     setNodes(nds => nds.map(n => {
         if (n.id === selectedNodeId) {
             const newProps = {...n, ...updatedProps};
+            // Sync content for nodes that use a primary text field
             if (updatedProps.message !== undefined) newProps.content = updatedProps.message;
             else if (updatedProps.prompt !== undefined) newProps.content = updatedProps.prompt;
             else if (updatedProps.llmPrompt !== undefined) newProps.content = updatedProps.llmPrompt;
@@ -573,6 +573,7 @@ export default function AgentStudioPage() {
       if (e.id === edgeId) {
         const newEdge = {...e, ...updatedProps};
         const sourceNode = nodes.find(n => n.id === newEdge.source);
+        // For 'condition' nodes, the edge label IS the condition value
         if (sourceNode?.type === 'condition' && updatedProps.label !== undefined) {
           newEdge.condition = updatedProps.label;
         }
@@ -620,29 +621,30 @@ export default function AgentStudioPage() {
     const hasEndNode = nodes.some(n => n.type === 'end');
 
     if (!hasStartNode && nodes.length > 0) {
-        toast({ title: "Invalid Conversation Design", description: "A conversation must have at least one 'Start Conversation' node.", variant: "destructive"});
+        toast({ title: "Invalid Conversation Design", description: "A conversation must have at least one 'Start Conversation' step.", variant: "destructive"});
         return null;
     }
-     if (!hasEndNode && nodes.length > 0) {
-        toast({ title: "Invalid Conversation Design", description: "A conversation should have at least one 'End Conversation' node.", variant: "destructive"});
+     if (!hasEndNode && nodes.length > 0) { // Warn but allow saving if it's a work-in-progress
+        toast({ title: "Incomplete Conversation", description: "Your conversation design should ideally have at least one 'End Conversation' step to properly conclude paths.", variant: "default"});
     }
     
     for (const node of nodes) {
         const nodeDef = NODE_DEFINITIONS.find(d => d.type === node.type);
         if (!nodeDef) {
-             toast({ title: "Invalid Node Type", description: `Node '${node.label}' has an unrecognized type '${node.type}'.`, variant: "destructive"});
+             toast({ title: "Invalid Step Type", description: `Step '${node.label}' has an unrecognized type '${node.type}'.`, variant: "destructive"});
             return null;
         }
+        // Basic validation for key fields
         if (node.type === 'callLLM' && (!node.llmPrompt || !node.outputVariable)) {
-            toast({ title: "Invalid Node Config", description: `Smart Response node '${node.label}' is missing a prompt or output variable.`, variant: "destructive"});
+            toast({ title: "Incomplete Step Config", description: `Smart Response step '${node.label}' is missing an 'Instruction for AI' or 'Save AI Response As' variable.`, variant: "destructive"});
             return null;
         }
         if (node.type === 'getUserInput' && (!node.prompt || !node.variableName)) {
-            toast({ title: "Invalid Node Config", description: `Ask Question node '${node.label}' is missing a prompt or variable name.`, variant: "destructive"});
+            toast({ title: "Incomplete Step Config", description: `Ask Question step '${node.label}' is missing a 'Chatbot's Question' or 'Save User's Answer as' variable.`, variant: "destructive"});
             return null;
         }
          if (node.type === 'condition' && !node.conditionVariable) {
-             toast({ title: "Invalid Node Config", description: `Decision Point node '${node.label}' is missing a 'Variable to Check'.`, variant: "destructive"});
+             toast({ title: "Incomplete Step Config", description: `Make a Decision step '${node.label}' is missing a 'Variable to Base Decision On'.`, variant: "destructive"});
             return null;
         }
     }
@@ -714,25 +716,25 @@ export default function AgentStudioPage() {
                         try {
                             objectToSanitize = JSON.parse(visualValue);
                         } catch (e) {
-                            console.warn(`Invalid JSON string in ${String(propKey)} for node ${visualNode.id}: "${visualValue}". Skipping.`);
+                            console.warn(`Invalid JSON string in ${String(propKey)} for step ${visualNode.label}: "${visualValue}". Skipping.`);
                             return;
                         }
                     }
                 } else if (typeof visualValue === 'object') {
                     objectToSanitize = visualValue;
                 } else {
-                    console.warn(`Unexpected type for ${String(propKey)} in node ${visualNode.id}. Expected string or object, got ${typeof visualValue}. Skipping.`);
+                    console.warn(`Unexpected type for ${String(propKey)} in step ${visualNode.label}. Expected string or object, got ${typeof visualValue}. Skipping.`);
                     return;
                 }
                 
                 if (typeof objectToSanitize === 'object' && objectToSanitize !== null) {
                     valueToSet = recursivelyStripUndefined(objectToSanitize);
                 } else {
-                    if (!(typeof visualValue === 'string' && visualValue.trim() === '')) {
-                         console.warn(`Value for ${String(propKey)} in node ${visualNode.id} parsed to non-object:`, objectToSanitize, `. Original visual value:`, visualValue, `. Skipping.`);
+                    if (!(typeof visualValue === 'string' && visualValue.trim() === '')) { // Only warn if original visualValue was not an empty string
+                         console.warn(`Value for ${String(propKey)} in step ${visualNode.label} parsed to non-object:`, objectToSanitize, `. Original visual value:`, visualValue, `. Skipping.`);
                          return;
                     }
-                    valueToSet = {}; 
+                    valueToSet = {}; // Default to empty object if parsing failed from empty string
                 }
 
             } else if (Array.isArray(visualValue)) {
@@ -742,7 +744,7 @@ export default function AgentStudioPage() {
                 if (sanitizedArray.length > 0) {
                     valueToSet = sanitizedArray;
                 } else {
-                    valueToSet = []; 
+                    valueToSet = []; // Store empty array if all items were undefined
                 }
             } else if (typeof visualValue === 'object') {
                  valueToSet = recursivelyStripUndefined(visualValue);
@@ -751,7 +753,9 @@ export default function AgentStudioPage() {
                 valueToSet = visualValue; 
             }
 
+            // Ensure only non-undefined values are set (boolean false is okay, empty string is okay)
             if (valueToSet !== undefined) {
+                // Booleans are fine, non-null objects are fine, other non-null/non-undefined primitives are fine
                 if (typeof valueToSet === 'boolean' || (typeof valueToSet === 'object' && valueToSet !== null) || (typeof valueToSet !== 'object' && valueToSet !== null && valueToSet !== undefined ) ) {
                     output[propKey as keyof JsonFlowNode] = valueToSet;
                 }
@@ -808,7 +812,7 @@ export default function AgentStudioPage() {
     const selectedSample = sampleFlows[flowKey];
     if (selectedSample) {
       loadFlowToVisual(selectedSample.flow);
-      toast({ title: "Sample Conversation Loaded", description: `"${selectedSample.name}" loaded into the editor.` });
+      toast({ title: "Sample Conversation Loaded", description: `"${selectedSample.name}" loaded. Adapt it for your client's needs!` });
     } else {
       toast({ title: "Error", description: "Could not load the selected sample conversation.", variant: "destructive" });
     }
@@ -829,7 +833,7 @@ export default function AgentStudioPage() {
     return (
         <Card>
             <CardHeader className="p-4 sm:p-6">
-                <CardTitle className={cn("font-headline text-lg sm:text-xl", "text-gradient-dynamic")}>Design Chatbot Conversation</CardTitle>
+                <CardTitle className={cn("font-headline text-xl sm:text-2xl", "text-gradient-dynamic")}>Design Chatbot Conversation</CardTitle>
                  <CardDescription className="text-sm">Loading conversation designer...</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col items-center justify-center min-h-[calc(100vh-300px)] p-4 sm:p-6">
@@ -892,8 +896,8 @@ export default function AgentStudioPage() {
           isToolsPanelOpen ? "col-span-12 flex order-1 lg:order-none max-h-[40vh] lg:max-h-full" : "hidden"
       )}>
         <CardHeader className="pb-1 sm:pb-2 pt-3 sm:pt-4 px-2 sm:px-3">
-          <CardTitle className={cn("text-base sm:text-lg", "text-gradient-dynamic")}>Conversation Steps</CardTitle>
-          <CardDescription className="text-xs">Drag these onto the canvas to build your chatbot's logic.</CardDescription>
+          <CardTitle className={cn("text-base sm:text-lg", "text-gradient-dynamic")}>Chatbot Building Blocks</CardTitle>
+          <CardDescription className="text-xs">Drag these onto the canvas to build your chatbot's conversation steps.</CardDescription>
         </CardHeader>
         <ScrollArea className="flex-grow">
         <CardContent className="space-y-1.5 sm:space-y-2 p-2 sm:p-3">
@@ -919,7 +923,7 @@ export default function AgentStudioPage() {
         </ScrollArea>
          <CardFooter className="p-2 sm:p-3 border-t mt-auto">
             <div className="w-full space-y-1.5">
-                <Label htmlFor="sampleFlowSelect" className="text-xs text-muted-foreground">Load Sample Conversation:</Label>
+                <Label htmlFor="sampleFlowSelect" className="text-xs text-muted-foreground">Load Sample Conversation Design:</Label>
                 <Select onValueChange={handleLoadSampleFlow}>
                   <SelectTrigger id="sampleFlowSelect" className="h-8 sm:h-9 text-xs sm:text-sm">
                     <SelectValue placeholder="Select a sample..." />
@@ -1077,7 +1081,7 @@ export default function AgentStudioPage() {
         <CardHeader className="pb-1 sm:pb-2 pt-3 sm:pt-4 px-2 sm:px-3">
           <CardTitle className={cn("text-base sm:text-lg flex items-center gap-1.5 sm:gap-2", "text-gradient-dynamic")}>
             <Settings2 className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
-            {selectedNodeDetails ? `Edit Step: ${selectedNodeDetails.label}` : "Step Guide"}
+            {selectedNodeDetails ? `Configure Step: ${selectedNodeDetails.label}` : "Step Guide"}
           </CardTitle>
         </CardHeader>
         <ScrollArea className="flex-grow">
@@ -1092,26 +1096,26 @@ export default function AgentStudioPage() {
                 </div>
 
                 { selectedNodeDetails.type === 'sendMessage' && (
-                  <div><Label htmlFor="nodeMessage" className="text-[10px] sm:text-xs">Message Text</Label><Textarea id="nodeMessage" value={selectedNodeDetails.message || ""} onChange={e => updateSelectedNodeProperties({ message: e.target.value })} rows={2} className="text-xs sm:text-sm"/></div>
+                  <div><Label htmlFor="nodeMessage" className="text-[10px] sm:text-xs">Message Text (What the chatbot says)</Label><Textarea id="nodeMessage" value={selectedNodeDetails.message || ""} onChange={e => updateSelectedNodeProperties({ message: e.target.value })} rows={2} className="text-xs sm:text-sm"/></div>
                 )}
                  { selectedNodeDetails.type === 'getUserInput' && (
                   <>
-                    <div><Label htmlFor="nodePrompt" className="text-[10px] sm:text-xs">Chatbot's Question</Label><Textarea id="nodePrompt" value={selectedNodeDetails.prompt || ""} onChange={e => updateSelectedNodeProperties({ prompt: e.target.value })} rows={2} className="text-xs sm:text-sm"/></div>
-                    <div><Label htmlFor="nodeVariable" className="text-[10px] sm:text-xs">Save User's Answer as (Variable Name)</Label><Input id="nodeVariable" value={selectedNodeDetails.variableName || ""} onChange={e => updateSelectedNodeProperties({ variableName: e.target.value })}  className="h-7 sm:h-8 text-xs sm:text-sm"/></div>
-                    <div><Label htmlFor="nodeInputType" className="text-[10px] sm:text-xs">Input Type (e.g. text, number - conceptual)</Label><Input id="nodeInputType" value={selectedNodeDetails.inputType || ""} onChange={e => updateSelectedNodeProperties({ inputType: e.target.value })}  className="h-7 sm:h-8 text-xs sm:text-sm" placeholder="e.g., text, number"/></div>
-                    <div><Label htmlFor="nodeValidation" className="text-[10px] sm:text-xs">Validation Rules (e.g. must be email - conceptual)</Label><Input id="nodeValidation" value={selectedNodeDetails.validationRules || ""} onChange={e => updateSelectedNodeProperties({ validationRules: e.target.value })}  className="h-7 sm:h-8 text-xs sm:text-sm" placeholder="e.g., regex"/></div>
+                    <div><Label htmlFor="nodePrompt" className="text-[10px] sm:text-xs">Chatbot's Question for User</Label><Textarea id="nodePrompt" value={selectedNodeDetails.prompt || ""} onChange={e => updateSelectedNodeProperties({ prompt: e.target.value })} rows={2} className="text-xs sm:text-sm"/></div>
+                    <div><Label htmlFor="nodeVariable" className="text-[10px] sm:text-xs">Save User's Answer as (Variable Name)</Label><Input id="nodeVariable" value={selectedNodeDetails.variableName || ""} onChange={e => updateSelectedNodeProperties({ variableName: e.target.value })}  className="h-7 sm:h-8 text-xs sm:text-sm" placeholder="e.g., customerEmail"/></div>
+                    <div><Label htmlFor="nodeInputType" className="text-[10px] sm:text-xs">Input Type (e.g. text, number - for future validation)</Label><Input id="nodeInputType" value={selectedNodeDetails.inputType || ""} onChange={e => updateSelectedNodeProperties({ inputType: e.target.value })}  className="h-7 sm:h-8 text-xs sm:text-sm" placeholder="e.g., text, number"/></div>
+                    <div><Label htmlFor="nodeValidation" className="text-[10px] sm:text-xs">Validation Rules (e.g. must be email - for future use)</Label><Input id="nodeValidation" value={selectedNodeDetails.validationRules || ""} onChange={e => updateSelectedNodeProperties({ validationRules: e.target.value })}  className="h-7 sm:h-8 text-xs sm:text-sm" placeholder="e.g., regex for email"/></div>
                   </>
                 )}
                 { selectedNodeDetails.type === 'callLLM' && (
                   <>
-                    <div><Label htmlFor="llmPrompt" className="text-[10px] sm:text-xs">Prompt for AI (Use {{variableName}} for user data)</Label><Textarea id="llmPrompt" value={selectedNodeDetails.llmPrompt || ""} onChange={e => updateSelectedNodeProperties({ llmPrompt: e.target.value })} rows={3} className="text-xs sm:text-sm"/></div>
-                    <div><Label htmlFor="llmOutputVar" className="text-[10px] sm:text-xs">Save AI's Response as (Variable Name)</Label><Input id="llmOutputVar" value={selectedNodeDetails.outputVariable || ""} onChange={e => updateSelectedNodeProperties({ outputVariable: e.target.value })}  className="h-7 sm:h-8 text-xs sm:text-sm"/></div>
+                    <div><Label htmlFor="llmPrompt" className="text-[10px] sm:text-xs">Instruction for AI (Use {{variableName}} for user data)</Label><Textarea id="llmPrompt" value={selectedNodeDetails.llmPrompt || ""} onChange={e => updateSelectedNodeProperties({ llmPrompt: e.target.value })} rows={3} className="text-xs sm:text-sm"/><p className="text-[10px] text-muted-foreground mt-0.5">Tip: Tell the AI how to respond if it's unsure, e.g., "If you don't know, say: I can't find that specific information."</p></div>
+                    <div><Label htmlFor="llmOutputVar" className="text-[10px] sm:text-xs">Save AI's Response as (Variable Name)</Label><Input id="llmOutputVar" value={selectedNodeDetails.outputVariable || ""} onChange={e => updateSelectedNodeProperties({ outputVariable: e.target.value })}  className="h-7 sm:h-8 text-xs sm:text-sm" placeholder="e.g., aiGeneratedSummary"/></div>
                     <div className="flex items-center space-x-1.5 pt-1"><Checkbox id="useKnowledge" checked={!!selectedNodeDetails.useKnowledge} onCheckedChange={(checked) => updateSelectedNodeProperties({ useKnowledge: !!checked })}/><Label htmlFor="useKnowledge" className="text-[10px] sm:text-xs font-normal cursor-pointer">Allow AI to use Trained Knowledge</Label></div>
                   </>
                 )}
                 { selectedNodeDetails.type === 'condition' && (
                    <>
-                    <div><Label htmlFor="conditionVar" className="text-[10px] sm:text-xs">Variable to Base Decision On</Label><Input id="conditionVar" value={selectedNodeDetails.conditionVariable || ""} onChange={e => updateSelectedNodeProperties({ conditionVariable: e.target.value })}  className="h-7 sm:h-8 text-xs sm:text-sm"/></div>
+                    <div><Label htmlFor="conditionVar" className="text-[10px] sm:text-xs">Variable to Base Decision On</Label><Input id="conditionVar" value={selectedNodeDetails.conditionVariable || ""} onChange={e => updateSelectedNodeProperties({ conditionVariable: e.target.value })}  className="h-7 sm:h-8 text-xs sm:text-sm" placeholder="e.g., userChoice"/></div>
                     <div className="flex items-center space-x-1.5 pt-1"><Checkbox id="useLLMForDecision" checked={!!selectedNodeDetails.useLLMForDecision} onCheckedChange={(checked) => updateSelectedNodeProperties({ useLLMForDecision: !!checked })}/><Label htmlFor="useLLMForDecision" className="text-[10px] sm:text-xs font-normal cursor-pointer">Use AI to Understand User's Intent for Decision</Label></div>
                    </>
                 )}
@@ -1126,16 +1130,16 @@ export default function AgentStudioPage() {
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div><Label htmlFor="apiHeaders" className="text-[10px] sm:text-xs">Headers (JSON String)</Label><Textarea id="apiHeaders" placeholder='{ "Content-Type": "application/json" }' value={typeof selectedNodeDetails.apiHeaders === 'string' ? selectedNodeDetails.apiHeaders : JSON.stringify(selectedNodeDetails.apiHeaders || {})} onChange={e => updateSelectedNodeProperties({ apiHeaders: e.target.value })} rows={2} className="text-xs sm:text-sm font-code"/></div>
-                        <div><Label htmlFor="apiBodyVar" className="text-[10px] sm:text-xs">Body Variable (from context)</Label><Input id="apiBodyVar" value={selectedNodeDetails.apiBodyVariable || ""} onChange={e => updateSelectedNodeProperties({ apiBodyVariable: e.target.value })} className="h-7 sm:h-8 text-xs sm:text-sm"/></div>
-                        <div><Label htmlFor="apiOutputVar" className="text-[10px] sm:text-xs">Output Variable (for response)</Label><Input id="apiOutputVar" value={selectedNodeDetails.apiOutputVariable || selectedNodeDetails.outputVariable || ""} onChange={e => updateSelectedNodeProperties({ apiOutputVariable: e.target.value, outputVariable: e.target.value })} className="h-7 sm:h-8 text-xs sm:text-sm"/></div>
+                        <div><Label htmlFor="apiHeaders" className="text-[10px] sm:text-xs">Headers (JSON String, e.g., {"{\"Auth\":\"Bearer {{token}}\"} "})</Label><Textarea id="apiHeaders" placeholder='{ "Content-Type": "application/json" }' value={typeof selectedNodeDetails.apiHeaders === 'string' ? selectedNodeDetails.apiHeaders : JSON.stringify(selectedNodeDetails.apiHeaders || {})} onChange={e => updateSelectedNodeProperties({ apiHeaders: e.target.value })} rows={2} className="text-xs sm:text-sm font-code"/></div>
+                        <div><Label htmlFor="apiBodyVar" className="text-[10px] sm:text-xs">Body Variable (from context, for POST/PUT)</Label><Input id="apiBodyVar" value={selectedNodeDetails.apiBodyVariable || ""} onChange={e => updateSelectedNodeProperties({ apiBodyVariable: e.target.value })} className="h-7 sm:h-8 text-xs sm:text-sm"/></div>
+                        <div><Label htmlFor="apiOutputVar" className="text-[10px] sm:text-xs">Save API Response As (Variable Name)</Label><Input id="apiOutputVar" value={selectedNodeDetails.apiOutputVariable || selectedNodeDetails.outputVariable || ""} onChange={e => updateSelectedNodeProperties({ apiOutputVariable: e.target.value, outputVariable: e.target.value })} className="h-7 sm:h-8 text-xs sm:text-sm" placeholder="e.g., apiData"/></div>
                     </>
                 )}
                 { selectedNodeDetails.type === 'qnaLookup' && (
                   <>
-                    <div><Label htmlFor="qnaQueryVar" className="text-[10px] sm:text-xs">User's Question (Variable Name, e.g. {{userInput}})</Label><Input id="qnaQueryVar" value={selectedNodeDetails.qnaQueryVariable || ""} onChange={e => updateSelectedNodeProperties({ qnaQueryVariable: e.target.value })} className="h-7 sm:h-8 text-xs sm:text-sm"/></div>
-                    <div><Label htmlFor="qnaOutputVar" className="text-[10px] sm:text-xs">Save Found Answer as (Variable Name)</Label><Input id="qnaOutputVar" value={selectedNodeDetails.qnaOutputVariable || ""} onChange={e => updateSelectedNodeProperties({ qnaOutputVariable: e.target.value })} className="h-7 sm:h-8 text-xs sm:text-sm"/></div>
-                    <div><Label htmlFor="qnaFallback" className="text-[10px] sm:text-xs">Message if No Answer Found in Knowledge</Label><Textarea id="qnaFallback" value={selectedNodeDetails.qnaFallbackText || ""} onChange={e => updateSelectedNodeProperties({ qnaFallbackText: e.target.value })} rows={2} className="text-xs sm:text-sm"/></div>
+                    <div><Label htmlFor="qnaQueryVar" className="text-[10px] sm:text-xs">User's Question (Variable Name, e.g. {{userInput}})</Label><Input id="qnaQueryVar" value={selectedNodeDetails.qnaQueryVariable || ""} onChange={e => updateSelectedNodeProperties({ qnaQueryVariable: e.target.value })} className="h-7 sm:h-8 text-xs sm:text-sm" placeholder="e.g., lastUserMessage"/></div>
+                    <div><Label htmlFor="qnaOutputVar" className="text-[10px] sm:text-xs">Save Found Answer as (Variable Name)</Label><Input id="qnaOutputVar" value={selectedNodeDetails.qnaOutputVariable || ""} onChange={e => updateSelectedNodeProperties({ qnaOutputVariable: e.target.value })} className="h-7 sm:h-8 text-xs sm:text-sm" placeholder="e.g., knowledgeBaseAnswer"/></div>
+                    <div><Label htmlFor="qnaFallback" className="text-[10px] sm:text-xs">Message if No Answer Found in Knowledge</Label><Textarea id="qnaFallback" value={selectedNodeDetails.qnaFallbackText || ""} onChange={e => updateSelectedNodeProperties({ qnaFallbackText: e.target.value })} rows={2} className="text-xs sm:text-sm" placeholder="e.g., Sorry, I don't have that info."/></div>
                   </>
                 )}
                 <Button variant="outline" size="sm" onClick={() => deleteNode(selectedNodeDetails.id)} className="text-destructive border-destructive hover:bg-destructive/10 w-full mt-2 h-8 text-xs sm:text-sm">
@@ -1143,7 +1147,7 @@ export default function AgentStudioPage() {
                 </Button>
                 <hr className="my-2 sm:my-3"/>
                 <Label className="text-[10px] sm:text-xs text-muted-foreground block mb-1">Connections from this Step:</Label>
-                {edges.filter(e => e.source === selectedNodeDetails.id).length === 0 && <p className="text-[10px] sm:text-xs text-muted-foreground italic">No outgoing connections.</p>}
+                {edges.filter(e => e.source === selectedNodeDetails.id).length === 0 && <p className="text-[10px] sm:text-xs text-muted-foreground italic">No outgoing connections. Drag from the right port of this step to another step's left port.</p>}
                 {edges.filter(e => e.source === selectedNodeDetails.id).map(edge => (
                   <div key={edge.id} className="text-[10px] sm:text-xs space-y-1 border p-1.5 rounded mb-1 bg-muted/30">
                     <div className="flex justify-between items-center">
@@ -1152,26 +1156,26 @@ export default function AgentStudioPage() {
                     </div>
                     {(selectedNodeDetails.type === 'condition' || selectedNodeDetails.type === 'apiCall' || selectedNodeDetails.type === 'qnaLookup' || selectedNodeDetails.type === 'getUserInput') && (
                         <div>
-                            <Label htmlFor={`edgeLabel-${edge.id}`} className="text-[9px] sm:text-[10px]">{selectedNodeDetails.type === 'condition' ? 'Decision Outcome / User Input Value' : 'Connection Label'}</Label>
-                            <Input id={`edgeLabel-${edge.id}`} placeholder="e.g., 'Yes', 'Product A', 'Invalid'" value={edge.label || ""} onChange={e => updateEdgeProperty(edge.id, { label: e.target.value })} className="h-6 sm:h-7 text-[10px] sm:text-xs mt-0.5"/>
+                            <Label htmlFor={`edgeLabel-${edge.id}`} className="text-[9px] sm:text-[10px]">{selectedNodeDetails.type === 'condition' ? 'Decision Outcome / User Input Value' : 'Connection Label (Optional)'}</Label>
+                            <Input id={`edgeLabel-${edge.id}`} placeholder={ selectedNodeDetails.type === 'condition' ? "e.g., 'Yes', 'Product A', 'Invalid'" : "e.g., Next step after XYZ"} value={edge.label || ""} onChange={e => updateEdgeProperty(edge.id, { label: e.target.value })} className="h-6 sm:h-7 text-[10px] sm:text-xs mt-0.5"/>
                         </div>
                     )}
                      {(selectedNodeDetails.type === 'apiCall' || selectedNodeDetails.type === 'qnaLookup' || selectedNodeDetails.type === 'getUserInput' ) && (
                         <div>
-                          <Label htmlFor={`edgeType-${edge.id}`} className="text-[9px] sm:text-[10px]">Connection Type</Label>
+                          <Label htmlFor={`edgeType-${edge.id}`} className="text-[9px] sm:text-[10px]">Connection Type (Path Logic)</Label>
                            <Select value={edge.edgeType || 'default'} onValueChange={value => updateEdgeProperty(edge.id, { edgeType: value as JsonFlowEdge['edgeType'] })}>
                                 <SelectTrigger className="h-6 sm:h-7 text-[10px] sm:text-xs"><SelectValue /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="default" className="text-xs sm:text-sm">Default / Next Step</SelectItem>
                                     {selectedNodeDetails.type === 'apiCall' && <>
-                                      <SelectItem value="success" className="text-xs sm:text-sm">On Success</SelectItem>
-                                      <SelectItem value="error" className="text-xs sm:text-sm">On Error</SelectItem>
+                                      <SelectItem value="success" className="text-xs sm:text-sm">On Successful API Call</SelectItem>
+                                      <SelectItem value="error" className="text-xs sm:text-sm">On API Call Error</SelectItem>
                                     </>}
                                     {selectedNodeDetails.type === 'getUserInput' && <>
-                                      <SelectItem value="invalid" className="text-xs sm:text-sm">If Input is Invalid</SelectItem>
+                                      <SelectItem value="invalid" className="text-xs sm:text-sm">If User Input is Invalid (Future)</SelectItem>
                                     </>}
                                     {selectedNodeDetails.type === 'qnaLookup' && <>
-                                       <SelectItem value="found" className="text-xs sm:text-sm">If Answer Found</SelectItem>
+                                       <SelectItem value="found" className="text-xs sm:text-sm">If Answer Found in Knowledge</SelectItem>
                                        <SelectItem value="notFound" className="text-xs sm:text-sm">If Answer Not Found</SelectItem>
                                     </>}
                                 </SelectContent>
@@ -1189,13 +1193,13 @@ export default function AgentStudioPage() {
                             <TooltipTrigger asChild><Info className="mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary"/></TooltipTrigger>
                             <TooltipContent side="top" className="z-[60] max-w-xs"><p>Guide for the <strong>{selectedNodeDefinition.label}</strong> step.</p></TooltipContent>
                         </Tooltip>
-                       Step Guide: {selectedNodeDefinition.label}
+                       How to use: {selectedNodeDefinition.label}
                     </AccordionTrigger>
                     <AccordionContent className="space-y-1.5 text-[10px] sm:text-xs p-1.5 sm:p-2 border-t bg-muted/30 rounded-b-md">
-                      <div><strong className="block text-primary">Purpose:</strong> {selectedNodeDefinition.docs.purpose}</div>
+                      <div><strong className="block text-primary">What it does:</strong> {selectedNodeDefinition.docs.purpose}</div>
                       <div><strong className="block text-primary">Key Settings:</strong> {selectedNodeDefinition.docs.settings}</div>
-                      <div><strong className="block text-primary">Connections:</strong> {selectedNodeDefinition.docs.edges}</div>
-                      <div><strong className="block text-primary">Tips:</strong> {selectedNodeDefinition.docs.rules}</div>
+                      <div><strong className="block text-primary">Connecting it:</strong> {selectedNodeDefinition.docs.edges}</div>
+                      <div><strong className="block text-primary">Important Tips:</strong> {selectedNodeDefinition.docs.rules}</div>
                     </AccordionContent>
                   </AccordionItem>
                 </Accordion>
@@ -1205,7 +1209,7 @@ export default function AgentStudioPage() {
             <div className="text-left py-2 space-y-3">
                 <div className="flex items-center gap-2">
                    <MousePointer className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground"/>
-                   <p className="text-xs sm:text-sm text-muted-foreground">Select a step on the canvas to edit its properties. Drag the canvas background to pan.</p>
+                   <p className="text-xs sm:text-sm text-muted-foreground">Select a step on the canvas to configure it. Drag the canvas background to pan around.</p>
                 </div>
                 <Accordion type="single" collapsible className="w-full">
                   <AccordionItem value="wiring-practices">
@@ -1246,5 +1250,3 @@ export default function AgentStudioPage() {
     </TooltipProvider>
   );
 }
-
-    

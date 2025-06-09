@@ -34,10 +34,10 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6 sm:space-y-8">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
-        <h1 className={cn("font-headline text-2xl sm:text-3xl font-bold flex items-center gap-2", "text-gradient-dynamic")}> <Bot className="w-7 h-7 sm:w-8 sm:h-8"/>Your AI Chatbots</h1>
+        <h1 className={cn("font-headline text-2xl sm:text-3xl font-bold flex items-center gap-2", "text-gradient-dynamic")}> <Bot className="w-7 h-7 sm:w-8 sm:h-8"/>Your AI Chatbot Agency Hub</h1>
         <Button asChild size="sm" className={cn("w-full sm:w-auto", "btn-gradient-primary")}>
           <Link href="/agents/create">
-            <PlusCircle className="mr-2 h-4 w-4 sm:h-5 sm:w-5" /> Create New Chatbot
+            <PlusCircle className="mr-2 h-4 w-4 sm:h-5 sm:w-5" /> Build New Client Chatbot
           </Link>
         </Button>
       </div>
@@ -45,9 +45,15 @@ export default function DashboardPage() {
       {agents.length === 0 ? (
          <Alert className="mt-4">
             <Info className="h-4 w-4" />
-            <AlertTitle>No Chatbots Yet!</AlertTitle>
-            <AlertDescription className="text-sm">
-              You haven't created any AI chatbots. Click the "Create New Chatbot" button to build one for your business or clients.
+            <AlertTitle>Start Building Your First Client Chatbot!</AlertTitle>
+            <AlertDescription className="text-sm space-y-1">
+              <p>Welcome to AutoBoss! Follow these simple steps to create and sell AI chatbots:</p>
+              <ol className="list-decimal list-inside pl-2 text-xs">
+                <li>Click "Build New Client Chatbot" to define its purpose and personality.</li>
+                <li>Go to its "Knowledge" section to train it with your client's business data.</li>
+                <li>Use the "Studio" to design its unique conversation flow.</li>
+                <li>"Export" the chatbot to easily embed it on your client's website!</li>
+              </ol>
             </AlertDescription>
           </Alert>
       ) : (
@@ -80,5 +86,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    

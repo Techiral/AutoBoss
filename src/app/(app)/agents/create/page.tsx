@@ -48,7 +48,7 @@ export default function CreateAgentPage() {
     setIsLoading(true);
     setGeneratedAgentDetails(null);
     try {
-      const agentDescription = `Chatbot Name/Purpose: ${data.name}\nIntended Role for Business: ${data.role}\nDesired Personality/Tone: ${data.personality}`;
+      const agentDescription = `Chatbot Name/Purpose for Business: ${data.name}\nIntended Role for the Business: ${data.role}\nDesired Personality & Tone: ${data.personality}`;
       const aiResult = await createAgent({ agentDescription });
       setGeneratedAgentDetails(aiResult);
       
@@ -66,10 +66,10 @@ export default function CreateAgentPage() {
 
       if (newAgent) {
         toast({
-          title: "Chatbot Configured!",
-          description: `Chatbot "${aiResult.agentName}" saved. Next, train it with business data and design its conversation. Redirecting...`,
+          title: "Chatbot Base Created!",
+          description: `Chatbot "${aiResult.agentName}" is ready. Next, train it with specific business data for your client. Redirecting...`,
         });
-        router.push(`/agents/${newAgent.id}/knowledge`); // Redirect to knowledge page first
+        router.push(`/agents/${newAgent.id}/knowledge`); 
       }
     } catch (error: any) {
       console.error("Error creating chatbot:", error);
@@ -88,10 +88,10 @@ export default function CreateAgentPage() {
     <div className="max-w-2xl mx-auto">
       <Card>
         <CardHeader className="p-4 sm:p-6">
-          <CardTitle className={cn("font-headline text-xl sm:text-2xl flex items-center gap-2", "text-gradient-dynamic")}> <Bot className="w-6 h-6 sm:w-7 sm:h-7"/>Create Your Business Chatbot</CardTitle>
+          <CardTitle className={cn("font-headline text-xl sm:text-2xl flex items-center gap-2", "text-gradient-dynamic")}> <Bot className="w-6 h-6 sm:w-7 sm:h-7"/>Step 1: Define Your New Business Chatbot</CardTitle>
           <CardDescription className="text-sm">
-            Define the core characteristics of your new AI chatbot. This information helps AutoBoss generate a base persona, which you can then refine.
-            You'll train it with specific business data in the next step.
+            Tell us about the chatbot you want to build for a business. AutoBoss will help generate its core personality and a friendly greeting. 
+            You'll train it with specific business data in the next step to make it an expert for your client.
             <br />
             <span className="text-xs text-muted-foreground">Chatbot data is stored securely, associated with your account.</span>
           </CardDescription>
@@ -100,24 +100,24 @@ export default function CreateAgentPage() {
           <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
             <div className="space-y-1.5">
               <Label htmlFor="name">Chatbot Name / Business Purpose</Label>
-              <Input id="name" placeholder="e.g., 'Acme Corp Support Bot', 'Website Lead Qualifier'" {...register("name")} />
+              <Input id="name" placeholder="e.g., 'Acme Corp Support Bot', 'Website Lead Qualifier for 'Dental Clinic X'" {...register("name")} />
               {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="role">Role & Objectives for the Business</Label>
-              <Textarea id="role" placeholder="e.g., 'Answer customer questions about our products', 'Collect contact info from potential leads and schedule demos'" {...register("role")} rows={3} />
+              <Textarea id="role" placeholder="e.g., 'Answer customer questions about Acme Corp's products', 'Collect contact info from potential patients and explain services'" {...register("role")} rows={3} />
               {errors.role && <p className="text-xs text-destructive">{errors.role.message}</p>}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="personality">Desired Personality & Tone</Label>
-              <Textarea id="personality" placeholder="e.g., 'Friendly and helpful', 'Professional and concise', 'Enthusiastic and engaging'" {...register("personality")} rows={3} />
+              <Textarea id="personality" placeholder="e.g., 'Friendly and helpful for a local bakery', 'Professional and concise for a law firm'" {...register("personality")} rows={3} />
               {errors.personality && <p className="text-xs text-destructive">{errors.personality.message}</p>}
             </div>
           </CardContent>
           <CardFooter className="p-4 sm:p-6">
             <Button type="submit" disabled={isLoading} className={cn("w-full", "btn-gradient-primary")}>
               {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              {isLoading ? "Configuring Chatbot..." : "Configure Chatbot & Generate Details"}
+              {isLoading ? "Creating Chatbot..." : "Create Chatbot & Generate Details"}
             </Button>
           </CardFooter>
         </form>
@@ -134,19 +134,17 @@ export default function CreateAgentPage() {
               <p className="text-sm p-2 bg-muted rounded-md mt-1">{generatedAgentDetails.agentName}</p>
             </div>
             <div>
-              <Label className="text-xs font-semibold">Suggested Persona</Label>
+              <Label className="text-xs font-semibold">Suggested Persona (How it talks)</Label>
               <p className="text-sm p-2 bg-muted rounded-md whitespace-pre-wrap mt-1">{generatedAgentDetails.agentPersona}</p>
             </div>
             <div>
-              <Label className="text-xs font-semibold">Sample Greeting</Label>
+              <Label className="text-xs font-semibold">Sample Greeting (How it starts a chat)</Label>
               <p className="text-sm p-2 bg-muted rounded-md mt-1">{generatedAgentDetails.agentGreeting}</p>
             </div>
-            <p className="text-xs text-muted-foreground italic">You can further refine these details in the 'Personality' section after creation.</p>
+            <p className="text-xs text-muted-foreground italic">You can further refine these details in the 'Personality' section for this chatbot.</p>
           </CardContent>
         </Card>
       )}
     </div>
   );
 }
-
-    
