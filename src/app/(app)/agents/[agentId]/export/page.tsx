@@ -230,7 +230,7 @@ export default function ExportAgentPage() {
               <Code className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary" /> Embeddable Chat Launcher
             </Label>
             <Alert variant="default" className="mb-2 p-3 sm:p-4">
-                <Info className="h-4 w-4" />
+                <Info className="h-4 w-4 text-primary" />
                 <AlertTitle className="text-sm sm:text-base">How to Use</AlertTitle>
                 <AlertDescription className="text-xs">
                   Paste this script before &lt;/body&gt; on any HTML page for a chat launcher button.
@@ -243,10 +243,10 @@ export default function ExportAgentPage() {
               </Button>
             </div>
             <p className="text-xs text-muted-foreground mt-1">Creates a floating button that opens the chat in a popup.</p>
-            <Alert variant="default" className="mt-2 p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700">
-                <MessageSquare className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                <AlertTitle className="text-blue-700 dark:text-blue-300 text-sm sm:text-base">CSP for Embedding</AlertTitle>
-                <AlertDescription className="text-blue-600 dark:text-blue-400 text-xs">
+            <Alert variant="default" className="mt-2 p-3 sm:p-4 bg-accent/10 dark:bg-accent/20 border-accent/30">
+                <MessageSquare className="h-4 w-4 text-accent" />
+                <AlertTitle className="text-accent text-sm sm:text-base">CSP for Embedding</AlertTitle>
+                <AlertDescription className="text-accent/80 dark:text-accent/90 text-xs">
                 Your app allows chat pages (e.g., <code>{chatbotLink ? chatbotLink.substring(0,30)+'...' : ''}</code>) to be embedded in iframes from any origin.
                 </AlertDescription>
             </Alert>
@@ -256,10 +256,10 @@ export default function ExportAgentPage() {
             <Label htmlFor="apiEndpoint" className="flex items-center text-sm sm:text-base font-semibold">
               <Server className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary" /> API Endpoint (POST)
             </Label>
-             <Alert variant="default" className="p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700">
-                <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                <AlertTitle className="text-blue-700 dark:text-blue-300 text-sm sm:text-base">API Capabilities</AlertTitle>
-                <AlertDescription className="text-blue-600 dark:text-blue-400 text-xs">
+             <Alert variant="default" className="p-3 sm:p-4 bg-accent/10 dark:bg-accent/20 border-accent/30">
+                <Info className="h-4 w-4 text-accent" />
+                <AlertTitle className="text-accent text-sm sm:text-base">API Capabilities</AlertTitle>
+                <AlertDescription className="text-accent/80 dark:text-accent/90 text-xs">
                   Interacts with agent flows or provides autonomous responses. Includes input validation and standardized JSON errors.
                   <ul className="list-disc list-inside pl-3 mt-1 text-[11px] sm:text-xs">
                     <li><strong>message (string, required):</strong> User's input.</li>
@@ -347,7 +347,7 @@ export default function ExportAgentPage() {
                 </div>
             </div>
              <Alert variant="default" className="mt-3 sm:mt-4 p-3 sm:p-4">
-                 <ShieldCheck className="h-4 w-4" />
+                 <ShieldCheck className="h-4 w-4 text-primary" />
                  <AlertTitle className="text-sm sm:text-base">API Production Considerations</AlertTitle>
                  <AlertDescription className="text-xs">
                      For production, consider: versioning, robust auth, rate limiting, logging & monitoring.

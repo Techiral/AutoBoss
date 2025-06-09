@@ -1147,7 +1147,7 @@ export default function AgentStudioPage() {
                   <AccordionItem value="docs">
                      <AccordionTrigger className="text-sm sm:text-base hover:no-underline py-2 sm:py-3">
                         <Tooltip>
-                            <TooltipTrigger asChild><Info className="mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-500"/></TooltipTrigger>
+                            <TooltipTrigger asChild><Info className="mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary"/></TooltipTrigger>
                             <TooltipContent side="top" className="z-[60] max-w-xs"><p>Documentation for the <strong>{selectedNodeDefinition.label}</strong> node type.</p></TooltipContent>
                         </Tooltip>
                        Node Guide: {selectedNodeDefinition.label}
@@ -1172,7 +1172,7 @@ export default function AgentStudioPage() {
                   <AccordionItem value="wiring-practices">
                      <AccordionTrigger className="text-sm sm:text-base hover:no-underline py-2 sm:py-3">
                        <Tooltip>
-                        <TooltipTrigger asChild><Sigma className="mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-500"/></TooltipTrigger>
+                        <TooltipTrigger asChild><Sigma className="mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary"/></TooltipTrigger>
                         <TooltipContent side="top" className="z-[60]"><p>General Wiring Guide</p></TooltipContent>
                       </Tooltip>
                       {WIRING_BEST_PRACTICES_DOCS.title}
