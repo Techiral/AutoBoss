@@ -129,6 +129,7 @@ export async function POST(
            return NextResponse.json({
              type: 'flow',
              messages: flowResult.messagesToSend,
+             debugLog: flowResult.debugLog,
              newFlowState: flowResult.nextNodeId ? { context: finalContext, nextNodeId: flowResult.nextNodeId } : undefined,
              isFlowFinished: flowResult.isFlowFinished,
              error: flowResult.error 
@@ -138,6 +139,7 @@ export async function POST(
         return NextResponse.json({ 
           type: 'flow',
           messages: flowResult.messagesToSend,
+          debugLog: flowResult.debugLog,
           newFlowState: flowResult.nextNodeId ? { context: finalContext, nextNodeId: flowResult.nextNodeId } : undefined,
           isFlowFinished: flowResult.isFlowFinished,
         }, { status: 200 });
