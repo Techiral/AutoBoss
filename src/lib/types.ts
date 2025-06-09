@@ -137,13 +137,13 @@ export type FlowContext = z.infer<typeof FlowContextSchema>;
 
 // Agent interface now includes userId and agentType
 export type AgentType = 'chat' | 'voice' | 'hybrid';
-export type AgentLogicType = 'flow' | 'autonomous' | 'hybrid'; // New type for brain logic
+export type AgentLogicType = 'flow' | 'prompt' | 'rag' | 'hybrid'; // Updated logic types
 
 export interface Agent {
   id: string;
   userId: string;
   agentType: AgentType;
-  primaryLogic?: AgentLogicType; // Added primary brain logic
+  primaryLogic?: AgentLogicType; // Using updated logic types
   name: string;
   description: string;
   role?: string;
@@ -168,5 +168,3 @@ export interface ChatMessage {
   flowContext?: FlowContext;
   relevantKnowledgeIds?: string[];
 }
-
-    

@@ -15,7 +15,7 @@ import { createAgent, CreateAgentOutput } from "@/ai/flows/agent-creation";
 import { useRouter } from "next/navigation";
 import { useAppContext } from "../../layout"; 
 import type { Agent, AgentType, AgentLogicType } from "@/lib/types"; 
-import { Loader2, Bot, MessageSquare, Phone, Brain } from "lucide-react";
+import { Loader2, Bot, MessageSquare, Phone, Brain, DatabaseZap, Workflow } from "lucide-react"; // Added DatabaseZap, Workflow
 import { useAuth } from "@/contexts/AuthContext"; 
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -23,7 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 const formSchema = z.object({
   agentType: z.enum(["chat", "voice", "hybrid"], { required_error: "Please select an agent type."}),
-  primaryLogic: z.enum(["flow", "autonomous", "hybrid"], { required_error: "Please select the agent's primary brain logic."}), // Added primaryLogic
+  primaryLogic: z.enum(["flow", "prompt", "rag", "hybrid"], { required_error: "Please select the agent's primary brain logic."}), // Updated logic types
   name: z.string().min(3, "Chatbot name must be at least 3 characters").max(100, "Name too long"),
   role: z.string().min(10, "Role description must be at least 10 characters").max(500, "Role too long"),
   personality: z.string().min(10, "Personality description must be at least 10 characters").max(500, "Personality too long"),
@@ -46,6 +46,17 @@ export default function CreateAgentPage() {
       primaryLogic: "hybrid", // Default to hybrid
     }
   });
+  
+  const getLogicTypeLabel = (logicType?: AgentLogicType): string => {
+    if (!logicType) return "Not Set";
+    switch (logicType) {
+        case 'flow': return "Flow-based";
+        case 'prompt': return "Direct AI Prompt";
+        case 'rag': return "Knowledge Q&A (RAG)";
+        case 'hybrid': return "Hybrid (Flow then RAG/Prompt)";
+        default: return "Custom";
+    }
+  };
 
   const onSubmit: SubmitHandler<FormData> = async (data) => {
     if (!currentUser) {
@@ -56,15 +67,16 @@ export default function CreateAgentPage() {
     setIsLoading(true);
     setGeneratedAgentDetails(null);
     try {
-      const agentDescription = `Type of Agent: ${data.agentType}. Primary Logic: ${data.primaryLogic}.\nBusiness Purpose: ${data.name}\nIntended Role for the Business: ${data.role}\nDesired Personality & Tone: ${data.personality}`;
+      const logicTypeLabel = getLogicTypeLabel(data.primaryLogic as AgentLogicType);
+      const agentDescription = `Type: ${data.agentType}. Primary Logic: ${logicTypeLabel}.\nBusiness Purpose: ${data.name}\nIntended Role for the Business: ${data.role}\nDesired Personality & Tone: ${data.personality}`;
       const aiResult = await createAgent({ agentDescription, agentType: data.agentType });
       setGeneratedAgentDetails(aiResult);
       
       const agentDataForContext: Omit<Agent, 'id' | 'createdAt' | 'knowledgeItems' | 'flow' | 'userId'> = {
         agentType: data.agentType as AgentType,
-        primaryLogic: data.primaryLogic as AgentLogicType, // Save primaryLogic
+        primaryLogic: data.primaryLogic as AgentLogicType, 
         name: data.name, 
-        description: `Type: ${data.agentType}. Logic: ${data.primaryLogic}. Role: ${data.role}. Personality: ${data.personality}.`, 
+        description: `Type: ${data.agentType}. Logic: ${logicTypeLabel}. Role: ${data.role}. Personality: ${data.personality}.`, 
         role: data.role,
         personality: data.personality,
         generatedName: aiResult.agentName,
@@ -77,13 +89,15 @@ export default function CreateAgentPage() {
       if (newAgent) {
         toast({
           title: "Agent Base Created!",
-          description: `Agent "${aiResult.agentName}" (Type: ${data.agentType}, Logic: ${data.primaryLogic}) is ready. Next, train it or design its flow. Redirecting...`,
+          description: `Agent "${aiResult.agentName}" (Type: ${data.agentType}, Logic: ${logicTypeLabel}) is ready. Next, customize it further. Redirecting...`,
         });
-        // Redirect based on primary logic - e.g., to studio if 'flow', to knowledge if 'autonomous'
-        if (data.primaryLogic === 'flow' || data.primaryLogic === 'hybrid') {
+        
+        if (data.primaryLogic === 'flow') {
             router.push(`/agents/${newAgent.id}/studio`);
-        } else { // 'autonomous'
-            router.push(`/agents/${newAgent.id}/knowledge`);
+        } else if (data.primaryLogic === 'rag' || data.primaryLogic === 'prompt') {
+             router.push(`/agents/${newAgent.id}/knowledge`);
+        } else { // hybrid or default
+            router.push(`/agents/${newAgent.id}/studio`); // Hybrid starts with flow
         }
       }
     } catch (error: any) {
@@ -143,9 +157,10 @@ export default function CreateAgentPage() {
                         <SelectValue placeholder="Select brain logic" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="flow"><div className="flex items-center gap-2"><Brain className="w-4 h-4"/>Visual Flow Builder</div></SelectItem>
-                        <SelectItem value="autonomous"><div className="flex items-center gap-2"><Bot className="w-4 h-4"/>Autonomous AI (Knowledge-based)</div></SelectItem>
-                        <SelectItem value="hybrid"><div className="flex items-center gap-2"><MessageSquare className="w-4 h-4"/><Phone className="w-3 h-3 -ml-1"/>Hybrid (Flow then Autonomous)</div></SelectItem>
+                        <SelectItem value="flow"><div className="flex items-center gap-2"><Workflow className="w-4 h-4"/>Visual Flow Builder</div></SelectItem>
+                        <SelectItem value="prompt"><div className="flex items-center gap-2"><Brain className="w-4 h-4"/>Direct AI Prompt</div></SelectItem>
+                        <SelectItem value="rag"><div className="flex items-center gap-2"><DatabaseZap className="w-4 h-4"/>Knowledge Q&A (RAG)</div></SelectItem>
+                        <SelectItem value="hybrid"><div className="flex items-center gap-2"><MessageSquare className="w-3 h-3"/><Workflow className="w-3 h-3 -ml-1"/>Hybrid (Flow then RAG/Prompt)</div></SelectItem>
                       </SelectContent>
                     </Select>
                   )}
@@ -204,5 +219,3 @@ export default function CreateAgentPage() {
     </div>
   );
 }
-
-    

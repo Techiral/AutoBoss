@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bot, ArrowRight, Trash2, MessageSquare, Phone, Info, Brain } from "lucide-react"; 
+import { Bot, ArrowRight, Trash2, MessageSquare, Phone, Info, Brain, Workflow, DatabaseZap } from "lucide-react"; 
 import type { Agent, AgentLogicType } from "@/lib/types";
 import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -28,14 +28,20 @@ function getAgentTypeIcon(agentType?: Agent['agentType']) {
   }
 }
 
-function getLogicTypeDisplay(logicType?: AgentLogicType) {
-  if (!logicType) return null;
-  const display: Record<AgentLogicType, string> = {
-    flow: "Flow",
-    autonomous: "AI Core",
-    hybrid: "Hybrid",
-  };
-  return display[logicType] || "Custom";
+function getLogicTypeDisplayInfo(logicType?: AgentLogicType): { label: string | null; icon: React.ReactNode | null } {
+  if (!logicType) return { label: null, icon: null };
+  switch (logicType) {
+    case 'flow':
+      return { label: "Flow", icon: <Workflow className="w-3 h-3 mr-1" /> };
+    case 'prompt':
+      return { label: "AI Prompt", icon: <Brain className="w-3 h-3 mr-1" /> };
+    case 'rag':
+      return { label: "RAG Q&A", icon: <DatabaseZap className="w-3 h-3 mr-1" /> };
+    case 'hybrid':
+      return { label: "Hybrid", icon: <Bot className="w-3 h-3 mr-1" /> }; // Could also be a combination icon
+    default:
+      return { label: "Custom", icon: <Info className="w-3 h-3 mr-1" /> };
+  }
 }
 
 export function AgentCard({ agent, onDelete }: AgentCardProps) {
@@ -48,7 +54,7 @@ export function AgentCard({ agent, onDelete }: AgentCardProps) {
     }
   }, [agent.createdAt]);
 
-  const logicTypeDisplay = getLogicTypeDisplay(agent.primaryLogic);
+  const { label: logicTypeLabel, icon: logicTypeIcon } = getLogicTypeDisplayInfo(agent.primaryLogic);
 
   return (
     <Card className="flex flex-col h-full">
@@ -65,9 +71,9 @@ export function AgentCard({ agent, onDelete }: AgentCardProps) {
                 <span className="ml-1">{agent.agentType}</span>
               </Badge>
             )}
-            {logicTypeDisplay && (
+            {logicTypeLabel && (
               <Badge variant="secondary" className="text-xs capitalize h-fit px-1.5 py-0.5 sm:px-2">
-                <Brain className="w-3 h-3 mr-1" /> {logicTypeDisplay}
+                {logicTypeIcon} {logicTypeLabel}
               </Badge>
             )}
           </div>
@@ -88,13 +94,11 @@ export function AgentCard({ agent, onDelete }: AgentCardProps) {
           <Trash2 className="w-3.5 h-3.5 mr-1 sm:mr-1.5" /> Delete
         </Button>
         <Button asChild size="sm" className={cn("text-xs px-2 py-1 h-auto", "btn-gradient-primary")}>
-          <Link href={`/agents/${agent.id}/studio`}>
-            Open Studio <ArrowRight className="ml-1 sm:ml-1.5 w-3.5 h-3.5" />
+          <Link href={`/agents/${agent.id}/${agent.primaryLogic === 'flow' || agent.primaryLogic === 'hybrid' ? 'studio' : 'knowledge'}`}>
+            {agent.primaryLogic === 'flow' || agent.primaryLogic === 'hybrid' ? 'Open Studio' : 'Manage Knowledge'} <ArrowRight className="ml-1 sm:ml-1.5 w-3.5 h-3.5" />
           </Link>
         </Button>
       </CardFooter>
     </Card>
   );
 }
-
-    
