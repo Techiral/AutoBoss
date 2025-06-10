@@ -10,12 +10,13 @@ import { Send, Bot, User, Loader2, Info, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ChatMessage as ChatMessageType, Agent } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+// Accordion imports are no longer needed here if we remove the AI details display
+// import {
+//   Accordion,
+//   AccordionContent,
+//   AccordionItem,
+//   AccordionTrigger,
+// } from "@/components/ui/accordion";
 import type { useAppContext as UseAppContextType } from "@/app/(app)/layout";
 import { Badge } from "@/components/ui/badge";
 
@@ -177,8 +178,8 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
           sender: 'agent',
           text: agentResponseText,
           timestamp: Date.now(),
-          reasoning: data.reasoning,
-          relevantKnowledgeIds: data.relevantKnowledgeIds,
+          reasoning: data.reasoning, // Data still received
+          relevantKnowledgeIds: data.relevantKnowledgeIds, // Data still received
         };
         
         setMessages((prev) => [...prev, agentResponse as ExtendedChatMessage]);
@@ -313,29 +314,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
                 )}
               >
                 <p className="whitespace-pre-wrap text-xs sm:text-sm">{message.text}</p>
-                {(message.reasoning || (message.relevantKnowledgeIds && message.relevantKnowledgeIds.length > 0)) && (
-                  <Accordion type="single" collapsible className="mt-1.5 sm:mt-2 text-xs w-full">
-                    <AccordionItem value="item-1" className="border-b-0">
-                      <AccordionTrigger className="py-1 hover:no-underline text-muted-foreground text-[10px] sm:text-xs [&[data-state=open]>svg]:text-foreground">
-                        <Info size={10} className="mr-1 sm:size-12" /> AI Details
-                      </AccordionTrigger>
-                      <AccordionContent className="pt-1 pb-0 space-y-1 bg-background/30 p-1.5 sm:p-2 rounded max-h-48 sm:max-h-60 overflow-y-auto">
-                        {message.reasoning && <p className="text-[10px] sm:text-xs"><strong>AI Reasoning:</strong> {message.reasoning}</p>}
-                        {message.relevantKnowledgeIds && message.relevantKnowledgeIds.length > 0 && (
-                          <div>
-                            <strong className="text-[10px] sm:text-xs">Used Knowledge:</strong>
-                            <div className="flex flex-wrap gap-1 mt-0.5">
-                              {message.relevantKnowledgeIds.map(id => {
-                                const item = agentRef.current.knowledgeItems?.find(k => k.id === id);
-                                return <Badge key={id} variant="secondary" className="text-[9px] sm:text-xs px-1.5 py-0.5">{item?.fileName || id}</Badge>;
-                              })}
-                            </div>
-                          </div>
-                        )}
-                      </AccordionContent>
-                    </AccordionItem>
-                  </Accordion>
-                )}
+                {/* AI Details Accordion Removed */}
               </div>
               {message.sender === "user" && (
                 <Avatar className="h-7 w-7 sm:h-8 sm:w-8">
@@ -389,4 +368,6 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
   );
 });
 ChatInterface.displayName = "ChatInterface";
+    
+
     
