@@ -19,47 +19,52 @@ import { Logo } from "@/components/logo";
 import { cn } from "@/lib/utils";
 import mammoth from 'mammoth';
 import * as pdfjsLib from 'pdfjs-dist';
+import Papa from 'papaparse';
 
-// Set workerSrc for pdfjs-dist. This is crucial for browser environments.
-// Use a specific version from a CDN to match the installed pdfjs-dist version.
-// Ensure the version in the URL matches the installed version of pdfjs-dist.
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
+// PapaParse CSV to descriptive text
+function csvToStructuredText(csvString: string, fileName: string): string {
+  const parseResult = Papa.parse<Record<string, string>>(csvString, {
+    header: true,
+    skipEmptyLines: true,
+  });
 
-// Improved CSV to Text Converter
-function csvToText(csvString: string, fileName: string): string {
-  const lines = csvString.trim().split('\n');
-  if (lines.length === 0) return `Empty CSV file: ${fileName}.`;
-
-  const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, '')); // Remove quotes from headers
-  const records = lines.slice(1);
-  
-  let textRepresentation = `Content of CSV file "${fileName}":\n\n`;
-  if (records.length === 0) {
-    textRepresentation += "The CSV file contains headers but no data records.\nHeaders: " + headers.join(', ') + ".";
-    return textRepresentation;
+  if (parseResult.errors.length > 0) {
+    console.warn(`CSV parsing errors for ${fileName}:`, parseResult.errors);
+    // Fallback or throw error
+    return `Could not fully parse CSV: ${fileName}. Errors: ${parseResult.errors.map(e => e.message).join(', ')}`;
   }
 
-  records.forEach((recordLine, index) => {
-    const values = recordLine.split(',').map(v => v.trim().replace(/"/g, '')); // Remove quotes from values
+  if (!parseResult.data || parseResult.data.length === 0) {
+    return `Empty CSV file (or only headers found): ${fileName}.`;
+  }
+
+  let textRepresentation = `Content of CSV file "${fileName}":\n\n`;
+  
+  parseResult.data.forEach((row, index) => {
+    const headers = Object.keys(row);
+    const firstHeader = headers[0];
+    const firstValue = row[firstHeader];
     
-    let entryDescription = `Entry ${index + 1}: `;
-    if (values.length > 0 && values[0]) {
-      // Attempt to create a more descriptive entry point, e.g. "Details for [First Column Value]:"
-      entryDescription = `Details for ${headers[0] || 'entry'} "${values[0]}":\n`;
-    } else {
-      entryDescription = `Row ${index + 1} data:\n`;
+    let entryPreamble = `Entry ${index + 1}`;
+    if (firstHeader && firstValue) {
+      entryPreamble = `Details for ${firstHeader} "${firstValue}" (Entry ${index + 1})`;
+    } else if (firstHeader) {
+      entryPreamble = `Entry ${index + 1} (first header: ${firstHeader})`;
     }
 
-    let rowDetails = [];
-    headers.forEach((header, i) => {
-      const value = values[i] || 'N/A';
-      rowDetails.push(`The ${header} is "${value}".`);
+    textRepresentation += `${entryPreamble}:\n`;
+    
+    const rowDetails = headers.map(header => {
+      const value = row[header] || 'N/A';
+      return `  - The ${header.trim()} is "${value.trim()}".`;
     });
-    entryDescription += rowDetails.join(' ');
-    textRepresentation += entryDescription + "\n\n"; // Add extra newline for better separation
+    
+    textRepresentation += rowDetails.join("\n") + "\n\n";
   });
-  return textRepresentation;
+
+  return textRepresentation.trim();
 }
 
 
@@ -147,11 +152,11 @@ export default function KnowledgePage() {
           const page = await pdfDoc.getPage(i);
           const textContentItems = await page.getTextContent();
           textContentItems.items.forEach(item => {
-            if ('str' in item) { // Type guard for TextItem
+            if ('str' in item) { 
               textContent += item.str + " ";
             }
           });
-          textContent += "\n"; // Add newline between pages
+          textContent += "\n"; 
         }
         if (!textContent.trim()) throw new Error("No text content found in PDF.");
         documentDataUri = `data:text/plain;charset=utf-8;base64,${Buffer.from(textContent).toString('base64')}`;
@@ -164,7 +169,7 @@ export default function KnowledgePage() {
         effectiveMimeType = 'text/plain';
       } else if (fileNameLower.endsWith('.csv')) {
         const csvTextContent = await selectedFile.text();
-        const plainTextFromCsv = csvToText(csvTextContent, originalFileName);
+        const plainTextFromCsv = csvToStructuredText(csvTextContent, originalFileName);
         if (!plainTextFromCsv.trim()) throw new Error("Empty CSV or no content after conversion.");
         documentDataUri = `data:text/plain;charset=utf-8;base64,${Buffer.from(plainTextFromCsv).toString('base64')}`;
         effectiveMimeType = 'text/plain';
@@ -312,7 +317,7 @@ export default function KnowledgePage() {
                 <Info className="h-3.5 w-3.5 text-accent" />
                 <AlertTitle className="text-accent text-xs font-medium">Tip for File Uploads</AlertTitle>
                 <AlertDescription className="text-accent/80 dark:text-accent/90 text-[11px]">
-                  Supported formats: TXT, MD, PDF, DOCX, CSV, JSON, HTML. For best results with PDF/DOCX, ensure they contain selectable text. Complex layouts or scanned images may not parse well. CSVs are converted to textual descriptions.
+                  Supported formats: TXT, MD, PDF, DOCX, CSV, JSON, HTML. For best results with PDF/DOCX, ensure they contain selectable text. Complex layouts or scanned images may not parse well. CSVs are converted to textual descriptions using PapaParse.
                 </AlertDescription>
             </Alert>
 
@@ -405,7 +410,7 @@ export default function KnowledgePage() {
          <Card className="lg:col-span-2">
           <CardHeader className="p-4 sm:p-6">
             <CardTitle className={cn("font-headline text-lg sm:text-xl flex items-center gap-2", "text-gradient-dynamic")}>
-                 <Brain className="w-5 h-5 sm:w-6 sm:h-6 text-primary"/>Agent Knowledge Base is Empty
+                 <Brain className="w-5 h-5 sm:w-6 sm:w-6 text-primary"/>Agent Knowledge Base is Empty
             </CardTitle>
           </CardHeader>
            <CardContent className="flex flex-col items-center justify-center min-h-[200px] sm:min-h-[300px] p-4 sm:p-6">
