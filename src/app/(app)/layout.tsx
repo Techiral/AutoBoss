@@ -51,7 +51,7 @@ interface AppContextType {
   agents: Agent[];
   addClient: (clientData: Omit<Client, 'id' | 'createdAt' | 'userId'>) => Promise<Client | null>;
   getClientById: (id: string) => Client | undefined;
-  deleteClient: (clientId: string) => Promise<void>; // TODO: Consider if this should delete associated agents
+  deleteClient: (clientId: string) => Promise<void>;
   addAgent: (agentData: Omit<Agent, 'id' | 'createdAt' | 'knowledgeItems' | 'userId' | 'clientId' | 'clientName'>, clientId: string, clientName: string) => Promise<Agent | null>;
   updateAgent: (agent: Agent) => Promise<void>;
   getAgent: (id: string) => Agent | undefined;
@@ -189,15 +189,33 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
     try {
       const newClientId = doc(collection(db, CLIENTS_COLLECTION)).id;
-      const newClientWithUser: Client = {
-        ...clientData,
+      const newClientTimestamp = Timestamp.now();
+
+      // Prepare data for Firestore, omitting undefined fields
+      const dataToSave: {[key: string]: any} = {
+        userId: currentUser.uid,
+        name: clientData.name,
+        createdAt: newClientTimestamp,
+      };
+      if (clientData.website !== undefined) {
+        dataToSave.website = clientData.website; // Stores "" if website is ""
+      }
+      if (clientData.description !== undefined) {
+        dataToSave.description = clientData.description; // Stores "" if description is ""
+      }
+
+      await setDoc(doc(db, CLIENTS_COLLECTION, newClientId), dataToSave);
+      
+      // Prepare data for local state, ensuring conformity with Client type (e.g., empty strings for optional fields)
+      const clientForState: Client = {
         id: newClientId,
         userId: currentUser.uid,
-        createdAt: Timestamp.now() as any, // Firestore Timestamp
+        name: clientData.name,
+        website: clientData.website === undefined ? "" : clientData.website,
+        description: clientData.description === undefined ? "" : clientData.description,
+        createdAt: newClientTimestamp.toDate().toISOString(),
       };
-      const { id, ...dataToSave } = newClientWithUser;
-      await setDoc(doc(db, CLIENTS_COLLECTION, newClientId), dataToSave);
-      const clientForState = convertFirestoreTimestampToISO(newClientWithUser, ['createdAt']) as Client;
+
       setClients((prevClients) => [...prevClients, clientForState]);
       return clientForState;
     } catch (error) {
