@@ -23,7 +23,7 @@ export const KnowledgeItemSchema = z.object({
   id: z.string(),
   fileName: z.string(),
   uploadedAt: z.string().or(z.custom<Timestamp>()),
-  summary: z.string().optional(), // For CSVs, this will store the full structured text
+  summary: z.string().optional().describe("For CSVs, this will store the full structured text. For other docs, it's an AI-generated summary."),
   keywords: z.array(z.string()).optional(),
 });
 export type KnowledgeItem = z.infer<typeof KnowledgeItemSchema>;
@@ -58,6 +58,18 @@ export const ProcessedUrlOutputSchema = z.object({
 });
 export type ProcessedUrlOutput = z.infer<typeof ProcessedUrlOutputSchema>;
 
+// Client related types
+export const ClientSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  name: z.string().min(1, "Client name cannot be empty."),
+  website: z.string().url().optional().or(z.literal("")),
+  description: z.string().max(500, "Description too long").optional().or(z.literal("")),
+  createdAt: z.custom<Timestamp>(),
+});
+export type Client = z.infer<typeof ClientSchema>;
+
+
 // Agent related types
 export type AgentType = 'chat' | 'voice' | 'hybrid';
 export type AgentLogicType = 'prompt' | 'rag';
@@ -67,24 +79,28 @@ export type AgentToneType = z.infer<typeof AgentToneSchema>;
 export type AgentPurposeType = "support" | "sales" | "info" | "custom";
 
 
-export interface Agent {
-  id: string;
-  userId: string;
-  agentType: AgentType;
-  primaryLogic?: AgentLogicType;
-  direction?: AgentDirection;
-  agentTone?: AgentToneType;
-  name: string; // Client/Business Name or Agent Concept
-  description: string; // Auto-generated or user-refined based on inputs
-  role?: string; // Detailed role & objectives
-  personality?: string; // Personality & tone clues
-  agentPurpose?: AgentPurposeType; // User-selected primary purpose
-  generatedName?: string;
-  generatedPersona?: string;
-  generatedGreeting?: string;
-  createdAt: string | Timestamp;
-  knowledgeItems?: KnowledgeItem[];
-}
+export const AgentSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  clientId: z.string(),
+  clientName: z.string().optional(), // Denormalized for convenience
+  agentType: z.custom<AgentType>(),
+  primaryLogic: z.custom<AgentLogicType>().optional(),
+  direction: z.custom<AgentDirection>().optional(),
+  agentTone: AgentToneSchema.optional(),
+  name: z.string(), // Client/Business Name or Agent Concept from original form
+  description: z.string(), // Auto-generated or user-refined based on inputs
+  role: z.string().optional(), // Detailed role & objectives
+  personality: z.string().optional(), // Personality & tone clues
+  agentPurpose: z.custom<AgentPurposeType>().optional(), // User-selected primary purpose
+  generatedName: z.string().optional(),
+  generatedPersona: z.string().optional(),
+  generatedGreeting: z.string().optional(),
+  createdAt: z.custom<Timestamp>(), // Will be converted to string in app state
+  knowledgeItems: z.array(KnowledgeItemSchema).optional(),
+});
+export type Agent = z.infer<typeof AgentSchema>;
+
 
 export interface ChatMessage {
   id: string;

@@ -19,8 +19,8 @@ import {
   SidebarInset,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { Home, PlusCircle, Bot, Settings, BookOpen, MessageSquare, Share2, Cog, LifeBuoy, Loader2, LogIn, LayoutGrid } from 'lucide-react';
-import type { Agent, KnowledgeItem, AgentLogicType, AgentToneType } from '@/lib/types'; // Added AgentToneType
+import { Home, PlusCircle, Bot, Settings, BookOpen, MessageSquare, Share2, Cog, LifeBuoy, Loader2, LogIn, LayoutGrid, Briefcase } from 'lucide-react';
+import type { Agent, KnowledgeItem, AgentToneType, Client } from '@/lib/types';
 import { db } from '@/lib/firebase';
 import {
   collection,
@@ -41,12 +41,18 @@ import { cn } from "@/lib/utils";
 
 const LOCAL_STORAGE_THEME_KEY = 'autoBossTheme';
 const AGENTS_COLLECTION = 'agents';
+const CLIENTS_COLLECTION = 'clients';
+
 
 type Theme = 'dark' | 'light';
 
 interface AppContextType {
+  clients: Client[];
   agents: Agent[];
-  addAgent: (agentData: Omit<Agent, 'id' | 'createdAt' | 'knowledgeItems' | 'userId'>) => Promise<Agent | null>;
+  addClient: (clientData: Omit<Client, 'id' | 'createdAt' | 'userId'>) => Promise<Client | null>;
+  getClientById: (id: string) => Client | undefined;
+  deleteClient: (clientId: string) => Promise<void>; // TODO: Consider if this should delete associated agents
+  addAgent: (agentData: Omit<Agent, 'id' | 'createdAt' | 'knowledgeItems' | 'userId' | 'clientId' | 'clientName'>, clientId: string, clientName: string) => Promise<Agent | null>;
   updateAgent: (agent: Agent) => Promise<void>;
   getAgent: (id: string) => Agent | undefined;
   addKnowledgeItem: (agentId: string, item: KnowledgeItem) => Promise<void>;
@@ -55,6 +61,7 @@ interface AppContextType {
   toggleTheme: () => void;
   clearAllFirebaseData: () => Promise<void>;
   isLoadingAgents: boolean;
+  isLoadingClients: boolean;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -67,29 +74,32 @@ export function useAppContext() {
   return context;
 }
 
-const convertTimestampsToISO = (agent: any): Agent => {
-  const newAgent = { ...agent };
-  if (newAgent.createdAt && newAgent.createdAt.toDate) {
-    newAgent.createdAt = newAgent.createdAt.toDate().toISOString();
-  }
-  if (newAgent.knowledgeItems) {
-    newAgent.knowledgeItems = newAgent.knowledgeItems.map((item: any) => {
+const convertFirestoreTimestampToISO = (data: any, fields: string[]): any => {
+  const newData = { ...data };
+  fields.forEach(field => {
+    if (newData[field] && newData[field].toDate) {
+      newData[field] = newData[field].toDate().toISOString();
+    }
+  });
+  if (newData.knowledgeItems) {
+    newData.knowledgeItems = newData.knowledgeItems.map((item: any) => {
       if (item.uploadedAt && item.uploadedAt.toDate) {
         return { ...item, uploadedAt: item.uploadedAt.toDate().toISOString() };
       }
       return item;
     });
   }
-  // Removed flow property, so no conversion needed for it
-  return newAgent as Agent;
+  return newData;
 };
 
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
+  const [clients, setClients] = useState<Client[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
-  const [theme, setTheme] = useState<Theme>('dark'); 
+  const [theme, setTheme] = useState<Theme>('dark');
   const [isContextInitialized, setIsContextInitialized] = useState(false);
   const [isLoadingAgents, setIsLoadingAgents] = useState(true);
+  const [isLoadingClients, setIsLoadingClients] = useState(true);
   const { toast } = useToast();
   const { currentUser, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -115,9 +125,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [theme]);
 
   useEffect(() => {
-    if (authLoading) { 
-      setIsLoadingAgents(false); 
-      setIsContextInitialized(false); 
+    if (authLoading) {
+      setIsLoadingAgents(false);
+      setIsLoadingClients(false);
+      setIsContextInitialized(false);
       return;
     }
     if (!currentUser) {
@@ -125,65 +136,129 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         router.push('/login');
       } else {
         setIsLoadingAgents(false);
-        setIsContextInitialized(true); 
+        setIsLoadingClients(false);
+        setIsContextInitialized(true);
       }
     } else {
-      const fetchAgents = async () => {
+      const fetchData = async () => {
         if (!currentUser) return;
         setIsLoadingAgents(true);
+        setIsLoadingClients(true);
         try {
-          const q = query(collection(db, AGENTS_COLLECTION), where("userId", "==", currentUser.uid));
-          const querySnapshot = await getDocs(q);
+          // Fetch Clients
+          const clientQuery = query(collection(db, CLIENTS_COLLECTION), where("userId", "==", currentUser.uid));
+          const clientSnapshot = await getDocs(clientQuery);
+          const fetchedClients: Client[] = [];
+          clientSnapshot.forEach((doc) => {
+            fetchedClients.push(convertFirestoreTimestampToISO({ id: doc.id, ...doc.data() }, ['createdAt']) as Client);
+          });
+          setClients(fetchedClients);
+          setIsLoadingClients(false);
+
+          // Fetch Agents
+          const agentQuery = query(collection(db, AGENTS_COLLECTION), where("userId", "==", currentUser.uid));
+          const agentSnapshot = await getDocs(agentQuery);
           const fetchedAgents: Agent[] = [];
-          querySnapshot.forEach((doc) => {
+          agentSnapshot.forEach((doc) => {
             const agentData = { id: doc.id, ...doc.data() } as Agent;
-            // Ensure 'flow' property is not included if it exists in old data
             if ('flow' in agentData) {
               delete (agentData as any).flow;
             }
-            fetchedAgents.push(convertTimestampsToISO(agentData));
+            fetchedAgents.push(convertFirestoreTimestampToISO(agentData, ['createdAt']) as Agent);
           });
           setAgents(fetchedAgents);
-        } catch (error) {
-          console.error("Error fetching agents from Firestore:", error);
-          toast({ title: "Error Loading Agents", description: "Could not load agent data.", variant: "destructive" });
-        } finally {
           setIsLoadingAgents(false);
+
+        } catch (error) {
+          console.error("Error fetching data from Firestore:", error);
+          toast({ title: "Error Loading Data", description: "Could not load your workspace data.", variant: "destructive" });
+          setIsLoadingAgents(false);
+          setIsLoadingClients(false);
+        } finally {
           setIsContextInitialized(true);
         }
       };
-      fetchAgents();
+      fetchData();
     }
   }, [currentUser, authLoading, router, toast, pathname]);
 
+  const addClient = useCallback(async (clientData: Omit<Client, 'id' | 'createdAt' | 'userId'>): Promise<Client | null> => {
+    if (!currentUser) {
+      toast({ title: "Not Authenticated", description: "You must be logged in to add a client.", variant: "destructive" });
+      return null;
+    }
+    try {
+      const newClientId = doc(collection(db, CLIENTS_COLLECTION)).id;
+      const newClientWithUser: Client = {
+        ...clientData,
+        id: newClientId,
+        userId: currentUser.uid,
+        createdAt: Timestamp.now() as any, // Firestore Timestamp
+      };
+      const { id, ...dataToSave } = newClientWithUser;
+      await setDoc(doc(db, CLIENTS_COLLECTION, newClientId), dataToSave);
+      const clientForState = convertFirestoreTimestampToISO(newClientWithUser, ['createdAt']) as Client;
+      setClients((prevClients) => [...prevClients, clientForState]);
+      return clientForState;
+    } catch (error) {
+      console.error("Error adding client to Firestore:", error);
+      toast({ title: "Error Adding Client", description: "Could not save the new client.", variant: "destructive" });
+      return null;
+    }
+  }, [currentUser, toast]);
 
-  const addAgent = useCallback(async (agentData: Omit<Agent, 'id' | 'createdAt' | 'knowledgeItems' | 'userId'>): Promise<Agent | null> => {
+  const getClientById = useCallback((id: string) => {
+    return clients.find(client => client.id === id && client.userId === currentUser?.uid);
+  }, [clients, currentUser]);
+
+  const deleteClient = useCallback(async (clientId: string) => {
+    const client = clients.find(c => c.id === clientId);
+    if (!client || !currentUser || currentUser.uid !== client.userId) {
+      toast({ title: "Unauthorized or Client Not Found", description: "Cannot delete client.", variant: "destructive" });
+      return;
+    }
+    try {
+      await deleteDoc(doc(db, CLIENTS_COLLECTION, clientId));
+      setClients(prev => prev.filter(c => c.id !== clientId));
+      // Optionally, delete associated agents here or handle it via a separate mechanism/prompt
+      toast({ title: "Client Deleted", description: "The client has been successfully deleted." });
+    } catch (error) {
+      console.error("Error deleting client from Firestore:", error);
+      toast({ title: "Error Deleting Client", variant: "destructive" });
+    }
+  }, [clients, currentUser, toast]);
+
+
+  const addAgent = useCallback(async (
+    agentData: Omit<Agent, 'id' | 'createdAt' | 'knowledgeItems' | 'userId' | 'clientId' | 'clientName'>,
+    clientId: string,
+    clientName: string
+  ): Promise<Agent | null> => {
     if (!currentUser) {
       toast({ title: "Not Authenticated", description: "You must be logged in to create an agent.", variant: "destructive" });
       return null;
     }
     try {
       const newAgentId = doc(collection(db, AGENTS_COLLECTION)).id;
-      const newAgentWithUser: Agent = {
+      const newAgentWithDetails: Agent = {
         ...agentData,
         id: newAgentId,
         userId: currentUser.uid,
-        createdAt: Timestamp.now(), // Firestore Timestamp
+        clientId: clientId,
+        clientName: clientName,
+        createdAt: Timestamp.now() as any, // Firestore Timestamp
         knowledgeItems: [],
-        agentTone: agentData.agentTone || "neutral", // Default agentTone
-        // No flow property added
+        agentTone: agentData.agentTone || "neutral",
       };
 
-      const { id, ...dataToSave } = newAgentWithUser;
-      // Ensure createdAt is a Firestore Timestamp before saving
+      const { id, ...dataToSave } = newAgentWithDetails;
       const saveData = {
         ...dataToSave,
         createdAt: dataToSave.createdAt instanceof Timestamp ? dataToSave.createdAt : Timestamp.fromDate(new Date(dataToSave.createdAt as string))
       };
 
-      await setDoc(doc(db, AGENTS_COLLECTION, newAgentWithUser.id), saveData);
-
-      const agentForState = convertTimestampsToISO(newAgentWithUser);
+      await setDoc(doc(db, AGENTS_COLLECTION, newAgentId), saveData);
+      const agentForState = convertFirestoreTimestampToISO(newAgentWithDetails, ['createdAt']) as Agent;
       setAgents((prevAgents) => [...prevAgents, agentForState]);
       return agentForState;
     } catch (error) {
@@ -200,7 +275,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
     try {
       const agentRef = doc(db, AGENTS_COLLECTION, updatedAgent.id);
-      const { id, ...dataToUpdate } = updatedAgent; 
+      const { id, ...dataToUpdate } = updatedAgent;
 
       const finalDataToUpdate: any = { ...dataToUpdate };
       if (typeof finalDataToUpdate.createdAt === 'string') {
@@ -214,19 +289,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           return item;
         });
       }
-       // Ensure agentTone is saved, defaulting to "neutral" if undefined
       finalDataToUpdate.agentTone = finalDataToUpdate.agentTone || "neutral";
-
-      // Remove 'flow' property before saving if it somehow still exists on the object
-      if ('flow' in finalDataToUpdate) {
-        delete finalDataToUpdate.flow;
-      }
+      if ('flow' in finalDataToUpdate) delete finalDataToUpdate.flow;
 
       await setDoc(agentRef, finalDataToUpdate, { merge: true });
-
       setAgents((prevAgents) =>
         prevAgents.map((agent) =>
-          agent.id === updatedAgent.id ? convertTimestampsToISO(updatedAgent) : agent
+          agent.id === updatedAgent.id ? convertFirestoreTimestampToISO(updatedAgent, ['createdAt']) as Agent : agent
         )
       );
     } catch (error) {
@@ -251,21 +320,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
     try {
       const agentRef = doc(db, AGENTS_COLLECTION, agentId);
-
       const existingKnowledgeItemsFirestore = (agent.knowledgeItems || []).map(ki => ({
         ...ki,
         uploadedAt: typeof ki.uploadedAt === 'string' ? Timestamp.fromDate(new Date(ki.uploadedAt)) : ki.uploadedAt,
       }));
-
       const newKnowledgeItemFirestore = {
         ...item,
         uploadedAt: typeof item.uploadedAt === 'string' ? Timestamp.fromDate(new Date(item.uploadedAt)) : item.uploadedAt,
       };
-
       await updateDoc(agentRef, {
         knowledgeItems: [...existingKnowledgeItemsFirestore, newKnowledgeItemFirestore]
       });
-
       setAgents(prevAgents =>
         prevAgents.map(a => {
           if (a.id === agentId) {
@@ -288,8 +353,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         return;
     }
     try {
-      const agentRef = doc(db, AGENTS_COLLECTION, agentId);
-      await deleteDoc(agentRef);
+      await deleteDoc(doc(db, AGENTS_COLLECTION, agentId));
       setAgents(prevAgents => prevAgents.filter(prevAgent => prevAgent.id !== agentId));
       toast({ title: "Agent Deleted", description: "The agent has been successfully deleted." });
     } catch (error) {
@@ -312,31 +376,37 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       return;
     }
     setIsLoadingAgents(true);
+    setIsLoadingClients(true);
     try {
-      const q = query(collection(db, AGENTS_COLLECTION), where("userId", "==", currentUser.uid));
-      const querySnapshot = await getDocs(q);
       const batch = writeBatch(db);
-      querySnapshot.forEach((doc) => {
-        batch.delete(doc.ref);
-      });
+      const agentQuery = query(collection(db, AGENTS_COLLECTION), where("userId", "==", currentUser.uid));
+      const agentSnapshot = await getDocs(agentQuery);
+      agentSnapshot.forEach((doc) => batch.delete(doc.ref));
+
+      const clientQuery = query(collection(db, CLIENTS_COLLECTION), where("userId", "==", currentUser.uid));
+      const clientSnapshot = await getDocs(clientQuery);
+      clientSnapshot.forEach((doc) => batch.delete(doc.ref));
+      
       await batch.commit();
       setAgents([]);
-      toast({ title: "Your Data Cleared", description: "All your agent data has been removed from Firestore." });
+      setClients([]);
+      toast({ title: "Your Data Cleared", description: "All your client and agent data has been removed from Firestore." });
     } catch (error) {
       console.error("Error clearing Firestore data:", error);
-      toast({ title: "Error Clearing Data", description: "Could not clear your agent data.", variant: "destructive" });
+      toast({ title: "Error Clearing Data", description: "Could not clear your data.", variant: "destructive" });
     } finally {
       setIsLoadingAgents(false);
+      setIsLoadingClients(false);
     }
   }, [currentUser, toast]);
 
   const renderContent = () => {
-    if (!authLoading && isLoadingAgents && currentUser) {
+    if (authLoading || (isLoadingAgents && isLoadingClients && currentUser) ) {
       return (
         <div className="flex flex-col items-center justify-center flex-1 p-4">
           <Logo className="mb-4 h-8 sm:h-10" />
           <Loader2 className="h-8 w-8 sm:h-10 sm:h-10 animate-spin text-primary mb-3" />
-          <p className="text-sm text-muted-foreground">Loading your agents...</p>
+          <p className="text-sm text-muted-foreground">Loading your workspace...</p>
         </div>
       );
     }
@@ -361,7 +431,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <AppContext.Provider value={{
+        clients,
         agents,
+        addClient,
+        getClientById,
+        deleteClient,
         addAgent,
         updateAgent,
         getAgent,
@@ -370,7 +444,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         theme,
         toggleTheme,
         clearAllFirebaseData,
-        isLoadingAgents
+        isLoadingAgents,
+        isLoadingClients,
     }}>
       <SidebarProvider defaultOpen={true}>
         <AppSidebar />
@@ -411,10 +486,10 @@ function AppHeader() {
 
 function AppSidebar() {
   const pathname = usePathname();
-  const { state: sidebarState, isMobile, setOpenMobile } = useSidebar(); 
-  const collapsed = !isMobile && sidebarState === 'collapsed'; 
+  const { state: sidebarState, isMobile, setOpenMobile } = useSidebar();
+  const collapsed = !isMobile && sidebarState === 'collapsed';
   const { currentUser, loading: authLoading } = useAuth();
-  const { getAgent, isLoadingAgents: isAppContextLoading } = useAppContext(); 
+  const { getAgent, isLoadingAgents: isAppContextLoading, getClientById, isLoadingClients } = useAppContext();
 
   const handleMobileLinkClick = () => {
     if (isMobile) {
@@ -424,8 +499,13 @@ function AppSidebar() {
 
   const agentIdMatch = pathname.match(/^\/agents\/([a-zA-Z0-9_-]+)/);
   const currentAgentId = agentIdMatch ? agentIdMatch[1] : null;
-  
+  const clientIdMatch = pathname.match(/^\/clients\/([a-zA-Z0-9_-]+)/);
+  const currentClientId = clientIdMatch ? clientIdMatch[1] : null;
+
+
   const [currentAgent, setCurrentAgent] = useState<Agent | undefined>(undefined);
+  const [currentClient, setCurrentClient] = useState<Client | undefined>(undefined);
+
 
   useEffect(() => {
     if (currentAgentId && !isAppContextLoading) {
@@ -435,9 +515,16 @@ function AppSidebar() {
     }
   }, [currentAgentId, getAgent, isAppContextLoading]);
 
+  useEffect(() => {
+    if (currentClientId && !isLoadingClients) {
+      setCurrentClient(getClientById(currentClientId));
+    } else if (!currentClientId) {
+      setCurrentClient(undefined);
+    }
+  }, [currentClientId, getClientById, isLoadingClients]);
+
 
   let agentNavItems: { href: string; label: string; icon: React.ElementType }[] = [];
-
   if (currentAgentId && currentAgent) {
     agentNavItems = [
       { href: `/agents/${currentAgentId}/personality`, label: 'Personality', icon: Bot },
@@ -447,13 +534,11 @@ function AppSidebar() {
     ];
   }
 
-
-  if (!currentUser && !(pathname.startsWith('/chat/'))) { 
+  if (!currentUser && !(pathname.startsWith('/chat/'))) {
     return <Sidebar><SidebarHeader className="p-3 sm:p-4"><Link href="/" aria-label="AutoBoss Homepage" className="hover:opacity-80 transition-opacity"><Logo collapsed={collapsed} className="h-7 sm:h-8 px-1 sm:px-2 py-1"/></Link></SidebarHeader></Sidebar>;
   }
-  
-  const isAgentLoading = authLoading || (currentAgentId && isAppContextLoading);
 
+  const isDataLoading = authLoading || (currentAgentId && isAppContextLoading) || (currentClientId && isLoadingClients);
 
   return (
     <Sidebar>
@@ -466,9 +551,9 @@ function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <Link href="/dashboard" onClick={handleMobileLinkClick}>
-              <SidebarMenuButton isActive={pathname === '/dashboard'} tooltip={collapsed ? 'Dashboard' : undefined}>
+              <SidebarMenuButton isActive={pathname === '/dashboard'} tooltip={collapsed ? 'Client Dashboard' : undefined}>
                 <Home />
-                <span>Dashboard</span>
+                <span>Client Dashboard</span>
               </SidebarMenuButton>
             </Link>
           </SidebarMenuItem>
@@ -480,32 +565,54 @@ function AppSidebar() {
               </SidebarMenuButton>
             </Link>
           </SidebarMenuItem>
-          <SidebarMenuItem>
-            <Link href="/agents/create" onClick={handleMobileLinkClick}>
-              <SidebarMenuButton isActive={pathname === '/agents/create'} tooltip={collapsed ? 'Create Agent' : undefined}>
-                <PlusCircle />
-                <span>Create Agent</span>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
+          {/* Remove direct "Create Agent" link from main sidebar, it's now context-dependent */}
 
-          {isAgentLoading && currentAgentId && (
+          {isDataLoading && currentClientId && (
+            <>
+              <SidebarMenuItem className="mt-3 sm:mt-4 mb-1 px-2 sm:px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                <span className={collapsed ? 'hidden' : ''}>Client Menu</span>
+              </SidebarMenuItem>
+               <SidebarMenuItem className="px-2">
+                  <div className="h-8 w-full bg-muted/50 animate-pulse rounded-md my-0.5"></div>
+              </SidebarMenuItem>
+            </>
+          )}
+
+          {!isDataLoading && currentClient && (
+             <>
+              <SidebarMenuItem className="mt-3 sm:mt-4 mb-1 px-2 sm:px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                <span className={collapsed ? 'hidden' : ''}>{currentClient.name}</span>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <Link href={`/clients/${currentClient.id}/dashboard`} onClick={handleMobileLinkClick}>
+                  <SidebarMenuButton isActive={pathname === `/clients/${currentClient.id}/dashboard`} tooltip={collapsed ? 'Client Agents' : undefined}>
+                    <Briefcase />
+                    <span>Agents for Client</span>
+                  </SidebarMenuButton>
+                </Link>
+              </SidebarMenuItem>
+              {/* Future: Add client settings link here */}
+            </>
+          )}
+
+
+          {isDataLoading && currentAgentId && (
              <>
               <SidebarMenuItem className="mt-3 sm:mt-4 mb-1 px-2 sm:px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 <span className={collapsed ? 'hidden' : ''}>Agent Menu</span>
               </SidebarMenuItem>
               {[...Array(3)].map((_, i) => (
-                <SidebarMenuItem key={`skeleton-${i}`} className="px-2">
+                <SidebarMenuItem key={`skeleton-agent-${i}`} className="px-2">
                     <div className="h-8 w-full bg-muted/50 animate-pulse rounded-md my-0.5"></div>
                 </SidebarMenuItem>
               ))}
             </>
           )}
 
-          {!isAgentLoading && currentAgentId && agentNavItems.length > 0 && (
+          {!isDataLoading && currentAgentId && agentNavItems.length > 0 && (
             <>
               <SidebarMenuItem className="mt-3 sm:mt-4 mb-1 px-2 sm:px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                <span className={collapsed ? 'hidden' : ''}>Agent Menu</span>
+                <span className={collapsed ? 'hidden' : ''}>Configure Agent</span>
               </SidebarMenuItem>
               {agentNavItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
@@ -538,4 +645,3 @@ function AppSidebar() {
     </Sidebar>
   );
 }
-    

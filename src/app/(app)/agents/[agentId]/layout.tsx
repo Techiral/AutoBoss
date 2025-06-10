@@ -14,22 +14,28 @@ import { cn } from '@/lib/utils';
 export default function AgentDetailLayout({ children }: { children: React.ReactNode }) {
   const params = useParams();
   const router = useRouter();
-  const { getAgent, isLoadingAgents } = useAppContext(); // Added isLoadingAgents
-  const [agent, setAgent] = useState<Agent | null | undefined>(undefined); 
+  const { getAgent, isLoadingAgents, getClientById, isLoadingClients } = useAppContext();
+  const [agent, setAgent] = useState<Agent | null | undefined>(undefined);
+  const [clientName, setClientName] = useState<string | null>(null);
 
   const agentId = Array.isArray(params.agentId) ? params.agentId[0] : params.agentId;
 
   useEffect(() => {
-    if (!isLoadingAgents && agentId) { // Check isLoadingAgents before trying to getAgent
+    if (!isLoadingAgents && agentId) {
       const foundAgent = getAgent(agentId);
       setAgent(foundAgent);
+      if (foundAgent && foundAgent.clientId && !isLoadingClients) {
+        const client = getClientById(foundAgent.clientId);
+        setClientName(client?.name || null);
+      } else if (foundAgent && foundAgent.clientName) { // Fallback to denormalized name
+        setClientName(foundAgent.clientName);
+      }
     } else if (!isLoadingAgents && !agentId) {
-      setAgent(null); // No agentId, so set to null
+      setAgent(null);
     }
-    // If isLoadingAgents, agent remains undefined, handled by loader below
-  }, [agentId, getAgent, isLoadingAgents]); 
+  }, [agentId, getAgent, isLoadingAgents, getClientById, isLoadingClients]);
 
-  if (isLoadingAgents || agent === undefined) { // Combined loading states
+  if (isLoadingAgents || (agent === undefined && agentId) || (agent?.clientId && isLoadingClients && !clientName) ) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] p-4">
         <Logo className="mb-4 h-8 sm:h-10" />
@@ -39,7 +45,7 @@ export default function AgentDetailLayout({ children }: { children: React.ReactN
     );
   }
 
-  if (!agent) { // Agent not found after loading
+  if (!agent) {
     return (
        <Alert variant="destructive">
         <AlertTriangle className="h-4 w-4" />
@@ -54,7 +60,10 @@ export default function AgentDetailLayout({ children }: { children: React.ReactN
   return (
     <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className={cn("font-headline text-2xl sm:text-3xl font-bold break-words", "text-gradient-dynamic")}>{agent.generatedName || agent.name}</h1>
+        <h1 className={cn("font-headline text-2xl sm:text-3xl font-bold break-words", "text-gradient-dynamic")}>
+          {agent.generatedName || agent.name}
+          {clientName && <span className="text-muted-foreground text-lg sm:text-xl font-normal"> (for {clientName})</span>}
+        </h1>
         <p className="text-sm sm:text-base text-muted-foreground break-words">{agent.description}</p>
       </div>
       {children}
