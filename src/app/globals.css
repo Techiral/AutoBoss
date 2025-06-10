@@ -148,7 +148,7 @@
 @keyframes typing {
   from { width: 0ch; }
   /* "Build AI. Serve Clients. Earn." is 30 characters. */
-  to { width: 33ch; } 
+  to { width: 30ch; } /* Exact character match for width */
 }
 
 @keyframes blink-caret {
@@ -305,50 +305,53 @@ div[data-ai-hint] {
 .step-card-container > :nth-child(3) .dashed-connector::after { @apply content-none; }
 
 
-/* Roadmap List Item Styles */
-.roadmap-list-item {
-  @apply flex items-start gap-3 sm:gap-4 p-3 sm:p-4 hover:bg-muted/30 transition-colors duration-150;
-}
-.roadmap-list-item:not(:last-child) {
-  @apply border-b border-border/50;
+/* Roadmap List Item Styles - Product Hunt Inspired */
+.roadmap-item-card {
+  @apply bg-card border border-border rounded-lg p-3 sm:p-4 flex gap-3 sm:gap-4 items-start hover:shadow-md transition-shadow duration-200;
 }
 
-.roadmap-vote-button {
-  @apply flex flex-col items-center justify-center p-1.5 sm:p-2 border rounded-md hover:border-primary transition-colors min-w-[40px] sm:min-w-[50px] cursor-pointer shrink-0 mt-0.5;
+.roadmap-vote-button-ph { /* PH for Product Hunt style */
+  @apply flex flex-col items-center justify-center p-1.5 sm:p-2 border border-border rounded-md hover:border-primary transition-colors min-w-[45px] sm:min-w-[55px] cursor-pointer text-center bg-background hover:bg-muted/50;
 }
-.roadmap-vote-button.voted {
-    @apply border-primary bg-primary/10 text-primary cursor-not-allowed;
+.roadmap-vote-button-ph.voted {
+  @apply border-primary bg-primary/10 text-primary;
 }
-.roadmap-vote-button.voted svg {
-    @apply text-primary;
+.roadmap-vote-button-ph svg { /* ChevronUp or Loader */
+  @apply w-4 h-4 sm:w-5 sm:w-5 text-primary;
 }
-.roadmap-vote-button:not(.voted):hover svg {
-    @apply text-primary;
+.roadmap-vote-button-ph:not(.voted):hover svg {
+  @apply text-accent;
 }
-.roadmap-vote-button svg {
-  @apply w-4 h-4 sm:w-5 sm:w-5 text-muted-foreground transition-colors;
+.roadmap-vote-button-ph .vote-count-ph {
+  @apply text-xs sm:text-sm font-semibold text-foreground mt-0.5;
 }
-.roadmap-vote-button span {
-  @apply text-xs sm:text-sm font-semibold text-foreground;
-}
-.roadmap-vote-button.voted span {
+.roadmap-vote-button-ph.voted .vote-count-ph {
   @apply text-primary;
 }
 
-.roadmap-feature-content {
-  @apply flex-1 space-y-0.5;
+
+.roadmap-feature-main {
+  @apply flex-1 space-y-1;
 }
-.roadmap-feature-title {
-  @apply text-sm sm:text-base font-semibold text-foreground flex items-center gap-1.5 sm:gap-2;
+.roadmap-feature-header {
+  @apply flex items-center gap-2;
 }
-.roadmap-feature-title svg {
-  @apply w-4 h-4 sm:w-5 sm:w-5 text-primary shrink-0;
+.roadmap-feature-icon-ph { /* PH for Product Hunt style */
+  @apply p-1.5 bg-muted rounded-md text-primary;
 }
-.roadmap-feature-description {
-  @apply text-xs text-muted-foreground leading-relaxed;
+.roadmap-feature-icon-ph svg {
+  @apply w-4 h-4 sm:w-5 sm:w-5;
 }
-.roadmap-feature-tags {
-  @apply mt-1.5 sm:mt-2 flex flex-wrap items-center gap-1.5;
+.roadmap-feature-title-ph { /* PH for Product Hunt style */
+  @apply text-sm sm:text-base font-semibold text-foreground;
 }
+.roadmap-feature-description-ph {
+  @apply text-xs text-muted-foreground leading-relaxed mt-0.5;
+}
+.roadmap-feature-tags-ph {
+  @apply mt-2 flex flex-wrap items-center gap-1.5;
+}
+
+    
 
     

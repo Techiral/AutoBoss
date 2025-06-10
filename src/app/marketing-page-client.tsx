@@ -55,7 +55,7 @@ const SimpleBenefitCard: React.FC<SimpleBenefitCardProps> = ({ icon, title, desc
   );
 };
 
-const heroTypewriterText = "Build AI. Serve Clients. Earn.";
+const heroTypewriterText = "Build AI. Serve Clients. Earn."; // 30 chars
 
 export default function MarketingPageClient() {
   const typewriterRef = useRef<HTMLSpanElement>(null);
@@ -91,7 +91,7 @@ export default function MarketingPageClient() {
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
 
   const navLinks = [
-    { href: "#value", label: "How AutoBoss Helps" },
+    { href: "#value", label: "How It Helps" },
     { href: "#how-it-works", label: "How It Works" },
     { href: "/roadmap", label: "Roadmap" },
   ];
@@ -99,15 +99,15 @@ export default function MarketingPageClient() {
   const socialProofItems = [
     {
       type: "testimonial", image: "https://placehold.co/32x32/6366F1/FFFFFF.png?text=MK", alt: "Maria K.", name: "Maria K.",
-      quote: "I'm not a tech person, but AutoBoss made it straightforward to create an FAQ bot. My bakery client is really happy with it!", delay: "delay-100", aiHint: "woman diverse business"
+      quote: "I'm not techy, but AutoBoss made creating an FAQ bot easy. My bakery client loves it!", delay: "delay-100", aiHint: "woman diverse business"
     },
     {
-      type: "metric", metrics: [ { icon: <Zap className="w-5 h-5 sm:w-6 sm:h-6 mb-1 opacity-80"/>, value: "Build Without Code.", label: "Accessible AI Tools." }, { icon: <ClientIcon className="w-4 h-4 sm:w-5 sm:w-5 mt-2 mb-1 opacity-80"/>, value: "Client Solutions.", label: "Focus on Value." } ],
+      type: "metric", metrics: [ { icon: <Zap className="w-5 h-5 sm:w-6 sm:h-6 mb-1 opacity-80"/>, value: "No Code Needed.", label: "AI, Simplified." }, { icon: <ClientIcon className="w-4 h-4 sm:w-5 sm:w-5 mt-2 mb-1 opacity-80"/>, value: "Client Solutions.", label: "Real Business Value." } ],
       delay: "delay-200", aiHint: "dashboard ui modern"
     },
     {
       type: "testimonial", image: "https://placehold.co/32x32/10B981/FFFFFF.png?text=JP", alt: "James P.", name: "James P.",
-      quote: "I was looking for a way to offer AI services. AutoBoss helped me get started quickly and serve my first client.", delay: "delay-300", aiHint: "consultant portrait"
+      quote: "Needed a way to offer AI services. AutoBoss got me started with my first client fast.", delay: "delay-300", aiHint: "consultant portrait"
     }
   ];
 
@@ -129,7 +129,7 @@ export default function MarketingPageClient() {
             </Button>
             <Button size="sm" asChild className="btn-gradient-primary font-semibold shadow-md hover:opacity-90 transition-opacity btn-interactive text-xs">
               <Link href="/dashboard" className="flex items-center gap-1">
-                 Get Started (Free Access) <ArrowRight className="h-4 w-4"/>
+                 Start Building (Free Access) <ArrowRight className="h-4 w-4"/>
               </Link>
             </Button>
           </nav>
@@ -154,7 +154,7 @@ export default function MarketingPageClient() {
           <Link href="/login" className="block py-1.5 text-sm text-card-foreground hover:text-primary" onClick={toggleMobileMenu}>Login</Link>
           <Button asChild className="w-full btn-gradient-primary font-semibold shadow-md hover:opacity-90 transition-opacity btn-interactive text-sm mt-2">
             <Link href="/dashboard" onClick={toggleMobileMenu} className="flex items-center justify-center gap-1">
-              Get Started (Free Access)
+              Start Building (Free Access)
             </Link>
           </Button>
       </div>
@@ -174,12 +174,12 @@ export default function MarketingPageClient() {
               </h1>
               <span ref={typewriterRef} className="block mt-1 sm:mt-2 typewriter-text gradient-text-on-dark min-h-[1.2em] text-2xl sm:text-3xl md:text-4xl">{heroTypewriterText}</span>
               <p className="text-muted-foreground text-sm sm:text-base max-w-md mx-auto !mb-5 md:!mb-6">
-                Welcome to AutoBoss. We provide clear tools to help you build AI agents for businesses—even if you're new to AI. Let's help you get started with your AI agency.
+                AutoBoss gives you clear tools to build AI agents for businesses—no coding needed. Ready to start your AI agency?
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center items-center pt-1">
                 <Button size="lg" asChild className="btn-gradient-primary shadow-lg font-bold text-sm px-6 py-2.5 sm:py-3 hover:opacity-90 transition-all duration-300 hover:scale-105 group btn-interactive w-full sm:w-auto">
                   <Link href="/dashboard" className="flex items-center gap-1.5">
-                    Learn About the Platform (Free Access)
+                    Explore Platform (Free Access)
                     <Rocket className="h-4 w-4 sm:h-5 sm:h-5 group-hover:animate-bounce" />
                   </Link>
                 </Button>
@@ -197,12 +197,12 @@ export default function MarketingPageClient() {
             <div className="container mx-auto px-4 md:px-6 text-center max-w-screen-xl">
                 <h2 className="marketing-h2 text-card-foreground">Starting Your AI Agency: We Can Help.</h2>
                  <p className="section-description !mb-6 md:!mb-8">
-                  AutoBoss gives you straightforward tools to build valuable AI solutions for businesses.
+                  AutoBoss provides straightforward tools to build valuable AI solutions for businesses.
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-5 max-w-3xl mx-auto">
-                  <SimpleBenefitCard icon={<Zap className="w-5 h-5" />} title="No Coding Needed." description="You can build AI agents without writing any code. AutoBoss handles the technical parts." animationDelay="delay-100"/>
-                  <SimpleBenefitCard icon={<ClientIcon className="w-5 h-5" />} title="Client-Focused." description="Create AI solutions that businesses find genuinely useful and are happy to pay for." animationDelay="delay-200"/>
-                  <SimpleBenefitCard icon={<Rocket className="w-5 h-5" />} title="A Clearer Start." description="We provide a structured way to begin offering AI services to clients." animationDelay="delay-300"/>
+                  <SimpleBenefitCard icon={<Zap className="w-5 h-5" />} title="No Coding Needed." description="You don't need to be a programmer. AutoBoss handles the technical parts for building AI." animationDelay="delay-100"/>
+                  <SimpleBenefitCard icon={<ClientIcon className="w-5 h-5" />} title="Focus on Clients." description="Create AI solutions that businesses find genuinely useful and solve their actual problems." animationDelay="delay-200"/>
+                  <SimpleBenefitCard icon={<Rocket className="w-5 h-5" />} title="A Clearer Start." description="We provide a structured and understandable way to begin offering AI services to clients." animationDelay="delay-300"/>
                 </div>
             </div>
         </section>
@@ -211,28 +211,28 @@ export default function MarketingPageClient() {
           <div className="container mx-auto px-4 md:px-6 text-center max-w-screen-xl">
             <h2 className="marketing-h2">Inside AutoBoss: Tools for Your Agency.</h2>
             <p className="section-description">
-              Everything you need to manage client projects and build effective AI agents, all in one place.
+              Key features to help you manage client projects and build effective AI agents.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-5 max-w-4xl mx-auto text-left">
-              <SimpleBenefitCard icon={<Briefcase className="w-5 h-5"/>} title="Organized Client Areas" description="Keep each client's agents and information separate and easy to find." animationDelay="delay-100" />
-              <SimpleBenefitCard icon={<BotIcon className="w-5 h-5"/>} title="Flexible AI Creation" description="Build different types of AI – like support bots or information assistants – to match what each client needs." animationDelay="delay-200" />
-              <SimpleBenefitCard icon={<UploadCloud className="w-5 h-5"/>} title="Simple AI Training" description="Use your client's existing documents or website info to teach the AI about their specific business." animationDelay="delay-300" />
-              <SimpleBenefitCard icon={<Share2 className="w-5 h-5"/>} title="Easy Agent Deployment" description="Get the AI agents live for your clients without needing complex technical setups." animationDelay="delay-400" />
+              <SimpleBenefitCard icon={<Briefcase className="w-5 h-5"/>} title="Organized Client Workspaces." description="Keep each client's agents, data, and settings separate and easy to manage." animationDelay="delay-100" />
+              <SimpleBenefitCard icon={<BotIcon className="w-5 h-5"/>} title="Flexible AI Agent Creation." description="Build text chatbots or voice agents. Train them with specific knowledge or let them be more general." animationDelay="delay-200" />
+              <SimpleBenefitCard icon={<UploadCloud className="w-5 h-5"/>} title="Simple AI Training Process." description="Use your client's documents (PDFs, DOCX, CSVs) or website content to teach the AI." animationDelay="delay-300" />
+              <SimpleBenefitCard icon={<Share2 className="w-5 h-5"/>} title="Easy Agent Deployment." description="Get AI agents live for your clients using simple embed codes or direct links." animationDelay="delay-400" />
             </div>
           </div>
         </section>
 
         <section ref={howItWorksRef} id="how-it-works" className={cn("scroll-reveal section-light-accent w-full py-12 md:py-16 lg:py-20", howItWorksVisible && "visible")}>
           <div className="container mx-auto px-4 md:px-6 text-center max-w-screen-xl">
-            <h2 className="marketing-h2 text-card-foreground">Your Steps to Building Client AI.</h2>
+            <h2 className="marketing-h2 text-card-foreground">Your Path to Delivering AI Solutions.</h2>
             <p className="section-description">
-              Follow this process to create and provide AI solutions for your clients.
+              A straightforward process to create and provide AI solutions for your clients using AutoBoss.
             </p>
             <div className="relative mx-auto max-w-5xl grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-5 items-stretch step-card-container">
                 {[
-                    { number: "1", title: "Set Up Client's Space", description: "Create a dedicated area for each client project in AutoBoss.", icon: <Users2 className="w-5 h-5 text-electric-teal"/>, animationDelay:"delay-100", hint: "client setup icon" },
-                    { number: "2", title: "Design Their AI Agent", description: "Choose chat or voice. Define what it should do. AutoBoss guides you, no code needed.", icon: <Edit3 className="w-5 h-5 text-neon-lime"/>, animationDelay:"delay-150", hint: "ai agent building icon" },
-                    { number: "3", title: "Launch for Your Client", description: "Get the AI agent working for them. You manage the service and provide support.", icon: <CheckCircle className="w-5 h-5 text-primary"/>, animationDelay:"delay-200", hint: "launch success checkmark" },
+                    { number: "1", title: "Set Up Client Workspace", description: "Create a dedicated area in AutoBoss for each new client project. Keeps things organized.", icon: <Users2 className="w-5 h-5 text-electric-teal"/>, animationDelay:"delay-100", hint: "client setup icon" },
+                    { number: "2", title: "Design Their AI Agent", description: "Choose chat or voice. Define what the agent needs to do for the client. No coding involved.", icon: <Edit3 className="w-5 h-5 text-neon-lime"/>, animationDelay:"delay-150", hint: "ai agent building icon" },
+                    { number: "3", title: "Launch & Support Client", description: "Get the AI agent working. You provide the service and ongoing support for your client.", icon: <CheckCircle className="w-5 h-5 text-primary"/>, animationDelay:"delay-200", hint: "launch success checkmark" },
                 ].map((step, index, arr) => {
                   const [stepRef, stepIsVisible] = useIntersectionObserver({ threshold: 0.3 });
                   return (
@@ -252,8 +252,8 @@ export default function MarketingPageClient() {
 
         <section ref={videoDemoRef} id="video-demo-placeholder" className={cn("scroll-reveal section-dark w-full py-12 md:py-16 lg:py-20 text-center", videoDemoVisible && "visible")}>
           <div className="container mx-auto px-4 md:px-6 max-w-screen-xl">
-            <h2 className="marketing-h2">See AutoBoss in Use.</h2>
-            <p className="section-description mt-1 mb-6">A short video showing how an AI agent is built using AutoBoss.</p>
+            <h2 className="marketing-h2">See AutoBoss in Action.</h2>
+            <p className="section-description mt-1 mb-6">A quick look at how an AI agent is built using the AutoBoss platform.</p>
             <div className="max-w-2xl mx-auto aspect-video bg-muted/20 rounded-lg shadow-xl flex items-center justify-center text-muted-foreground border border-border/50 relative overflow-hidden cursor-pointer group" data-ai-hint="clean video player interface dark theme">
                 <Image src="https://placehold.co/1280x720/0A0D13/0A0D13.png" alt="AutoBoss Platform Demo Video Thumbnail" layout="fill" objectFit="cover" className="opacity-20 group-hover:opacity-10 transition-opacity" data-ai-hint="dark theme agency software thumbnail" loading="lazy"/>
                 <div className="video-placeholder-text z-10">
@@ -266,8 +266,8 @@ export default function MarketingPageClient() {
 
         <section ref={socialProofRef} id="proof" className={cn("scroll-reveal section-light-accent w-full py-12 md:py-16 lg:py-20", socialProofVisible && "visible")}>
             <div className="container mx-auto px-4 md:px-6 text-center max-w-screen-xl">
-                <h2 className="marketing-h2 text-card-foreground">Hear From Our Early Users:</h2>
-                 <p className="section-description">People are using AutoBoss to build AI solutions for their clients.</p>
+                <h2 className="marketing-h2 text-card-foreground">From Our Early Community:</h2>
+                 <p className="section-description">Users are finding AutoBoss helpful for their AI agency goals.</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 max-w-5xl mx-auto text-left">
                     {socialProofItems.map((item, index) => {
                       const [cardRef, cardIsVisible] = useIntersectionObserver({ threshold: 0.2 });
@@ -307,19 +307,19 @@ export default function MarketingPageClient() {
             </div>
         </section>
 
-        <section ref={earlyAccessRef} id="early-access" className={cn("scroll-reveal section-dark w-full py-12 md:py-16 lg:py-20", earlyAccessRef && "visible")}>
+        <section ref={earlyAccessRef} id="early-access" className={cn("scroll-reveal section-dark w-full py-12 md:py-16 lg:py-20", earlyAccessVisible && "visible")}>
           <div className="container mx-auto px-4 md:px-6 text-center max-w-screen-xl">
-            <h2 className="marketing-h2">Join Our Free Early Adopter Program.</h2>
+            <h2 className="marketing-h2">Our Early Adopter Program.</h2>
             <div className="max-w-xl mx-auto bg-card/90 dark:bg-card/80 border-border/70 p-4 my-4 sm:my-6 text-left rounded-lg">
               <p className="text-sm text-card-foreground/90">
-                 We're currently offering full access to AutoBoss at no cost. As an early user, your experience and feedback are very important to us as we build the best platform for new AI agencies. This is an opportunity to start your agency journey without software costs, while helping us make AutoBoss even better. Future access will be through a subscription.
-                 <Link href="/roadmap" className="font-semibold text-accent hover:underline ml-1">See what's planned and vote on features!</Link>
+                 AutoBoss is currently available for free through our Early Adopter Program. We're looking for users like you to help us build the best possible platform for AI agencies. Your feedback is incredibly valuable. Future access will involve subscription plans.
+                 <Link href="/roadmap" className="font-semibold text-accent hover:underline ml-1">See our roadmap and share your thoughts!</Link>
               </p>
             </div>
             <aside className={cn(
                 "max-w-sm mx-auto bg-card p-5 sm:p-6 rounded-lg shadow-xl transform hover:scale-103 transition-transform text-card-foreground delay-150"
             )}>
-              <p className="italic text-xs text-muted-foreground leading-relaxed">"We're building AutoBoss to be genuinely helpful. Your success is important to us."</p>
+              <p className="italic text-xs text-muted-foreground leading-relaxed">"We're building AutoBoss to be a genuinely helpful tool. Your success helps us grow too."</p>
               <div className="flex items-center justify-center gap-2 mt-3">
                 <Image loading="lazy" src="https://placehold.co/36x36/1A202C/E2E8F0.png?text=AB&font=nunito" alt="AutoBoss Team" width={32} height={32} className="rounded-full shadow-md" data-ai-hint="modern team logo mark"/>
                 <div>
@@ -334,15 +334,15 @@ export default function MarketingPageClient() {
           <div className="container mx-auto px-4 md:px-6 text-center max-w-screen-xl">
             <div className="mx-auto max-w-md space-y-3 bg-card/80 dark:bg-background/70 backdrop-blur-md p-5 sm:p-6 md:p-8 rounded-xl shadow-2xl">
               <h2 className="marketing-h2 !text-2xl sm:!text-3xl text-gradient-dynamic">
-                Ready to Build AI Solutions for Businesses?
+                Ready to Build AI for Businesses?
               </h2>
               <p className="text-muted-foreground text-xs md:text-sm !mb-5">
-                Start using AutoBoss today. It's free during our Early Adopter program. No complex setups, just clear tools.
+                Explore AutoBoss today. Create AI agents for clients with our clear tools. Free during our Early Adopter program.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center items-center pt-1">
                 <Button size="lg" asChild className="btn-gradient-primary shadow-xl font-bold text-sm px-6 py-2.5 hover:opacity-90 transition-all duration-300 hover:scale-105 group w-full sm:w-auto btn-interactive">
                   <Link href="/dashboard" className="flex items-center gap-1.5">
-                    Get Started with AutoBoss (Free Access)
+                    Get Started (Free Access)
                     <Rocket className="h-4 w-4 sm:h-5 sm:h-5 group-hover:animate-bounce" />
                   </Link>
                 </Button>
@@ -373,3 +373,5 @@ export default function MarketingPageClient() {
     </TooltipProvider>
   );
 }
+
+    

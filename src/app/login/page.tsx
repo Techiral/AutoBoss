@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation"; // Import useSearchParams
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2, LogIn, Mail } from "lucide-react";
@@ -28,6 +28,7 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams(); // Get search params
   const { signIn, currentUser, loading: authLoading } = useAuth();
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
@@ -36,14 +37,18 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!authLoading && currentUser) {
-      router.push("/dashboard");
+      const redirectPath = searchParams.get('redirect');
+      router.push(redirectPath || "/dashboard");
     }
-  }, [currentUser, authLoading, router]);
+  }, [currentUser, authLoading, router, searchParams]);
 
   const onEmailSubmit: SubmitHandler<FormData> = async (data) => {
     setIsSubmitting(true);
-    await signIn(data.email, data.password);
+    const user = await signIn(data.email, data.password);
     setIsSubmitting(false);
+    if (user) { // User will be defined by useEffect above, so this check is redundant but safe
+      // Redirect logic is now handled by the useEffect
+    }
   };
 
   if (authLoading) {
@@ -55,7 +60,13 @@ export default function LoginPage() {
   }
 
   if (currentUser && !authLoading) {
-    return null; 
+    // This prevents the login page from flashing if the user is already logged in and redirection is in progress
+    return (
+       <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4">
+        <Loader2 className="h-12 w-12 sm:h-16 sm:w-16 animate-spin text-primary" />
+        <p className="mt-2 text-sm text-muted-foreground">Redirecting...</p>
+      </div>
+    );
   }
 
   return (
@@ -96,7 +107,7 @@ export default function LoginPage() {
           <p className="text-xs sm:text-sm text-muted-foreground">
             Don't have an account?{" "}
             <Button variant="link" className="p-0 h-auto text-xs sm:text-sm" asChild>
-              <Link href="/signup">Sign Up</Link>
+              <Link href={`/signup${searchParams.get('redirect') ? `?redirect=${searchParams.get('redirect')}` : ''}`}>Sign Up</Link>
             </Button>
           </p>
         </CardFooter>
@@ -105,3 +116,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+    
