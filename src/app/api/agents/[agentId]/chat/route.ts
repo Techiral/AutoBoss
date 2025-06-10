@@ -2,10 +2,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { autonomousReasoning, AutonomousReasoningInput } from '@/ai/flows/autonomous-reasoning';
-// Removed: import { executeAgentFlow, ExecuteAgentFlowInput } from '@/ai/flows/execute-agent-flow'; // Flow engine removed
 import { db } from '@/lib/firebase';
 import { doc, getDoc, Timestamp } from 'firebase/firestore';
-import type { Agent, KnowledgeItem, AgentLogicType, ChatMessage } from '@/lib/types';
+import type { Agent, AgentLogicType, ChatMessage } from '@/lib/types';
 
 // Helper to convert Firestore Timestamps in agent data
 const convertAgentForApi = (agentData: any): Agent => {
@@ -21,7 +20,10 @@ const convertAgentForApi = (agentData: any): Agent => {
       return item;
     });
   }
-  // Removed: flow conversion
+  // Removed flow conversion
+  if ('flow' in newAgent) {
+    delete (newAgent as any).flow;
+  }
   return newAgent as Agent;
 };
 
@@ -82,13 +84,9 @@ export async function POST(
     
     const agent = convertAgentForApi({ id: agentSnap.id, ...agentSnap.data() });
     const knowledgeItems = agent.knowledgeItems || [];
-    const primaryLogic: AgentLogicType = agent.primaryLogic || 'prompt'; // Default to prompt if not set
+    // primaryLogic is now either 'prompt' or 'rag'. No more 'flow' or 'hybrid'.
+    const primaryLogic: AgentLogicType = agent.primaryLogic || 'prompt'; 
 
-    // Construct conversation history for autonomousReasoning
-    // The client now sends an array of strings.
-    // The API assumes the client has appended the current user message to its history if it wants it included for context.
-    // However, autonomousReasoning expects a single string and also the latest user input separately.
-    
     const historyForAutonomousReasoning = (clientHistory || []).join('\n');
 
     console.log(`API Route (Simplified): Executing autonomousReasoning for agent ${agentId}. Primary Logic: ${primaryLogic}`);
@@ -97,24 +95,22 @@ export async function POST(
       agentName: agent.generatedName,
       agentPersona: agent.generatedPersona,
       agentRole: agent.role,
-      context: historyForAutonomousReasoning, // Stringified history
+      context: historyForAutonomousReasoning, 
       userInput: userInput,
-      knowledgeItems: knowledgeItems, 
+      knowledgeItems: primaryLogic === 'rag' ? knowledgeItems : (agent.primaryLogic === 'prompt' && knowledgeItems.length > 0 ? knowledgeItems : []),
     };
     
     const result = await autonomousReasoning(reasoningInput);
     
-    // For the client, we'll return the agent's reply and potentially the updated history.
-    // The client will manage its own message list.
     const updatedHistory = [...(clientHistory || []), `User: ${userInput}`, `Agent: ${result.responseToUser}`];
 
     return NextResponse.json({ 
-      type: primaryLogic, // Can be 'prompt' or 'rag'
+      type: primaryLogic, 
       reply: result.responseToUser,
       reasoning: result.reasoning,
       relevantKnowledgeIds: result.relevantKnowledgeIds,
-      // For simplicity, let client manage its history display.
-      // We could return updatedHistory if client wants server to be source of truth.
+      // Client manages its own history display based on replies.
+      // conversationHistory: updatedHistory, // Optionally return if server should be source of truth
     }, { status: 200 });
 
   } catch (error: any) {
@@ -125,4 +121,4 @@ export async function POST(
     return createErrorResponse(500, 'An unexpected error occurred while processing your request.', { internalError: error.message });
   }
 }
-
+    

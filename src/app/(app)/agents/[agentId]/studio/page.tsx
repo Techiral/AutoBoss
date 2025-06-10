@@ -18,23 +18,20 @@ export default function AgentStudioPagePlaceholder() {
   const params = useParams();
   const agentId = Array.isArray(params.agentId) ? params.agentId[0] : params.agentId;
 
-  // Option 1: Redirect to a relevant page like Personality or Knowledge
   useEffect(() => {
     if (agentId) {
-      router.replace(`/agents/${agentId}/personality`);
+      router.replace(`/agents/${agentId}/personality`); // Redirect to personality page as a sensible default
     } else {
       router.replace('/dashboard');
     }
   }, [agentId, router]);
 
-  // Option 2: Show a message that the Studio is not available (if you prefer not to redirect immediately)
-  // This might be useful if there's a brief moment before redirection or if direct navigation occurs.
   return (
     <Card>
       <CardHeader className="p-4 sm:p-6">
         <CardTitle className="text-xl sm:text-2xl flex items-center gap-2">
           <Construction className="w-6 h-6 text-primary" />
-          Conversation Studio Removed
+          Visual Flow Builder Removed
         </CardTitle>
         <CardDescription className="text-sm">
           The visual flow builder (Studio) has been removed to simplify agent creation.
@@ -63,3 +60,4 @@ export default function AgentStudioPagePlaceholder() {
     </Card>
   );
 }
+    

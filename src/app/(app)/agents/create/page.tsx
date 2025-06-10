@@ -24,7 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 const formSchema = z.object({
   agentType: z.enum(["chat", "voice", "hybrid"], { required_error: "Please select an agent type."}),
   direction: z.enum(["inbound", "outbound"], { required_error: "Please select agent direction."}),
-  primaryLogic: z.enum(["prompt", "rag"], { required_error: "Please select the agent's primary brain logic."}), // Simplified
+  primaryLogic: z.enum(["prompt", "rag"], { required_error: "Please select the agent's primary brain logic."}),
   name: z.string().min(3, "Chatbot name must be at least 3 characters").max(100, "Name too long"),
   role: z.string().min(10, "Role description must be at least 10 characters").max(500, "Role too long"),
   personality: z.string().min(10, "Personality description must be at least 10 characters").max(500, "Personality too long"),
@@ -45,7 +45,7 @@ export default function CreateAgentPage() {
     defaultValues: {
       agentType: "chat",
       direction: "inbound",
-      primaryLogic: "rag", // Defaulting to RAG as it's a common and powerful starting point
+      primaryLogic: "rag", 
     }
   });
   
@@ -54,7 +54,7 @@ export default function CreateAgentPage() {
     switch (logicType) {
         case 'prompt': return "Direct AI Prompt";
         case 'rag': return "Knowledge Q&A (RAG)";
-        default: return "Custom";
+        default: return "Custom"; // Should not be reached with current enum
     }
   };
 
@@ -93,10 +93,9 @@ export default function CreateAgentPage() {
           description: `Agent "${aiResult.agentName}" (Type: ${data.agentType}, Direction: ${data.direction}, Logic: ${logicTypeLabel}) is ready. Next, customize its personality and add knowledge. Redirecting...`,
         });
         
-        // Since Studio is removed, redirect to Knowledge or Personality
         if (data.primaryLogic === 'rag') {
             router.push(`/agents/${newAgent.id}/knowledge`);
-        } else { // 'prompt' logic
+        } else { 
             router.push(`/agents/${newAgent.id}/personality`);
         }
       }
@@ -240,4 +239,4 @@ export default function CreateAgentPage() {
     </div>
   );
 }
-
+    

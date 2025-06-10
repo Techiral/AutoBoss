@@ -54,7 +54,7 @@ export type ProcessedUrlOutput = z.infer<typeof ProcessedUrlOutputSchema>;
 
 // Agent interface
 export type AgentType = 'chat' | 'voice' | 'hybrid';
-export type AgentLogicType = 'prompt' | 'rag'; // Simplified: Removed 'flow' and 'hybrid' that implied flow
+export type AgentLogicType = 'prompt' | 'rag'; // Simplified: Removed 'flow' and 'hybrid' (that implied flow)
 export type AgentDirection = 'inbound' | 'outbound';
 
 export interface Agent {
@@ -72,7 +72,7 @@ export interface Agent {
   generatedGreeting?: string;
   createdAt: string | Timestamp;
   knowledgeItems?: KnowledgeItem[];
-  // Removed: flow?: AgentFlowDefinition;
+  // flow?: AgentFlowDefinition; // Removed flow property
 }
 
 export interface ChatMessage {
@@ -83,9 +83,9 @@ export interface ChatMessage {
   intent?: string;
   entities?: Record<string, string>;
   reasoning?: string;
-  // Removed: flowNodeId?: string;
-  // Removed: flowContext?: any; // Simplified, context might be handled differently
+  // flowNodeId?: string; // Removed
+  // flowContext?: any; // Removed
   relevantKnowledgeIds?: string[];
-  conversationHistory?: string[]; // Added for potential client-side history management for autonomous agents
+  conversationHistory?: string[]; // For client-side state or passing to API
 }
-
+    

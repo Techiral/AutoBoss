@@ -19,8 +19,8 @@ import {
 import type { useAppContext as UseAppContextType } from "@/app/(app)/layout";
 import { Badge } from "@/components/ui/badge";
 
+// ExtendedChatMessage no longer needs flow-specific fields
 interface ExtendedChatMessage extends ChatMessageType {
-  // Removed debugMessages, flowNodeId, flowContext as flow system is removed
   reasoning?: string;
   relevantKnowledgeIds?: string[];
 }
@@ -47,8 +47,8 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
   const { toast } = useToast();
 
   const [currentAgent, setCurrentAgent] = useState<Agent>(initialAgent);
-  const agentRef = useRef(currentAgent);
-  const conversationHistoryRef = useRef<string[]>([]); // Stores history as string array: "User: msg", "Agent: msg"
+  const agentRef = useRef(currentAgent); 
+  const conversationHistoryRef = useRef<string[]>([]); 
 
   useEffect(() => {
     setCurrentAgent(initialAgent);
@@ -76,9 +76,9 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
     if (!agentRef.current) return;
     console.log("ChatInterface (Simplified): Initializing chat for agent:", agentRef.current.id);
     setIsLoading(true);
-    conversationHistoryRef.current = []; // Clear history
+    conversationHistoryRef.current = []; 
 
-    const initialMessages: ExtendedChatMessage[] = [];
+    const initialMessagesList: ExtendedChatMessage[] = [];
     
     if (agentRef.current.generatedGreeting) {
       const greetingMsg: ExtendedChatMessage = {
@@ -87,12 +87,12 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
         text: agentRef.current.generatedGreeting,
         timestamp: Date.now()
       };
-      initialMessages.push(greetingMsg);
+      initialMessagesList.push(greetingMsg);
       conversationHistoryRef.current.push(`Agent: ${agentRef.current.generatedGreeting}`);
       if (onNewAgentMessage) onNewAgentMessage(greetingMsg);
     }
     
-    setMessages(initialMessages);
+    setMessages(initialMessagesList);
     setIsLoading(false);
     setIsInitializing(false);
     if (isManualRestart) {
@@ -131,7 +131,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: messageText,
-          conversationHistory: currentHistoryForApi, // Send current turn's history
+          conversationHistory: currentHistoryForApi, 
         }),
       });
 
@@ -142,27 +142,24 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
         throw new Error(errorDetail);
       }
       
-      let agentResponses: ExtendedChatMessage[] = [];
+      let agentResponse: ExtendedChatMessage | null = null;
 
-      if (data.reply) { // Simplified API only returns 'reply' now
-        agentResponses.push({
+      if (data.reply) { 
+        agentResponse = {
           id: `auto-resp-${Date.now()}`,
           sender: 'agent',
           text: data.reply,
           timestamp: Date.now(),
           reasoning: data.reasoning,
           relevantKnowledgeIds: data.relevantKnowledgeIds,
-        });
+        };
       }
 
-      if (agentResponses.length > 0) {
-        setMessages((prev) => [...prev, ...agentResponses]);
-        agentResponses.forEach(msg => { 
-          if (onNewAgentMessage) onNewAgentMessage(msg);
-          conversationHistoryRef.current.push(`Agent: ${msg.text}`); // Update history with agent's reply
-        });
+      if (agentResponse) {
+        setMessages((prev) => [...prev, agentResponse as ExtendedChatMessage]);
+        if (onNewAgentMessage) onNewAgentMessage(agentResponse);
+        conversationHistoryRef.current.push(`Agent: ${(agentResponse as ExtendedChatMessage).text}`); 
       } else {
-         // Handle case where API might not return a message (e.g., error not caught above, or empty reply)
          const noReplyMsg: ExtendedChatMessage = {
            id: `no-reply-${Date.now()}`, sender: 'agent', text: "I didn't receive a specific response. Please try again.", timestamp: Date.now()
          };
@@ -215,7 +212,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
     console.log("ChatInterface (Simplified): Restarting conversation...");
     setInput("");
     setMessages([]); 
-    setIsInitializing(true); // Will trigger initializeChat
+    setIsInitializing(true); 
   };
 
 
@@ -235,7 +232,6 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
         </Button>
         <div className="flex items-center gap-1 w-full sm:w-auto justify-end sm:justify-center">
             <span className="text-xs text-muted-foreground">
-                {/* Simplified message as flow state is removed */}
                 {agentRef.current.primaryLogic === 'rag' ? "Using knowledge base..." : "Ready for your questions"}
             </span>
         </div>
@@ -340,4 +336,4 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
   );
 });
 ChatInterface.displayName = "ChatInterface";
-
+    

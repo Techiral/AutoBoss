@@ -21,7 +21,6 @@ import {
 } from '@/components/ui/sidebar';
 import { Home, PlusCircle, Bot, Settings, BookOpen, MessageSquare, Share2, Cog, LifeBuoy, Loader2, LogIn } from 'lucide-react';
 import type { Agent, KnowledgeItem, AgentLogicType } from '@/lib/types';
-// Removed: import { minimalInitialFlow } from '@/app/(app)/agents/[agentId]/studio/page'; // Studio is removed
 import { db } from '@/lib/firebase';
 import {
   collection,
@@ -51,8 +50,6 @@ interface AppContextType {
   updateAgent: (agent: Agent) => Promise<void>;
   getAgent: (id: string) => Agent | undefined;
   addKnowledgeItem: (agentId: string, item: KnowledgeItem) => Promise<void>;
-  // Removed: updateAgentFlow: (agentId: string, flow: AgentFlowDefinition) => Promise<void>;
-  // Removed: getAgentFlow: (agentId: string) => AgentFlowDefinition | undefined;
   deleteAgent: (agentId: string) => Promise<void>;
   theme: Theme;
   toggleTheme: () => void;
@@ -83,7 +80,7 @@ const convertTimestampsToISO = (agent: any): Agent => {
       return item;
     });
   }
-  // Removed flow conversion as flow property is removed
+  // Removed flow property, so no conversion needed for it
   return newAgent as Agent;
 };
 
@@ -139,7 +136,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           const querySnapshot = await getDocs(q);
           const fetchedAgents: Agent[] = [];
           querySnapshot.forEach((doc) => {
-            fetchedAgents.push(convertTimestampsToISO({ id: doc.id, ...doc.data() } as Agent));
+            const agentData = { id: doc.id, ...doc.data() } as Agent;
+            // Ensure 'flow' property is not included if it exists in old data
+            if ('flow' in agentData) {
+              delete (agentData as any).flow;
+            }
+            fetchedAgents.push(convertTimestampsToISO(agentData));
           });
           setAgents(fetchedAgents);
         } catch (error) {
@@ -168,7 +170,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         userId: currentUser.uid,
         createdAt: Timestamp.now(), // Firestore Timestamp
         knowledgeItems: [],
-        // Removed: flow: minimalInitialFlow, 
+        // No flow property added
       };
 
       const { id, ...dataToSave } = newAgentWithUser;
@@ -197,9 +199,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
     try {
       const agentRef = doc(db, AGENTS_COLLECTION, updatedAgent.id);
-      const { id, ...dataToUpdate } = updatedAgent; // Exclude id from data being set
+      const { id, ...dataToUpdate } = updatedAgent; 
 
-      // Convert string timestamps back to Firestore Timestamps if necessary
       const finalDataToUpdate: any = { ...dataToUpdate };
       if (typeof finalDataToUpdate.createdAt === 'string') {
         finalDataToUpdate.createdAt = Timestamp.fromDate(new Date(finalDataToUpdate.createdAt));
@@ -212,11 +213,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           return item;
         });
       }
-       // Remove 'flow' property before saving if it somehow still exists on the object
+      // Remove 'flow' property before saving if it somehow still exists on the object
       if ('flow' in finalDataToUpdate) {
         delete finalDataToUpdate.flow;
       }
-
 
       await setDoc(agentRef, finalDataToUpdate, { merge: true });
 
@@ -432,24 +432,16 @@ function AppSidebar() {
   }, [currentAgentId, getAgent, isAppContextLoading]);
 
 
-  let agentNavItems: { href: string; label: string; icon: React.ElementType; primaryLogic?: AgentLogicType[] }[] = [];
+  let agentNavItems: { href: string; label: string; icon: React.ElementType }[] = [];
 
   if (currentAgentId && currentAgent) {
-    const baseItems = [
+    agentNavItems = [
       { href: `/agents/${currentAgentId}/personality`, label: 'Personality', icon: Bot },
-      { href: `/agents/${currentAgentId}/knowledge`, label: 'Knowledge', icon: BookOpen }, // Knowledge is always relevant now
+      { href: `/agents/${currentAgentId}/knowledge`, label: 'Knowledge', icon: BookOpen },
       { href: `/agents/${currentAgentId}/test`, label: 'Test Agent', icon: MessageSquare },
       { href: `/agents/${currentAgentId}/export`, label: 'Export', icon: Share2 },
     ];
-    
-    agentNavItems = [...baseItems];
-
-    // No "Studio" tab, sort order might need adjustment if needed
-    agentNavItems.sort((a, b) => {
-        const order = { Personality: 0, Knowledge: 1, "Test Agent": 2, Export: 3 };
-        // @ts-ignore
-        return (order[a.label] || 99) - (order[b.label] || 99);
-    });
+    // "Studio" link is removed as flow feature is gone
   }
 
 
@@ -535,5 +527,4 @@ function AppSidebar() {
     </Sidebar>
   );
 }
-
     

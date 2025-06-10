@@ -35,8 +35,8 @@ function getLogicTypeDisplayInfo(logicType?: AgentLogicType): { label: string | 
       return { label: "AI Prompt", icon: <Brain className="w-3 h-3 mr-1" /> };
     case 'rag':
       return { label: "Knowledge Q&A", icon: <DatabaseZap className="w-3 h-3 mr-1" /> };
-    default: // Should not happen with simplified types
-      return { label: "Custom", icon: <Info className="w-3 h-3 mr-1" /> };
+    default: 
+      return { label: "Custom", icon: <Info className="w-3 h-3 mr-1" /> }; // Should not be reached
   }
 }
 
@@ -121,4 +121,4 @@ export function AgentCard({ agent, onDelete }: AgentCardProps) {
     </Card>
   );
 }
-
+    
