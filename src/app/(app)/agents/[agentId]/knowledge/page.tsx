@@ -17,6 +17,9 @@ import { useAppContext } from "../../../layout";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Logo } from "@/components/logo";
 import { cn } from "@/lib/utils";
+import pdf from 'pdf-parse/lib/pdf-parse'; // Correct import for browser/webpack
+import mammoth from 'mammoth';
+
 
 // Basic CSV to Text Converter
 function csvToText(csvString: string, fileName: string): string {
@@ -113,81 +116,75 @@ export default function KnowledgePage() {
     }
     
     setIsLoadingFile(true);
+    const originalFileName = selectedFile.name;
+
     try {
-      const reader = new FileReader();
-      
-      const isCsvFile = selectedFile.type === 'text/csv' || selectedFile.name.toLowerCase().endsWith('.csv');
+      let documentDataUri: string;
+      let effectiveMimeType = selectedFile.type;
+      const fileNameLower = originalFileName.toLowerCase();
 
-      if (isCsvFile) {
-        reader.readAsText(selectedFile); 
-      } else {
-        reader.readAsDataURL(selectedFile); 
+      if (selectedFile.type === 'application/pdf' || fileNameLower.endsWith('.pdf')) {
+        const arrayBuffer = await selectedFile.arrayBuffer();
+        const pdfData = await pdf(arrayBuffer);
+        const textContent = pdfData.text;
+        if (!textContent.trim()) throw new Error("No text content found in PDF.");
+        documentDataUri = `data:text/plain;charset=utf-8;base64,${Buffer.from(textContent).toString('base64')}`;
+        effectiveMimeType = 'text/plain';
+      } else if (selectedFile.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || fileNameLower.endsWith('.docx')) {
+        const arrayBuffer = await selectedFile.arrayBuffer();
+        const { value: textContent } = await mammoth.extractRawText({ arrayBuffer });
+        if (!textContent.trim()) throw new Error("No text content found in DOCX.");
+        documentDataUri = `data:text/plain;charset=utf-8;base64,${Buffer.from(textContent).toString('base64')}`;
+        effectiveMimeType = 'text/plain';
+      } else if (selectedFile.type === 'text/csv' || fileNameLower.endsWith('.csv')) {
+        const csvTextContent = await selectedFile.text();
+        const plainTextFromCsv = csvToText(csvTextContent, originalFileName);
+        if (!plainTextFromCsv.trim()) throw new Error("Empty CSV or no content after conversion.");
+        documentDataUri = `data:text/plain;charset=utf-8;base64,${Buffer.from(plainTextFromCsv).toString('base64')}`;
+        effectiveMimeType = 'text/plain';
+      } else { // Handle other text-based files or pass through if already a Data URI string (though not expected here)
+        documentDataUri = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            let result = reader.result as string;
+            // Infer MIME type if not set or generic for common text formats
+             if (!effectiveMimeType || effectiveMimeType === 'application/octet-stream') {
+                if (fileNameLower.endsWith('.txt')) effectiveMimeType = 'text/plain';
+                else if (fileNameLower.endsWith('.md')) effectiveMimeType = 'text/markdown';
+                else if (fileNameLower.endsWith('.json')) effectiveMimeType = 'application/json';
+                else if (fileNameLower.endsWith('.html') || fileNameLower.endsWith('.htm')) effectiveMimeType = 'text/html';
+             }
+             // Reconstruct Data URI if MIME type was inferred and changed
+             if (effectiveMimeType && effectiveMimeType !== selectedFile.type) {
+                const base64Marker = ';base64,';
+                const base64DataIndex = result.indexOf(base64Marker);
+                if (base64DataIndex !== -1) {
+                  const base64Data = result.substring(base64DataIndex + base64Marker.length);
+                  result = `data:${effectiveMimeType};base64,${base64Data}`;
+                }
+             }
+             if (result.startsWith('data:application/octet-stream')) {
+                 reject(new Error(`File "${originalFileName}" seems to be a generic binary file not directly supported for training. Please try common text-based formats (TXT, MD, PDF, DOCX, CSV) or web pages.`));
+                 return;
+             }
+            resolve(result);
+          };
+          reader.onerror = (error) => reject(error);
+          reader.readAsDataURL(selectedFile);
+        });
       }
-      
-      reader.onload = async () => {
-        let documentDataUri: string;
-        let effectiveMimeType = selectedFile.type;
-        const originalFileName = selectedFile.name;
-
-        if (isCsvFile) {
-          const csvTextContent = reader.result as string;
-          const plainTextFromCsv = csvToText(csvTextContent, originalFileName);
-          documentDataUri = `data:text/plain;charset=utf-8;base64,${Buffer.from(plainTextFromCsv).toString('base64')}`;
-          effectiveMimeType = 'text/plain'; 
-        } else {
-          documentDataUri = reader.result as string;
-          const fileNameLower = originalFileName.toLowerCase();
-          if (!effectiveMimeType || effectiveMimeType === 'application/octet-stream') {
-            if (fileNameLower.endsWith('.txt')) effectiveMimeType = 'text/plain';
-            else if (fileNameLower.endsWith('.md')) effectiveMimeType = 'text/markdown';
-            else if (fileNameLower.endsWith('.json')) effectiveMimeType = 'application/json';
-            else if (fileNameLower.endsWith('.html') || fileNameLower.endsWith('.htm')) effectiveMimeType = 'text/html';
-          }
-
-          if (effectiveMimeType && effectiveMimeType !== selectedFile.type) {
-            const base64Marker = ';base64,';
-            const base64DataIndex = documentDataUri.indexOf(base64Marker);
-            if (base64DataIndex !== -1) {
-              const base64Data = documentDataUri.substring(base64DataIndex + base64Marker.length);
-              documentDataUri = `data:${effectiveMimeType};base64,${base64Data}`;
-            }
-          }
-          
-          if (documentDataUri.startsWith('data:application/octet-stream') && !isCsvFile) { 
-              toast({
-                  title: "Unsupported File Type",
-                  description: `File "${originalFileName}" seems to be a generic binary file not directly supported for training. Please try common text-based formats (TXT, MD, PDF, CSV) or web pages.`,
-                  variant: "destructive",
-              });
-              setIsLoadingFile(false);
-              setSelectedFile(null);
-              const fileInput = document.getElementById('document') as HTMLInputElement;
-              if (fileInput) fileInput.value = '';
-              return; 
-          }
-        }
         
-        try {
-            const result = await extractKnowledge({ documentDataUri: documentDataUri });
-            addKnowledgeToAgent(originalFileName, result.summary, result.keywords);
-        } catch (extractionError: any) {
-            console.error("Error extracting knowledge from file:", extractionError);
-            const errorMessage = extractionError.message || `Failed to extract information from "${originalFileName}". The file might be too complex or in an unsupported format.`;
-            toast({ title: "File Training Error", description: errorMessage, variant: "destructive" });
-        }
-        setSelectedFile(null); 
-        const fileInput = document.getElementById('document') as HTMLInputElement;
-        if (fileInput) fileInput.value = ''; 
-        setIsLoadingFile(false);
-      };
-      reader.onerror = (error) => {
-        console.error("Error reading file:", error);
-        toast({ title: "File Read Error", description: "Could not read the selected file.", variant: "destructive" });
-        setIsLoadingFile(false);
-      };
-    } catch (error) {
-      console.error("Error initiating file processing:", error);
-      toast({ title: "File Processing Error", description: "An unexpected error occurred.", variant: "destructive" });
+      const result = await extractKnowledge({ documentDataUri: documentDataUri });
+      addKnowledgeToAgent(originalFileName, result.summary, result.keywords);
+
+    } catch (extractionError: any) {
+        console.error("Error processing or extracting knowledge from file:", extractionError);
+        const errorMessage = extractionError.message || `Failed to extract information from "${originalFileName}". The file might be too complex, empty, or in an unsupported format.`;
+        toast({ title: "File Training Error", description: errorMessage, variant: "destructive" });
+    } finally {
+      setSelectedFile(null); 
+      const fileInput = document.getElementById('document') as HTMLInputElement;
+      if (fileInput) fileInput.value = ''; 
       setIsLoadingFile(false);
     }
   };
@@ -274,12 +271,12 @@ export default function KnowledgePage() {
       <Card className="lg:col-span-1">
         <CardHeader className="p-4 sm:p-6">
           <CardTitle className={cn("font-headline text-lg sm:text-2xl", "text-gradient-dynamic")}>Train Your Agent with Business Data</CardTitle>
-          <CardDescription className="text-sm">Make your agent an expert! Upload documents (FAQs, product lists, policies, CSVs) or add website pages specific to the business it will serve for <span className="font-semibold">{currentAgent.generatedName || currentAgent.name}</span>.</CardDescription>
+          <CardDescription className="text-sm">Make your agent an expert! Upload documents (FAQs, product lists, policies, PDF, DOCX, CSV) or add website pages specific to the business it will serve for <span className="font-semibold">{currentAgent.generatedName || currentAgent.name}</span>.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
             <div className="space-y-1.5">
                 <Label htmlFor="document">Upload Document</Label>
-                <Input id="document" type="file" onChange={handleFileChange} accept=".txt,.pdf,.md,.docx,.json,.csv,.html,.htm,image/png,image/jpeg,text/csv" disabled={isLoadingFile || isProcessingUrl}/>
+                <Input id="document" type="file" onChange={handleFileChange} accept=".txt,.pdf,.md,.docx,.json,.csv,.html,.htm,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/csv" disabled={isLoadingFile || isProcessingUrl}/>
                 {selectedFile && <p className="text-xs sm:text-sm text-muted-foreground">Selected: {selectedFile.name}</p>}
             </div>
             <Button onClick={handleSubmitFile} disabled={isLoadingFile || !selectedFile || isProcessingUrl} className={cn("w-full", "btn-gradient-primary")}>
@@ -291,7 +288,7 @@ export default function KnowledgePage() {
                 <Info className="h-3.5 w-3.5 text-accent" />
                 <AlertTitle className="text-accent text-xs font-medium">Tip for File Uploads</AlertTitle>
                 <AlertDescription className="text-accent/80 dark:text-accent/90 text-[11px]">
-                  For best results, use clean text files (.txt, .md), simple PDFs, well-structured web pages, or CSV files (e.g., for product lists or FAQs). Avoid complex layouts, scanned images in PDFs, or sites that heavily rely on JavaScript to load content for now. The content of CSVs will be converted to a textual description for the AI.
+                  Supported formats: TXT, MD, PDF, DOCX, CSV, JSON, HTML. For best results with PDF/DOCX, ensure they contain selectable text. Complex layouts or scanned images may not parse well. CSVs are converted to textual descriptions.
                 </AlertDescription>
             </Alert>
 
@@ -398,4 +395,3 @@ export default function KnowledgePage() {
   );
 }
 
-    
