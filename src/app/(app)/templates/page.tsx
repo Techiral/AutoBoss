@@ -1,12 +1,10 @@
 //
-// THIS FILE (`src/app/(app)/templates/page.tsx`) IS CAUSING A ROUTE CONFLICT.
-// The public templates page is now at `/src/app/templates/page.tsx`.
+// THIS FILE IS CAUSING A ROUTE CONFLICT.
+// The public page for this route is at /src/app/templates/page.tsx.
 //
-// PLEASE MANUALLY DELETE THIS FILE (`src/app/(app)/templates/page.tsx`) FROM YOUR PROJECT.
+// >>>>> PLEASE MANUALLY DELETE THIS ENTIRE FILE (`src/app/(app)/templates/page.tsx`) <<<<<
+// >>>>> FROM YOUR PROJECT TO RESOLVE POTENTIAL "PARALLEL PAGES" ERRORS.        <<<<<
 //
-// Leaving this file, even empty or with just this comment, might still cause issues
-// depending on your Next.js version and build process. Deletion is the best solution.
-//
-// (This AI cannot delete files, so this content is a placeholder to prevent a build error
-// from an empty file, but the conflict might persist until the file is truly removed.)
+// Its presence, even if empty or only containing comments, causes Next.js to
+// try and register it as a route, leading to the conflict.
 //
