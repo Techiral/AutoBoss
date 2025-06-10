@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useForm, SubmitHandler, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -12,18 +12,82 @@ import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { createAgent, CreateAgentOutput } from "@/ai/flows/agent-creation";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAppContext } from "../../layout"; 
-import type { Agent, AgentType, AgentLogicType, AgentDirection } from "@/lib/types"; 
-import { Loader2, Bot, MessageSquare, Phone, Brain, DatabaseZap, ArrowDownCircle, ArrowUpCircle, HelpCircle, Lightbulb, Users, Briefcase } from "lucide-react"; 
+import type { Agent, AgentType, AgentLogicType, AgentDirection, AgentPurposeType as FormAgentPurposeType } from "@/lib/types"; 
+import { Loader2, Bot, MessageSquare, Phone, Brain, DatabaseZap, ArrowDownCircle, ArrowUpCircle, HelpCircle, Lightbulb, Users, Briefcase, ShoppingCart, HomeIcon as RealEstateIcon, CalendarCheck } from "lucide-react"; 
 import { useAuth } from "@/contexts/AuthContext"; 
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import Link from "next/link";
 
-type AgentPurposeType = "support" | "sales" | "info" | "custom";
 
-const agentPurposeTemplates: Record<AgentPurposeType, { role: string; personality: string }> = {
+interface PredefinedAgentTemplate {
+  id: string;
+  defaultValues: {
+    agentPurpose: FormAgentPurposeType;
+    agentType?: AgentType;
+    direction?: AgentDirection;
+    primaryLogic?: AgentLogicType;
+    role: string;
+    personality: string;
+  };
+}
+
+const agentTemplates: PredefinedAgentTemplate[] = [
+  {
+    id: 'ecommerce_support',
+    defaultValues: {
+      agentPurpose: 'support',
+      agentType: 'chat',
+      role: "I am a customer support specialist for [Your Client's E-commerce Store]. My main tasks are to help customers track their orders, answer questions about products, explain return policies, and resolve any shopping issues they might have. I aim to provide quick and accurate assistance to ensure a smooth and positive customer experience.",
+      personality: "Friendly, patient, and highly efficient. I'm knowledgeable about our products and policies, and I communicate clearly and politely. I'm always ready to help with a positive attitude."
+    }
+  },
+  {
+    id: 'real_estate_lead_gen',
+    defaultValues: {
+      agentPurpose: 'sales',
+      agentType: 'chat',
+      role: "I'm a lead generation assistant for [Your Client's Real Estate Agency]. I interact with website visitors to understand their property needs (buying, selling, or renting), gather their contact details, and schedule appointments for property viewings or consultations with an agent. My goal is to capture and qualify potential leads effectively.",
+      personality: "Professional, engaging, and knowledgeable about the local real estate market. I'm proactive in asking relevant questions and persuasive in guiding users towards the next step. I build trust and rapport with potential clients."
+    }
+  },
+  {
+    id: 'dental_appointment_voice',
+    defaultValues: {
+      agentPurpose: 'custom',
+      agentType: 'voice',
+      direction: 'inbound',
+      role: "I am the automated voice assistant for [Your Client's Dental Clinic]. I can help you schedule a new dental appointment, reschedule an existing one, or cancel an appointment if needed. I can also provide basic information about our clinic's services, hours, and location.",
+      personality: "Clear, calm, and friendly. I speak at a moderate pace and understand various ways users might state their requests. I confirm details carefully to ensure accuracy and provide a pleasant scheduling experience over the phone."
+    }
+  },
+  {
+    id: 'faq_info_bot',
+    defaultValues: {
+        agentPurpose: "info",
+        agentType: "chat",
+        primaryLogic: "rag",
+        role: "I am an informational assistant for [Your Client's Business/Topic]. I provide answers to frequently asked questions and explain specific topics based on the knowledge I've been trained on from your documents and website content. My goal is to be a reliable and instant source of information.",
+        personality: "Factual, concise, and helpful. I focus on delivering accurate information clearly and directly. I can point to source documents when useful."
+    }
+  },
+  {
+    id: 'general_purpose_assistant',
+    defaultValues: {
+        agentPurpose: "custom",
+        agentType: "chat",
+        primaryLogic: "prompt",
+        role: "I am a versatile AI assistant for [Your Client's Business/Project]. I can help with tasks like brainstorming ideas, drafting content, answering general questions, or performing custom actions you define. My capabilities are flexible based on your specific instructions and persona requirements.",
+        personality: "Adaptable based on your needs. You can define whether I should be witty, formal, creative, analytical, or any other style that fits your purpose. Default is neutral and helpful."
+    }
+  }
+];
+
+
+const agentPurposeTemplates: Record<FormAgentPurposeType, { role: string; personality: string }> = {
   support: {
     role: "A customer support agent for [Your Client's Business Name]. I help users by answering their questions about products/services, troubleshooting common issues, and providing policy information. My goal is to resolve inquiries efficiently and leave customers satisfied.",
     personality: "Patient, empathetic, clear, and knowledgeable. I strive to be very helpful and understanding.",
@@ -37,8 +101,8 @@ const agentPurposeTemplates: Record<AgentPurposeType, { role: string; personalit
     personality: "Factual, concise, neutral, and informative. I aim to provide accurate information clearly.",
   },
   custom: {
-    role: "Describe the agent's primary function and what it should achieve for the business.",
-    personality: "Describe the desired personality traits, communication style, and tone (e.g., formal, casual, witty, serious, empathetic).",
+    role: "Describe the agent's primary function and what it should achieve for the business. For example, an agent to summarize articles, generate creative content, or act as a personal coach.",
+    personality: "Describe the desired personality traits, communication style, and tone (e.g., formal, casual, witty, serious, empathetic, analytical).",
   },
 };
 
@@ -60,21 +124,24 @@ export default function CreateAgentPage() {
   const [generatedAgentDetails, setGeneratedAgentDetails] = useState<CreateAgentOutput | null>(null);
   const { toast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { addAgent: addAgentToContext } = useAppContext();
   const { currentUser } = useAuth(); 
   const [selectedDirection, setSelectedDirection] = useState<AgentDirection>("inbound");
 
+  const templateId = searchParams.get('templateId');
+  const selectedTemplate = useMemo(() => agentTemplates.find(t => t.id === templateId), [templateId]);
 
-  const { control, register, handleSubmit, formState: { errors }, watch, setValue } = useForm<FormData>({
+  const { control, register, handleSubmit, formState: { errors }, watch, setValue, reset } = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      agentPurpose: "support",
-      agentType: "chat",
-      direction: "inbound",
-      primaryLogic: "rag", 
+      agentPurpose: selectedTemplate?.defaultValues.agentPurpose || "support",
+      agentType: selectedTemplate?.defaultValues.agentType || "chat",
+      direction: selectedTemplate?.defaultValues.direction || "inbound",
+      primaryLogic: selectedTemplate?.defaultValues.primaryLogic || "rag", 
       name: "",
-      role: agentPurposeTemplates.support.role,
-      personality: agentPurposeTemplates.support.personality,
+      role: selectedTemplate?.defaultValues.role || agentPurposeTemplates.support.role,
+      personality: selectedTemplate?.defaultValues.personality || agentPurposeTemplates.support.personality,
     }
   });
   
@@ -83,11 +150,23 @@ export default function CreateAgentPage() {
   const currentAgentPurpose = watch("agentPurpose");
 
   useEffect(() => {
-    if (currentAgentPurpose) {
-      setValue("role", agentPurposeTemplates[currentAgentPurpose].role);
-      setValue("personality", agentPurposeTemplates[currentAgentPurpose].personality);
+    const template = agentTemplates.find(t => t.id === templateId);
+    if (template) {
+      reset({
+        agentPurpose: template.defaultValues.agentPurpose,
+        agentType: template.defaultValues.agentType || "chat",
+        direction: template.defaultValues.direction || "inbound",
+        primaryLogic: template.defaultValues.primaryLogic || "rag",
+        name: "", // Keep name empty for user input
+        role: template.defaultValues.role,
+        personality: template.defaultValues.personality,
+      });
+      setSelectedDirection(template.defaultValues.direction || "inbound");
+    } else if (!templateId) { // Only apply purpose-based defaults if no specific templateId
+        setValue("role", agentPurposeTemplates[currentAgentPurpose].role);
+        setValue("personality", agentPurposeTemplates[currentAgentPurpose].personality);
     }
-  }, [currentAgentPurpose, setValue]);
+  }, [templateId, currentAgentPurpose, setValue, reset]);
 
 
   const getLogicTypeLabel = (logicType?: AgentLogicType): string => {
@@ -158,9 +237,10 @@ export default function CreateAgentPage() {
     <div className="max-w-2xl mx-auto">
       <Card>
         <CardHeader className="p-4 sm:p-6">
-          <CardTitle className={cn("font-headline text-xl sm:text-2xl flex items-center gap-2", "text-gradient-dynamic")}> <Bot className="w-6 h-6 sm:w-7 sm:h-7"/>Step 1: Define Your New Business Agent</CardTitle>
+          <CardTitle className={cn("font-headline text-xl sm:text-2xl flex items-center gap-2", "text-gradient-dynamic")}> <Bot className="w-6 h-6 sm:w-7 sm:w-7"/>Step 1: Define Your New Business Agent</CardTitle>
           <CardDescription className="text-sm">
-            Tell us about the agent you want to build. This information will help our AI craft a baseline personality and greeting for you to refine later.
+            {selectedTemplate ? `Starting with the "${selectedTemplate.id.replace(/_/g, ' ')}" template. ` : ""}
+            Tell us about the agent you want to build. This information will help our AI craft a baseline personality and greeting for you to refine later. Not sure where to start? <Link href="/templates" className="underline hover:text-primary">Browse templates</Link>.
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
@@ -178,7 +258,17 @@ export default function CreateAgentPage() {
                 name="agentPurpose"
                 control={control}
                 render={({ field }) => (
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select 
+                     onValueChange={(value) => {
+                        field.onChange(value);
+                        // If not coming from a specific templateId, update role/personality based on purpose
+                        if (!templateId) {
+                            setValue("role", agentPurposeTemplates[value as FormAgentPurposeType].role);
+                            setValue("personality", agentPurposeTemplates[value as FormAgentPurposeType].personality);
+                        }
+                    }} 
+                    value={field.value} // Use value instead of defaultValue here for controlled component
+                  >
                     <SelectTrigger id="agentPurpose">
                       <SelectValue placeholder="Select agent's main goal" />
                     </SelectTrigger>
@@ -206,7 +296,7 @@ export default function CreateAgentPage() {
                   name="agentType"
                   control={control}
                   render={({ field }) => (
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <SelectTrigger id="agentType">
                         <SelectValue placeholder="Select agent type" />
                       </SelectTrigger>
@@ -237,7 +327,7 @@ export default function CreateAgentPage() {
                             field.onChange(value);
                             setSelectedDirection(value as AgentDirection);
                         }} 
-                        defaultValue={field.value}
+                        value={field.value}
                     >
                       <SelectTrigger id="direction">
                         <SelectValue placeholder="Select direction" />
@@ -273,7 +363,7 @@ export default function CreateAgentPage() {
                   name="primaryLogic"
                   control={control}
                   render={({ field }) => (
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <SelectTrigger id="primaryLogic">
                         <SelectValue placeholder="Select brain logic" />
                       </SelectTrigger>
@@ -370,3 +460,4 @@ export default function CreateAgentPage() {
     </TooltipProvider>
   );
 }
+

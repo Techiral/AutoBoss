@@ -19,7 +19,7 @@ import {
   SidebarInset,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { Home, PlusCircle, Bot, Settings, BookOpen, MessageSquare, Share2, Cog, LifeBuoy, Loader2, LogIn } from 'lucide-react';
+import { Home, PlusCircle, Bot, Settings, BookOpen, MessageSquare, Share2, Cog, LifeBuoy, Loader2, LogIn, LayoutGrid } from 'lucide-react';
 import type { Agent, KnowledgeItem, AgentLogicType, AgentToneType } from '@/lib/types'; // Added AgentToneType
 import { db } from '@/lib/firebase';
 import {
@@ -445,7 +445,6 @@ function AppSidebar() {
       { href: `/agents/${currentAgentId}/test`, label: 'Test Agent', icon: MessageSquare },
       { href: `/agents/${currentAgentId}/export`, label: 'Export', icon: Share2 },
     ];
-    // "Studio" link is removed as flow feature is gone
   }
 
 
@@ -470,6 +469,14 @@ function AppSidebar() {
               <SidebarMenuButton isActive={pathname === '/dashboard'} tooltip={collapsed ? 'Dashboard' : undefined}>
                 <Home />
                 <span>Dashboard</span>
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
+           <SidebarMenuItem>
+            <Link href="/templates" onClick={handleMobileLinkClick}>
+              <SidebarMenuButton isActive={pathname === '/templates'} tooltip={collapsed ? 'Agent Templates' : undefined}>
+                <LayoutGrid />
+                <span>Templates</span>
               </SidebarMenuButton>
             </Link>
           </SidebarMenuItem>

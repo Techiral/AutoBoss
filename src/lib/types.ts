@@ -57,12 +57,13 @@ export const ProcessedUrlOutputSchema = z.object({
 });
 export type ProcessedUrlOutput = z.infer<typeof ProcessedUrlOutputSchema>;
 
-// Agent interface
+// Agent related types
 export type AgentType = 'chat' | 'voice' | 'hybrid';
 export type AgentLogicType = 'prompt' | 'rag';
 export type AgentDirection = 'inbound' | 'outbound';
 export const AgentToneSchema = z.enum(["neutral", "friendly", "professional", "witty"]);
 export type AgentToneType = z.infer<typeof AgentToneSchema>;
+export type AgentPurposeType = "support" | "sales" | "info" | "custom";
 
 
 export interface Agent {
@@ -71,11 +72,12 @@ export interface Agent {
   agentType: AgentType;
   primaryLogic?: AgentLogicType;
   direction?: AgentDirection;
-  agentTone?: AgentToneType; // Added agentTone
-  name: string;
-  description: string;
-  role?: string;
-  personality?: string;
+  agentTone?: AgentToneType; 
+  name: string; // Client/Business Name or Agent Concept
+  description: string; // Auto-generated or user-refined based on inputs
+  role?: string; // Detailed role & objectives
+  personality?: string; // Personality & tone clues
+  agentPurpose?: AgentPurposeType; // User-selected primary purpose
   generatedName?: string;
   generatedPersona?: string;
   generatedGreeting?: string;
