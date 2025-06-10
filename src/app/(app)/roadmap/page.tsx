@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ArrowUp, BookOpen, Users2, Palette, DollarSign, BarChart3, RefreshCw, MessageSquarePlus, GitFork, Gauge, Sparkles, Lightbulb, UserPlus, LogIn, Loader2, ChevronUp, Info } from "lucide-react";
+import { ArrowUp, BookOpen, Users2, Palette, DollarSign, BarChart3, RefreshCw, MessageSquarePlus, GitFork, Gauge, Sparkles, Lightbulb, UserPlus, LogIn, Loader2, ChevronUp, Info as InfoIcon, UserCheck, Layers, HelpCircle } from "lucide-react"; // Added InfoIcon alias
 import { useAuth } from "@/contexts/AuthContext";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -21,7 +21,7 @@ type LucideIconName = keyof typeof LucideIconsMap;
 interface RoadmapFeature {
   id: string; // Firestore document ID
   featureId: string; // A unique, stable string ID for the feature
-  iconName: LucideIconName; 
+  iconName: LucideIconName;
   title: string;
   description: string;
   status: "Planned" | "In Progress" | "Researching" | "Future (Post Early Access)" | "Suggested";
@@ -31,7 +31,7 @@ interface RoadmapFeature {
 
 // Helper map to get Lucide components by name
 const LucideIconsMap = {
-  BookOpen, Users2, Palette, DollarSign, BarChart3, RefreshCw, MessageSquarePlus, GitFork, Gauge, Sparkles, Lightbulb, Info
+  BookOpen, Users2, Palette, DollarSign, BarChart3, RefreshCw, MessageSquarePlus, GitFork, Gauge, Sparkles, Lightbulb, InfoIcon, UserCheck, Layers, HelpCircle
 };
 
 
@@ -80,10 +80,9 @@ export default function RoadmapPage() {
           userVotesData[doc.data().featureId as string] = true;
         });
         setVotedFeatures(userVotesData);
-        // Sync with localStorage for faster UI updates on subsequent visits
         localStorage.setItem(`votedFeatures_${currentUser.uid}`, JSON.stringify(userVotesData));
       } else {
-        setVotedFeatures({}); // Clear if no user
+        setVotedFeatures({}); 
       }
 
     } catch (error) {
@@ -98,18 +97,26 @@ export default function RoadmapPage() {
     fetchFeaturesAndUserVotes();
   }, [fetchFeaturesAndUserVotes]);
   
-  // Load voted features from localStorage for initial UI state (faster than waiting for Firestore)
+  // Load voted features from localStorage for initial UI state
   useEffect(() => {
-    if (currentUser) {
+    if (currentUser && Object.keys(votedFeatures).length === 0) {
       const storedVotes = localStorage.getItem(`votedFeatures_${currentUser.uid}`);
       if (storedVotes) {
-        // Only set if not already populated by Firestore fetch to avoid race conditions
-        if (Object.keys(votedFeatures).length === 0) {
-           setVotedFeatures(JSON.parse(storedVotes));
+        try {
+          const parsedVotes = JSON.parse(storedVotes);
+          if (typeof parsedVotes === 'object' && parsedVotes !== null) {
+            setVotedFeatures(parsedVotes);
+          } else {
+            localStorage.removeItem(`votedFeatures_${currentUser.uid}`);
+          }
+        } catch (e) {
+          console.error("Error parsing votedFeatures from localStorage:", e);
+          localStorage.removeItem(`votedFeatures_${currentUser.uid}`);
         }
       }
     }
-  }, [currentUser, votedFeatures]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser]); // Only re-run if currentUser changes. votedFeatures check is internal.
 
 
   const handleVote = async (featureDocId: string, featureId: string) => {
@@ -124,7 +131,6 @@ export default function RoadmapPage() {
 
     setIsVoting(prev => ({ ...prev, [featureDocId]: true }));
 
-    // Optimistic UI Update
     const originalFeatures = [...features];
     const originalVotedFeatures = {...votedFeatures};
 
@@ -132,8 +138,9 @@ export default function RoadmapPage() {
         prevFeatures.map(f => f.id === featureDocId ? {...f, currentVotes: f.currentVotes + 1} : f)
         .sort((a, b) => b.currentVotes - a.currentVotes)
     );
-    setVotedFeatures(prev => ({ ...prev, [featureId]: true }));
-    localStorage.setItem(`votedFeatures_${currentUser.uid}`, JSON.stringify({...votedFeatures, [featureId]: true }));
+    const newVotedFeatures = { ...votedFeatures, [featureId]: true };
+    setVotedFeatures(newVotedFeatures);
+    localStorage.setItem(`votedFeatures_${currentUser.uid}`, JSON.stringify(newVotedFeatures));
 
 
     try {
@@ -153,7 +160,6 @@ export default function RoadmapPage() {
     } catch (error) {
       console.error("Error casting vote:", error);
       toast({ title: "Voting Error", description: "Could not save your vote. Please try again.", variant: "destructive" });
-      // Revert optimistic update on error
       setFeatures(originalFeatures);
       setVotedFeatures(originalVotedFeatures);
       localStorage.setItem(`votedFeatures_${currentUser.uid}`, JSON.stringify(originalVotedFeatures));
@@ -167,8 +173,6 @@ export default function RoadmapPage() {
       setShowAuthPrompt(true);
       return;
     }
-    // Placeholder for actual feature suggestion submission
-    // For now, you could link to a mailto: or a simple form if you had one.
     toast({title: "Coming Soon!", description: "Feature suggestion submission is planned. We're excited to hear your ideas!", duration: 5000});
   };
   
@@ -218,7 +222,6 @@ export default function RoadmapPage() {
             <AlertTitle>Roadmap is Evolving!</AlertTitle>
             <AlertDescription>
               We're currently gathering initial feedback. Features will appear here soon. Check back or suggest an idea!
-              <br/><span className="text-xs text-muted-foreground">(Admin: Ensure 'roadmapFeatures' collection in Firestore is populated with initial feature data including `featureId`, `iconName`, `title`, `description`, `status`, `currentVotes`, and `category`.)</span>
             </AlertDescription>
           </Alert>
       ) : (
@@ -236,7 +239,7 @@ export default function RoadmapPage() {
                     onClick={() => handleVote(feature.id, feature.featureId)}
                     disabled={hasVoted || votingInProgress || (!currentUser && showAuthPrompt)}
                     className={cn(
-                        "roadmap-vote-button group", // Add group class here for button itself
+                        "roadmap-vote-button", 
                         hasVoted && "voted"
                     )}
                     aria-label={`Upvote ${feature.title}`}
@@ -284,7 +287,7 @@ export default function RoadmapPage() {
         </Card>
       </div>
        <Alert variant="default" className="mt-8 text-xs text-muted-foreground bg-muted/50">
-        <Info className="h-4 w-4" />
+        <InfoIcon className="h-4 w-4" />
         <AlertTitle>For Admins/Developers</AlertTitle>
         <AlertDescription>
           To populate the roadmap, ensure you have a 'roadmapFeatures' collection in Firestore. Each document should include: `featureId` (string, e.g., "sales_playbook"), `iconName` (string, key from `LucideIconsMap`), `title`, `description`, `status` ("Planned", etc.), `currentVotes` (number), and `category`. A `userVotes` collection (docs like `userId_featureId`) is used to track individual votes. Ensure Firestore security rules allow reads on `roadmapFeatures` and authenticated writes/reads for `userVotes`.
@@ -293,4 +296,4 @@ export default function RoadmapPage() {
     </div>
   );
 }
-
+    

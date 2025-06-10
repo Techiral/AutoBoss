@@ -147,7 +147,7 @@
 /* Typewriter effect */
 @keyframes typing {
   from { width: 0ch; }
-  /* "Build AI. Get Paid." is 19 characters. Adding a bit more room for letter-spacing and font variations. */
+  /* "Build AI. Get Paid." is 19 characters. Let's use 21ch to be safe with letter-spacing */
   to { width: 21ch; } 
 }
 
@@ -161,13 +161,13 @@
   overflow: hidden;
   border-right: .12em solid hsl(var(--electric-teal));
   white-space: nowrap;
-  letter-spacing: .03em; /* Keep some letter spacing for style */
+  letter-spacing: .03em; 
   animation:
     typing 1.5s steps(19, end) forwards, /* Steps should match actual characters: "Build AI. Get Paid." = 19 */
     blink-caret .75s step-end infinite;
   animation-delay: 0.2s;
-  width: 0ch; /* Start with 0ch width, animation will expand it */
-  min-height: 1.2em; /* Ensure space is reserved to prevent layout shift */
+  width: 0ch; 
+  min-height: 1.2em; 
 }
 
 
@@ -214,7 +214,7 @@
 
 
 /* Styles for simple benefit card presentation */
-.simple-benefit-card { /* Renamed from simple-feature-card for consistency */
+.simple-benefit-card { 
     @apply bg-background p-4 sm:p-5 rounded-lg shadow-lg text-left transform hover:scale-105 transition-transform duration-300;
 }
 .simple-benefit-card-icon {
@@ -315,7 +315,6 @@ div[data-ai-hint] {
 
 .roadmap-vote-button {
   @apply flex flex-col items-center justify-center p-1.5 sm:p-2 border rounded-md hover:border-primary transition-colors min-w-[40px] sm:min-w-[50px] cursor-pointer shrink-0 mt-0.5;
-  /* Removed @apply group; here as it's not a utility that applies styles directly */
 }
 .roadmap-vote-button.voted {
     @apply border-primary bg-primary/10 text-primary cursor-not-allowed;
@@ -353,3 +352,4 @@ div[data-ai-hint] {
 }
 
     
+
