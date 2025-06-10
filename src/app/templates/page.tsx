@@ -1,7 +1,6 @@
 
 "use client";
 
-import type { Metadata } from 'next';
 import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,11 +9,7 @@ import { cn } from "@/lib/utils";
 import type { AgentPurposeType, AgentType, AgentDirection, AgentLogicType } from "@/lib/types"; 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Logo } from "@/components/logo";
-
-// export const metadata: Metadata = { // Cannot use metadata in client component, will add to a wrapping server component or layout later if needed
-//   title: "AI Agent Templates | AutoBoss",
-//   description: "Explore ready-to-use AI agent templates for e-commerce, real estate, appointment booking, and more. Start building for your clients quickly with AutoBoss.",
-// };
+import { Badge } from "@/components/ui/badge"; // Added this import
 
 export interface AgentTemplate {
   id: string;
@@ -162,7 +157,7 @@ export default function PublicTemplatesPage() {
                 {template.tags && (
                   <div className="flex flex-wrap gap-1.5">
                       {template.tags.map(tag => (
-                          <span key={tag} className="text-[10px] sm:text-xs bg-secondary text-secondary-foreground px-1.5 py-0.5 rounded-full">{tag}</span>
+                          <Badge key={tag} variant="secondary" className="text-[10px] sm:text-xs px-1.5 py-0.5">{tag}</Badge>
                       ))}
                   </div>
                 )}
@@ -210,5 +205,3 @@ export default function PublicTemplatesPage() {
     </div>
   );
 }
-
-    
