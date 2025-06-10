@@ -52,13 +52,17 @@ const prompt = ai.definePrompt({
   prompt: `
 {{#if agentTone}}
 Your conversational tone MUST be: {{agentTone}}.
-{{#switch agentTone}}
-  {{#case "friendly"}}Adopt a warm, approachable, and casual conversational style. Use friendly language and express positive emotions where appropriate.{{/case}}
-  {{#case "professional"}}Maintain a formal, precise, and respectful tone. Use clear, direct language and avoid slang or overly casual expressions.{{/case}}
-  {{#case "witty"}}Incorporate humor, clever wordplay, and a playful attitude. Responses can be lighthearted and engaging, but still relevant.{{/case}}
-  {{#case "neutral"}}Use a balanced, objective, and straightforward tone. Avoid strong emotional expressions or overly casual/formal language.{{/case}}
-  {{#default}}Use a balanced and neutral conversational style.{{/default}}
-{{/switch}}
+  {{#if (eq agentTone "friendly")}}
+    Adopt a warm, approachable, and casual conversational style. Use friendly language and express positive emotions where appropriate.
+  {{else if (eq agentTone "professional")}}
+    Maintain a formal, precise, and respectful tone. Use clear, direct language and avoid slang or overly casual expressions.
+  {{else if (eq agentTone "witty")}}
+    Incorporate humor, clever wordplay, and a playful attitude. Responses can be lighthearted and engaging, but still relevant.
+  {{else if (eq agentTone "neutral")}}
+    Use a balanced, objective, and straightforward tone. Avoid strong emotional expressions or overly casual/formal language.
+  {{else}}
+    Use a balanced and neutral conversational style.
+  {{/if}}
 ---
 {{/if}}
 
