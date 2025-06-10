@@ -19,7 +19,7 @@ import {
   SidebarInset,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { Home, PlusCircle, Bot, Settings, BookOpen, MessageSquare, Share2, Cog, LifeBuoy, Loader2, LogIn, LayoutGrid, Briefcase } from 'lucide-react';
+import { Home, Bot, Settings, BookOpen, MessageSquare, Share2, Cog, LifeBuoy, Loader2, LogIn, LayoutGrid, Briefcase } from 'lucide-react';
 import type { Agent, KnowledgeItem, AgentToneType, Client } from '@/lib/types';
 import { db } from '@/lib/firebase';
 import {
@@ -132,7 +132,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       return;
     }
     if (!currentUser) {
-      if (pathname !== '/login' && pathname !== '/signup' && !pathname.startsWith('/chat/')) {
+      if (pathname !== '/login' && pathname !== '/signup' && !pathname.startsWith('/chat/') && pathname !== '/playbook' && pathname !== '/templates' && pathname !== '/support') {
         router.push('/login');
       } else {
         setIsLoadingAgents(false);
@@ -428,7 +428,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       );
     }
-    if (!authLoading && !currentUser && !(pathname === '/login' || pathname === '/signup' || pathname.startsWith('/chat/'))) {
+    if (!authLoading && !currentUser && !(pathname === '/login' || pathname === '/signup' || pathname.startsWith('/chat/') || pathname === '/playbook' || pathname === '/templates' || pathname === '/support')) {
       return (
         <div className="flex flex-col items-center justify-center flex-1 p-4 text-center">
             <LogIn className="h-10 w-10 sm:h-12 sm:h-12 text-primary mb-3" />
@@ -436,7 +436,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       );
     }
-    if (isContextInitialized || ( (!authLoading && !currentUser) && (pathname === '/login' || pathname === '/signup' || pathname.startsWith('/chat/')) ) ) {
+    if (isContextInitialized || ( (!authLoading && !currentUser) && (pathname === '/login' || pathname === '/signup' || pathname.startsWith('/chat/') || pathname === '/playbook' || pathname === '/templates' || pathname === '/support') ) ) {
       return children;
     }
     return (
@@ -552,7 +552,7 @@ function AppSidebar() {
     ];
   }
 
-  if (!currentUser && !(pathname.startsWith('/chat/'))) {
+  if (!currentUser && !(pathname.startsWith('/chat/') || pathname === '/playbook' || pathname === '/templates' || pathname === '/support')) {
     return <Sidebar><SidebarHeader className="p-3 sm:p-4"><Link href="/" aria-label="AutoBoss Homepage" className="hover:opacity-80 transition-opacity"><Logo collapsed={collapsed} className="h-7 sm:h-8 px-1 sm:px-2 py-1"/></Link></SidebarHeader></Sidebar>;
   }
 
@@ -575,15 +575,7 @@ function AppSidebar() {
               </SidebarMenuButton>
             </Link>
           </SidebarMenuItem>
-           <SidebarMenuItem>
-            <Link href="/templates" onClick={handleMobileLinkClick}>
-              <SidebarMenuButton isActive={pathname === '/templates'} tooltip={collapsed ? 'Agent Templates' : undefined}>
-                <LayoutGrid />
-                <span>Templates</span>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-          {/* Remove direct "Create Agent" link from main sidebar, it's now context-dependent */}
+          {/* Removed Templates and Support from authenticated sidebar */}
 
           {isDataLoading && currentClientId && (
             <>
@@ -647,12 +639,7 @@ function AppSidebar() {
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="p-3 sm:p-4 space-y-1 sm:space-y-2">
-        <Link href="/support" onClick={handleMobileLinkClick}>
-          <SidebarMenuButton tooltip={collapsed ? 'Support' : undefined} isActive={pathname === '/support'}>
-            <LifeBuoy />
-            <span>Support</span>
-          </SidebarMenuButton>
-        </Link>
+        {/* No Support link here, it's now public */}
         <Link href="/settings" onClick={handleMobileLinkClick}>
           <SidebarMenuButton tooltip={collapsed ? 'Settings' : undefined} isActive={pathname === '/settings'}>
             <Settings />
@@ -663,3 +650,5 @@ function AppSidebar() {
     </Sidebar>
   );
 }
+
+    

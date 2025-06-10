@@ -9,7 +9,9 @@ Disallow: /login
 Disallow: /signup
 Disallow: /profile
 Disallow: /settings
-Disallow: /agents/
+Disallow: /agents/ 
 Disallow: /clients/
 
 Sitemap: https://YOUR_APP_DOMAIN.com/sitemap.xml
+
+    

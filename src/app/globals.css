@@ -147,8 +147,7 @@
 /* Typewriter effect */
 @keyframes typing {
   from { width: 0ch; }
-  /* "Build AI. Serve Clients. Earn." is 30 characters. */
-  to { width: 30ch; } /* Exact character match for width */
+  to { width: 30ch; } /* "Build AI. Serve Clients. Earn." is 30 characters. */
 }
 
 @keyframes blink-caret {
@@ -163,7 +162,7 @@
   white-space: nowrap;
   letter-spacing: .03em; 
   animation:
-    typing 2s steps(30, end) forwards, /* Steps should match actual characters */
+    typing 2s steps(30, end) forwards, /* Steps match characters */
     blink-caret .75s step-end infinite;
   animation-delay: 0.2s;
   width: 0ch; 
@@ -305,13 +304,14 @@ div[data-ai-hint] {
 .step-card-container > :nth-child(3) .dashed-connector::after { @apply content-none; }
 
 
-/* Roadmap List Item Styles - Product Hunt Inspired - (Kept for potential future use, but not active with Playbook page) */
+/* Roadmap List Item Styles - Product Hunt Inspired */
 .roadmap-item-card {
   @apply bg-card border border-border rounded-lg p-3 sm:p-4 flex gap-3 sm:gap-4 items-start hover:shadow-md transition-shadow duration-200;
 }
 
-.roadmap-vote-button-ph { /* PH for Product Hunt style */
+.roadmap-vote-button-ph {
   @apply flex flex-col items-center justify-center p-1.5 sm:p-2 border border-border rounded-md hover:border-primary transition-colors min-w-[45px] sm:min-w-[55px] cursor-pointer text-center bg-background hover:bg-muted/50;
+  /* Removed 'group' utility from @apply */
 }
 .roadmap-vote-button-ph.voted {
   @apply border-primary bg-primary/10 text-primary;
@@ -336,13 +336,13 @@ div[data-ai-hint] {
 .roadmap-feature-header {
   @apply flex items-center gap-2;
 }
-.roadmap-feature-icon-ph { /* PH for Product Hunt style */
+.roadmap-feature-icon-ph {
   @apply p-1.5 bg-muted rounded-md text-primary;
 }
 .roadmap-feature-icon-ph svg {
   @apply w-4 h-4 sm:w-5 sm:w-5;
 }
-.roadmap-feature-title-ph { /* PH for Product Hunt style */
+.roadmap-feature-title-ph {
   @apply text-sm sm:text-base font-semibold text-foreground;
 }
 .roadmap-feature-description-ph {
@@ -351,3 +351,12 @@ div[data-ai-hint] {
 .roadmap-feature-tags-ph {
   @apply mt-2 flex flex-wrap items-center gap-1.5;
 }
+
+/* Public Page Header/Footer minimal styling */
+.public-page-header {
+    @apply sticky top-0 z-50 w-full border-b border-border/60 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80;
+}
+.public-page-footer {
+    @apply py-6 text-center border-t border-border/60;
+}
+```
