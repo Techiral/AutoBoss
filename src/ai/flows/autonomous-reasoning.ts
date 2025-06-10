@@ -37,29 +37,35 @@ export async function autonomousReasoning(input: AutonomousReasoningInput): Prom
   return autonomousReasoningFlow(input);
 }
 
+// Internal schema for the prompt's direct input
+const PromptInputSchema = z.object({ 
+  agentName: z.string().optional(),
+  agentPersona: z.string().optional(),
+  agentRole: z.string().optional(),
+  agentTone: AgentToneSchema.optional(), // Keep original tone for display in prompt
+  isFriendlyTone: z.boolean().optional(),
+  isProfessionalTone: z.boolean().optional(),
+  isWittyTone: z.boolean().optional(),
+  isNeutralTone: z.boolean().optional(),
+  context: z.string(),
+  userInput: z.string(),
+  retrievedChunksText: z.string().optional().describe("Concatenated text of relevant chunks retrieved from the knowledge base."),
+});
+
+
 const prompt = ai.definePrompt({
   name: 'autonomousReasoningPrompt',
-  input: {schema: z.object({ 
-    agentName: z.string().optional(),
-    agentPersona: z.string().optional(),
-    agentRole: z.string().optional(),
-    agentTone: AgentToneSchema.optional(),
-    context: z.string(),
-    userInput: z.string(),
-    retrievedChunksText: z.string().optional().describe("Concatenated text of relevant chunks retrieved from the knowledge base."),
-  })},
+  input: {schema: PromptInputSchema }, // Use the extended schema
   output: {schema: AutonomousReasoningOutputSchema},
   prompt: `
 {{#if agentTone}}
 Your conversational tone MUST be: {{agentTone}}.
-  {{#if (eq agentTone "friendly")}}
+  {{#if isFriendlyTone}}
     Adopt a warm, approachable, and casual conversational style. Use friendly language and express positive emotions where appropriate.
-  {{else if (eq agentTone "professional")}}
+  {{else if isProfessionalTone}}
     Maintain a formal, precise, and respectful tone. Use clear, direct language and avoid slang or overly casual expressions.
-  {{else if (eq agentTone "witty")}}
+  {{else if isWittyTone}}
     Incorporate humor, clever wordplay, and a playful attitude. Responses can be lighthearted and engaging, but still relevant.
-  {{else if (eq agentTone "neutral")}}
-    Use a balanced, objective, and straightforward tone. Avoid strong emotional expressions or overly casual/formal language.
   {{else}}
     Use a balanced and neutral conversational style.
   {{/if}}
@@ -114,7 +120,7 @@ Your response MUST be a single, valid JSON object adhering to the output schema:
 const autonomousReasoningFlow = ai.defineFlow(
   {
     name: 'autonomousReasoningFlow',
-    inputSchema: AutonomousReasoningInputSchema,
+    inputSchema: AutonomousReasoningInputSchema, // Flow input is still the original schema
     outputSchema: AutonomousReasoningOutputSchema,
   },
   async (input: AutonomousReasoningInput): Promise<AutonomousReasoningOutput> => {
@@ -161,17 +167,21 @@ const autonomousReasoningFlow = ai.defineFlow(
         console.log("RAG: No knowledge items provided. Skipping RAG processing.");
     }
 
-    const promptInput = {
+    const promptInputData: z.infer<typeof PromptInputSchema> = {
       agentName: input.agentName,
       agentPersona: input.agentPersona,
       agentRole: input.agentRole,
-      agentTone: input.agentTone, // Pass agentTone to prompt
+      agentTone: input.agentTone, // Pass original tone string for display in prompt
+      isFriendlyTone: input.agentTone === 'friendly',
+      isProfessionalTone: input.agentTone === 'professional',
+      isWittyTone: input.agentTone === 'witty',
+      isNeutralTone: input.agentTone === 'neutral' || !input.agentTone,
       context: input.context,
       userInput: input.userInput,
       retrievedChunksText: retrievedChunksText,
     };
 
-    const modelResponse = await prompt(promptInput); 
+    const modelResponse = await prompt(promptInputData); 
     
     if (!modelResponse.output) {
         const rawText = modelResponse.response?.text;

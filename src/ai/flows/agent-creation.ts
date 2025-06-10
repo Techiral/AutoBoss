@@ -38,10 +38,18 @@ export async function createAgent(input: CreateAgentInput): Promise<CreateAgentO
   return createAgentFlow(input);
 }
 
+// Internal schema for the prompt, including boolean flags for tone
+const PromptInputSchema = CreateAgentInputSchema.extend({
+  isFriendlyTone: z.boolean().optional(),
+  isProfessionalTone: z.boolean().optional(),
+  isWittyTone: z.boolean().optional(),
+  isNeutralTone: z.boolean().optional(),
+});
+
 const prompt = ai.definePrompt({
   name: 'createAgentPrompt',
-  input: {schema: CreateAgentInputSchema},
-  output: {schema: CreateAgentOutputSchema}, // This tells Genkit to expect JSON and parse it.
+  input: {schema: PromptInputSchema}, // Use the extended schema here
+  output: {schema: CreateAgentOutputSchema},
   prompt: `You are an expert in creating AI agents. Based on the description provided, you will generate:
 1. A concise and catchy "agentName".
 2. A detailed "agentPersona" in the first person, embodying the role and personality.
@@ -63,14 +71,12 @@ This agent will primarily rely on its persona, direct AI prompting, and any trai
 
 {{#if agentTone}}
 Desired Conversational Tone: {{agentTone}}.
-  {{#if (eq agentTone "friendly")}}
+  {{#if isFriendlyTone}}
     Please adopt a warm, approachable, and casual conversational style. Use friendly language and express positive emotions where appropriate.
-  {{else if (eq agentTone "professional")}}
+  {{else if isProfessionalTone}}
     Maintain a formal, precise, and respectful tone. Use clear, direct language and avoid slang or overly casual expressions.
-  {{else if (eq agentTone "witty")}}
+  {{else if isWittyTone}}
     Incorporate humor, clever wordplay, and a playful attitude. Responses can be lighthearted and engaging, but still relevant.
-  {{else if (eq agentTone "neutral")}}
-    Use a balanced, objective, and straightforward tone. Avoid strong emotional expressions or overly casual/formal language.
   {{else}}
     Use a balanced and neutral conversational style.
   {{/if}}
@@ -93,11 +99,20 @@ Example format:
 const createAgentFlow = ai.defineFlow(
   {
     name: 'createAgentFlow',
-    inputSchema: CreateAgentInputSchema,
+    inputSchema: CreateAgentInputSchema, // Flow input is still the original schema
     outputSchema: CreateAgentOutputSchema,
   },
   async (input): Promise<CreateAgentOutput> => {
-    const modelResponse = await prompt(input); 
+    // Prepare input for the prompt by adding boolean tone flags
+    const promptInputData: z.infer<typeof PromptInputSchema> = {
+      ...input,
+      isFriendlyTone: input.agentTone === 'friendly',
+      isProfessionalTone: input.agentTone === 'professional',
+      isWittyTone: input.agentTone === 'witty',
+      isNeutralTone: input.agentTone === 'neutral' || !input.agentTone, // Default to neutral
+    };
+
+    const modelResponse = await prompt(promptInputData); 
 
     if (!modelResponse.output) {
       const rawText = modelResponse.response?.text; 

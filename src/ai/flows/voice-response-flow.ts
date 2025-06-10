@@ -33,21 +33,27 @@ export async function generateVoiceResponse(input: VoiceResponseInput): Promise<
   return voiceResponseFlow(input);
 }
 
+// Internal schema for the prompt, including boolean flags for tone
+const PromptInputSchema = VoiceResponseInputSchema.extend({
+  isFriendlyTone: z.boolean().optional(),
+  isProfessionalTone: z.boolean().optional(),
+  isWittyTone: z.boolean().optional(),
+  isNeutralTone: z.boolean().optional(),
+});
+
 const voicePrompt = ai.definePrompt({
   name: 'voiceResponsePrompt',
-  input: {schema: VoiceResponseInputSchema},
+  input: {schema: PromptInputSchema}, // Use extended schema
   output: {schema: VoiceResponseOutputSchema},
   prompt: `
 {{#if agentTone}}
 Your conversational tone MUST be: {{agentTone}}.
-  {{#if (eq agentTone "friendly")}}
+  {{#if isFriendlyTone}}
     Adopt a warm, approachable, and casual conversational style. Use friendly language and express positive emotions where appropriate.
-  {{else if (eq agentTone "professional")}}
+  {{else if isProfessionalTone}}
     Maintain a formal, precise, and respectful tone. Use clear, direct language and avoid slang or overly casual expressions.
-  {{else if (eq agentTone "witty")}}
+  {{else if isWittyTone}}
     Incorporate humor, clever wordplay, and a playful attitude. Responses can be lighthearted and engaging, but still relevant.
-  {{else if (eq agentTone "neutral")}}
-    Use a balanced, objective, and straightforward tone. Avoid strong emotional expressions or overly casual/formal language.
   {{else}}
     Use a balanced and neutral conversational style.
   {{/if}}
@@ -89,11 +95,20 @@ Your JSON output must contain only the "agentResponse" field.
 const voiceResponseFlow = ai.defineFlow(
   {
     name: 'voiceResponseFlow',
-    inputSchema: VoiceResponseInputSchema,
+    inputSchema: VoiceResponseInputSchema, // Flow input is still the original schema
     outputSchema: VoiceResponseOutputSchema,
   },
   async (input: VoiceResponseInput): Promise<VoiceResponseOutput> => {
-    const modelResponse = await voicePrompt(input);
+    // Prepare input for the prompt by adding boolean tone flags
+    const promptInputData: z.infer<typeof PromptInputSchema> = {
+      ...input,
+      isFriendlyTone: input.agentTone === 'friendly',
+      isProfessionalTone: input.agentTone === 'professional',
+      isWittyTone: input.agentTone === 'witty',
+      isNeutralTone: input.agentTone === 'neutral' || !input.agentTone,
+    };
+
+    const modelResponse = await voicePrompt(promptInputData);
     if (!modelResponse.output) {
       const rawText = modelResponse.response?.text;
       console.error("Voice response flow failed to produce structured output. Raw response:", rawText);
