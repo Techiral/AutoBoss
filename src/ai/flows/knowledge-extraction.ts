@@ -33,9 +33,23 @@ const extractKnowledgePrompt = ai.definePrompt({
   name: 'extractKnowledgePrompt',
   input: {schema: KnowledgeExtractionInputSchema}, // Uses imported schema
   output: {schema: KnowledgeExtractionOutputSchema}, // Uses imported schema
-  prompt: `You are an expert knowledge extractor. Your goal is to read a document and extract the key information from it.  Then write a summary and list the keywords.
+  prompt: `You are an expert knowledge extractor. Your goal is to process a document and prepare it for a knowledge base.
 
-Document: {{media url=documentDataUri}}`,
+Document Content (provided as a data URI): {{media url=documentDataUri}}
+
+{{#if isPreStructuredText}}
+The provided document content is pre-structured text (e.g., from a CSV that has been converted to detailed textual rows).
+For your "summary" output, you MUST return the *exact, verbatim content* of the documentDataUri. Do NOT summarize or alter it.
+Then, analyze this full structured text to generate a list of relevant "keywords".
+{{else}}
+Read the document content and extract the key information from it.
+Then, for your output:
+1.  Write a concise "summary" of the document.
+2.  List relevant "keywords".
+{{/if}}
+
+Your response MUST be a single, valid JSON object adhering to the output schema, containing "summary" and "keywords".
+`,
 });
 
 const extractKnowledgeFlow = ai.defineFlow(
@@ -52,6 +66,18 @@ const extractKnowledgeFlow = ai.defineFlow(
         'Failed to get structured output from extractKnowledgePrompt. Raw model response:',
         rawText || 'No raw text available'
       );
+      // Attempt to parse raw text if it seems like JSON
+      if (rawText) {
+        try {
+          const parsedFallback = JSON.parse(rawText);
+          if (KnowledgeExtractionOutputSchema.safeParse(parsedFallback).success) {
+            console.warn("extractKnowledgeFlow: Successfully parsed raw text as fallback output.");
+            return parsedFallback as KnowledgeExtractionOutput;
+          }
+        } catch (e) {
+          // Not valid JSON or doesn't match schema
+        }
+      }
       throw new Error(
         'AI could not extract knowledge. The model did not return the expected JSON format.'
       );

@@ -23,7 +23,7 @@ export const KnowledgeItemSchema = z.object({
   id: z.string(),
   fileName: z.string(),
   uploadedAt: z.string().or(z.custom<Timestamp>()),
-  summary: z.string().optional(),
+  summary: z.string().optional(), // For CSVs, this will store the full structured text
   keywords: z.array(z.string()).optional(),
 });
 export type KnowledgeItem = z.infer<typeof KnowledgeItemSchema>;
@@ -35,6 +35,7 @@ export const KnowledgeExtractionInputSchema = z.object({
     .describe(
       'The document to extract knowledge from, as a data URI that must include a MIME type and use Base64 encoding. Expected format: \'data:<mimetype>;base64,<encoded_data>\'.'
     ),
+  isPreStructuredText: z.boolean().optional().describe("Hint to the AI that the documentDataUri contains pre-structured text (e.g., from a CSV) and the 'summary' output should be this text verbatim."),
 });
 export type KnowledgeExtractionInput = z.infer<typeof KnowledgeExtractionInputSchema>;
 
@@ -42,7 +43,7 @@ export type KnowledgeExtractionInput = z.infer<typeof KnowledgeExtractionInputSc
 export const KnowledgeExtractionOutputSchema = z.object({
   summary: z
     .string()
-    .describe('A concise summary of the key information extracted from the document.'),
+    .describe('A concise summary of the key information extracted from the document. For pre-structured text (like CSVs), this will be the original structured text itself.'),
   keywords: z
     .array(z.string())
     .describe('A list of keywords that represent the main topics covered in the document.'),
@@ -72,7 +73,7 @@ export interface Agent {
   agentType: AgentType;
   primaryLogic?: AgentLogicType;
   direction?: AgentDirection;
-  agentTone?: AgentToneType; 
+  agentTone?: AgentToneType;
   name: string; // Client/Business Name or Agent Concept
   description: string; // Auto-generated or user-refined based on inputs
   role?: string; // Detailed role & objectives
@@ -115,4 +116,3 @@ export const OutboundTaskPayloadSchema = z.object({
   scheduledAt: z.string().datetime({ offset: true }).optional().describe("Optional ISO 8601 timestamp for scheduled sending."),
 });
 export type OutboundTaskPayload = z.infer<typeof OutboundTaskPayloadSchema>;
-    

@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { extractKnowledge } from "@/ai/flows/knowledge-extraction";
-import { processUrl } from "@/ai/flows/url-processor"; 
+import { processUrl } from "@/ai/flows/url-processor";
 import { Upload, Loader2, FileText, Tag, AlertTriangle, Link as LinkIcon, Brain, Info, Mic } from "lucide-react";
 import type { KnowledgeItem, Agent, ProcessedUrlOutput } from "@/lib/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -41,26 +41,29 @@ function csvToStructuredText(csvString: string, fileName: string): string {
   }
 
   let textRepresentation = `Content of CSV file "${fileName}":\n\n`;
-  
+
   parseResult.data.forEach((row, index) => {
     const headers = Object.keys(row);
+    if (headers.length === 0) return; // Skip rows that might be empty after parsing
+
     const firstHeader = headers[0];
     const firstValue = row[firstHeader];
-    
+
     let entryPreamble = `Entry ${index + 1}`;
-    if (firstHeader && firstValue) {
-      entryPreamble = `Details for ${firstHeader} "${firstValue}" (Entry ${index + 1})`;
+    if (firstHeader && firstValue && firstValue.trim() !== "") {
+      entryPreamble = `Details for ${firstHeader.trim()} "${firstValue.trim()}" (Entry ${index + 1})`;
     } else if (firstHeader) {
-      entryPreamble = `Entry ${index + 1} (first header: ${firstHeader})`;
+      entryPreamble = `Entry ${index + 1} (First Header: ${firstHeader.trim()})`;
     }
 
+
     textRepresentation += `${entryPreamble}:\n`;
-    
+
     const rowDetails = headers.map(header => {
       const value = row[header] || 'N/A';
       return `  - The ${header.trim()} is "${value.trim()}".`;
     });
-    
+
     textRepresentation += rowDetails.join("\n") + "\n\n";
   });
 
@@ -73,7 +76,7 @@ export default function KnowledgePage() {
   const [isProcessingUrl, setIsProcessingUrl] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [urlInput, setUrlInput] = useState("");
-  
+
   const { toast } = useToast();
   const params = useParams();
   const agentId = Array.isArray(params.agentId) ? params.agentId[0] : params.agentId;
@@ -94,7 +97,7 @@ export default function KnowledgePage() {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       setSelectedFile(event.target.files[0]);
-      setUrlInput(""); 
+      setUrlInput("");
     } else {
       setSelectedFile(null);
     }
@@ -103,7 +106,7 @@ export default function KnowledgePage() {
   const handleUrlInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setUrlInput(event.target.value);
     if (event.target.value) {
-        setSelectedFile(null); 
+        setSelectedFile(null);
         const fileInput = document.getElementById('document') as HTMLInputElement;
         if (fileInput) fileInput.value = '';
     }
@@ -134,9 +137,10 @@ export default function KnowledgePage() {
       toast({ title: "No file selected", description: "Please select a file to upload.", variant: "destructive" });
       return;
     }
-    
+
     setIsLoadingFile(true);
     const originalFileName = selectedFile.name;
+    let isPreStructured = false;
 
     try {
       let documentDataUri: string;
@@ -152,11 +156,11 @@ export default function KnowledgePage() {
           const page = await pdfDoc.getPage(i);
           const textContentItems = await page.getTextContent();
           textContentItems.items.forEach(item => {
-            if ('str' in item) { 
+            if ('str' in item) {
               textContent += item.str + " ";
             }
           });
-          textContent += "\n"; 
+          textContent += "\n";
         }
         if (!textContent.trim()) throw new Error("No text content found in PDF.");
         documentDataUri = `data:text/plain;charset=utf-8;base64,${Buffer.from(textContent).toString('base64')}`;
@@ -173,7 +177,8 @@ export default function KnowledgePage() {
         if (!plainTextFromCsv.trim()) throw new Error("Empty CSV or no content after conversion.");
         documentDataUri = `data:text/plain;charset=utf-8;base64,${Buffer.from(plainTextFromCsv).toString('base64')}`;
         effectiveMimeType = 'text/plain';
-      } else { 
+        isPreStructured = true; // Mark as pre-structured for the knowledge flow
+      } else {
         documentDataUri = await new Promise((resolve, reject) => {
           const reader = new FileReader();
           reader.onload = () => {
@@ -202,8 +207,8 @@ export default function KnowledgePage() {
           reader.readAsDataURL(selectedFile);
         });
       }
-        
-      const result = await extractKnowledge({ documentDataUri: documentDataUri });
+
+      const result = await extractKnowledge({ documentDataUri: documentDataUri, isPreStructuredText: isPreStructured });
       addKnowledgeToAgent(originalFileName, result.summary, result.keywords);
 
     } catch (extractionError: any) {
@@ -211,9 +216,9 @@ export default function KnowledgePage() {
         const errorMessage = extractionError.message || `Failed to extract information from "${originalFileName}". The file might be too complex, empty, or in an unsupported format.`;
         toast({ title: "File Training Error", description: errorMessage, variant: "destructive" });
     } finally {
-      setSelectedFile(null); 
+      setSelectedFile(null);
       const fileInput = document.getElementById('document') as HTMLInputElement;
-      if (fileInput) fileInput.value = ''; 
+      if (fileInput) fileInput.value = '';
       setIsLoadingFile(false);
     }
   };
@@ -229,7 +234,7 @@ export default function KnowledgePage() {
     }
 
     try {
-        new URL(validUrl); 
+        new URL(validUrl);
     } catch (_) {
         toast({ title: "Invalid URL", description: "Please enter a valid website URL (e.g., https://example.com/about-us).", variant: "destructive"});
         return;
@@ -238,18 +243,18 @@ export default function KnowledgePage() {
     setIsProcessingUrl(true);
     try {
         const result: ProcessedUrlOutput = await processUrl({ url: validUrl });
-        
+
         let displayFileName = result.title || validUrl;
-        try { 
+        try {
             const parsedUrl = new URL(validUrl);
             displayFileName = result.title || (parsedUrl.hostname + (parsedUrl.pathname === '/' ? '' : parsedUrl.pathname));
         } catch { /* ignore if parsing fails, use validUrl or title */ }
 
         const textDataUri = `data:text/plain;charset=utf-8;base64,${Buffer.from(result.extractedText).toString('base64')}`;
-        const knowledgeResult = await extractKnowledge({ documentDataUri: textDataUri });
-        
-        addKnowledgeToAgent(displayFileName.substring(0,100), knowledgeResult.summary, knowledgeResult.keywords); 
-        setUrlInput(""); 
+        const knowledgeResult = await extractKnowledge({ documentDataUri: textDataUri, isPreStructuredText: false }); // URLs are not pre-structured
+
+        addKnowledgeToAgent(displayFileName.substring(0,100), knowledgeResult.summary, knowledgeResult.keywords);
+        setUrlInput("");
     } catch (error: any) {
         console.error("Error processing URL:", error);
         let errorMessage = error.message || "Failed to process the website. The content might be inaccessible or unsuitable for training.";
@@ -292,7 +297,7 @@ export default function KnowledgePage() {
       </Alert>
     );
   }
-  
+
   const isVoiceAgent = currentAgent.agentType === 'voice' || currentAgent.agentType === 'hybrid';
 
   return (
@@ -312,12 +317,12 @@ export default function KnowledgePage() {
                 {isLoadingFile ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
                 {isLoadingFile ? "Processing File..." : "Upload & Train File"}
             </Button>
-            
+
             <Alert variant="default" className="p-3 text-xs bg-accent/10 dark:bg-accent/20 border-accent/30">
                 <Info className="h-3.5 w-3.5 text-accent" />
                 <AlertTitle className="text-accent text-xs font-medium">Tip for File Uploads</AlertTitle>
                 <AlertDescription className="text-accent/80 dark:text-accent/90 text-[11px]">
-                  Supported formats: TXT, MD, PDF, DOCX, CSV, JSON, HTML. For best results with PDF/DOCX, ensure they contain selectable text. Complex layouts or scanned images may not parse well. CSVs are converted to textual descriptions using PapaParse.
+                  Supported formats: TXT, MD, PDF, DOCX, CSV, JSON, HTML. For best results with PDF/DOCX, ensure they contain selectable text. Complex layouts or scanned images may not parse well. CSVs are converted to detailed textual descriptions.
                 </AlertDescription>
             </Alert>
 
@@ -365,16 +370,16 @@ export default function KnowledgePage() {
             <CardTitle className={cn("font-headline text-lg sm:text-xl flex items-center gap-2", "text-gradient-dynamic")}>
                 <Brain className="w-5 h-5 sm:w-6 sm:w-6 text-primary"/> Trained Knowledge for: {currentAgent.generatedName || currentAgent.name}
             </CardTitle>
-             <CardDescription className="text-sm">This is the custom business data your agent uses to answer questions.</CardDescription>
+             <CardDescription className="text-sm">This is the custom business data your agent uses to answer questions. For CSVs, this is the full structured text.</CardDescription>
           </CardHeader>
           <CardContent className="p-4 sm:p-6 pt-0">
-            <ScrollArea className="h-[calc(100vh-350px)] sm:h-[calc(100vh-300px)] max-h-[500px] sm:max-h-[600px] pr-3 sm:pr-4"> 
+            <ScrollArea className="h-[calc(100vh-350px)] sm:h-[calc(100vh-300px)] max-h-[500px] sm:max-h-[600px] pr-3 sm:pr-4">
               <div className="space-y-3 sm:space-y-4">
               {knowledgeItems.map(item => (
                 <Card key={item.id} className="bg-muted/50">
                   <CardHeader className="p-3 sm:p-4">
                     <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                        {(item.fileName.startsWith('http://') || item.fileName.startsWith('https://')) ? <LinkIcon className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0"/> : <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0"/>} 
+                        {(item.fileName.startsWith('http://') || item.fileName.startsWith('https://')) ? <LinkIcon className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0"/> : <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0"/>}
                         <span className="truncate text-sm sm:text-base" title={item.fileName}>{item.fileName}</span>
                     </CardTitle>
                     <CardDescription className="text-xs">Trained: {new Date(item.uploadedAt).toLocaleString()}</CardDescription>
@@ -382,8 +387,10 @@ export default function KnowledgePage() {
                   <CardContent className="p-3 sm:p-4 pt-0">
                     {item.summary && (
                       <div>
-                        <h4 className="font-semibold text-xs sm:text-sm mb-1">Key Information (Summary):</h4>
-                        <p className="text-xs sm:text-sm text-muted-foreground mb-2">{item.summary}</p>
+                        <h4 className="font-semibold text-xs sm:text-sm mb-1">
+                          {item.fileName.toLowerCase().endsWith('.csv') ? "Full Structured Content:" : "Key Information (Summary):"}
+                        </h4>
+                        <p className="text-xs sm:text-sm text-muted-foreground mb-2 whitespace-pre-wrap max-h-48 overflow-y-auto">{item.summary}</p>
                       </div>
                     )}
                     {item.keywords && item.keywords.length > 0 && (
@@ -423,4 +430,3 @@ export default function KnowledgePage() {
     </div>
   );
 }
-
