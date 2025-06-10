@@ -9,6 +9,8 @@ export const UserProfileSchema = z.object({
   photoDataUri: z.string().optional().describe("Base64 encoded Data URI for profile photo."),
   phoneNumber: z.string().optional().describe("User's phone number, potentially for voice agent features or account recovery."),
   createdAt: z.custom<Timestamp>(),
+  sendGridApiKey: z.string().optional().describe("User's own SendGrid API Key."),
+  userDefaultFromEmail: z.string().email().optional().describe("User's default 'From' email for SendGrid."),
 });
 export type UserProfile = z.infer<typeof UserProfileSchema>;
 
@@ -54,7 +56,7 @@ export type ProcessedUrlOutput = z.infer<typeof ProcessedUrlOutputSchema>;
 
 // Agent interface
 export type AgentType = 'chat' | 'voice' | 'hybrid';
-export type AgentLogicType = 'prompt' | 'rag'; // Simplified: Removed 'flow' and 'hybrid' (that implied flow)
+export type AgentLogicType = 'prompt' | 'rag';
 export type AgentDirection = 'inbound' | 'outbound';
 
 export interface Agent {
@@ -72,7 +74,6 @@ export interface Agent {
   generatedGreeting?: string;
   createdAt: string | Timestamp;
   knowledgeItems?: KnowledgeItem[];
-  // flow?: AgentFlowDefinition; // Removed flow property
 }
 
 export interface ChatMessage {
@@ -83,9 +84,7 @@ export interface ChatMessage {
   intent?: string;
   entities?: Record<string, string>;
   reasoning?: string;
-  // flowNodeId?: string; // Removed
-  // flowContext?: any; // Removed
   relevantKnowledgeIds?: string[];
-  conversationHistory?: string[]; // For client-side state or passing to API
+  conversationHistory?: string[];
 }
     
