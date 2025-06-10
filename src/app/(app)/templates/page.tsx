@@ -4,9 +4,11 @@
 import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, ShoppingCart, HomeIcon as RealEstateIcon, CalendarCheck, BotIcon, HelpCircle, Lightbulb, Users, Briefcase, LayoutGrid, Users2 } from "lucide-react";
+import { ArrowRight, ShoppingCart, HomeIcon as RealEstateIcon, CalendarCheck, BotIcon, HelpCircle, Lightbulb, Users, Briefcase, LayoutGrid, Users2, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AgentPurposeType, AgentType, AgentDirection, AgentLogicType } from "@/lib/types"; 
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
 
 export interface AgentTemplate {
   id: string;
@@ -30,77 +32,77 @@ const agentTemplates: AgentTemplate[] = [
   {
     id: 'ecommerce_support',
     name: 'E-commerce Support Bot',
-    description: 'Handles customer inquiries, tracks orders, and assists with returns for your client\'s online store. Reduces their support tickets.',
+    description: 'Handles common customer questions, tracks orders, and explains returns for your client\'s online store. Saves them time & makes customers happier!',
     icon: ShoppingCart,
     category: "Client Customer Service",
-    tags: ["e-commerce", "support", "orders", "chat"],
+    tags: ["e-commerce", "support", "chat", "save time"],
     defaultValues: {
       agentPurpose: 'support',
       agentType: 'chat',
-      primaryLogic: 'rag',
-      role: "I am a customer support specialist for [Client Name]. My main tasks are to help customers track their orders, answer questions about products, explain return policies, and resolve any shopping issues they might have. I aim to provide quick and accurate assistance to ensure a smooth and positive customer experience.",
-      personality: "Friendly, patient, and highly efficient. I'm knowledgeable about our products and policies, and I communicate clearly and politely. I'm always ready to help with a positive attitude."
+      primaryLogic: 'rag', // RAG is good for FAQ/Policy based support
+      role: "I am a friendly and efficient support assistant for [Client Name]'s online store. I help customers by answering questions about their orders, our products, shipping, and returns. My goal is to provide quick and helpful information.",
+      personality: "Patient, clear, and positive. I'm always happy to help!"
     }
   },
   {
     id: 'real_estate_lead_gen',
-    name: 'Real Estate Lead Assistant',
-    description: 'Engages website visitors for your client\'s real estate agency, qualifies leads, and schedules property viewings.',
+    name: 'Real Estate Lead Catcher',
+    description: 'Talks to website visitors for your real estate client, finds out what they need (buy/sell/rent), gets their contact info, and can even suggest next steps like viewings.',
     icon: RealEstateIcon,
     category: "Client Sales & Lead Gen",
-    tags: ["real estate", "leads", "sales", "chat"],
+    tags: ["real estate", "leads", "sales", "get clients"],
     defaultValues: {
       agentPurpose: 'sales',
       agentType: 'chat',
-      primaryLogic: 'prompt',
-      role: "I'm a lead generation assistant for [Client Name]'s Real Estate Agency. I interact with website visitors to understand their property needs (buying, selling, or renting), gather their contact details, and schedule appointments for property viewings or consultations with an agent. My goal is to capture and qualify potential leads effectively.",
-      personality: "Professional, engaging, and knowledgeable about the local real estate market. I'm proactive in asking relevant questions and persuasive in guiding users towards the next step. I build trust and rapport with potential clients."
+      primaryLogic: 'prompt', // Prompt-driven for more conversational lead qualification
+      role: "I'm an assistant for [Client Name]'s Real Estate. I chat with visitors to understand their property needs, like if they're looking to buy, sell, or rent, their budget, and preferred areas. I then collect their contact details so an agent can follow up.",
+      personality: "Engaging, professional, and helpful. I ask good questions to understand what people are looking for."
     }
   },
   {
     id: 'dental_appointment_voice',
     name: 'Dental Clinic Voice Booker',
-    description: 'A voice-based agent for your client\'s dental clinic that books, reschedules, or cancels appointments over the phone 24/7.',
+    description: 'A voice agent for your client\'s dental clinic. It answers calls 24/7 to book, change, or cancel appointments. Frees up their receptionist!',
     icon: CalendarCheck,
     category: "Client Appointment Scheduling",
-    tags: ["healthcare", "dental", "appointments", "voice"],
+    tags: ["healthcare", "dental", "appointments", "voice", "automation"],
     defaultValues: {
       agentPurpose: 'custom', 
       agentType: 'voice',
       direction: 'inbound',
-      primaryLogic: 'prompt',
-      role: "I am the automated voice assistant for [Client Name]'s Dental Clinic. I can help you schedule a new dental appointment, reschedule an existing one, or cancel an appointment if needed. I can also provide basic information about our clinic's services, hours, and location.",
-      personality: "Clear, calm, and friendly. I speak at a moderate pace and understand various ways users might state their requests. I confirm details carefully to ensure accuracy and provide a pleasant scheduling experience over the phone."
+      primaryLogic: 'prompt', // Good for conversational appointment setting
+      role: "I'm the automated assistant for [Client Name]'s Dental Clinic. I can help you schedule a new appointment, reschedule, or cancel an existing one. Just tell me what you need!",
+      personality: "Clear, calm, and efficient. I speak naturally and confirm details carefully."
     }
   },
   {
     id: 'faq_info_bot',
-    name: 'FAQ & Information Bot',
-    description: 'Provides instant answers to common questions for your client, based on documents or website content you upload.',
+    name: 'Instant Info Bot (FAQ Master)',
+    description: 'Feed this agent your client\'s FAQs, service details, or any documents. It becomes an instant expert, answering questions on their website 24/7.',
     icon: Lightbulb,
     category: "Client Information & Support",
-    tags: ["faq", "info", "knowledge base", "chat"],
+    tags: ["faq", "info", "knowledge base", "website help"],
     defaultValues: {
         agentPurpose: "info",
         agentType: "chat",
-        primaryLogic: "rag",
-        role: "I am an informational assistant for [Client Name]. I provide answers to frequently asked questions and explain specific topics based on the knowledge I've been trained on from your documents and website content. My goal is to be a reliable and instant source of information.",
-        personality: "Factual, concise, and helpful. I focus on delivering accurate information clearly and directly. I can point to source documents when useful."
+        primaryLogic: "rag", // Perfect for RAG
+        role: "I'm an information assistant for [Client Name]. I have access to their key documents and FAQs. Ask me anything about their services, policies, or general information, and I'll do my best to answer based on what I've learned.",
+        personality: "Factual, direct, and helpful. My main job is to give you the correct information quickly."
     }
   },
   {
     id: 'general_purpose_assistant',
-    name: 'General Purpose AI Assistant',
-    description: 'A flexible agent for your client, customizable for various tasks like creative brainstorming or general assistance.',
+    name: 'General Purpose AI Helper',
+    description: 'A flexible starting point for your client. Great for tasks like brainstorming ideas, drafting simple emails, or answering general questions. You define its exact job!',
     icon: BotIcon,
     category: "Client Custom & General",
-    tags: ["general", "custom", "creative", "chat"],
+    tags: ["general", "custom", "creative", "flexible"],
     defaultValues: {
         agentPurpose: "custom",
         agentType: "chat",
-        primaryLogic: "prompt",
-        role: "I am a versatile AI assistant for [Client Name]. I can help with tasks like brainstorming ideas, drafting content, answering general questions, or performing custom actions you define. My capabilities are flexible based on your specific instructions and persona requirements.",
-        personality: "Adaptable based on your needs. You can define whether I should be witty, formal, creative, analytical, or any other style that fits your purpose. Default is neutral and helpful."
+        primaryLogic: "prompt", // Good for general, persona-driven tasks
+        role: "I am a versatile AI assistant for [Client Name]. You can tell me what you need help with - whether it's brainstorming, summarizing text, or answering general questions. My goal is to be a helpful AI partner.",
+        personality: "Adaptable! You can define my tone - friendly, formal, funny, etc. By default, I'm helpful and neutral."
     }
   }
 ];
@@ -113,10 +115,10 @@ export default function TemplatesPage() {
         <CardHeader className="p-4 sm:p-6">
           <CardTitle className={cn("font-headline text-xl sm:text-2xl flex items-center gap-2", "text-gradient-dynamic")}>
             <LayoutGrid className="w-6 h-6 sm:w-7 sm:w-7 text-primary" />
-            AI Agent Templates for Your Clients
+            AI Agent Recipes for Client Success
           </CardTitle>
           <CardDescription className="text-sm">
-            Kickstart agent creation for your clients with these pre-configured templates. Choose one that best fits your client's business needs, then customize it further in their dedicated workspace.
+            Don't start from scratch! Use these templates to quickly build AI agents that solve real problems for your clients. Pick one, add it to a client's workspace, then customize!
           </CardDescription>
         </CardHeader>
       </Card>
@@ -147,20 +149,26 @@ export default function TemplatesPage() {
             </CardContent>
             <CardFooter className="p-4 sm:p-5 pt-2">
               <Button asChild size="sm" className={cn("w-full text-xs sm:text-sm", "btn-gradient-primary")}>
-                {/* Note: You'll need to select a client *before* using a template, or adjust the flow */}
                 <Link href={`/dashboard?info=selectClientFirst&templateId=${template.id}`}>
-                  Use This Template <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                  Use This Recipe <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
                 </Link>
               </Button>
             </CardFooter>
           </Card>
         ))}
       </div>
-       <Card className="mt-4 sm:mt-6 bg-accent/10 dark:bg-accent/20 border-accent/30">
-          <CardContent className="p-4 sm:p-5 text-xs sm:text-sm text-accent/90">
-            <strong className="font-semibold">How to use templates:</strong> First, go to your <Link href="/dashboard" className="underline hover:text-primary">Client Dashboard</Link> and either select an existing client or add a new one. Once you're in a client's workspace, you can then create a new agent and select one of these templates as a starting point. The template will be customized for that specific client.
-          </CardContent>
-      </Card>
+       <Alert className="mt-4 sm:mt-6 bg-accent/10 dark:bg-accent/20 border-accent/30">
+          <Info className="h-4 w-4 text-accent" />
+          <AlertDescription className="text-accent/80 dark:text-accent/90 text-xs sm:text-sm">
+            <strong className="font-semibold text-accent">How to use these recipes:</strong>
+            <ol className="list-decimal list-inside pl-3 mt-1">
+                <li>First, go to your <Link href="/dashboard" className="underline hover:text-primary">Client Dashboard</Link>.</li>
+                <li>Select an existing client or add a new one (this is who you're building the AI for).</li>
+                <li>Once in that client's workspace, click "Create New Agent for [Client Name]".</li>
+                <li>You'll then see an option to start with one of these recipes/templates, pre-filled for that client!</li>
+            </ol>
+          </AlertDescription>
+      </Alert>
     </div>
   );
 }

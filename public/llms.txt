@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+
+# This file provides instructions for Large Language Models (LLMs)
+# interacting with this site.
+# By default, all public content is allowed for use by LLMs.
+
+# If there are specific paths that LLMs should not use or index,
+# they can be disallowed here. For example:
+# Disallow: /internal-company-documents/
+# Disallow: /user-private-data-examples/ (if any were public by mistake)

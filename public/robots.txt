@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /login
+Disallow: /signup
+Disallow: /profile
+Disallow: /settings
+Disallow: /agents/
+Disallow: /clients/
+
+Sitemap: https://YOUR_APP_DOMAIN.com/sitemap.xml
