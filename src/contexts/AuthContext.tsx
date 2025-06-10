@@ -18,6 +18,14 @@ import type { UserProfile } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import { Logo } from '@/components/logo';
 
+interface UserCredentials {
+  sendGridApiKey?: string | null;
+  userDefaultFromEmail?: string | null;
+  twilioAccountSid?: string | null;
+  twilioAuthToken?: string | null;
+  twilioPhoneNumber?: string | null;
+}
+
 interface AuthContextType {
   currentUser: User | null;
   loading: boolean;
@@ -28,8 +36,8 @@ interface AuthContextType {
   sendUserPasswordResetEmail: () => Promise<boolean>;
   updateUserPhoneNumberInFirestore: (phoneNumber: string) => Promise<boolean>;
   getUserPhoneNumberFromFirestore: () => Promise<string | null>;
-  updateUserSendGridConfig: (config: { apiKey?: string; fromEmail?: string }) => Promise<boolean>;
-  getUserSendGridConfig: () => Promise<{ apiKey: string | null; fromEmail: string | null } | null>;
+  updateUserCredentials: (credentials: UserCredentials) => Promise<boolean>;
+  getUserCredentials: () => Promise<UserCredentials | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -60,9 +68,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: user.email || "",
           displayName: displayName,
           createdAt: Timestamp.now(),
-          // Initialize new fields
           sendGridApiKey: "",
           userDefaultFromEmail: "",
+          twilioAccountSid: "",
+          twilioAuthToken: "",
+          twilioPhoneNumber: "",
         };
         await setDoc(userRef, userData);
         console.log("AuthContext: User document created in Firestore for UID:", user.uid);
@@ -84,9 +94,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (user.email && user.email !== existingData.email) {
             updates.email = user.email;
         }
-        // Ensure new fields have default values if missing from old docs
         if (existingData.sendGridApiKey === undefined) updates.sendGridApiKey = "";
         if (existingData.userDefaultFromEmail === undefined) updates.userDefaultFromEmail = "";
+        if (existingData.twilioAccountSid === undefined) updates.twilioAccountSid = "";
+        if (existingData.twilioAuthToken === undefined) updates.twilioAuthToken = "";
+        if (existingData.twilioPhoneNumber === undefined) updates.twilioPhoneNumber = "";
+
 
         if (Object.keys(updates).length > 0) {
             await setDoc(userRef, updates, { merge: true });
@@ -258,48 +271,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const updateUserSendGridConfig = async (config: { apiKey?: string; fromEmail?: string }): Promise<boolean> => {
+  const updateUserCredentials = async (credentials: UserCredentials): Promise<boolean> => {
     if (!currentUser) {
-      toast({ title: "Not Authenticated", description: "You must be logged in to update SendGrid settings.", variant: "destructive" });
+      toast({ title: "Not Authenticated", description: "You must be logged in to update credentials.", variant: "destructive" });
       return false;
     }
-    console.log("AuthContext: Updating SendGrid config for user:", currentUser.uid, config);
+    console.log("AuthContext: Updating credentials for user:", currentUser.uid, credentials);
     try {
       const userRef = doc(db, "users", currentUser.uid);
       const updateData: Partial<UserProfile> = {};
-      if (config.apiKey !== undefined) updateData.sendGridApiKey = config.apiKey;
-      if (config.fromEmail !== undefined) updateData.userDefaultFromEmail = config.fromEmail;
+      
+      if (credentials.sendGridApiKey !== undefined) updateData.sendGridApiKey = credentials.sendGridApiKey;
+      if (credentials.userDefaultFromEmail !== undefined) updateData.userDefaultFromEmail = credentials.userDefaultFromEmail;
+      if (credentials.twilioAccountSid !== undefined) updateData.twilioAccountSid = credentials.twilioAccountSid;
+      if (credentials.twilioAuthToken !== undefined) updateData.twilioAuthToken = credentials.twilioAuthToken;
+      if (credentials.twilioPhoneNumber !== undefined) updateData.twilioPhoneNumber = credentials.twilioPhoneNumber;
       
       await setDoc(userRef, updateData, { merge: true });
-      toast({ title: "SendGrid Configuration Updated", description: "Your SendGrid settings have been saved." });
+      toast({ title: "API Credentials Updated", description: "Your API settings have been saved." });
       return true;
     } catch (error: any) {
-      console.error("AuthContext: Error updating SendGrid config in Firestore:", error);
-      toast({ title: "Update Failed", description: error.message || "Could not save SendGrid settings.", variant: "destructive" });
+      console.error("AuthContext: Error updating API credentials in Firestore:", error);
+      toast({ title: "Update Failed", description: error.message || "Could not save API settings.", variant: "destructive" });
       return false;
     }
   };
 
-  const getUserSendGridConfig = async (): Promise<{ apiKey: string | null; fromEmail: string | null } | null> => {
+  const getUserCredentials = async (): Promise<UserCredentials | null> => {
      if (!currentUser) {
-      console.log("AuthContext: Cannot get SendGrid config, no current user.");
+      console.log("AuthContext: Cannot get API credentials, no current user.");
       return null;
     }
-    console.log("AuthContext: Fetching SendGrid config from Firestore for user:", currentUser.uid);
+    console.log("AuthContext: Fetching API credentials from Firestore for user:", currentUser.uid);
     try {
       const userRef = doc(db, "users", currentUser.uid);
       const docSnap = await getDoc(userRef);
       if (docSnap.exists()) {
         const userData = docSnap.data() as UserProfile;
         return {
-          apiKey: userData.sendGridApiKey || null,
-          fromEmail: userData.userDefaultFromEmail || null,
+          sendGridApiKey: userData.sendGridApiKey || null,
+          userDefaultFromEmail: userData.userDefaultFromEmail || null,
+          twilioAccountSid: userData.twilioAccountSid || null,
+          twilioAuthToken: userData.twilioAuthToken || null,
+          twilioPhoneNumber: userData.twilioPhoneNumber || null,
         };
       }
-      console.log("AuthContext: No user document found for SendGrid config.");
-      return { apiKey: null, fromEmail: null }; // Return default/empty if no doc
+      console.log("AuthContext: No user document found for API credentials.");
+      return { sendGridApiKey: null, userDefaultFromEmail: null, twilioAccountSid: null, twilioAuthToken: null, twilioPhoneNumber: null };
     } catch (error: any) {
-      console.error("AuthContext: Error fetching SendGrid config from Firestore:", error);
+      console.error("AuthContext: Error fetching API credentials from Firestore:", error);
       return null;
     }
   };
@@ -315,8 +335,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     sendUserPasswordResetEmail,
     updateUserPhoneNumberInFirestore,
     getUserPhoneNumberFromFirestore,
-    updateUserSendGridConfig,
-    getUserSendGridConfig,
+    updateUserCredentials,
+    getUserCredentials,
   };
   
   if (loading) {
@@ -331,4 +351,3 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
-

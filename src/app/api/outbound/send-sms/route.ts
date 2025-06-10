@@ -2,11 +2,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import twilio from 'twilio';
 import { z } from 'zod';
+import { db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import type { Agent, UserProfile } from '@/lib/types';
 
 const SmsRequestBodySchema = z.object({
-  to: z.string().min(10, "Recipient phone number is required and seems too short."), // Basic validation
+  to: z.string().min(10, "Recipient phone number is required and seems too short."),
   body: z.string().min(1, "Message body cannot be empty."),
-  // agentId: z.string().optional(), // Could be used for logging or agent-specific sender IDs in future
+  agentId: z.string().optional().describe("ID of the agent related to this SMS, for fetching user-specific Twilio config."),
 });
 
 export async function POST(request: NextRequest) {
@@ -25,23 +28,53 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: "Malformed JSON in request body." }, { status: 400 });
   }
 
-  const { to, body } = requestBody;
+  const { to, body, agentId } = requestBody;
 
-  const accountSid = process.env.TWILIO_ACCOUNT_SID;
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
-  const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
+  let twilioClient;
+  let fromPhoneNumber: string | undefined;
 
-  if (!accountSid || !authToken || !twilioPhoneNumber) {
-    console.error(`[${timestamp}] Twilio environment variables not set.`);
-    return NextResponse.json({ success: false, error: "Twilio configuration is missing on the server." }, { status: 500 });
+  let userAccountSid: string | null = null;
+  let userAuthToken: string | null = null;
+  let userTwilioPhoneNumber: string | null = null;
+
+  if (agentId) {
+    try {
+      const agentRef = doc(db, 'agents', agentId);
+      const agentSnap = await getDoc(agentRef);
+      if (agentSnap.exists()) {
+        const agentData = agentSnap.data() as Agent;
+        if (agentData.userId) {
+          const userRef = doc(db, 'users', agentData.userId);
+          const userSnap = await getDoc(userRef);
+          if (userSnap.exists()) {
+            const userProfile = userSnap.data() as UserProfile;
+            userAccountSid = userProfile.twilioAccountSid || null;
+            userAuthToken = userProfile.twilioAuthToken || null;
+            userTwilioPhoneNumber = userProfile.twilioPhoneNumber || null;
+          }
+        }
+      }
+    } catch (dbError) {
+      console.error(`[${timestamp}] Error fetching user-specific Twilio config from Firestore for agent ${agentId}:`, dbError);
+    }
   }
 
-  const client = twilio(accountSid, authToken);
+  const accountSidToUse = userAccountSid || process.env.TWILIO_ACCOUNT_SID;
+  const authTokenToUse = userAuthToken || process.env.TWILIO_AUTH_TOKEN;
+  fromPhoneNumber = userTwilioPhoneNumber || process.env.TWILIO_PHONE_NUMBER;
+
+  if (!accountSidToUse || !authTokenToUse || !fromPhoneNumber) {
+    console.error(`[${timestamp}] Twilio credentials (SID, Token, or From Number) not fully configured. User specific SID used: ${!!userAccountSid}, Global SID used: ${!!process.env.TWILIO_ACCOUNT_SID}`);
+    return NextResponse.json({ success: false, error: "Twilio configuration is missing on the server or for the user." }, { status: 500 });
+  }
+
+  twilioClient = twilio(accountSidToUse, authTokenToUse);
+  console.log(`[${timestamp}] Sending SMS using Twilio config: ${userAccountSid ? 'User-Specific' : 'Global/System'}`);
 
   try {
-    const message = await client.messages.create({
+    const message = await twilioClient.messages.create({
       to: to,
-      from: twilioPhoneNumber,
+      from: fromPhoneNumber,
       body: body,
     });
     console.log(`[${timestamp}] SMS sent successfully. SID: ${message.sid} To: ${to}`);

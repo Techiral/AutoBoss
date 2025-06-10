@@ -2,9 +2,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import twilio from 'twilio';
 import { z } from 'zod';
+import { db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import type { Agent, UserProfile } from '@/lib/types';
 
 const CallRequestBodySchema = z.object({
-  to: z.string().min(10, "Recipient phone number is required and seems too short."), // Basic validation
+  to: z.string().min(10, "Recipient phone number is required and seems too short."),
   agentId: z.string().min(1, "Agent ID is required to initiate the call context."),
 });
 
@@ -26,31 +29,59 @@ export async function POST(request: NextRequest) {
 
   const { to, agentId } = requestBody;
 
-  const accountSid = process.env.TWILIO_ACCOUNT_SID;
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
-  const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
-  const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN;
+  let twilioClient;
+  let fromPhoneNumber: string | undefined;
+  let appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN;
 
-  if (!accountSid || !authToken || !twilioPhoneNumber) {
-    console.error(`[${timestamp}] Twilio environment variables for making calls not fully set.`);
-    return NextResponse.json({ success: false, error: "Twilio call configuration is missing on the server." }, { status: 500 });
+  let userAccountSid: string | null = null;
+  let userAuthToken: string | null = null;
+  let userTwilioPhoneNumber: string | null = null;
+
+  if (agentId) {
+     try {
+      const agentRef = doc(db, 'agents', agentId);
+      const agentSnap = await getDoc(agentRef);
+      if (agentSnap.exists()) {
+        const agentData = agentSnap.data() as Agent;
+        if (agentData.userId) {
+          const userRef = doc(db, 'users', agentData.userId);
+          const userSnap = await getDoc(userRef);
+          if (userSnap.exists()) {
+            const userProfile = userSnap.data() as UserProfile;
+            userAccountSid = userProfile.twilioAccountSid || null;
+            userAuthToken = userProfile.twilioAuthToken || null;
+            userTwilioPhoneNumber = userProfile.twilioPhoneNumber || null;
+          }
+        }
+      }
+    } catch (dbError) {
+      console.error(`[${timestamp}] Error fetching user-specific Twilio config for make-call, agent ${agentId}:`, dbError);
+    }
+  }
+
+  const accountSidToUse = userAccountSid || process.env.TWILIO_ACCOUNT_SID;
+  const authTokenToUse = userAuthToken || process.env.TWILIO_AUTH_TOKEN;
+  fromPhoneNumber = userTwilioPhoneNumber || process.env.TWILIO_PHONE_NUMBER;
+
+
+  if (!accountSidToUse || !authTokenToUse || !fromPhoneNumber) {
+    console.error(`[${timestamp}] Twilio environment variables for making calls not fully set. User specific SID used: ${!!userAccountSid}, Global SID used: ${!!process.env.TWILIO_ACCOUNT_SID}`);
+    return NextResponse.json({ success: false, error: "Twilio call configuration is missing on the server or for the user." }, { status: 500 });
   }
   if (!appDomain) {
     console.error(`[${timestamp}] NEXT_PUBLIC_APP_DOMAIN environment variable not set. Cannot construct TwiML URL.`);
     return NextResponse.json({ success: false, error: "Application domain for TwiML URL is not configured." }, { status: 500 });
   }
   
-  const client = twilio(accountSid, authToken);
+  twilioClient = twilio(accountSidToUse, authTokenToUse);
+  console.log(`[${timestamp}] Making call using Twilio config: ${userAccountSid ? 'User-Specific' : 'Global/System'}`);
   const voiceHookUrl = `${appDomain}/api/agents/${agentId}/voice-hook`;
 
   try {
-    const call = await client.calls.create({
+    const call = await twilioClient.calls.create({
       to: to,
-      from: twilioPhoneNumber,
-      url: voiceHookUrl, // URL Twilio will request when the call connects
-      // method: 'POST', // Default is POST
-      // statusCallback: `${appDomain}/api/twilio/status-callback`, // Optional: for call status updates
-      // statusCallbackEvent: ['initiated', 'ringing', 'answered', 'completed'],
+      from: fromPhoneNumber,
+      url: voiceHookUrl,
     });
     console.log(`[${timestamp}] Outbound call initiated successfully. SID: ${call.sid} To: ${to} AgentID: ${agentId}`);
     return NextResponse.json({ success: true, callSid: call.sid, status: call.status });

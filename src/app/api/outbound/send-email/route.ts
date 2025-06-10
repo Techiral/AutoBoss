@@ -67,7 +67,6 @@ export async function POST(request: NextRequest) {
       }
     } catch (dbError) {
       console.error(`[${timestamp}] Error fetching user-specific SendGrid config from Firestore:`, dbError);
-      // Continue with global config if this fails
     }
   }
 
@@ -76,7 +75,7 @@ export async function POST(request: NextRequest) {
 
   if (!apiKeyToUse) {
     console.error(`[${timestamp}] SendGrid API key is not configured (neither user-specific nor global).`);
-    return NextResponse.json({ success: false, error: "SendGrid API key is not configured on the server." }, { status: 500 });
+    return NextResponse.json({ success: false, error: "SendGrid API key is not configured on the server or for the user." }, { status: 500 });
   }
   sgMail.setApiKey(apiKeyToUse);
 
@@ -106,4 +105,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: "Failed to send email.", details: error.response?.body?.errors || error.message }, { status: 500 });
   }
 }
-

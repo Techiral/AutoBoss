@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Settings as SettingsIcon, Trash2, Moon, Sun, InfoIcon, Loader2, Mail, KeyRound, ShieldAlert } from "lucide-react";
+import { Settings as SettingsIcon, Trash2, Moon, Sun, InfoIcon, Loader2, Mail, KeyRound, ShieldAlert, PhoneCall, MessageSquare } from "lucide-react";
 import { useAppContext } from "../layout";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -27,41 +27,52 @@ import {
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertTitle, AlertDescription} from "@/components/ui/alert";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-const sendGridFormSchema = z.object({
-  sendGridApiKey: z.string().optional(), // Optional: user might want to clear it
-  userDefaultFromEmail: z.string().email({ message: "Invalid email address." }).optional().or(z.literal('')), // Optional, allow empty string to clear
+
+const credentialsFormSchema = z.object({
+  sendGridApiKey: z.string().optional(),
+  userDefaultFromEmail: z.string().email({ message: "Invalid email address." }).optional().or(z.literal('')),
+  twilioAccountSid: z.string().optional(),
+  twilioAuthToken: z.string().optional(),
+  twilioPhoneNumber: z.string().optional().refine(val => !val || /^\+[1-9]\d{1,14}$/.test(val), {
+    message: "Invalid Twilio phone number format (e.g., +12223334444)",
+  }),
 });
-type SendGridFormData = z.infer<typeof sendGridFormSchema>;
+type CredentialsFormData = z.infer<typeof credentialsFormSchema>;
 
 export default function SettingsPage() {
   const { theme, toggleTheme, clearAllFirebaseData, isLoadingAgents: isAppLoading } = useAppContext();
-  const { currentUser, updateUserSendGridConfig, getUserSendGridConfig, loading: authLoading } = useAuth();
+  const { currentUser, updateUserCredentials, getUserCredentials, loading: authLoading } = useAuth();
   
   const [isClearDataDialogOpen, setIsClearDataDialogOpen] = useState(false);
   const [isClearingData, setIsClearingData] = useState(false);
-  const [isSavingSendGrid, setIsSavingSendGrid] = useState(false);
+  const [isSavingCredentials, setIsSavingCredentials] = useState(false);
 
-  const { register, handleSubmit, setValue, formState: { errors } } = useForm<SendGridFormData>({
-    resolver: zodResolver(sendGridFormSchema),
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm<CredentialsFormData>({
+    resolver: zodResolver(credentialsFormSchema),
     defaultValues: {
       sendGridApiKey: "",
       userDefaultFromEmail: "",
+      twilioAccountSid: "",
+      twilioAuthToken: "",
+      twilioPhoneNumber: "",
     }
   });
 
   useEffect(() => {
     if (currentUser && !authLoading) {
       const fetchConfig = async () => {
-        const config = await getUserSendGridConfig();
-        if (config) {
-          // Don't set API key back to form for security, only 'from' email
-          setValue("userDefaultFromEmail", config.fromEmail || "");
+        const creds = await getUserCredentials();
+        if (creds) {
+          // API keys/tokens are not set back to the form for security
+          setValue("userDefaultFromEmail", creds.userDefaultFromEmail || "");
+          setValue("twilioPhoneNumber", creds.twilioPhoneNumber || "");
         }
       };
       fetchConfig();
     }
-  }, [currentUser, authLoading, setValue, getUserSendGridConfig]);
+  }, [currentUser, authLoading, setValue, getUserCredentials]);
 
   const handleClearData = async () => {
     setIsClearingData(true);
@@ -70,20 +81,26 @@ export default function SettingsPage() {
     setIsClearDataDialogOpen(false);
   };
 
-  const onSendGridSubmit: SubmitHandler<SendGridFormData> = async (data) => {
-    setIsSavingSendGrid(true);
-    await updateUserSendGridConfig({ 
-      apiKey: data.sendGridApiKey, // Send the API key from the form only on submit
-      fromEmail: data.userDefaultFromEmail 
+  const onCredentialsSubmit: SubmitHandler<CredentialsFormData> = async (data) => {
+    setIsSavingCredentials(true);
+    await updateUserCredentials({ 
+      sendGridApiKey: data.sendGridApiKey,
+      userDefaultFromEmail: data.userDefaultFromEmail,
+      twilioAccountSid: data.twilioAccountSid,
+      twilioAuthToken: data.twilioAuthToken,
+      twilioPhoneNumber: data.twilioPhoneNumber,
     });
-    setIsSavingSendGrid(false);
-    // Optionally clear the API key field after submission for security
+    setIsSavingCredentials(false);
+    // Clear sensitive fields from form after submission attempt
     setValue("sendGridApiKey", ""); 
+    setValue("twilioAccountSid", ""); 
+    setValue("twilioAuthToken", ""); 
   };
   
   const isLoading = isAppLoading || authLoading;
 
   return (
+    <TooltipProvider>
     <div className="space-y-4 sm:space-y-6">
       <Card>
         <CardHeader className="p-4 sm:p-6">
@@ -118,52 +135,78 @@ export default function SettingsPage() {
 
           <Separator />
 
-          {/* SendGrid Configuration */}
+          {/* API Credentials Configuration */}
           <Card className="bg-card">
             <CardHeader className="p-3 sm:p-4 pb-2">
               <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                <Mail className="w-4 h-4 sm:w-5 sm:w-5 text-primary" /> Email Sending (SendGrid)
+                <KeyRound className="w-4 h-4 sm:w-5 sm:w-5 text-primary" /> Your API Credentials
               </CardTitle>
               <CardDescription className="text-xs sm:text-sm">
-                Configure your own SendGrid account for sending emails via agents. This is optional.
+                Optionally, connect your own SendGrid (for emails) and Twilio (for SMS/Voice) accounts. This allows agents to send communications using your branding and account limits.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-3 sm:p-4 pt-2">
-              <form onSubmit={handleSubmit(onSendGridSubmit)} className="space-y-3 sm:space-y-4">
-                <div className="space-y-1">
-                  <Label htmlFor="sendGridApiKey" className="text-xs font-medium">Your SendGrid API Key</Label>
-                  <Input 
-                    id="sendGridApiKey" 
-                    type="password" 
-                    placeholder="Enter your SendGrid API Key" 
-                    {...register("sendGridApiKey")} 
-                    className="text-xs sm:text-sm"
-                    disabled={isLoading || isSavingSendGrid}
-                  />
-                  {errors.sendGridApiKey && <p className="text-xs text-destructive">{errors.sendGridApiKey.message}</p>}
+              <form onSubmit={handleSubmit(onCredentialsSubmit)} className="space-y-5 sm:space-y-6">
+                {/* SendGrid Section */}
+                <div className="space-y-3 p-3 border rounded-md bg-muted/20">
+                    <h3 className="text-sm font-semibold flex items-center gap-1.5"><Mail className="w-4 h-4 text-primary"/>SendGrid (Email)</h3>
+                    <div className="space-y-1">
+                        <Label htmlFor="sendGridApiKey" className="text-xs font-medium">Your SendGrid API Key</Label>
+                        <Tooltip>
+                            <TooltipTrigger asChild><Input id="sendGridApiKey" type="password" placeholder="Paste your SendGrid API Key" {...register("sendGridApiKey")} className="text-xs sm:text-sm" disabled={isLoading || isSavingCredentials}/></TooltipTrigger>
+                            <TooltipContent><p>Your secret API key from SendGrid for sending emails.</p></TooltipContent>
+                        </Tooltip>
+                        {errors.sendGridApiKey && <p className="text-xs text-destructive">{errors.sendGridApiKey.message}</p>}
+                    </div>
+                    <div className="space-y-1">
+                        <Label htmlFor="userDefaultFromEmail" className="text-xs font-medium">Your Default "From" Email Address</Label>
+                         <Tooltip>
+                            <TooltipTrigger asChild><Input id="userDefaultFromEmail" type="email" placeholder="e.g., support@myagency.com" {...register("userDefaultFromEmail")} className="text-xs sm:text-sm" disabled={isLoading || isSavingCredentials}/></TooltipTrigger>
+                            <TooltipContent><p>The email address emails will appear to be sent from by default.</p></TooltipContent>
+                        </Tooltip>
+                        {errors.userDefaultFromEmail && <p className="text-xs text-destructive">{errors.userDefaultFromEmail.message}</p>}
+                    </div>
                 </div>
-                <div className="space-y-1">
-                  <Label htmlFor="userDefaultFromEmail" className="text-xs font-medium">Your Default "From" Email Address</Label>
-                  <Input 
-                    id="userDefaultFromEmail" 
-                    type="email" 
-                    placeholder="e.g., support@myagency.com" 
-                    {...register("userDefaultFromEmail")} 
-                    className="text-xs sm:text-sm"
-                    disabled={isLoading || isSavingSendGrid}
-                  />
-                  {errors.userDefaultFromEmail && <p className="text-xs text-destructive">{errors.userDefaultFromEmail.message}</p>}
+
+                {/* Twilio Section */}
+                <div className="space-y-3 p-3 border rounded-md bg-muted/20">
+                    <h3 className="text-sm font-semibold flex items-center gap-1.5"><MessageSquare className="w-4 h-4 text-primary"/>Twilio (SMS & Voice Calls)</h3>
+                    <div className="space-y-1">
+                        <Label htmlFor="twilioAccountSid" className="text-xs font-medium">Your Twilio Account SID</Label>
+                        <Tooltip>
+                            <TooltipTrigger asChild><Input id="twilioAccountSid" type="password" placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" {...register("twilioAccountSid")} className="text-xs sm:text-sm" disabled={isLoading || isSavingCredentials}/></TooltipTrigger>
+                             <TooltipContent><p>Your Twilio Account SID from the Twilio console.</p></TooltipContent>
+                        </Tooltip>
+                        {errors.twilioAccountSid && <p className="text-xs text-destructive">{errors.twilioAccountSid.message}</p>}
+                    </div>
+                    <div className="space-y-1">
+                        <Label htmlFor="twilioAuthToken" className="text-xs font-medium">Your Twilio Auth Token</Label>
+                        <Tooltip>
+                            <TooltipTrigger asChild><Input id="twilioAuthToken" type="password" placeholder="Your Twilio Auth Token" {...register("twilioAuthToken")} className="text-xs sm:text-sm" disabled={isLoading || isSavingCredentials}/></TooltipTrigger>
+                             <TooltipContent><p>Your Twilio Auth Token from the Twilio console.</p></TooltipContent>
+                        </Tooltip>
+                         {errors.twilioAuthToken && <p className="text-xs text-destructive">{errors.twilioAuthToken.message}</p>}
+                    </div>
+                    <div className="space-y-1">
+                        <Label htmlFor="twilioPhoneNumber" className="text-xs font-medium">Your Default Twilio Phone Number</Label>
+                        <Tooltip>
+                            <TooltipTrigger asChild><Input id="twilioPhoneNumber" type="tel" placeholder="+1234567890 (E.164 format)" {...register("twilioPhoneNumber")} className="text-xs sm:text-sm" disabled={isLoading || isSavingCredentials}/></TooltipTrigger>
+                            <TooltipContent><p>A Twilio phone number you own, in E.164 format (e.g., +12223334444).</p></TooltipContent>
+                        </Tooltip>
+                        {errors.twilioPhoneNumber && <p className="text-xs text-destructive">{errors.twilioPhoneNumber.message}</p>}
+                    </div>
                 </div>
+                
                  <Alert variant="default" className="p-2 text-xs bg-accent/10 dark:bg-accent/20 border-accent/30">
                     <ShieldAlert className="h-3.5 w-3.5 text-accent" />
-                    <AlertTitle className="text-accent text-xs font-medium">Security Note</AlertTitle>
+                    <AlertTitle className="text-accent text-xs font-medium">Security & Usage Note</AlertTitle>
                     <AlertDescription className="text-accent/80 dark:text-accent/90 text-[10px] sm:text-[11px]">
-                     API keys are sensitive. Ensure you trust this platform. This key will be stored in your user profile in Firestore. Consider using restricted API keys from SendGrid if possible.
+                     API keys and tokens are sensitive. They will be stored securely in your user profile in Firestore. If you don't provide credentials, the system may use global defaults if configured by the platform admin, or related features might be unavailable for your agents.
                     </AlertDescription>
                 </Alert>
-                <Button type="submit" size="sm" className="text-xs sm:text-sm" disabled={isLoading || isSavingSendGrid}>
-                  {isSavingSendGrid ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <KeyRound className="mr-2 h-3.5 w-3.5" />}
-                  {isSavingSendGrid ? "Saving..." : "Save SendGrid Settings"}
+                <Button type="submit" size="sm" className="text-xs sm:text-sm" disabled={isLoading || isSavingCredentials}>
+                  {isSavingCredentials ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <KeyRound className="mr-2 h-3.5 w-3.5" />}
+                  {isSavingCredentials ? "Saving Credentials..." : "Save API Credentials"}
                 </Button>
               </form>
             </CardContent>
@@ -211,7 +254,7 @@ export default function SettingsPage() {
           <div className="p-3 sm:p-4 border rounded-lg bg-muted/30">
             <Label className="text-sm sm:text-base font-medium block mb-1">Application Information</Label>
              <div className="text-xs sm:text-sm text-muted-foreground space-y-1">
-                <p><InfoIcon className="inline h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 text-primary" /><strong>Version:</strong> 1.2.0 (User Integrations)</p>
+                <p><InfoIcon className="inline h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 text-primary" /><strong>Version:</strong> 1.3.0 (User API Credentials & Outbound Queuing)</p>
                 <p><InfoIcon className="inline h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 text-primary" /><strong>Data Storage:</strong> Firebase Firestore</p>
                 <p><InfoIcon className="inline h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 text-primary" /><strong>AI Provider:</strong> Google Gemini via Genkit</p>
              </div>
@@ -219,10 +262,10 @@ export default function SettingsPage() {
 
         </CardContent>
         <CardFooter className="p-4 sm:p-6">
-            <p className="text-xs text-muted-foreground">Changes to settings are saved automatically where applicable (e.g., theme). Integration settings require clicking 'Save'.</p>
+            <p className="text-xs text-muted-foreground">Changes to settings are saved automatically where applicable (e.g., theme). API Credentials require clicking 'Save'.</p>
         </CardFooter>
       </Card>
     </div>
+    </TooltipProvider>
   );
 }
-

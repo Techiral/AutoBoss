@@ -11,6 +11,9 @@ export const UserProfileSchema = z.object({
   createdAt: z.custom<Timestamp>(),
   sendGridApiKey: z.string().optional().describe("User's own SendGrid API Key."),
   userDefaultFromEmail: z.string().email().optional().describe("User's default 'From' email for SendGrid."),
+  twilioAccountSid: z.string().optional().describe("User's Twilio Account SID."),
+  twilioAuthToken: z.string().optional().describe("User's Twilio Auth Token."),
+  twilioPhoneNumber: z.string().optional().describe("User's default Twilio Phone Number for sending SMS/making calls."),
 });
 export type UserProfile = z.infer<typeof UserProfileSchema>;
 
@@ -87,4 +90,23 @@ export interface ChatMessage {
   relevantKnowledgeIds?: string[];
   conversationHistory?: string[];
 }
+
+
+// For Outbound Enqueue API
+export const OutboundTaskPayloadSchema = z.object({
+  type: z.enum(["sms", "email", "call"]),
+  to: z.string().min(1, "Recipient identifier is required."),
+  agentId: z.string().min(1, "Agent ID is required for context."),
+  payload: z.object({
+    // SMS specific
+    body: z.string().optional(),
+    // Email specific
+    fromEmail: z.string().email().optional(),
+    subject: z.string().optional(),
+    text: z.string().optional(),
+    html: z.string().optional(),
+  }).passthrough(), // Allows other properties if needed for specific types
+  scheduledAt: z.string().datetime({ offset: true }).optional().describe("Optional ISO 8601 timestamp for scheduled sending."),
+});
+export type OutboundTaskPayload = z.infer<typeof OutboundTaskPayloadSchema>;
     

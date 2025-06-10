@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm, SubmitHandler, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -15,20 +15,42 @@ import { createAgent, CreateAgentOutput } from "@/ai/flows/agent-creation";
 import { useRouter } from "next/navigation";
 import { useAppContext } from "../../layout"; 
 import type { Agent, AgentType, AgentLogicType, AgentDirection } from "@/lib/types"; 
-import { Loader2, Bot, MessageSquare, Phone, Brain, DatabaseZap, ArrowDownCircle, ArrowUpCircle } from "lucide-react"; 
+import { Loader2, Bot, MessageSquare, Phone, Brain, DatabaseZap, ArrowDownCircle, ArrowUpCircle, HelpCircle, Lightbulb, Users, Briefcase } from "lucide-react"; 
 import { useAuth } from "@/contexts/AuthContext"; 
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+type AgentPurposeType = "support" | "sales" | "info" | "custom";
+
+const agentPurposeTemplates: Record<AgentPurposeType, { role: string; personality: string }> = {
+  support: {
+    role: "A customer support agent for [Your Client's Business Name]. I help users by answering their questions about products/services, troubleshooting common issues, and providing policy information. My goal is to resolve inquiries efficiently and leave customers satisfied.",
+    personality: "Patient, empathetic, clear, and knowledgeable. I strive to be very helpful and understanding.",
+  },
+  sales: {
+    role: "A lead qualification and sales assistant for [Your Client's Business Name]. I engage potential customers, understand their needs, highlight product/service benefits, answer initial questions, and guide interested leads towards a demo or consultation. My goal is to identify and nurture sales opportunities.",
+    personality: "Friendly, persuasive, proactive, and enthusiastic. I am good at explaining value and building rapport.",
+  },
+  info: {
+    role: "An informational bot for [Your Client's Business or Topic]. I provide answers to frequently asked questions, explain specific topics, and offer details based on the knowledge I've been trained on. My goal is to be a reliable source of information.",
+    personality: "Factual, concise, neutral, and informative. I aim to provide accurate information clearly.",
+  },
+  custom: {
+    role: "Describe the agent's primary function and what it should achieve for the business.",
+    personality: "Describe the desired personality traits, communication style, and tone (e.g., formal, casual, witty, serious, empathetic).",
+  },
+};
 
 
 const formSchema = z.object({
+  agentPurpose: z.enum(["support", "sales", "info", "custom"], { required_error: "Please select the agent's primary purpose."}),
   agentType: z.enum(["chat", "voice", "hybrid"], { required_error: "Please select an agent type."}),
   direction: z.enum(["inbound", "outbound"], { required_error: "Please select agent direction."}),
-  primaryLogic: z.enum(["prompt", "rag"], { required_error: "Please select the agent's primary brain logic."}),
-  name: z.string().min(3, "Chatbot name must be at least 3 characters").max(100, "Name too long"),
-  role: z.string().min(10, "Role description must be at least 10 characters").max(500, "Role too long"),
-  personality: z.string().min(10, "Personality description must be at least 10 characters").max(500, "Personality too long"),
+  primaryLogic: z.enum(["prompt", "rag"], { required_error: "Please select how the agent works."}),
+  name: z.string().min(3, "Client/Business name must be at least 3 characters").max(100, "Name too long"),
+  role: z.string().min(10, "Role description must be at least 10 characters").max(1000, "Role too long (max 1000 chars)"),
+  personality: z.string().min(10, "Personality description must be at least 10 characters").max(1000, "Personality too long (max 1000 chars)"),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -43,20 +65,30 @@ export default function CreateAgentPage() {
   const [selectedDirection, setSelectedDirection] = useState<AgentDirection>("inbound");
 
 
-  const { control, register, handleSubmit, formState: { errors }, watch } = useForm<FormData>({
+  const { control, register, handleSubmit, formState: { errors }, watch, setValue } = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      agentPurpose: "support",
       agentType: "chat",
       direction: "inbound",
       primaryLogic: "rag", 
       name: "",
-      role: "",
-      personality: "",
+      role: agentPurposeTemplates.support.role,
+      personality: agentPurposeTemplates.support.personality,
     }
   });
   
   const currentPrimaryLogic = watch("primaryLogic");
   const currentAgentType = watch("agentType");
+  const currentAgentPurpose = watch("agentPurpose");
+
+  useEffect(() => {
+    if (currentAgentPurpose) {
+      setValue("role", agentPurposeTemplates[currentAgentPurpose].role);
+      setValue("personality", agentPurposeTemplates[currentAgentPurpose].personality);
+    }
+  }, [currentAgentPurpose, setValue]);
+
 
   const getLogicTypeLabel = (logicType?: AgentLogicType): string => {
     if (!logicType) return "Not Set";
@@ -69,7 +101,7 @@ export default function CreateAgentPage() {
 
   const onSubmit: SubmitHandler<FormData> = async (data) => {
     if (!currentUser) {
-      toast({ title: "Not Authenticated", description: "Please log in to create a chatbot.", variant: "destructive" });
+      toast({ title: "Not Authenticated", description: "Please log in to create an agent.", variant: "destructive" });
       router.push('/login');
       return;
     }
@@ -77,7 +109,7 @@ export default function CreateAgentPage() {
     setGeneratedAgentDetails(null);
     try {
       const logicTypeUserFriendly = getLogicTypeLabel(data.primaryLogic as AgentLogicType);
-      const agentDescription = `Type: ${data.agentType}. Direction: ${data.direction}. Primary Logic: ${logicTypeUserFriendly}.\nBusiness Purpose: ${data.name}\nIntended Role for the Business: ${data.role}\nDesired Personality & Tone: ${data.personality}`;
+      const agentDescription = `Primary Purpose: ${data.agentPurpose}. Type: ${data.agentType}. Direction: ${data.direction}. Primary Logic: ${logicTypeUserFriendly}.\nClient/Business Name: ${data.name}\nIntended Role for the Business: ${data.role}\nDesired Personality & Tone: ${data.personality}`;
       const aiResult = await createAgent({ agentDescription, agentType: data.agentType, direction: data.direction as AgentDirection });
       setGeneratedAgentDetails(aiResult);
       
@@ -86,7 +118,7 @@ export default function CreateAgentPage() {
         direction: data.direction as AgentDirection,
         primaryLogic: data.primaryLogic as AgentLogicType, 
         name: data.name, 
-        description: `Type: ${data.agentType}. Direction: ${data.direction}. Logic: ${logicTypeUserFriendly}. Role: ${data.role}. Personality: ${data.personality}.`, 
+        description: `Purpose: ${data.agentPurpose}. Type: ${data.agentType}. Logic: ${logicTypeUserFriendly}. Role: ${data.role}. Personality: ${data.personality}.`, 
         role: data.role,
         personality: data.personality,
         generatedName: aiResult.agentName,
@@ -99,7 +131,7 @@ export default function CreateAgentPage() {
       if (newAgent) {
         toast({
           title: "Agent Base Created!",
-          description: `Agent "${aiResult.agentName}" (Type: ${data.agentType}, Direction: ${data.direction}, Logic: ${logicTypeUserFriendly}) is ready. Next, customize its personality and add knowledge. Redirecting...`,
+          description: `Agent "${aiResult.agentName}" (Purpose: ${data.agentPurpose}, Type: ${data.agentType}) is ready. Next, customize its personality and add knowledge. Redirecting...`,
         });
         
         if (data.primaryLogic === 'rag') {
@@ -121,34 +153,55 @@ export default function CreateAgentPage() {
     }
   };
   
-  const getRolePlaceholder = () => {
-    if (currentPrimaryLogic === 'prompt') {
-      return "e.g., A friendly marketing assistant that helps draft social media posts.";
-    }
-    return "e.g., A support agent for 'My Online Store' that answers questions about products and policies.";
-  };
-
-  const getPersonalityPlaceholder = () => {
-    if (currentPrimaryLogic === 'prompt') {
-      return "e.g., Creative, witty, and concise.";
-    }
-    return "e.g., Helpful, patient, and clear.";
-  };
-
   return (
+    <TooltipProvider>
     <div className="max-w-2xl mx-auto">
       <Card>
         <CardHeader className="p-4 sm:p-6">
           <CardTitle className={cn("font-headline text-xl sm:text-2xl flex items-center gap-2", "text-gradient-dynamic")}> <Bot className="w-6 h-6 sm:w-7 sm:h-7"/>Step 1: Define Your New Business Agent</CardTitle>
           <CardDescription className="text-sm">
-            Tell us about the agent you want to build. Define its type, direction, core logic, purpose, role, and personality.
+            Tell us about the agent you want to build. This information will help our AI craft a baseline personality and greeting for you to refine later.
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
           <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
+            
+            <div className="space-y-1.5">
+              <Label htmlFor="agentPurpose" className="flex items-center">
+                What's this agent's primary purpose?
+                <Tooltip>
+                    <TooltipTrigger asChild><HelpCircle className="w-3.5 h-3.5 ml-1.5 text-muted-foreground cursor-help"/></TooltipTrigger>
+                    <TooltipContent><p>Select the main goal for this agent. This helps pre-fill some settings.</p></TooltipContent>
+                </Tooltip>
+              </Label>
+              <Controller
+                name="agentPurpose"
+                control={control}
+                render={({ field }) => (
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <SelectTrigger id="agentPurpose">
+                      <SelectValue placeholder="Select agent's main goal" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="support"><div className="flex items-center gap-2"><Users className="w-4 h-4"/>Customer Support</div></SelectItem>
+                      <SelectItem value="sales"><div className="flex items-center gap-2"><Briefcase className="w-4 h-4"/>Lead Qualification & Sales</div></SelectItem>
+                      <SelectItem value="info"><div className="flex items-center gap-2"><Lightbulb className="w-4 h-4"/>Information & FAQ Bot</div></SelectItem>
+                      <SelectItem value="custom"><div className="flex items-center gap-2"><Bot className="w-4 h-4"/>General Assistant / Custom</div></SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.agentPurpose && <p className="text-xs text-destructive">{errors.agentPurpose.message}</p>}
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor="agentType">Agent Type</Label>
+                <Label htmlFor="agentType" className="flex items-center">Agent Type
+                  <Tooltip>
+                    <TooltipTrigger asChild><HelpCircle className="w-3.5 h-3.5 ml-1.5 text-muted-foreground cursor-help"/></TooltipTrigger>
+                    <TooltipContent><p>Choose how this agent will primarily interact: text chat, voice calls, or both.</p></TooltipContent>
+                  </Tooltip>
+                </Label>
                 <Controller
                   name="agentType"
                   control={control}
@@ -169,7 +222,12 @@ export default function CreateAgentPage() {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="direction">Agent Direction</Label>
+                <Label htmlFor="direction" className="flex items-center">Agent Direction
+                 <Tooltip>
+                    <TooltipTrigger asChild><HelpCircle className="w-3.5 h-3.5 ml-1.5 text-muted-foreground cursor-help"/></TooltipTrigger>
+                    <TooltipContent><p>Will this agent mostly handle incoming user contacts, or initiate outbound communication?</p></TooltipContent>
+                  </Tooltip>
+                </Label>
                 <Controller
                   name="direction"
                   control={control}
@@ -193,8 +251,8 @@ export default function CreateAgentPage() {
                 />
                 {errors.direction && <p className="text-xs text-destructive">{errors.direction.message}</p>}
                 {selectedDirection === 'outbound' && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Primarily hints at AI persona for greetings. Actual outbound actions (SMS, email, calls) require separate setup using this app's <Link href="/api/outbound/send-sms" target="_blank" className="underline hover:text-primary">outbound APIs</Link>.
+                   <p className="text-xs text-muted-foreground mt-1">
+                    Primarily hints at AI persona for greetings. Actual outbound actions (SMS, email, calls) require separate setup using this app's <Link href="#" onClick={(e) => {e.preventDefault(); toast({title:"Outbound API Info", description:"APIs are available at /api/outbound/send-sms, /api/outbound/send-email, /api/outbound/make-call. These are typically triggered by an external system or a future campaign builder feature."})}} className="underline hover:text-primary">outbound APIs</Link>.
                   </p>
                 )}
                  {selectedDirection === 'inbound' && (
@@ -205,7 +263,12 @@ export default function CreateAgentPage() {
               </div>
             </div>
              <div className="space-y-1.5">
-                <Label htmlFor="primaryLogic">How this Agent Works</Label>
+                <Label htmlFor="primaryLogic" className="flex items-center">How this Agent Works
+                 <Tooltip>
+                    <TooltipTrigger asChild><HelpCircle className="w-3.5 h-3.5 ml-1.5 text-muted-foreground cursor-help"/></TooltipTrigger>
+                    <TooltipContent><p>Choose the agent's core reasoning method. 'Learns from Data' is best for Q&A on specific business info. 'Persona-Driven' is for more general or creative chat.</p></TooltipContent>
+                  </Tooltip>
+                </Label>
                 <Controller
                   name="primaryLogic"
                   control={control}
@@ -215,8 +278,8 @@ export default function CreateAgentPage() {
                         <SelectValue placeholder="Select brain logic" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="prompt"><div className="flex items-center gap-2"><Brain className="w-4 h-4"/>Persona-Driven (Creative & General Chat)</div></SelectItem>
                         <SelectItem value="rag"><div className="flex items-center gap-2"><DatabaseZap className="w-4 h-4"/>Learns from Your Data (Support & Info)</div></SelectItem>
+                        <SelectItem value="prompt"><div className="flex items-center gap-2"><Brain className="w-4 h-4"/>Persona-Driven (Creative & General Chat)</div></SelectItem>
                       </SelectContent>
                     </Select>
                   )}
@@ -232,27 +295,42 @@ export default function CreateAgentPage() {
 
 
             <div className="space-y-1.5">
-              <Label htmlFor="name">Agent Name / Business Purpose</Label>
+              <Label htmlFor="name" className="flex items-center">What business or client is this agent for?
+                <Tooltip>
+                    <TooltipTrigger asChild><HelpCircle className="w-3.5 h-3.5 ml-1.5 text-muted-foreground cursor-help"/></TooltipTrigger>
+                    <TooltipContent><p>Enter the name of the client's business or a descriptive name for the agent itself, e.g., "Acme Corp Support" or "Dental Clinic Voice Receptionist".</p></TooltipContent>
+                </Tooltip>
+              </Label>
               <Input id="name" placeholder="e.g., 'Acme Support Bot', 'Dental Clinic Voice Receptionist'" {...register("name")} />
               {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="role">Role & Objectives for the Business</Label>
+              <Label htmlFor="role" className="flex items-center">What is this Agent's job? What should it achieve?
+                <Tooltip>
+                    <TooltipTrigger asChild><HelpCircle className="w-3.5 h-3.5 ml-1.5 text-muted-foreground cursor-help"/></TooltipTrigger>
+                    <TooltipContent><p>Describe the agent's main responsibilities and goals. Example for sales: 'Qualify leads for solar panel installations and book appointments.' For support: 'Answer questions about our software and troubleshoot basic issues.' The pre-filled text is based on the 'Purpose' you selected.</p></TooltipContent>
+                </Tooltip>
+              </Label>
               <Textarea 
                 id="role" 
-                placeholder={getRolePlaceholder()}
+                placeholder={agentPurposeTemplates[currentAgentPurpose]?.role || "Describe the agent's primary function..."}
                 {...register("role")} 
-                rows={3} 
+                rows={4} 
               />
               {errors.role && <p className="text-xs text-destructive">{errors.role.message}</p>}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="personality">Desired Personality & Tone</Label>
+              <Label htmlFor="personality" className="flex items-center">How should this Agent sound and behave?
+                <Tooltip>
+                    <TooltipTrigger asChild><HelpCircle className="w-3.5 h-3.5 ml-1.5 text-muted-foreground cursor-help"/></TooltipTrigger>
+                    <TooltipContent><p>Define the agent's communication style, tone, and key personality traits. E.g., 'Friendly, professional, and slightly witty' or 'Empathetic, patient, and very clear.' The pre-filled text is based on the 'Purpose' you selected.</p></TooltipContent>
+                </Tooltip>
+              </Label>
               <Textarea 
                 id="personality" 
-                placeholder={getPersonalityPlaceholder()}
+                placeholder={agentPurposeTemplates[currentAgentPurpose]?.personality || "Describe the desired personality..."}
                 {...register("personality")} 
-                rows={3} 
+                rows={4} 
                />
               {errors.personality && <p className="text-xs text-destructive">{errors.personality.message}</p>}
             </div>
@@ -289,6 +367,6 @@ export default function CreateAgentPage() {
         </Card>
       )}
     </div>
+    </TooltipProvider>
   );
 }
-    
