@@ -40,8 +40,6 @@ export default function ExportAgentPage() {
     if (agentId) {
       const foundAgent = getAgent(agentId as string);
       setAgent(foundAgent || null);
-      // In a real app, you'd fetch these from a secure store if previously saved
-      // For now, they are just local state and for display/copy purposes.
     }
   }, [agentId, getAgent]);
 
@@ -57,19 +55,11 @@ export default function ExportAgentPage() {
   };
 
   const handleSaveTwilioConfig = () => {
-    // This function is a placeholder for actual save logic.
-    // In a real application, these credentials would be sent to a secure backend API.
-    // They should NOT be stored in frontend state or local storage long-term.
     toast({
-      title: "Configuration Not Saved",
+      title: "Configuration Not Saved Here",
       description: "For this prototype, Twilio credentials are not saved to a backend. Please set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBER as environment variables on your server where the voice hook API is deployed.",
       variant: "default",
       duration: 10000, 
-    });
-    console.log("Twilio Config 'Save' Clicked (Placeholder):", {
-      twilioAccountSid,
-      twilioAuthToken,
-      twilioPhoneNumber,
     });
   };
 
@@ -92,33 +82,29 @@ export default function ExportAgentPage() {
     const LAUNCHER_FG_COLOR = 'hsl(${primaryFgHsl})';
     const HEADER_BG_COLOR = LAUNCHER_BG_COLOR;
     const HEADER_FG_COLOR = LAUNCHER_FG_COLOR;
-    const WIDGET_BORDER_COLOR = '#e0e0e0'; // Consider theming this too if needed
+    const WIDGET_BORDER_COLOR = '#e0e0e0';
 
     const styles = \`
         #autoboss-launcher-button {
             position: fixed; bottom: 20px; right: 20px; background-color: \${LAUNCHER_BG_COLOR};
             color: \${LAUNCHER_FG_COLOR}; border: none; border-radius: 50%;
-            width: 50px; height: 50px; /* Smaller on mobile */
+            width: 50px; height: 50px; 
             box-shadow: 0 2px 8px rgba(0,0,0,0.15); cursor: pointer; z-index: 2147483646;
             display: flex; align-items: center; justify-content: center;
             transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
         }
-        @media (min-width: 640px) { /* sm breakpoint */
-          #autoboss-launcher-button { width: 60px; height: 60px; }
-        }
+        @media (min-width: 640px) { #autoboss-launcher-button { width: 60px; height: 60px; } }
         #autoboss-launcher-button:hover { transform: scale(1.1); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
         #autoboss-widget-container {
-            position: fixed; bottom: 20px; right: 20px; /* Adjusted for mobile */
-            width: calc(100% - 40px); max-width: 370px; /* Responsive width */
-            height: 70vh; max-height: 600px; /* Responsive height */
+            position: fixed; bottom: 20px; right: 20px;
+            width: calc(100% - 40px); max-width: 370px; 
+            height: 70vh; max-height: 600px; 
             border: 1px solid \${WIDGET_BORDER_COLOR}; border-radius: 12px;
             box-shadow: 0 5px 20px rgba(0,0,0,0.15); overflow: hidden; display: none;
             z-index: 2147483647; background-color: #ffffff; flex-direction: column;
             transition: opacity 0.3s ease, transform 0.3s ease; opacity: 0; transform: translateY(20px);
         }
-         @media (min-width: 640px) { /* sm breakpoint */
-          #autoboss-widget-container { bottom: 90px; }
-        }
+         @media (min-width: 640px) { #autoboss-widget-container { bottom: 90px; } }
         #autoboss-widget-container.autoboss-widget-open { display: flex; opacity: 1; transform: translateY(0); }
         #autoboss-widget-header {
             padding: 10px 12px; background-color: \${HEADER_BG_COLOR}; color: \${HEADER_FG_COLOR};
@@ -161,11 +147,9 @@ export default function ExportAgentPage() {
 </script>
 ` : "";
 
-
   const apiRequestExampleMinimal = `{
   "message": "Hello, what can you do?"
 }`;
-
   const apiRequestExampleWithFlow = `{
   "message": "My order ID is 12345",
   "flowState": {
@@ -177,174 +161,188 @@ export default function ExportAgentPage() {
     "nextNodeId": "get_order_id_node"
   }
 }`;
-
-
   const apiFlowResponseExample = `{
   "type": "flow",
   "messages": ["Sure, I can help with that.", "What is your order number?"],
-  "newFlowState": {
-    "context": {
-      "conversationHistory": ["User: I want to check my order", "Agent: Sure, I can help with that.", "Agent: What is your order number?"],
-      "waitingForInput": "get_order_id_node",
-      "userId": "user123"
-    },
-    "nextNodeId": "get_order_id_node"
-  },
-  "isFlowFinished": false
-}`;
-
+  "newFlowState": { /* ... updated context ... */ }, "isFlowFinished": false }`;
   const apiAutonomousResponseExample = `{
   "type": "autonomous",
-  "reply": "As an AI assistant, I can answer your questions based on my knowledge.",
-  "reasoning": "User asked about capabilities, providing general info."
-}`;
-
+  "reply": "As an AI assistant, I can answer your questions based on my knowledge.", /* ... */ }`;
 
   if (!agent) {
     return (
       <Card>
-        <CardHeader className="p-4 sm:p-6">
-          <CardTitle className="text-lg sm:text-xl">Loading Chatbot Export Details...</CardTitle>
-        </CardHeader>
-        <CardContent className="p-4 sm:p-6">
-          <p className="text-sm">Please wait while we load the chatbot information.</p>
-        </CardContent>
+        <CardHeader className="p-4 sm:p-6"><CardTitle className="text-lg sm:text-xl">Loading Agent Export Details...</CardTitle></CardHeader>
+        <CardContent className="p-4 sm:p-6"><Loader2 className="animate-spin mr-2 h-5 w-5 inline"/>Please wait...</CardContent>
       </Card>
     );
   }
+
+  const showChatFeatures = agent.agentType === 'chat' || agent.agentType === 'hybrid';
+  const showVoiceFeatures = agent.agentType === 'voice' || agent.agentType === 'hybrid';
 
   return (
     <div className="space-y-4 md:space-y-6">
       <Card>
         <CardHeader className="p-4 sm:p-6">
-          <CardTitle className={cn("font-headline text-xl sm:text-2xl flex items-center gap-2", "text-gradient-dynamic")}> <Share2 className="w-6 h-6 sm:w-7 sm:h-7"/>Deploy & Share Your Client's Chatbot: {agent.generatedName || agent.name}</CardTitle>
-          <CardDescription className="text-sm">Easily embed this AI chatbot on your client's website or provide them with a direct link. Ready to go live and start generating value!</CardDescription>
+          <CardTitle className={cn("font-headline text-xl sm:text-2xl flex items-center gap-2", "text-gradient-dynamic")}> <Share2 className="w-6 h-6 sm:w-7 sm:h-7"/>Deploy & Share: {agent.generatedName || agent.name}</CardTitle>
+          <CardDescription className="text-sm">Easily embed this AI agent or provide direct links for your client.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6 sm:space-y-8 p-4 sm:p-6">
           
-          <div>
-            <Label htmlFor="chatLauncherScript" className="flex items-center mb-1 text-sm sm:text-base font-semibold">
-              <Code className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary" /> Embed Chatbot on Any Website (Recommended)
-            </Label>
-            <Alert variant="default" className="mb-2 p-3 sm:p-4">
-                <Info className="h-4 w-4 text-accent" />
-                <AlertTitle className="text-sm sm:text-base text-accent">How to Use This Script</AlertTitle>
-                <AlertDescription className="text-xs text-accent/90">
-                  To add this chatbot to your client's website, copy the script below and paste it just before the closing &lt;/body&gt; tag on any page of their site. It will add a floating chat launcher button.
-                </AlertDescription>
-            </Alert>
-            <div className="relative">
-              <Textarea id="chatLauncherScript" value={chatLauncherScript.trim()} readOnly rows={10} className="font-code text-[10px] sm:text-xs bg-muted/50 p-2"/>
-              <Button variant="outline" size="icon" className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 h-6 w-6 sm:h-7 sm:w-7" onClick={() => handleCopy(chatLauncherScript.trim(), "Chat Launcher Script")} aria-label="Copy Chat Launcher Script" disabled={!chatLauncherScript}>
-                {copied === "Chat Launcher Script" ? <Check className="w-3 h-3 sm:w-4 sm:w-4 text-green-500" /> : <Copy className="w-3 h-3 sm:w-4 sm:w-4" />}
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">This script creates a floating button that opens the chatbot in a popup. It's the easiest way to integrate the chatbot for most businesses.</p>
-          </div>
+          {showChatFeatures ? (
+            <>
+              <div>
+                <Label htmlFor="chatLauncherScript" className="flex items-center mb-1 text-sm sm:text-base font-semibold">
+                  <Code className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary" /> Embed Chatbot on Any Website (Recommended)
+                </Label>
+                <Alert variant="default" className="mb-2 p-3 sm:p-4">
+                    <Info className="h-4 w-4 text-accent" />
+                    <AlertTitle className="text-sm sm:text-base text-accent">How to Use This Script</AlertTitle>
+                    <AlertDescription className="text-xs text-accent/90">
+                      To add this chatbot to your client's website, copy the script below and paste it just before the closing &lt;/body&gt; tag on any page of their site. It will add a floating chat launcher button.
+                    </AlertDescription>
+                </Alert>
+                <div className="relative">
+                  <Textarea id="chatLauncherScript" value={chatLauncherScript.trim()} readOnly rows={10} className="font-code text-[10px] sm:text-xs bg-muted/50 p-2"/>
+                  <Button variant="outline" size="icon" className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 h-6 w-6 sm:h-7 sm:w-7" onClick={() => handleCopy(chatLauncherScript.trim(), "Chat Launcher Script")} aria-label="Copy Chat Launcher Script" disabled={!chatLauncherScript}>
+                    {copied === "Chat Launcher Script" ? <Check className="w-3 h-3 sm:w-4 sm:w-4 text-green-500" /> : <Copy className="w-3 h-3 sm:w-4 sm:w-4" />}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">This script creates a floating button that opens the chatbot in a popup. It's the easiest way to integrate the chatbot for most businesses.</p>
+              </div>
 
-          <div className="border-t pt-6 sm:pt-8">
-            <Label htmlFor="chatbotLink" className="flex items-center mb-1 text-sm sm:text-base font-semibold">
-              <Globe className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary" /> Direct Chatbot Link (For Sharing or Testing)
-            </Label>
-            <div className="flex items-center gap-2">
-              <Input id="chatbotLink" value={chatbotLink} readOnly className="text-xs sm:text-sm"/>
-              <Button variant="outline" size="icon" onClick={() => handleCopy(chatbotLink, "Chatbot Link")} aria-label="Copy Chatbot Link" disabled={!chatbotLink} className="h-9 w-9 sm:h-10 sm:w-10">
-                {copied === "Chatbot Link" ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">Share this link for direct access to the chatbot. Useful for quick previews or when embedding isn't an option.</p>
-             {!baseUrl && <p className="text-xs text-destructive mt-1">Base URL not yet available. Refresh page if needed.</p>}
-             <Alert variant="default" className="mt-2 p-3 sm:p-4 bg-accent/10 dark:bg-accent/20 border-accent/30">
-                <MessageSquare className="h-4 w-4 text-accent" />
-                <AlertTitle className="text-accent text-sm sm:text-base">Embedding Note</AlertTitle>
-                <AlertDescription className="text-accent/80 dark:text-accent/90 text-xs">
-                The chat pages (like the direct link above) are designed to be embedded in iframes from any website, which is how the launcher script works.
-                </AlertDescription>
+              <div className="border-t pt-6 sm:pt-8">
+                <Label htmlFor="chatbotLink" className="flex items-center mb-1 text-sm sm:text-base font-semibold">
+                  <Globe className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary" /> Direct Chatbot Link (For Sharing or Testing)
+                </Label>
+                <div className="flex items-center gap-2">
+                  <Input id="chatbotLink" value={chatbotLink} readOnly className="text-xs sm:text-sm"/>
+                  <Button variant="outline" size="icon" onClick={() => handleCopy(chatbotLink, "Chatbot Link")} aria-label="Copy Chatbot Link" disabled={!chatbotLink} className="h-9 w-9 sm:h-10 sm:w-10">
+                    {copied === "Chatbot Link" ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Share this link for direct access to the chatbot. Useful for quick previews or when embedding isn't an option.</p>
+                 {!baseUrl && <p className="text-xs text-destructive mt-1">Base URL not yet available. Refresh page if needed.</p>}
+                 <Alert variant="default" className="mt-2 p-3 sm:p-4 bg-accent/10 dark:bg-accent/20 border-accent/30">
+                    <MessageSquare className="h-4 w-4 text-accent" />
+                    <AlertTitle className="text-accent text-sm sm:text-base">Embedding Note</AlertTitle>
+                    <AlertDescription className="text-accent/80 dark:text-accent/90 text-xs">
+                    The chat pages (like the direct link above) are designed to be embedded in iframes from any website, which is how the launcher script works.
+                    </AlertDescription>
+                </Alert>
+              </div>
+            </>
+          ) : (
+            <Alert variant="default">
+              <MessageSquare className="h-4 w-4 text-muted-foreground" />
+              <AlertTitle>Chat Features Not Applicable</AlertTitle>
+              <AlertDescription>Chat embed script and direct chat links are available for 'Chat' or 'Hybrid' agent types. This agent is 'Voice'-only.</AlertDescription>
             </Alert>
-          </div>
+          )}
           
           <Separator className="my-4 sm:my-6" />
 
-          <div className="space-y-4">
-            <h3 className={cn("font-headline text-lg sm:text-xl flex items-center gap-2", "text-gradient-dynamic")}>
-              <Mic className="w-5 h-5 sm:w-6 sm:h-6 text-primary" /> Enable Voice Calls with Twilio (Advanced)
-            </h3>
-            <Alert variant="default" className="p-3 sm:p-4 bg-muted/50 dark:bg-card/90 border-border/70">
-                <PhoneCall className="h-4 w-4 text-muted-foreground" />
-                <AlertTitle className="text-sm sm:text-base">Voice Agent Integration</AlertTitle>
-                <AlertDescription className="text-xs text-muted-foreground">
-                  To enable your AI agent to make and receive phone calls, provide your Twilio account credentials and phone number below. 
-                  You must then set these credentials as environment variables on your server (e.g., in a `.env` file: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`).
-                  The Voice API Endpoint shown below is where Twilio will send requests for incoming calls.
-                </AlertDescription>
+          {showVoiceFeatures ? (
+            <div className="space-y-4">
+              <h3 className={cn("font-headline text-lg sm:text-xl flex items-center gap-2", "text-gradient-dynamic")}>
+                <Mic className="w-5 h-5 sm:w-6 sm:h-6 text-primary" /> Enable Voice Calls with Twilio (Advanced)
+              </h3>
+              <Alert variant="default" className="p-3 sm:p-4 bg-muted/50 dark:bg-card/90 border-border/70">
+                  <PhoneCall className="h-4 w-4 text-muted-foreground" />
+                  <AlertTitle className="text-sm sm:text-base">Voice Agent Integration</AlertTitle>
+                  <AlertDescription className="text-xs text-muted-foreground">
+                    To enable your AI agent to make and receive phone calls, provide your Twilio account credentials and phone number below. 
+                    You must then set these credentials as environment variables on your server (e.g., in a `.env` file: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`).
+                    The Voice API Endpoint shown below is where Twilio will send requests for incoming calls.
+                  </AlertDescription>
+              </Alert>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                      <Label htmlFor="twilioSid">Twilio Account SID</Label>
+                      <Input id="twilioSid" value={twilioAccountSid} onChange={(e) => setTwilioAccountSid(e.target.value)} placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" />
+                  </div>
+                  <div className="space-y-1.5">
+                      <Label htmlFor="twilioToken">Twilio Auth Token</Label>
+                      <Input id="twilioToken" type="password" value={twilioAuthToken} onChange={(e) => setTwilioAuthToken(e.target.value)} placeholder="Your Auth Token" />
+                  </div>
+              </div>
+              <div className="space-y-1.5">
+                  <Label htmlFor="twilioPhone">Your Twilio Phone Number</Label>
+                  <Input id="twilioPhone" type="tel" value={twilioPhoneNumber} onChange={(e) => setTwilioPhoneNumber(e.target.value)} placeholder="+12345678901" />
+              </div>
+               <div className="space-y-1.5">
+                  <Label htmlFor="apiEndpointVoice" className="flex items-center mb-1 text-xs font-semibold">
+                      <Server className="w-3 h-3 mr-1.5 text-primary" /> Voice API Endpoint (for Twilio Webhook)
+                  </Label>
+                   <div className="flex items-center gap-2">
+                      <Input id="apiEndpointVoice" value={apiEndpointVoice} readOnly className="text-[10px] sm:text-xs"/>
+                      <Button variant="outline" size="icon" onClick={() => handleCopy(apiEndpointVoice, "Voice API Endpoint")} aria-label="Copy Voice API Endpoint" disabled={!apiEndpointVoice} className="h-8 w-8 sm:h-9 sm:w-9">
+                          {copied === "Voice API Endpoint" ? <Check className="w-3 h-3 sm:w-4 sm:w-4 text-green-500" /> : <Copy className="w-3 h-3 sm:w-4 sm:w-4" />}
+                      </Button>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Configure this URL in your Twilio phone number's settings for incoming calls (Voice & Fax > A call comes in > Webhook).</p>
+              </div>
+              <Button onClick={handleSaveTwilioConfig} className="w-full sm:w-auto">
+                  <Info className="mr-2 h-4 w-4" />
+                  Note: Securely Set Credentials on Server
+              </Button>
+              <p className="text-xs text-muted-foreground mt-1">Clicking above does not save credentials here. You must set them as environment variables on your server.</p>
+            </div>
+          ) : (
+             <Alert variant="default">
+                <Mic className="h-4 w-4 text-muted-foreground" />
+                <AlertTitle>Voice Features Not Applicable</AlertTitle>
+                <AlertDescription>Twilio configuration for voice calls is available for 'Voice' or 'Hybrid' agent types. This agent is 'Chat'-only.</AlertDescription>
             </Alert>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                    <Label htmlFor="twilioSid">Twilio Account SID</Label>
-                    <Input id="twilioSid" value={twilioAccountSid} onChange={(e) => setTwilioAccountSid(e.target.value)} placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" />
-                </div>
-                <div className="space-y-1.5">
-                    <Label htmlFor="twilioToken">Twilio Auth Token</Label>
-                    <Input id="twilioToken" type="password" value={twilioAuthToken} onChange={(e) => setTwilioAuthToken(e.target.value)} placeholder="Your Auth Token" />
-                </div>
-            </div>
-            <div className="space-y-1.5">
-                <Label htmlFor="twilioPhone">Your Twilio Phone Number</Label>
-                <Input id="twilioPhone" type="tel" value={twilioPhoneNumber} onChange={(e) => setTwilioPhoneNumber(e.target.value)} placeholder="+12345678901" />
-            </div>
-             <div className="space-y-1.5">
-                <Label htmlFor="apiEndpointVoice" className="flex items-center mb-1 text-xs font-semibold">
-                    <Server className="w-3 h-3 mr-1.5 text-primary" /> Voice API Endpoint (for Twilio Webhook)
-                </Label>
-                 <div className="flex items-center gap-2">
-                    <Input id="apiEndpointVoice" value={apiEndpointVoice} readOnly className="text-[10px] sm:text-xs"/>
-                    <Button variant="outline" size="icon" onClick={() => handleCopy(apiEndpointVoice, "Voice API Endpoint")} aria-label="Copy Voice API Endpoint" disabled={!apiEndpointVoice} className="h-8 w-8 sm:h-9 sm:w-9">
-                        {copied === "Voice API Endpoint" ? <Check className="w-3 h-3 sm:w-4 sm:w-4 text-green-500" /> : <Copy className="w-3 h-3 sm:w-4 sm:w-4" />}
-                    </Button>
-                </div>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Configure this URL in your Twilio phone number's settings for incoming calls (Voice & Fax > A call comes in > Webhook).</p>
-            </div>
-            <Button onClick={handleSaveTwilioConfig} className="w-full sm:w-auto">
-                <Info className="mr-2 h-4 w-4" />
-                Note: Securely Set Credentials on Server
-            </Button>
-            <p className="text-xs text-muted-foreground mt-1">Clicking above does not save credentials here. You must set them as environment variables on your server.</p>
-          </div>
-
+          )}
 
           <Separator className="my-4 sm:my-6" />
 
           <div className="space-y-3">
-            <Label htmlFor="apiEndpointChat" className="flex items-center text-sm sm:text-base font-semibold">
-              <Server className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary" /> For Developers: Chat API Endpoint
+            <Label className="flex items-center text-sm sm:text-base font-semibold">
+              <Server className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary" /> For Developers: API Endpoints
             </Label>
              <Alert variant="default" className="p-3 sm:p-4 bg-muted/30 dark:bg-card/80 border-border/50">
                 <Info className="h-4 w-4 text-muted-foreground" />
-                <AlertTitle className="text-sm sm:text-base">Technical Chat API Details</AlertTitle>
+                <AlertTitle className="text-sm sm:text-base">Technical API Details</AlertTitle>
                 <AlertDescription className="text-xs text-muted-foreground">
-                  This POST endpoint allows programmatic interaction with the chatbot for text-based conversations.
+                  These POST endpoints allow programmatic interaction with the agent.
                   <ul className="list-disc list-inside pl-3 mt-1 text-[11px] sm:text-xs">
-                    <li><strong>message (string, required):</strong> User's input.</li>
+                    <li><strong>message (string, required for chat):</strong> User's input.</li>
                     <li><strong>flowState (object, optional):</strong> To continue a specific point in a designed conversation.</li>
-                    <li><strong>conversationHistoryString (string, optional):</strong> For providing context if not using a flow.</li>
                   </ul>
                 </AlertDescription>
             </Alert>
-            <div className="flex items-center gap-2">
-              <Input id="apiEndpointChat" value={apiEndpointChat} readOnly className="text-xs sm:text-sm"/>
-              <Button variant="outline" size="icon" onClick={() => handleCopy(apiEndpointChat, "Chat API Endpoint")} aria-label="Copy Chat API Endpoint" disabled={!apiEndpointChat} className="h-9 w-9 sm:h-10 sm:w-10">
-                {copied === "Chat API Endpoint" ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-              </Button>
+            <div className="space-y-2">
+                <div>
+                    <Label htmlFor="apiEndpointChat" className="text-xs font-semibold">Chat API Endpoint</Label>
+                    <div className="flex items-center gap-2">
+                      <Input id="apiEndpointChat" value={apiEndpointChat} readOnly className="text-xs sm:text-sm"/>
+                      <Button variant="outline" size="icon" onClick={() => handleCopy(apiEndpointChat, "Chat API Endpoint")} aria-label="Copy Chat API Endpoint" disabled={!apiEndpointChat} className="h-9 w-9 sm:h-10 sm:w-10">
+                        {copied === "Chat API Endpoint" ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                      </Button>
+                    </div>
+                </div>
+                {showVoiceFeatures && (
+                    <div>
+                        <Label htmlFor="apiEndpointVoiceDev" className="text-xs font-semibold">Voice API Endpoint (Webhook)</Label>
+                        <div className="flex items-center gap-2">
+                            <Input id="apiEndpointVoiceDev" value={apiEndpointVoice} readOnly className="text-xs sm:text-sm"/>
+                            <Button variant="outline" size="icon" onClick={() => handleCopy(apiEndpointVoice, "Voice API Endpoint Dev")} aria-label="Copy Voice API Endpoint" disabled={!apiEndpointVoice} className="h-9 w-9 sm:h-10 sm:w-10">
+                                {copied === "Voice API Endpoint Dev" ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                            </Button>
+                        </div>
+                         <p className="text-[10px] text-muted-foreground mt-0.5">Use this for Twilio webhook configuration if building a voice agent.</p>
+                    </div>
+                )}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Use this API endpoint for custom text chat integrations if your client has specific technical needs beyond the standard embed.
-            </p>
              {!baseUrl && <p className="text-xs text-destructive mt-1">Base URL not yet available.</p>}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mt-3 sm:mt-4">
                 <div>
                     <Label htmlFor="apiRequestExampleMinimal" className="flex items-center mb-1 text-xs sm:text-sm">
-                    Example API Request (Simple Chat):
+                    Example Chat API Request (Simple Chat):
                     </Label>
                     <div className="relative">
                         <Textarea id="apiRequestExampleMinimal" value={apiRequestExampleMinimal} readOnly rows={3} className="font-code text-[10px] sm:text-xs bg-muted/50 p-2"/>
@@ -355,7 +353,7 @@ export default function ExportAgentPage() {
                 </div>
                  <div>
                     <Label htmlFor="apiRequestExampleWithFlow" className="flex items-center mb-1 text-xs sm:text-sm">
-                    Example API Request (Resume Chat Conversation):
+                    Example Chat API Request (Resume Conversation):
                     </Label>
                     <div className="relative">
                         <Textarea id="apiRequestExampleWithFlow" value={apiRequestExampleWithFlow} readOnly rows={10} className="font-code text-[10px] sm:text-xs bg-muted/50 p-2"/>
@@ -371,7 +369,7 @@ export default function ExportAgentPage() {
                     <div>
                         <Label htmlFor="apiFlowResponseExample" className="text-[11px] sm:text-xs font-medium">If Following a Chat Conversation Design:</Label>
                         <div className="relative">
-                            <Textarea id="apiFlowResponseExample" value={apiFlowResponseExample} readOnly rows={12} className="font-code text-[10px] sm:text-xs bg-muted/50 p-2"/>
+                            <Textarea id="apiFlowResponseExample" value={apiFlowResponseExample} readOnly rows={5} className="font-code text-[10px] sm:text-xs bg-muted/50 p-2"/>
                             <Button variant="outline" size="icon" className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 h-6 w-6 sm:h-7 sm:w-7" onClick={() => handleCopy(apiFlowResponseExample, "API Flow Response")} aria-label="Copy API Flow Response" disabled={!apiFlowResponseExample}>
                                 {copied === "API Flow Response" ? <Check className="w-3 h-3 sm:w-4 sm:w-4 text-green-500" /> : <Copy className="w-3 h-3 sm:w-4 sm:w-4" />}
                             </Button>
@@ -380,7 +378,7 @@ export default function ExportAgentPage() {
                     <div>
                         <Label htmlFor="apiAutonomousResponseExample" className="text-[11px] sm:text-xs font-medium">If Answering Chat Freely (Using Trained Knowledge):</Label>
                          <div className="relative">
-                            <Textarea id="apiAutonomousResponseExample" value={apiAutonomousResponseExample} readOnly rows={6} className="font-code text-[10px] sm:text-xs bg-muted/50 p-2"/>
+                            <Textarea id="apiAutonomousResponseExample" value={apiAutonomousResponseExample} readOnly rows={3} className="font-code text-[10px] sm:text-xs bg-muted/50 p-2"/>
                             <Button variant="outline" size="icon" className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 h-6 w-6 sm:h-7 sm:w-7" onClick={() => handleCopy(apiAutonomousResponseExample, "API Autonomous Response")} aria-label="Copy API Autonomous Response" disabled={!apiAutonomousResponseExample}>
                                 {copied === "API Autonomous Response" ? <Check className="w-3 h-3 sm:w-4 sm:w-4 text-green-500" /> : <Copy className="w-3 h-3 sm:w-4 sm:w-4" />}
                             </Button>
@@ -401,3 +399,4 @@ export default function ExportAgentPage() {
     </div>
   );
 }
+

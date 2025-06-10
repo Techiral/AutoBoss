@@ -7,7 +7,7 @@ import { ChatInterface, ChatInterfaceHandles } from "@/components/chat-interface
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { useAppContext } from "../../../layout";
 import type { Agent, ChatMessage as ChatMessageType } from "@/lib/types";
-import { Loader2, Mic, MicOff, Volume2, VolumeX, Settings2, AlertTriangle, PhoneOff } from "lucide-react";
+import { Loader2, Mic, MicOff, Volume2, VolumeX, Settings2, AlertTriangle, PhoneOff, MessageSquare } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -69,7 +69,6 @@ export default function TestAgentPage() {
       const voices = speechSynthesis.getVoices();
       if (voices.length > 0) {
         setAvailableVoices(voices);
-        // Prioritize US English, then UK English, then any default, then first available
         const defaultUsVoice = voices.find(voice => voice.lang.startsWith('en-US') && voice.default && !voice.localService);
         const defaultUkVoice = voices.find(voice => voice.lang.startsWith('en-GB') && voice.default && !voice.localService);
         const anyDefaultVoice = voices.find(voice => voice.default);
@@ -110,7 +109,7 @@ export default function TestAgentPage() {
     }
 
     const cleanedText = stripEmojis(text);
-    if (!cleanedText) return; // Don't speak if only emojis were present
+    if (!cleanedText) return; 
 
     const utterance = new SpeechSynthesisUtterance(cleanedText);
     if (selectedVoiceURI) {
@@ -121,7 +120,6 @@ export default function TestAgentPage() {
     utterance.onend = () => setIsSpeaking(false);
     utterance.onerror = (event) => {
       console.error("Speech synthesis error:", event.error);
-      // Avoid toasting for "interrupted" as it's often due to intentional user action or quick succession of messages.
       if (event.error !== 'interrupted') {
         toast({ title: "Speech Error", description: `Could not speak: ${event.error}`, variant: "destructive" });
       }
@@ -145,7 +143,6 @@ export default function TestAgentPage() {
       recognitionRef.current?.stop();
       setIsListening(false);
     } else {
-      // Interrupt any ongoing agent speech when user starts listening
       if (speechSynthesisSupported && speechSynthesis.speaking) {
         speechSynthesis.cancel();
         setIsSpeaking(false);
@@ -180,7 +177,6 @@ export default function TestAgentPage() {
         const transcript = event.results[0][0].transcript;
         if (chatInterfaceRef.current) {
           chatInterfaceRef.current.setInputText(transcript);
-          // Short delay to allow input to visually update before submitting
           setTimeout(() => { 
             chatInterfaceRef.current?.submitMessageFromText(transcript);
           }, 50);
@@ -191,7 +187,6 @@ export default function TestAgentPage() {
   };
   
   useEffect(() => {
-    // Cleanup function to abort recognition and cancel speech on component unmount
     return () => { 
       if (recognitionRef.current) {
         recognitionRef.current.abort();
@@ -207,13 +202,13 @@ export default function TestAgentPage() {
     return (
       <Card>
         <CardHeader className="p-4 sm:p-6">
-          <CardTitle className={cn("font-headline text-xl sm:text-2xl", "text-gradient-dynamic")}>Test Your Client's Chatbot</CardTitle>
-          <CardDescription className="text-sm">Loading chatbot emulator...</CardDescription>
+          <CardTitle className={cn("font-headline text-xl sm:text-2xl", "text-gradient-dynamic")}>Test Your Client's Agent</CardTitle>
+          <CardDescription className="text-sm">Loading agent emulator...</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center justify-center min-h-[calc(100vh-300px)] p-4 sm:p-6">
           <Logo className="mb-3 h-8" />
           <Loader2 className="h-10 w-10 sm:h-12 sm:h-12 animate-spin text-primary" />
-          <p className="text-xs text-muted-foreground mt-2">Initializing chatbot test environment...</p>
+          <p className="text-xs text-muted-foreground mt-2">Initializing agent test environment...</p>
         </CardContent>
       </Card>
     );
@@ -222,101 +217,113 @@ export default function TestAgentPage() {
   if (!agent) {
      return (
         <Alert variant="destructive" className="max-w-md w-full">
-            <AlertTriangle className="h-6 w-6 sm:h-8 sm:w-8 mx-auto mb-2" />
+            <AlertTriangle className="h-6 w-6 sm:h-8 sm:h-8 mx-auto mb-2" />
             <AlertTitle className="text-lg sm:text-xl mb-1">Agent Not Found</AlertTitle>
             <AlertDescription className="text-sm">The agent details could not be loaded.</AlertDescription>
         </Alert>
     );
   }
 
+  const showVoiceControls = agent.agentType === 'voice' || agent.agentType === 'hybrid';
+
   return (
     <div className="space-y-4 md:space-y-6">
-      <Card className="h-[55vh] flex flex-col"> {/* Defined height for the chat card */}
+      <Card className="h-[55vh] flex flex-col">
         <CardHeader className="p-4 sm:p-6">
-          <CardTitle className={cn("font-headline text-xl sm:text-2xl", "text-gradient-dynamic")}>Test Chatbot: {agent.generatedName || agent.name}</CardTitle>
-          <CardDescription className="text-sm">Preview and interact with this chatbot. Test all conversation paths before deploying.</CardDescription>
+          <CardTitle className={cn("font-headline text-xl sm:text-2xl", "text-gradient-dynamic")}>Test Agent: {agent.generatedName || agent.name}</CardTitle>
+          <CardDescription className="text-sm">Preview and interact with this agent. Test all conversation paths before deploying.</CardDescription>
         </CardHeader>
-        <CardContent className="flex-1 p-2 sm:p-4 md:p-6 min-h-0"> {/* flex-1 and min-h-0 allow content to fill Card */}
-          <div className="h-full"> {/* Wrapper div takes full height of CardContent */}
+        <CardContent className="flex-1 p-2 sm:p-4 md:p-6 min-h-0">
+          <div className="h-full">
             <ChatInterface ref={chatInterfaceRef} agent={agent} appContext={appContextValue} onNewAgentMessage={handleNewAgentMessage} />
           </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="p-4 sm:p-6">
-          <CardTitle className={cn("font-headline text-lg sm:text-xl flex items-center gap-2", "text-gradient-dynamic")}>
-            <Settings2 className="w-5 h-5 sm:w-6 sm:h-6 text-primary" /> Voice Interaction Controls
-          </CardTitle>
-          <CardDescription className="text-sm">
-            Enable voice input/output to test your agent's conversational abilities. Requires browser permission.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-4 sm:p-6 space-y-4">
-          {speechApiError && (
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Speech API Not Fully Supported</AlertTitle>
-              <AlertDescription>{speechApiError} Some voice features might not work correctly in your browser.</AlertDescription>
-            </Alert>
-          )}
-          <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
-            <Button
-              onClick={toggleListen}
-              disabled={!speechRecognitionSupported || isSpeaking} // Disable if agent is speaking
-              variant={isListening ? "destructive" : "outline"}
-              className="w-full sm:w-auto btn-interactive"
-              size="lg"
-              title={isListening ? "Stop voice input" : "Start voice input"}
-            >
-              {isListening ? <MicOff className="mr-2 h-5 w-5" /> : <Mic className="mr-2 h-5 w-5" />}
-              {isListening ? "Stop Listening" : "Start Listening"}
-            </Button>
-            <div className="flex items-center space-x-2 w-full sm:w-auto justify-center sm:justify-start">
-              <Switch
-                id="auto-speak-switch"
-                checked={autoSpeakEnabled}
-                onCheckedChange={setAutoSpeakEnabled}
-                disabled={!speechSynthesisSupported || isSpeaking}
-              />
-              <Label htmlFor="auto-speak-switch" className="text-sm flex items-center gap-1 cursor-pointer">
-                {autoSpeakEnabled ? <Volume2 size={18} className="text-primary"/> : <VolumeX size={18} className="text-muted-foreground"/>}
-                 Auto-Speak Agent
-              </Label>
-            </div>
-          </div>
-           <div className="space-y-1.5">
-              <Label htmlFor="voice-select" className="text-xs">Agent's Voice (TTS)</Label>
-              <Select
-                value={selectedVoiceURI}
-                onValueChange={setSelectedVoiceURI}
-                disabled={!speechSynthesisSupported || availableVoices.length === 0 || isSpeaking || !autoSpeakEnabled}
+      {showVoiceControls ? (
+        <Card>
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className={cn("font-headline text-lg sm:text-xl flex items-center gap-2", "text-gradient-dynamic")}>
+              <Settings2 className="w-5 h-5 sm:w-6 sm:w-6 text-primary" /> Voice Interaction Controls
+            </CardTitle>
+            <CardDescription className="text-sm">
+              Enable voice input/output to test your agent's conversational abilities. Requires browser permission.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-4 sm:p-6 space-y-4">
+            {speechApiError && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Speech API Not Fully Supported</AlertTitle>
+                <AlertDescription>{speechApiError} Some voice features might not work correctly in your browser.</AlertDescription>
+              </Alert>
+            )}
+            <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
+              <Button
+                onClick={toggleListen}
+                disabled={!speechRecognitionSupported || isSpeaking}
+                variant={isListening ? "destructive" : "outline"}
+                className="w-full sm:w-auto btn-interactive"
+                size="lg"
+                title={isListening ? "Stop voice input" : "Start voice input"}
               >
-                <SelectTrigger id="voice-select" className="h-10 text-sm">
-                  <SelectValue placeholder={speechSynthesisSupported && availableVoices.length > 0 ? "Select a voice..." : (speechSynthesisSupported ? "Loading voices..." : "TTS Not Supported")} />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableVoices.map((voice) => (
-                    <SelectItem key={voice.voiceURI} value={voice.voiceURI} className="text-sm">
-                      {voice.name} ({voice.lang}) {voice.default && "- Default"}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                {isListening ? <MicOff className="mr-2 h-5 w-5" /> : <Mic className="mr-2 h-5 w-5" />}
+                {isListening ? "Stop Listening" : "Start Listening"}
+              </Button>
+              <div className="flex items-center space-x-2 w-full sm:w-auto justify-center sm:justify-start">
+                <Switch
+                  id="auto-speak-switch"
+                  checked={autoSpeakEnabled}
+                  onCheckedChange={setAutoSpeakEnabled}
+                  disabled={!speechSynthesisSupported || isSpeaking}
+                />
+                <Label htmlFor="auto-speak-switch" className="text-sm flex items-center gap-1 cursor-pointer">
+                  {autoSpeakEnabled ? <Volume2 size={18} className="text-primary"/> : <VolumeX size={18} className="text-muted-foreground"/>}
+                   Auto-Speak Agent
+                </Label>
+              </div>
             </div>
-            {isListening && <p className="text-sm text-primary text-center animate-pulse">Listening for your input...</p>}
-            {isSpeaking && autoSpeakEnabled && <p className="text-sm text-accent text-center animate-pulse">Agent is speaking...</p>}
-        </CardContent>
-        <CardFooter className="p-4 sm:p-6 text-xs text-muted-foreground">
-            <Alert variant="default" className="bg-accent/10 dark:bg-accent/20 border-accent/30">
-                <PhoneOff className="h-4 w-4 text-accent" />
-                <AlertTitle className="text-accent text-sm">Voice Test Simulation</AlertTitle>
-                <AlertDescription className="text-accent/80 dark:text-accent/90 text-xs">
-                  This page simulates voice interaction using your browser's capabilities. Voice quality depends on your system. For actual phone call integration, configure Twilio via the 'Export' page.
-                </AlertDescription>
-            </Alert>
-        </CardFooter>
-      </Card>
+             <div className="space-y-1.5">
+                <Label htmlFor="voice-select" className="text-xs">Agent's Voice (TTS)</Label>
+                <Select
+                  value={selectedVoiceURI}
+                  onValueChange={setSelectedVoiceURI}
+                  disabled={!speechSynthesisSupported || availableVoices.length === 0 || isSpeaking || !autoSpeakEnabled}
+                >
+                  <SelectTrigger id="voice-select" className="h-10 text-sm">
+                    <SelectValue placeholder={speechSynthesisSupported && availableVoices.length > 0 ? "Select a voice..." : (speechSynthesisSupported ? "Loading voices..." : "TTS Not Supported")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableVoices.map((voice) => (
+                      <SelectItem key={voice.voiceURI} value={voice.voiceURI} className="text-sm">
+                        {voice.name} ({voice.lang}) {voice.default && "- Default"}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {isListening && <p className="text-sm text-primary text-center animate-pulse">Listening for your input...</p>}
+              {isSpeaking && autoSpeakEnabled && <p className="text-sm text-accent text-center animate-pulse">Agent is speaking...</p>}
+          </CardContent>
+          <CardFooter className="p-4 sm:p-6 text-xs text-muted-foreground">
+              <Alert variant="default" className="bg-accent/10 dark:bg-accent/20 border-accent/30">
+                  <PhoneOff className="h-4 w-4 text-accent" />
+                  <AlertTitle className="text-accent text-sm">Voice Test Simulation</AlertTitle>
+                  <AlertDescription className="text-accent/80 dark:text-accent/90 text-xs">
+                    This page simulates voice interaction using your browser's capabilities. Voice quality depends on your system. For actual phone call integration, configure Twilio via the 'Export' page.
+                  </AlertDescription>
+              </Alert>
+          </CardFooter>
+        </Card>
+      ) : (
+        <Alert variant="default" className="mt-4 bg-muted/50">
+          <MessageSquare className="h-4 w-4 text-muted-foreground" />
+          <AlertTitle>Chat-Only Agent</AlertTitle>
+          <AlertDescription className="text-sm text-muted-foreground">
+            This is a chat-only agent. Voice interaction controls are available for 'Voice' or 'Hybrid' agent types, configurable during agent creation or in its personality settings.
+          </AlertDescription>
+        </Alert>
+      )}
     </div>
   );
 }

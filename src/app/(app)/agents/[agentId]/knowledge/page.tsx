@@ -88,7 +88,7 @@ export default function KnowledgePage() {
 
   const addKnowledgeToAgent = (fileName: string, summary: string, keywords: string[]) => {
      if (!agentId) {
-        toast({ title: "Chatbot ID missing", description: "Cannot add knowledge without a chatbot context.", variant: "destructive" });
+        toast({ title: "Agent ID missing", description: "Cannot add knowledge without an agent context.", variant: "destructive" });
         return;
     }
     const newKnowledgeItem: KnowledgeItem = {
@@ -101,7 +101,7 @@ export default function KnowledgePage() {
     addKnowledgeItem(agentId, newKnowledgeItem);
     toast({
         title: "Knowledge Added!",
-        description: `Successfully processed and added "${fileName}". Your chatbot is now smarter!`,
+        description: `Successfully processed and added "${fileName}". Your agent is now smarter!`,
     });
   }
 
@@ -119,9 +119,9 @@ export default function KnowledgePage() {
       const isCsvFile = selectedFile.type === 'text/csv' || selectedFile.name.toLowerCase().endsWith('.csv');
 
       if (isCsvFile) {
-        reader.readAsText(selectedFile); // Read CSV as plain text
+        reader.readAsText(selectedFile); 
       } else {
-        reader.readAsDataURL(selectedFile); // Read other files as data URI
+        reader.readAsDataURL(selectedFile); 
       }
       
       reader.onload = async () => {
@@ -133,7 +133,7 @@ export default function KnowledgePage() {
           const csvTextContent = reader.result as string;
           const plainTextFromCsv = csvToText(csvTextContent, originalFileName);
           documentDataUri = `data:text/plain;charset=utf-8;base64,${Buffer.from(plainTextFromCsv).toString('base64')}`;
-          effectiveMimeType = 'text/plain'; // Treat processed CSV as plain text for the AI
+          effectiveMimeType = 'text/plain'; 
         } else {
           documentDataUri = reader.result as string;
           const fileNameLower = originalFileName.toLowerCase();
@@ -141,7 +141,6 @@ export default function KnowledgePage() {
             if (fileNameLower.endsWith('.txt')) effectiveMimeType = 'text/plain';
             else if (fileNameLower.endsWith('.md')) effectiveMimeType = 'text/markdown';
             else if (fileNameLower.endsWith('.json')) effectiveMimeType = 'application/json';
-            // Note: CSV is handled above, but if it somehow missed, this won't catch it for MIME fixing here.
             else if (fileNameLower.endsWith('.html') || fileNameLower.endsWith('.htm')) effectiveMimeType = 'text/html';
           }
 
@@ -154,7 +153,7 @@ export default function KnowledgePage() {
             }
           }
           
-          if (documentDataUri.startsWith('data:application/octet-stream') && !isCsvFile) { // Re-check octet-stream for non-CSV
+          if (documentDataUri.startsWith('data:application/octet-stream') && !isCsvFile) { 
               toast({
                   title: "Unsupported File Type",
                   description: `File "${originalFileName}" seems to be a generic binary file not directly supported for training. Please try common text-based formats (TXT, MD, PDF, CSV) or web pages.`,
@@ -248,7 +247,7 @@ export default function KnowledgePage() {
     return (
       <Card>
         <CardHeader className="p-4 sm:p-6">
-          <CardTitle className={cn("font-headline text-lg sm:text-xl", "text-gradient-dynamic")}>Train Chatbot</CardTitle>
+          <CardTitle className={cn("font-headline text-lg sm:text-xl", "text-gradient-dynamic")}>Train Agent</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col items-center justify-center min-h-[calc(100vh-300px)]">
           <Logo className="mb-3 h-8" />
@@ -263,17 +262,19 @@ export default function KnowledgePage() {
     return (
        <Alert variant="destructive">
         <AlertTriangle className="h-4 w-4" />
-        <AlertTitle>Chatbot Not Found</AlertTitle>
+        <AlertTitle>Agent Not Found</AlertTitle>
       </Alert>
     );
   }
+  
+  const isVoiceAgent = currentAgent.agentType === 'voice' || currentAgent.agentType === 'hybrid';
 
   return (
     <div className="grid gap-4 md:gap-6 grid-cols-1 lg:grid-cols-3">
       <Card className="lg:col-span-1">
         <CardHeader className="p-4 sm:p-6">
-          <CardTitle className={cn("font-headline text-lg sm:text-2xl", "text-gradient-dynamic")}>Train Your Chatbot with Business Data</CardTitle>
-          <CardDescription className="text-sm">Make your chatbot an expert! Upload documents (FAQs, product lists, policies, CSVs) or add website pages specific to the business it will serve for <span className="font-semibold">{currentAgent.generatedName || currentAgent.name}</span>.</CardDescription>
+          <CardTitle className={cn("font-headline text-lg sm:text-2xl", "text-gradient-dynamic")}>Train Your Agent with Business Data</CardTitle>
+          <CardDescription className="text-sm">Make your agent an expert! Upload documents (FAQs, product lists, policies, CSVs) or add website pages specific to the business it will serve for <span className="font-semibold">{currentAgent.generatedName || currentAgent.name}</span>.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
             <div className="space-y-1.5">
@@ -320,13 +321,15 @@ export default function KnowledgePage() {
                 {isProcessingUrl ? "Fetching Website..." : "Fetch & Train URL"}
             </Button>
 
-            <Alert variant="default" className="mt-4 p-3 text-xs bg-secondary/20 dark:bg-secondary/30 border-secondary/50">
-                <Mic className="h-3.5 w-3.5 text-secondary-foreground" />
-                <AlertTitle className="text-secondary-foreground text-xs font-medium">Training for Voice Agents?</AlertTitle>
-                <AlertDescription className="text-secondary-foreground/80 dark:text-secondary-foreground/90 text-[11px]">
-                  If you plan to use this agent for voice interactions (e.g., phone calls), upload relevant sales scripts, product details, common customer objections, and how to handle them. This will help the AI sound natural and be effective in voice conversations.
-                </AlertDescription>
-            </Alert>
+            {isVoiceAgent && (
+                <Alert variant="default" className="mt-4 p-3 text-xs bg-secondary/20 dark:bg-secondary/30 border-secondary/50">
+                    <Mic className="h-3.5 w-3.5 text-secondary-foreground" />
+                    <AlertTitle className="text-secondary-foreground text-xs font-medium">Training for Voice Agents?</AlertTitle>
+                    <AlertDescription className="text-secondary-foreground/80 dark:text-secondary-foreground/90 text-[11px]">
+                    If you plan to use this agent for voice interactions (e.g., phone calls), upload relevant sales scripts, product details, common customer objections, and how to handle them. This will help the AI sound natural and be effective in voice conversations.
+                    </AlertDescription>
+                </Alert>
+            )}
         </CardContent>
       </Card>
 
@@ -336,7 +339,7 @@ export default function KnowledgePage() {
             <CardTitle className={cn("font-headline text-lg sm:text-xl flex items-center gap-2", "text-gradient-dynamic")}>
                 <Brain className="w-5 h-5 sm:w-6 sm:h-6 text-primary"/> Trained Knowledge for: {currentAgent.generatedName || currentAgent.name}
             </CardTitle>
-             <CardDescription className="text-sm">This is the custom business data your chatbot uses to answer questions.</CardDescription>
+             <CardDescription className="text-sm">This is the custom business data your agent uses to answer questions.</CardDescription>
           </CardHeader>
           <CardContent className="p-4 sm:p-6 pt-0">
             <ScrollArea className="h-[calc(100vh-350px)] sm:h-[calc(100vh-300px)] max-h-[500px] sm:max-h-[600px] pr-3 sm:pr-4"> 
@@ -381,12 +384,12 @@ export default function KnowledgePage() {
          <Card className="lg:col-span-2">
           <CardHeader className="p-4 sm:p-6">
             <CardTitle className={cn("font-headline text-lg sm:text-xl flex items-center gap-2", "text-gradient-dynamic")}>
-                 <Brain className="w-5 h-5 sm:w-6 sm:h-6 text-primary"/>Chatbot Knowledge Base is Empty
+                 <Brain className="w-5 h-5 sm:w-6 sm:h-6 text-primary"/>Agent Knowledge Base is Empty
             </CardTitle>
           </CardHeader>
            <CardContent className="flex flex-col items-center justify-center min-h-[200px] sm:min-h-[300px] p-4 sm:p-6">
             <FileText className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground mb-3 sm:mb-4" />
-            <p className="text-sm sm:text-base text-muted-foreground">Your chatbot hasn't been trained with any business data yet.</p>
+            <p className="text-sm sm:text-base text-muted-foreground">Your agent hasn't been trained with any business data yet.</p>
             <p className="text-xs text-muted-foreground mt-1">Use the panel on the left to upload documents or add website content.</p>
           </CardContent>
         </Card>
