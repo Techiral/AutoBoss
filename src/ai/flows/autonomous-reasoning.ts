@@ -51,6 +51,7 @@ const PromptInputSchema = z.object({
   context: z.string(),
   userInput: z.string(),
   retrievedChunksText: z.string().optional().describe("Concatenated text of relevant chunks retrieved from the knowledge base."),
+  // No searchResultsText here, it's handled by the tool automatically
 });
 
 
@@ -98,9 +99,9 @@ User's Latest Input:
 
 --- Tool Usage Guidance ---
 You have access to a 'webSearchTool'. If the user's query asks for information about a company, person, or general topic that is not adequately covered by the "Relevant Information from Your Knowledge Base" below, or if the query implies seeking current/external information (e.g., "What's the latest news on X?", "Tell me more about Y company's recent activities"), consider using the 'webSearchTool'.
-To use it, provide a concise 'searchQuery'. The tool will return a 'searchSummary'.
-Incorporate the information from the 'searchSummary' naturally into your 'responseToUser'.
-In your 'reasoning' field, explicitly state if you used the 'webSearchTool' and what query you used.
+To use it, provide a concise 'searchQuery'. The tool will return 'searchResultsText' which contains compiled information from web pages.
+Carefully review the 'searchResultsText' if provided by the tool, and incorporate relevant findings naturally into your 'responseToUser'.
+In your 'reasoning' field, explicitly state if you used the 'webSearchTool', the query used, and a brief summary of how the web results influenced your response.
 --- End Tool Usage Guidance ---
 
 {{#if retrievedChunksText}}
@@ -120,7 +121,7 @@ The "reasoning" field should reflect if general knowledge or web search was used
 Your response MUST be a single, valid JSON object adhering to the output schema:
 {
   "responseToUser": "The conversational reply.",
-  "reasoning": "Explanation of how the response was derived, noting if specific knowledge chunks were used, if a web search was performed (and the query used), or if it was general knowledge.",
+  "reasoning": "Explanation of how the response was derived, noting if specific knowledge chunks were used, if a web search was performed (and the query used, and summary of impact), or if it was general knowledge.",
   "relevantKnowledgeIds": ["id_of_original_item_for_chunk_1", "id_of_original_item_for_chunk_2"]
 }
 `,
@@ -188,6 +189,7 @@ const autonomousReasoningFlow = ai.defineFlow(
       context: input.context,
       userInput: input.userInput,
       retrievedChunksText: retrievedChunksText,
+      // searchResultsText is NOT explicitly passed here; the 'tools' mechanism handles it.
     };
 
     const modelResponse = await prompt(promptInputData);
@@ -211,4 +213,3 @@ const autonomousReasoningFlow = ai.defineFlow(
     return { ...modelResponse.output, relevantKnowledgeIds: relevantOriginalItemIds };
   }
 );
-
