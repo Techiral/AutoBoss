@@ -4,20 +4,20 @@ import MarketingPageClient from './marketing-page-client';
 
 // Metadata for SEO - specific to this page
 export const metadata: Metadata = {
-  title: 'AutoBoss: AI Agency Platform - Build No-Code AI Agents for Clients',
-  description: "AutoBoss makes it simple to start and grow your AI agency. Create, train, and deploy AI chatbots and voice agents for businesses without coding. Join our free Early Adopter Program.",
-  keywords: "AI agency platform, no-code AI, build AI chatbots, sell AI agents, AI for businesses, AutoBoss AI, accessible AI tools, start AI business, client management for AI",
+  title: 'AutoBoss: AI Agency Simple. No Code. Get Clients.',
+  description: "Easiest way to start your AI Agency. Build AI for businesses. No coding. Get paid. Free access now.",
+  keywords: "AI agency simple, no-code AI, start AI agency, build AI for clients, get paid with AI, AutoBoss free access",
   openGraph: {
-    title: 'AutoBoss: AI Agency Platform - Build No-Code AI Agents for Clients',
-    description: "Empowering entrepreneurs to create and sell AI solutions with ease. No coding needed. Explore our Early Adopter Program.",
+    title: 'AutoBoss: AI Agency Simple. No Code. Get Clients.',
+    description: "Easiest way to start your AI Agency. Build AI for businesses. No coding. Get paid. Free access now.",
     type: 'website',
-    // images: [{ url: 'https://YOUR_APP_DOMAIN.com/og-image-autoboss-professional.png' }], // Replace with your actual OG image URL
+    // images: [{ url: 'https://YOUR_APP_DOMAIN.com/og-image-autoboss-professional.png' }],
   },
-  // twitter: { // Add if you have twitter specific cards
+  // twitter: {
   //   card: 'summary_large_image',
-  //   title: 'AutoBoss: AI Agency Platform - Build No-Code AI Agents',
-  //   description: 'Launch your AI Agency with AutoBoss. No code required. Manage clients & deliver AI solutions.',
-  //   images: ['https://YOUR_APP_DOMAIN.com/twitter-image-autoboss-professional.png'], // Replace
+  //   title: 'AutoBoss: AI Agency Simple. No Code. Get Clients.',
+  //   description: 'Easiest way to start your AI Agency. Build AI for businesses. No coding. Get paid. Free access now.',
+  //   images: ['https://YOUR_APP_DOMAIN.com/twitter-image-autoboss-professional.png'],
   // },
 };
 
