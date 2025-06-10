@@ -19,7 +19,6 @@ import {
 import type { useAppContext as UseAppContextType } from "@/app/(app)/layout";
 import { Badge } from "@/components/ui/badge";
 
-// ExtendedChatMessage no longer needs flow-specific fields
 interface ExtendedChatMessage extends ChatMessageType {
   reasoning?: string;
   relevantKnowledgeIds?: string[];
@@ -37,6 +36,21 @@ interface ChatInterfaceProps {
   onNewAgentMessage?: (message: ExtendedChatMessage) => void;
 }
 
+const PLACEHOLDER_RESPONSES = [
+  "give me a moment",
+  "let me check",
+  "one moment please",
+  "i'm looking into that",
+  "hang on",
+  "just a second",
+  "let me see",
+  "i'll check on that",
+  "allow me a moment",
+];
+
+const MAX_AUTO_RETRIES = 1; // Max number of automatic retries for placeholder responses
+const AUTO_RETRY_DELAY_MS = 1000; // Delay before auto-retrying
+
 export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps>(({ agent: initialAgent, appContext, onNewAgentMessage }, ref) => {
   const [messages, setMessages] = useState<ExtendedChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -49,6 +63,9 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
   const [currentAgent, setCurrentAgent] = useState<Agent>(initialAgent);
   const agentRef = useRef(currentAgent); 
   const conversationHistoryRef = useRef<string[]>([]); 
+  const lastUserMessageRef = useRef<string | null>(null);
+  const autoRetryCountRef = useRef<number>(0);
+
 
   useEffect(() => {
     setCurrentAgent(initialAgent);
@@ -56,6 +73,8 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
     setIsInitializing(true); 
     conversationHistoryRef.current = [];
     setMessages([]); 
+    lastUserMessageRef.current = null;
+    autoRetryCountRef.current = 0;
   }, [initialAgent]);
 
 
@@ -74,9 +93,11 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
 
   const initializeChat = useCallback(async (isManualRestart = false) => {
     if (!agentRef.current) return;
-    console.log("ChatInterface (Simplified): Initializing chat for agent:", agentRef.current.id);
+    console.log("ChatInterface: Initializing chat for agent:", agentRef.current.id);
     setIsLoading(true);
     conversationHistoryRef.current = []; 
+    lastUserMessageRef.current = null;
+    autoRetryCountRef.current = 0;
 
     const initialMessagesList: ExtendedChatMessage[] = [];
     
@@ -98,7 +119,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
     if (isManualRestart) {
       toast({ title: "Conversation Restarted", description: "The chat has been reset." });
     }
-    console.log("ChatInterface (Simplified): Initialization complete.");
+    console.log("ChatInterface: Initialization complete.");
   }, [toast, onNewAgentMessage]);
 
   useEffect(() => {
@@ -107,31 +128,36 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
     }
   }, [isInitializing, initializeChat, agentRef]);
 
-  const handleSendMessageInternal = async (messageText: string) => {
-    if (messageText.trim() === "" || isLoading || isInitializing) return;
 
-    const userMessage: ExtendedChatMessage = {
-      id: Date.now().toString(),
-      sender: "user",
-      text: messageText,
-      timestamp: Date.now(),
-    };
+  const handleSendMessageInternal = async (messageText: string, isAutoRetry: boolean = false) => {
+    if (messageText.trim() === "" || (isLoading && !isAutoRetry) || isInitializing) return;
+
+    if (!isAutoRetry) {
+      lastUserMessageRef.current = messageText; // Store the original user message
+      autoRetryCountRef.current = 0; // Reset retry counter for new user message
+
+      const userMessage: ExtendedChatMessage = {
+        id: Date.now().toString(),
+        sender: "user",
+        text: messageText,
+        timestamp: Date.now(),
+      };
+      setMessages((prev) => [...prev, userMessage]);
+      conversationHistoryRef.current.push(`User: ${userMessage.text}`);
+      setInput(""); 
+    }
     
-    setMessages((prev) => [...prev, userMessage]);
-    setInput(""); 
     setIsLoading(true);
-
-    const currentHistoryForApi = [...conversationHistoryRef.current, `User: ${userMessage.text}`];
     
-    console.log("ChatInterface (Simplified): Sending message to API. Agent Primary Logic:", agentRef.current.primaryLogic);
+    console.log("ChatInterface: Sending message to API. Agent Primary Logic:", agentRef.current.primaryLogic, "Is Auto Retry:", isAutoRetry);
 
     try {
       const response = await fetch(`/api/agents/${agentRef.current.id}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: messageText,
-          conversationHistory: currentHistoryForApi, 
+          message: messageText, // Send current messageText (original user msg or retry msg)
+          conversationHistory: conversationHistoryRef.current, // Send the full history up to this point
         }),
       });
 
@@ -142,23 +168,41 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
         throw new Error(errorDetail);
       }
       
+      let agentResponseText = data.reply;
       let agentResponse: ExtendedChatMessage | null = null;
 
-      if (data.reply) { 
+      if (agentResponseText) { 
         agentResponse = {
           id: `auto-resp-${Date.now()}`,
           sender: 'agent',
-          text: data.reply,
+          text: agentResponseText,
           timestamp: Date.now(),
           reasoning: data.reasoning,
           relevantKnowledgeIds: data.relevantKnowledgeIds,
         };
-      }
-
-      if (agentResponse) {
+        
         setMessages((prev) => [...prev, agentResponse as ExtendedChatMessage]);
         if (onNewAgentMessage) onNewAgentMessage(agentResponse);
         conversationHistoryRef.current.push(`Agent: ${(agentResponse as ExtendedChatMessage).text}`); 
+        
+        // Check for placeholder and attempt auto-retry
+        const lowerCaseAgentResponse = agentResponseText.toLowerCase();
+        const isPlaceholder = PLACEHOLDER_RESPONSES.some(phrase => lowerCaseAgentResponse.includes(phrase));
+
+        if (isPlaceholder && autoRetryCountRef.current < MAX_AUTO_RETRIES && lastUserMessageRef.current) {
+          console.log(`ChatInterface: Agent responded with placeholder "${agentResponseText}". Attempting auto-retry ${autoRetryCountRef.current + 1}.`);
+          autoRetryCountRef.current++;
+          setTimeout(() => {
+            // Re-send the *last user message*
+            handleSendMessageInternal(lastUserMessageRef.current!, true); 
+          }, AUTO_RETRY_DELAY_MS);
+          // Don't setIsLoading(false) yet, as we're retrying
+          return; 
+        } else if (isPlaceholder) {
+          console.log("ChatInterface: Agent responded with placeholder, but max auto-retries reached or no last user message.");
+        }
+        autoRetryCountRef.current = 0; // Reset if not a placeholder or retries exhausted
+
       } else {
          const noReplyMsg: ExtendedChatMessage = {
            id: `no-reply-${Date.now()}`, sender: 'agent', text: "I didn't receive a specific response. Please try again.", timestamp: Date.now()
@@ -166,6 +210,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
          setMessages((prev) => [...prev, noReplyMsg]);
          if (onNewAgentMessage) onNewAgentMessage(noReplyMsg);
          conversationHistoryRef.current.push(`Agent: ${noReplyMsg.text}`);
+         autoRetryCountRef.current = 0; 
       }
       
       if (data.error) { 
@@ -173,7 +218,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
       }
 
     } catch (error: any) {
-      console.error("ChatInterface (Simplified): Error calling chat API:", error);
+      console.error("ChatInterface: Error calling chat API:", error);
       toast({ title: "API Error", description: error.message || "Could not get a response.", variant: "destructive" });
       const errorResponse: ExtendedChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -184,8 +229,16 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
       setMessages((prev) => [...prev, errorResponse]);
       if(onNewAgentMessage) onNewAgentMessage(errorResponse);
       conversationHistoryRef.current.push(`Agent: ${errorResponse.text}`);
+      autoRetryCountRef.current = 0; 
     } finally {
-      setIsLoading(false);
+      // Only set isLoading to false if not in an auto-retry loop that will continue.
+      // If it was a placeholder and we are retrying, isLoading remains true.
+      const lowerCaseAgentResponse = messages[messages.length -1]?.text?.toLowerCase() || "";
+      const wasPlaceholderAndRetrying = PLACEHOLDER_RESPONSES.some(phrase => lowerCaseAgentResponse.includes(phrase)) && autoRetryCountRef.current > 0 && autoRetryCountRef.current <= MAX_AUTO_RETRIES;
+      
+      if(!wasPlaceholderAndRetrying || autoRetryCountRef.current >= MAX_AUTO_RETRIES) {
+         setIsLoading(false);
+      }
     }
   };
 
@@ -209,7 +262,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
 
   const handleRestartConversation = () => {
     if (isInitializing || isLoading) return; 
-    console.log("ChatInterface (Simplified): Restarting conversation...");
+    console.log("ChatInterface: Restarting conversation...");
     setInput("");
     setMessages([]); 
     setIsInitializing(true); 

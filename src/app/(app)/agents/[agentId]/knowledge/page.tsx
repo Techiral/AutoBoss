@@ -26,28 +26,38 @@ import * as pdfjsLib from 'pdfjs-dist';
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 
-// Basic CSV to Text Converter
+// Improved CSV to Text Converter
 function csvToText(csvString: string, fileName: string): string {
   const lines = csvString.trim().split('\n');
-  if (lines.length === 0) return "Empty CSV file.";
+  if (lines.length === 0) return `Empty CSV file: ${fileName}.`;
 
-  const headers = lines[0].split(',').map(h => h.trim());
+  const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, '')); // Remove quotes from headers
   const records = lines.slice(1);
   
-  let textRepresentation = `Content of ${fileName}:\n`;
+  let textRepresentation = `Content of CSV file "${fileName}":\n\n`;
   if (records.length === 0) {
     textRepresentation += "The CSV file contains headers but no data records.\nHeaders: " + headers.join(', ') + ".";
     return textRepresentation;
   }
 
   records.forEach((recordLine, index) => {
-    const values = recordLine.split(',').map(v => v.trim());
-    textRepresentation += `Record ${index + 1}: `;
+    const values = recordLine.split(',').map(v => v.trim().replace(/"/g, '')); // Remove quotes from values
+    
+    let entryDescription = `Entry ${index + 1}: `;
+    if (values.length > 0 && values[0]) {
+      // Attempt to create a more descriptive entry point, e.g. "Details for [First Column Value]:"
+      entryDescription = `Details for ${headers[0] || 'entry'} "${values[0]}":\n`;
+    } else {
+      entryDescription = `Row ${index + 1} data:\n`;
+    }
+
+    let rowDetails = [];
     headers.forEach((header, i) => {
-      textRepresentation += `${header} is "${values[i] || 'N/A'}"`;
-      if (i < headers.length - 1) textRepresentation += ", ";
+      const value = values[i] || 'N/A';
+      rowDetails.push(`The ${header} is "${value}".`);
     });
-    textRepresentation += ".\n";
+    entryDescription += rowDetails.join(' ');
+    textRepresentation += entryDescription + "\n\n"; // Add extra newline for better separation
   });
   return textRepresentation;
 }
@@ -128,7 +138,7 @@ export default function KnowledgePage() {
       let effectiveMimeType = selectedFile.type;
       const fileNameLower = originalFileName.toLowerCase();
 
-      if (selectedFile.type === 'application/pdf' || fileNameLower.endsWith('.pdf')) {
+      if (fileNameLower.endsWith('.pdf')) {
         const arrayBuffer = await selectedFile.arrayBuffer();
         const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
         const pdfDoc = await loadingTask.promise;
@@ -146,13 +156,13 @@ export default function KnowledgePage() {
         if (!textContent.trim()) throw new Error("No text content found in PDF.");
         documentDataUri = `data:text/plain;charset=utf-8;base64,${Buffer.from(textContent).toString('base64')}`;
         effectiveMimeType = 'text/plain';
-      } else if (selectedFile.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || fileNameLower.endsWith('.docx')) {
+      } else if (fileNameLower.endsWith('.docx')) {
         const arrayBuffer = await selectedFile.arrayBuffer();
         const { value: textContent } = await mammoth.extractRawText({ arrayBuffer });
         if (!textContent.trim()) throw new Error("No text content found in DOCX.");
         documentDataUri = `data:text/plain;charset=utf-8;base64,${Buffer.from(textContent).toString('base64')}`;
         effectiveMimeType = 'text/plain';
-      } else if (selectedFile.type === 'text/csv' || fileNameLower.endsWith('.csv')) {
+      } else if (fileNameLower.endsWith('.csv')) {
         const csvTextContent = await selectedFile.text();
         const plainTextFromCsv = csvToText(csvTextContent, originalFileName);
         if (!plainTextFromCsv.trim()) throw new Error("Empty CSV or no content after conversion.");
@@ -290,7 +300,7 @@ export default function KnowledgePage() {
         <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
             <div className="space-y-1.5">
                 <Label htmlFor="document">Upload Document</Label>
-                <Input id="document" type="file" onChange={handleFileChange} accept=".txt,.pdf,.md,.docx,.json,.csv,.html,.htm,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/csv" disabled={isLoadingFile || isProcessingUrl}/>
+                <Input id="document" type="file" onChange={handleFileChange} accept=".txt,.pdf,.md,.docx,.json,.csv,.html,.htm,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/csv,text/markdown,application/json,text/html" disabled={isLoadingFile || isProcessingUrl}/>
                 {selectedFile && <p className="text-xs sm:text-sm text-muted-foreground">Selected: {selectedFile.name}</p>}
             </div>
             <Button onClick={handleSubmitFile} disabled={isLoadingFile || !selectedFile || isProcessingUrl} className={cn("w-full", "btn-gradient-primary")}>
@@ -348,7 +358,7 @@ export default function KnowledgePage() {
         <Card className="lg:col-span-2">
           <CardHeader className="p-4 sm:p-6">
             <CardTitle className={cn("font-headline text-lg sm:text-xl flex items-center gap-2", "text-gradient-dynamic")}>
-                <Brain className="w-5 h-5 sm:w-6 sm:h-6 text-primary"/> Trained Knowledge for: {currentAgent.generatedName || currentAgent.name}
+                <Brain className="w-5 h-5 sm:w-6 sm:w-6 text-primary"/> Trained Knowledge for: {currentAgent.generatedName || currentAgent.name}
             </CardTitle>
              <CardDescription className="text-sm">This is the custom business data your agent uses to answer questions.</CardDescription>
           </CardHeader>
