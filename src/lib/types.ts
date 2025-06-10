@@ -52,84 +52,9 @@ export const ProcessedUrlOutputSchema = z.object({
 });
 export type ProcessedUrlOutput = z.infer<typeof ProcessedUrlOutputSchema>;
 
-
-// Zod Schemas for Flow Definition
-export const FlowNodeSchema = z.object({
-  id: z.string(),
-  type: z.enum([
-    'start',
-    'sendMessage',
-    'getUserInput',
-    'callLLM', // "Ask AI / Smart Response"
-    'condition', // "Make a Decision"
-    'qnaLookup', // "Answer from Knowledge"
-    'wait', // "Add Delay"
-    'end'
-  ]),
-  position: z.object({ x: z.number(), y: z.number() }).optional(),
-
-  // Common properties
-  label: z.string().optional(),
-
-  // sendMessage
-  message: z.string().optional(),
-
-  // getUserInput
-  prompt: z.string().optional(), // Question for the user
-  variableName: z.string().optional(), // Variable to store user's answer
-  inputType: z.string().optional().describe("e.g., text, number, email - for future validation hints"),
-  validationRules: z.string().optional().describe("e.g., regex for email - for future validation"),
-
-  // callLLM ("Ask AI / Smart Response")
-  llmPrompt: z.string().optional().describe("Instructions for the AI. Use {{variable}} for context."),
-  outputVariable: z.string().optional().describe("Variable to store AI's response."),
-  useKnowledge: z.boolean().optional().describe("Allow AI to use trained knowledge."),
-  
-  // condition ("Make a Decision")
-  conditionVariable: z.string().optional().describe("Variable from context to base the decision on."),
-  useLLMForDecision: z.boolean().optional().describe("If true, AI tries to match variable value to edge conditions."),
-
-  // qnaLookup ("Answer from Knowledge")
-  qnaQueryVariable: z.string().optional().describe("Context variable holding the user's query."),
-  qnaOutputVariable: z.string().optional().describe("Context variable to store the found answer."),
-  qnaFallbackText: z.string().optional().describe("Text to show if no answer is found in knowledge."),
-  
-  // wait ("Add Delay")
-  waitDurationMs: z.number().optional().default(1000),
-
-  // end
-  endOutputVariable: z.string().optional().describe("Variable from context to output when flow ends (advanced)."),
-
-  // Kept for potential future light use if simplified or specific to a node
-  agentContextWindow: z.number().optional(), 
-});
-export type FlowNode = z.infer<typeof FlowNodeSchema>;
-
-export const FlowEdgeSchema = z.object({
-  id: z.string(),
-  source: z.string(),
-  target: z.string(),
-  label: z.string().optional(),
-  condition: z.string().optional().describe("For 'condition' nodes, this is the value the conditionVariable is checked against."),
-  edgeType: z.enum(['default', 'success', 'error', 'invalid', 'found', 'notFound']).optional().default('default').describe("Semantic type for edge logic (e.g., for Q&A found/not found paths).")
-});
-export type FlowEdge = z.infer<typeof FlowEdgeSchema>;
-
-export const AgentFlowDefinitionSchema = z.object({
-  flowId: z.string(),
-  name: z.string(),
-  description: z.string(),
-  nodes: z.array(FlowNodeSchema),
-  edges: z.array(FlowEdgeSchema),
-});
-export type AgentFlowDefinition = z.infer<typeof AgentFlowDefinitionSchema>;
-
-export const FlowContextSchema = z.record(z.any()).describe("Holds variables like userName, llmResponse etc. Also includes conversationHistory and potentially other dynamic state such as 'currentNodeId' and 'waitingForInput'.");
-export type FlowContext = z.infer<typeof FlowContextSchema>;
-
 // Agent interface
 export type AgentType = 'chat' | 'voice' | 'hybrid';
-export type AgentLogicType = 'flow' | 'prompt' | 'rag' | 'hybrid';
+export type AgentLogicType = 'prompt' | 'rag'; // Simplified: Removed 'flow' and 'hybrid' that implied flow
 export type AgentDirection = 'inbound' | 'outbound';
 
 export interface Agent {
@@ -147,7 +72,7 @@ export interface Agent {
   generatedGreeting?: string;
   createdAt: string | Timestamp;
   knowledgeItems?: KnowledgeItem[];
-  flow?: AgentFlowDefinition;
+  // Removed: flow?: AgentFlowDefinition;
 }
 
 export interface ChatMessage {
@@ -158,7 +83,9 @@ export interface ChatMessage {
   intent?: string;
   entities?: Record<string, string>;
   reasoning?: string;
-  flowNodeId?: string;
-  flowContext?: FlowContext;
+  // Removed: flowNodeId?: string;
+  // Removed: flowContext?: any; // Simplified, context might be handled differently
   relevantKnowledgeIds?: string[];
+  conversationHistory?: string[]; // Added for potential client-side history management for autonomous agents
 }
+

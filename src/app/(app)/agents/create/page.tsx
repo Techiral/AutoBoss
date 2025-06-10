@@ -15,7 +15,7 @@ import { createAgent, CreateAgentOutput } from "@/ai/flows/agent-creation";
 import { useRouter } from "next/navigation";
 import { useAppContext } from "../../layout"; 
 import type { Agent, AgentType, AgentLogicType, AgentDirection } from "@/lib/types"; 
-import { Loader2, Bot, MessageSquare, Phone, Brain, DatabaseZap, Workflow, ArrowDownCircle, ArrowUpCircle } from "lucide-react"; 
+import { Loader2, Bot, MessageSquare, Phone, Brain, DatabaseZap, ArrowDownCircle, ArrowUpCircle } from "lucide-react"; 
 import { useAuth } from "@/contexts/AuthContext"; 
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -24,7 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 const formSchema = z.object({
   agentType: z.enum(["chat", "voice", "hybrid"], { required_error: "Please select an agent type."}),
   direction: z.enum(["inbound", "outbound"], { required_error: "Please select agent direction."}),
-  primaryLogic: z.enum(["flow", "prompt", "rag", "hybrid"], { required_error: "Please select the agent's primary brain logic."}),
+  primaryLogic: z.enum(["prompt", "rag"], { required_error: "Please select the agent's primary brain logic."}), // Simplified
   name: z.string().min(3, "Chatbot name must be at least 3 characters").max(100, "Name too long"),
   role: z.string().min(10, "Role description must be at least 10 characters").max(500, "Role too long"),
   personality: z.string().min(10, "Personality description must be at least 10 characters").max(500, "Personality too long"),
@@ -45,17 +45,15 @@ export default function CreateAgentPage() {
     defaultValues: {
       agentType: "chat",
       direction: "inbound",
-      primaryLogic: "hybrid", 
+      primaryLogic: "rag", // Defaulting to RAG as it's a common and powerful starting point
     }
   });
   
   const getLogicTypeLabel = (logicType?: AgentLogicType): string => {
     if (!logicType) return "Not Set";
     switch (logicType) {
-        case 'flow': return "Flow-based";
         case 'prompt': return "Direct AI Prompt";
         case 'rag': return "Knowledge Q&A (RAG)";
-        case 'hybrid': return "Hybrid (Flow then RAG/Prompt)";
         default: return "Custom";
     }
   };
@@ -74,7 +72,7 @@ export default function CreateAgentPage() {
       const aiResult = await createAgent({ agentDescription, agentType: data.agentType, direction: data.direction as AgentDirection });
       setGeneratedAgentDetails(aiResult);
       
-      const agentDataForContext: Omit<Agent, 'id' | 'createdAt' | 'knowledgeItems' | 'flow' | 'userId'> = {
+      const agentDataForContext: Omit<Agent, 'id' | 'createdAt' | 'knowledgeItems' | 'userId'> = {
         agentType: data.agentType as AgentType,
         direction: data.direction as AgentDirection,
         primaryLogic: data.primaryLogic as AgentLogicType, 
@@ -92,15 +90,14 @@ export default function CreateAgentPage() {
       if (newAgent) {
         toast({
           title: "Agent Base Created!",
-          description: `Agent "${aiResult.agentName}" (Type: ${data.agentType}, Direction: ${data.direction}, Logic: ${logicTypeLabel}) is ready. Next, customize it further. Redirecting...`,
+          description: `Agent "${aiResult.agentName}" (Type: ${data.agentType}, Direction: ${data.direction}, Logic: ${logicTypeLabel}) is ready. Next, customize its personality and add knowledge. Redirecting...`,
         });
         
-        if (data.primaryLogic === 'flow' || data.primaryLogic === 'hybrid') {
-            router.push(`/agents/${newAgent.id}/studio`);
-        } else if (data.primaryLogic === 'prompt' || data.primaryLogic === 'rag') {
-             router.push(`/agents/${newAgent.id}/knowledge`);
-        } else { 
-            router.push(`/agents/${newAgent.id}/studio`); 
+        // Since Studio is removed, redirect to Knowledge or Personality
+        if (data.primaryLogic === 'rag') {
+            router.push(`/agents/${newAgent.id}/knowledge`);
+        } else { // 'prompt' logic
+            router.push(`/agents/${newAgent.id}/personality`);
         }
       }
     } catch (error: any) {
@@ -170,7 +167,7 @@ export default function CreateAgentPage() {
               </div>
             </div>
              <div className="space-y-1.5">
-                <Label htmlFor="primaryLogic">Primary Brain Logic</Label>
+                <Label htmlFor="primaryLogic">Agent's Brain</Label>
                 <Controller
                   name="primaryLogic"
                   control={control}
@@ -180,15 +177,16 @@ export default function CreateAgentPage() {
                         <SelectValue placeholder="Select brain logic" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="flow"><div className="flex items-center gap-2"><Workflow className="w-4 h-4"/>Visual Flow Builder</div></SelectItem>
-                        <SelectItem value="prompt"><div className="flex items-center gap-2"><Brain className="w-4 h-4"/>Direct AI Prompt</div></SelectItem>
-                        <SelectItem value="rag"><div className="flex items-center gap-2"><DatabaseZap className="w-4 h-4"/>Knowledge Q&A (RAG)</div></SelectItem>
-                        <SelectItem value="hybrid"><div className="flex items-center gap-2"><Bot className="w-3 h-3"/><Workflow className="w-3 h-3 -ml-1"/>Hybrid (Flow then RAG/Prompt)</div></SelectItem>
+                        <SelectItem value="prompt"><div className="flex items-center gap-2"><Brain className="w-4 h-4"/>Direct AI Prompt (Persona-driven)</div></SelectItem>
+                        <SelectItem value="rag"><div className="flex items-center gap-2"><DatabaseZap className="w-4 h-4"/>Knowledge Q&A (Uses uploaded data)</div></SelectItem>
                       </SelectContent>
                     </Select>
                   )}
                 />
                 {errors.primaryLogic && <p className="text-xs text-destructive">{errors.primaryLogic.message}</p>}
+                 <p className="text-xs text-muted-foreground mt-1">
+                    'Direct AI Prompt' relies on the agent's persona for responses. 'Knowledge Q&A' primarily uses uploaded documents to answer questions.
+                </p>
               </div>
 
 
@@ -242,3 +240,4 @@ export default function CreateAgentPage() {
     </div>
   );
 }
+

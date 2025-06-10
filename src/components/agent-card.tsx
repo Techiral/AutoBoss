@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bot, ArrowRight, Trash2, MessageSquare, Phone, Info, Brain, Workflow, DatabaseZap, ArrowDownCircle, ArrowUpCircle } from "lucide-react"; 
+import { Bot, ArrowRight, Trash2, MessageSquare, Phone, Info, Brain, DatabaseZap, ArrowDownCircle, ArrowUpCircle } from "lucide-react"; 
 import type { Agent, AgentLogicType, AgentType, AgentDirection } from "@/lib/types";
 import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -29,17 +29,13 @@ function getAgentTypeIcon(agentType?: AgentType) {
 }
 
 function getLogicTypeDisplayInfo(logicType?: AgentLogicType): { label: string | null; icon: React.ReactNode | null } {
-  if (!logicType) return { label: null, icon: null };
+  if (!logicType) return { label: "Prompt", icon: <Brain className="w-3 h-3 mr-1" /> }; // Default if undefined
   switch (logicType) {
-    case 'flow':
-      return { label: "Flow", icon: <Workflow className="w-3 h-3 mr-1" /> };
     case 'prompt':
       return { label: "AI Prompt", icon: <Brain className="w-3 h-3 mr-1" /> };
     case 'rag':
-      return { label: "RAG Q&A", icon: <DatabaseZap className="w-3 h-3 mr-1" /> };
-    case 'hybrid':
-      return { label: "Hybrid", icon: <Bot className="w-3 h-3 mr-1" /> };
-    default:
+      return { label: "Knowledge Q&A", icon: <DatabaseZap className="w-3 h-3 mr-1" /> };
+    default: // Should not happen with simplified types
       return { label: "Custom", icon: <Info className="w-3 h-3 mr-1" /> };
   }
 }
@@ -69,6 +65,8 @@ export function AgentCard({ agent, onDelete }: AgentCardProps) {
 
   const { label: logicTypeLabel, icon: logicTypeIcon } = getLogicTypeDisplayInfo(agent.primaryLogic);
   const { label: directionLabel, icon: directionIcon } = getDirectionDisplayInfo(agent.direction);
+
+  const defaultNavigationPage = agent.primaryLogic === 'rag' ? 'knowledge' : 'personality';
 
 
   return (
@@ -114,9 +112,8 @@ export function AgentCard({ agent, onDelete }: AgentCardProps) {
           <Trash2 className="w-3.5 h-3.5 mr-1 sm:mr-1.5" /> Delete
         </Button>
         <Button asChild size="sm" className={cn("text-xs px-2 py-1 h-auto", "btn-gradient-primary")}>
-          <Link href={`/agents/${agent.id}/${agent.primaryLogic === 'flow' || agent.primaryLogic === 'hybrid' ? 'studio' : (agent.primaryLogic === 'prompt' || agent.primaryLogic === 'rag' ? 'knowledge' : 'studio')}`}>
-            {agent.primaryLogic === 'flow' || agent.primaryLogic === 'hybrid' ? 'Open Studio' : 
-             (agent.primaryLogic === 'prompt' || agent.primaryLogic === 'rag' ? 'Manage Knowledge' : 'Open Studio')} 
+          <Link href={`/agents/${agent.id}/${defaultNavigationPage}`}>
+            Configure Agent
             <ArrowRight className="ml-1 sm:ml-1.5 w-3.5 h-3.5" />
           </Link>
         </Button>
@@ -124,3 +121,4 @@ export function AgentCard({ agent, onDelete }: AgentCardProps) {
     </Card>
   );
 }
+

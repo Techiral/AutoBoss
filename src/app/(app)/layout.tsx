@@ -20,8 +20,8 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { Home, PlusCircle, Bot, Settings, BookOpen, MessageSquare, Share2, Cog, LifeBuoy, Loader2, LogIn } from 'lucide-react';
-import type { Agent, KnowledgeItem, AgentFlowDefinition, AgentLogicType } from '@/lib/types';
-import { minimalInitialFlow } from '@/app/(app)/agents/[agentId]/studio/page';
+import type { Agent, KnowledgeItem, AgentLogicType } from '@/lib/types';
+// Removed: import { minimalInitialFlow } from '@/app/(app)/agents/[agentId]/studio/page'; // Studio is removed
 import { db } from '@/lib/firebase';
 import {
   collection,
@@ -47,12 +47,12 @@ type Theme = 'dark' | 'light';
 
 interface AppContextType {
   agents: Agent[];
-  addAgent: (agentData: Omit<Agent, 'id' | 'createdAt' | 'knowledgeItems' | 'flow' | 'userId'>) => Promise<Agent | null>;
+  addAgent: (agentData: Omit<Agent, 'id' | 'createdAt' | 'knowledgeItems' | 'userId'>) => Promise<Agent | null>;
   updateAgent: (agent: Agent) => Promise<void>;
   getAgent: (id: string) => Agent | undefined;
   addKnowledgeItem: (agentId: string, item: KnowledgeItem) => Promise<void>;
-  updateAgentFlow: (agentId: string, flow: AgentFlowDefinition) => Promise<void>;
-  getAgentFlow: (agentId: string) => AgentFlowDefinition | undefined;
+  // Removed: updateAgentFlow: (agentId: string, flow: AgentFlowDefinition) => Promise<void>;
+  // Removed: getAgentFlow: (agentId: string) => AgentFlowDefinition | undefined;
   deleteAgent: (agentId: string) => Promise<void>;
   theme: Theme;
   toggleTheme: () => void;
@@ -83,6 +83,7 @@ const convertTimestampsToISO = (agent: any): Agent => {
       return item;
     });
   }
+  // Removed flow conversion as flow property is removed
   return newAgent as Agent;
 };
 
@@ -117,9 +118,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [theme]);
 
   useEffect(() => {
-    if (authLoading) { // Context is already showing a full-page loader if auth is loading
-      setIsLoadingAgents(false); // Prevent this layout from showing another loader
-      setIsContextInitialized(false); // Wait for auth
+    if (authLoading) { 
+      setIsLoadingAgents(false); 
+      setIsContextInitialized(false); 
       return;
     }
     if (!currentUser) {
@@ -127,7 +128,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         router.push('/login');
       } else {
         setIsLoadingAgents(false);
-        setIsContextInitialized(true); // No user, so context is "initialized" for non-auth state
+        setIsContextInitialized(true); 
       }
     } else {
       const fetchAgents = async () => {
@@ -154,7 +155,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [currentUser, authLoading, router, toast, pathname]);
 
 
-  const addAgent = useCallback(async (agentData: Omit<Agent, 'id' | 'createdAt' | 'knowledgeItems' | 'flow' | 'userId'>): Promise<Agent | null> => {
+  const addAgent = useCallback(async (agentData: Omit<Agent, 'id' | 'createdAt' | 'knowledgeItems' | 'userId'>): Promise<Agent | null> => {
     if (!currentUser) {
       toast({ title: "Not Authenticated", description: "You must be logged in to create an agent.", variant: "destructive" });
       return null;
@@ -165,13 +166,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         ...agentData,
         id: newAgentId,
         userId: currentUser.uid,
-        createdAt: Timestamp.now(),
+        createdAt: Timestamp.now(), // Firestore Timestamp
         knowledgeItems: [],
-        flow: minimalInitialFlow, // Assign minimal flow by default
+        // Removed: flow: minimalInitialFlow, 
       };
 
       const { id, ...dataToSave } = newAgentWithUser;
-      await setDoc(doc(db, AGENTS_COLLECTION, newAgentWithUser.id), dataToSave);
+      // Ensure createdAt is a Firestore Timestamp before saving
+      const saveData = {
+        ...dataToSave,
+        createdAt: dataToSave.createdAt instanceof Timestamp ? dataToSave.createdAt : Timestamp.fromDate(new Date(dataToSave.createdAt as string))
+      };
+
+      await setDoc(doc(db, AGENTS_COLLECTION, newAgentWithUser.id), saveData);
 
       const agentForState = convertTimestampsToISO(newAgentWithUser);
       setAgents((prevAgents) => [...prevAgents, agentForState]);
@@ -190,22 +197,28 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
     try {
       const agentRef = doc(db, AGENTS_COLLECTION, updatedAgent.id);
-      const dataToUpdate: any = { ...updatedAgent };
-      delete dataToUpdate.id;
+      const { id, ...dataToUpdate } = updatedAgent; // Exclude id from data being set
 
-      if (typeof dataToUpdate.createdAt === 'string') {
-        dataToUpdate.createdAt = Timestamp.fromDate(new Date(dataToUpdate.createdAt));
+      // Convert string timestamps back to Firestore Timestamps if necessary
+      const finalDataToUpdate: any = { ...dataToUpdate };
+      if (typeof finalDataToUpdate.createdAt === 'string') {
+        finalDataToUpdate.createdAt = Timestamp.fromDate(new Date(finalDataToUpdate.createdAt));
       }
-      if (dataToUpdate.knowledgeItems) {
-        dataToUpdate.knowledgeItems = dataToUpdate.knowledgeItems.map((item: any) => {
+      if (finalDataToUpdate.knowledgeItems) {
+        finalDataToUpdate.knowledgeItems = finalDataToUpdate.knowledgeItems.map((item: any) => {
           if (typeof item.uploadedAt === 'string') {
             return { ...item, uploadedAt: Timestamp.fromDate(new Date(item.uploadedAt)) };
           }
           return item;
         });
       }
+       // Remove 'flow' property before saving if it somehow still exists on the object
+      if ('flow' in finalDataToUpdate) {
+        delete finalDataToUpdate.flow;
+      }
 
-      await setDoc(agentRef, dataToUpdate, { merge: true });
+
+      await setDoc(agentRef, finalDataToUpdate, { merge: true });
 
       setAgents((prevAgents) =>
         prevAgents.map((agent) =>
@@ -264,38 +277,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [agents, currentUser, toast]);
 
-  const updateAgentFlow = useCallback(async (agentId: string, flow: AgentFlowDefinition) => {
-     const agent = agents.find(a => a.id === agentId);
-    if (!agent || !currentUser || currentUser.uid !== agent.userId) {
-        toast({ title: "Unauthorized or Agent Not Found", description: "Cannot update flow.", variant: "destructive" });
-        return;
-    }
-    try {
-      const agentRef = doc(db, AGENTS_COLLECTION, agentId);
-      await updateDoc(agentRef, { flow });
-
-      setAgents(prevAgents =>
-        prevAgents.map(prevAgent => {
-          if (prevAgent.id === agentId) {
-            return { ...prevAgent, flow: flow };
-          }
-          return prevAgent;
-        })
-      );
-    } catch (error) {
-      console.error("Error updating agent flow in Firestore:", error);
-      toast({ title: "Error Saving Flow", description: "Could not save flow changes.", variant: "destructive" });
-    }
-  }, [agents, currentUser, toast]);
-
-  const getAgentFlow = useCallback((agentId: string): AgentFlowDefinition | undefined => {
-    const agent = agents.find(a => a.id === agentId);
-    if (agent && currentUser && agent.userId === currentUser.uid) {
-        return agent.flow;
-    }
-    return undefined;
-  }, [agents, currentUser]);
-
   const deleteAgent = useCallback(async (agentId: string) => {
     const agent = agents.find(a => a.id === agentId);
     if (!agent || !currentUser || currentUser.uid !== agent.userId) {
@@ -346,8 +327,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [currentUser, toast]);
 
   const renderContent = () => {
-    // The AuthContext already handles a full-screen loader when authLoading is true.
-    // This layout should only show its loader if auth is done, but we are still fetching app-specific data (agents).
     if (!authLoading && isLoadingAgents && currentUser) {
       return (
         <div className="flex flex-col items-center justify-center flex-1 p-4">
@@ -358,8 +337,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       );
     }
     if (!authLoading && !currentUser && !(pathname === '/login' || pathname === '/signup' || pathname.startsWith('/chat/'))) {
-      // This case is typically handled by redirection in useEffect,
-      // but as a fallback or during the brief moment before redirection:
       return (
         <div className="flex flex-col items-center justify-center flex-1 p-4 text-center">
             <LogIn className="h-10 w-10 sm:h-12 sm:h-12 text-primary mb-3" />
@@ -367,11 +344,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       );
     }
-    // If context is initialized (or authLoading is false and no currentUser for public pages), show children
     if (isContextInitialized || ( (!authLoading && !currentUser) && (pathname === '/login' || pathname === '/signup' || pathname.startsWith('/chat/')) ) ) {
       return children;
     }
-    // Default to a minimal loader if none of the above (should be rare)
     return (
        <div className="flex items-center justify-center flex-1">
           <Loader2 className="h-10 w-10 sm:h-12 sm:h-12 animate-spin text-primary" />
@@ -387,8 +362,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         updateAgent,
         getAgent,
         addKnowledgeItem,
-        updateAgentFlow,
-        getAgentFlow,
         deleteAgent,
         theme,
         toggleTheme,
@@ -437,7 +410,7 @@ function AppSidebar() {
   const { state: sidebarState, isMobile, setOpenMobile } = useSidebar(); 
   const collapsed = !isMobile && sidebarState === 'collapsed'; 
   const { currentUser, loading: authLoading } = useAuth();
-  const { getAgent, isLoadingAgents: isAppContextLoading } = useAppContext(); // Get getAgent from context
+  const { getAgent, isLoadingAgents: isAppContextLoading } = useAppContext(); 
 
   const handleMobileLinkClick = () => {
     if (isMobile) {
@@ -464,29 +437,19 @@ function AppSidebar() {
   if (currentAgentId && currentAgent) {
     const baseItems = [
       { href: `/agents/${currentAgentId}/personality`, label: 'Personality', icon: Bot },
+      { href: `/agents/${currentAgentId}/knowledge`, label: 'Knowledge', icon: BookOpen }, // Knowledge is always relevant now
       { href: `/agents/${currentAgentId}/test`, label: 'Test Agent', icon: MessageSquare },
       { href: `/agents/${currentAgentId}/export`, label: 'Export', icon: Share2 },
     ];
-
-    const studioItem = { href: `/agents/${currentAgentId}/studio`, label: 'Studio', icon: Cog };
-    const knowledgeItem = { href: `/agents/${currentAgentId}/knowledge`, label: 'Knowledge', icon: BookOpen };
     
     agentNavItems = [...baseItems];
 
-    if (currentAgent.primaryLogic === 'flow' || currentAgent.primaryLogic === 'hybrid') {
-      agentNavItems.push(studioItem);
-    }
-    if (currentAgent.primaryLogic === 'rag' || currentAgent.primaryLogic === 'hybrid' || currentAgent.primaryLogic === 'prompt') {
-      agentNavItems.push(knowledgeItem);
-    }
-     // Ensure Studio is typically first if present, then Knowledge, then others, or adjust order as preferred.
+    // No "Studio" tab, sort order might need adjustment if needed
     agentNavItems.sort((a, b) => {
-        const order = { Studio: 0, Knowledge: 1, Personality: 2, "Test Agent": 3, Export: 4 };
+        const order = { Personality: 0, Knowledge: 1, "Test Agent": 2, Export: 3 };
         // @ts-ignore
         return (order[a.label] || 99) - (order[b.label] || 99);
     });
-
-
   }
 
 
@@ -572,6 +535,5 @@ function AppSidebar() {
     </Sidebar>
   );
 }
-
 
     

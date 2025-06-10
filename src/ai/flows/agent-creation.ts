@@ -10,7 +10,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z}from 'genkit';
 import type { AgentType, AgentDirection } from '@/lib/types';
 
 const CreateAgentInputSchema = z.object({
@@ -55,6 +55,7 @@ For example:
 - An 'inbound' chat agent might have a welcoming greeting for a website visitor (e.g., "Hi there! I'm [Agent Name], your virtual assistant for [Business]. How can I assist you today?").
 - An 'outbound' agent might have a more direct but polite opening if initiating contact (though full outbound logic is complex, its initial greeting tone can be considered).
 - A 'hybrid' agent should have a versatile greeting.
+This agent will primarily rely on its persona, direct AI prompting, and any trained knowledge (RAG), not a predefined visual flow.
 {{/if}}
 
 Description:
@@ -92,3 +93,4 @@ const createAgentFlow = ai.defineFlow(
     return modelResponse.output;
   }
 );
+
