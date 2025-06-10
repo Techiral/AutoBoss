@@ -147,8 +147,8 @@
 /* Typewriter effect */
 @keyframes typing {
   from { width: 0ch; }
-  /* "Build AI. Get Paid." is 19 characters. Let's use 21ch to be safe with letter-spacing */
-  to { width: 21ch; } 
+  /* "Build AI. Serve Clients. Earn." is 30 characters. */
+  to { width: 33ch; } 
 }
 
 @keyframes blink-caret {
@@ -163,7 +163,7 @@
   white-space: nowrap;
   letter-spacing: .03em; 
   animation:
-    typing 1.5s steps(19, end) forwards, /* Steps should match actual characters: "Build AI. Get Paid." = 19 */
+    typing 2s steps(30, end) forwards, /* Steps should match actual characters */
     blink-caret .75s step-end infinite;
   animation-delay: 0.2s;
   width: 0ch; 
@@ -352,4 +352,3 @@ div[data-ai-hint] {
 }
 
     
-
