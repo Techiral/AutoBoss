@@ -162,7 +162,7 @@
   white-space: nowrap;
   letter-spacing: .03em; 
   animation:
-    typing 2s steps(30, end) forwards, /* Steps match characters */
+    typing 3s steps(30, end) forwards, /* Adjusted to 3s for 30 steps */
     blink-caret .75s step-end infinite;
   animation-delay: 0.2s;
   width: 0ch; 
@@ -299,7 +299,6 @@ div[data-ai-hint] {
     @apply content-none;
   }
 }
-
 .step-card-container > :nth-child(1) .dashed-connector::before { @apply content-none; }
 .step-card-container > :nth-child(3) .dashed-connector::after { @apply content-none; }
 
@@ -311,7 +310,6 @@ div[data-ai-hint] {
 
 .roadmap-vote-button-ph {
   @apply flex flex-col items-center justify-center p-1.5 sm:p-2 border border-border rounded-md hover:border-primary transition-colors min-w-[45px] sm:min-w-[55px] cursor-pointer text-center bg-background hover:bg-muted/50;
-  /* Removed 'group' utility from @apply */
 }
 .roadmap-vote-button-ph.voted {
   @apply border-primary bg-primary/10 text-primary;
@@ -359,4 +357,3 @@ div[data-ai-hint] {
 .public-page-footer {
     @apply py-6 text-center border-t border-border/60;
 }
-```
