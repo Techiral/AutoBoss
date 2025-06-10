@@ -4,8 +4,9 @@ import twilio from 'twilio';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, Timestamp } from 'firebase/firestore';
 import type { Agent } from '@/lib/types';
-// TODO: For full conversation, you might need to refactor Genkit flows (executeAgentFlow, autonomousReasoning)
-// to be callable from a pure server-side context or via an internal API.
+import { generateVoiceResponse, VoiceResponseInput } from '@/ai/flows/voice-response-flow'; // Import the new flow
+
+const MAX_HISTORY_ITEMS_IN_URL = 2; // Number of recent exchanges (1 user + 1 agent) = 4 items total (u1,a1,u2,a2)
 
 // Helper to convert Firestore Timestamps in agent data
 const convertAgentDataForVoice = (agentData: any): Agent => {
@@ -35,77 +36,114 @@ export async function POST(
   const twiml = new twilio.twiml.VoiceResponse();
 
   try {
-    // Twilio sends data as x-www-form-urlencoded
     const requestBody = await request.formData();
     const twilioData = Object.fromEntries(requestBody.entries());
-    
-    console.log(`[${timestamp}] Twilio Request Data for ${agentId}:`, twilioData);
+    const searchParams = request.nextUrl.searchParams;
+
+    console.log(`[${timestamp}] Twilio Request Data for ${agentId}:`, JSON.stringify(twilioData));
+    console.log(`[${timestamp}] URL Query Params for ${agentId}:`, JSON.stringify(Object.fromEntries(searchParams.entries())));
 
     const speechResult = twilioData.SpeechResult as string | undefined;
     const callSid = twilioData.CallSid as string;
 
-    // Fetch agent configuration
-    let agent: Agent | null = null;
-    try {
-      const agentRef = doc(db, 'agents', agentId);
-      const agentSnap = await getDoc(agentRef);
-      if (agentSnap.exists()) {
-        agent = convertAgentDataForVoice({ id: agentSnap.id, ...agentSnap.data() });
-      }
-    } catch (dbError: any) {
-      console.error(`[${timestamp}] Firestore error fetching agent ${agentId}:`, dbError);
-      twiml.say({ voice: 'alice' }, 'There was an issue retrieving agent information. Please try again later.');
-      twiml.hangup();
-      return new NextResponse(twiml.toString(), { headers: { 'Content-Type': 'application/xml' } });
-    }
+    const agentRef = doc(db, 'agents', agentId);
+    const agentSnap = await getDoc(agentRef);
 
-    if (!agent) {
+    if (!agentSnap.exists()) {
       console.warn(`[${timestamp}] Agent ${agentId} not found in Firestore.`);
-      twiml.say({ voice: 'alice' }, `Sorry, the requested agent with ID ${agentId} could not be found.`);
+      twiml.say({ voice: 'alice' }, `Sorry, the requested agent could not be found.`);
       twiml.hangup();
       return new NextResponse(twiml.toString(), { headers: { 'Content-Type': 'application/xml' } });
     }
+    
+    const agent = convertAgentDataForVoice({ id: agentSnap.id, ...agentSnap.data() });
+    let agentResponseText = agent.generatedGreeting || `Hello, you've reached ${agent.generatedName || agent.name}. How can I help?`;
+    
+    const shortHistoryFromUrl: string[] = [];
+    // Reconstruct history from u1, a1, u2, a2...
+    for(let i = 1; i <= MAX_HISTORY_ITEMS_IN_URL; i++) {
+        const userMsg = searchParams.get(`u${i}`);
+        const agentMsg = searchParams.get(`a${i}`);
+        if (userMsg) shortHistoryFromUrl.push(`User: ${userMsg}`);
+        if (agentMsg) shortHistoryFromUrl.push(`Agent: ${agentMsg}`);
+    }
+    
+    let newHistoryForUrlParams: Record<string, string> = {};
 
-    let agentResponseText = agent.generatedGreeting || `Hello, you've reached ${agent.generatedName || agent.name}.`;
-
-    if (speechResult) {
+    if (speechResult && speechResult.trim()) {
       console.log(`[${timestamp}] User speech for ${callSid} (Agent: ${agent.id}): "${speechResult}"`);
       
-      // --- Placeholder for Full Agent Logic Invocation ---
-      // This is where you would:
-      // 1. Retrieve conversation history for this callSid (if any).
-      // 2. Pass `speechResult` and history to your agent's core logic 
-      //    (e.g., a refactored `executeAgentFlow` or `autonomousReasoning`).
-      // 3. Get the dynamic `responseText` from your agent.
-      // 4. Update conversation history.
-      // For now, we use a more dynamic placeholder.
-      agentResponseText = `Okay, I understand you said: "${speechResult}". This agent is currently in training for full voice conversations. Please check back later for more advanced interactions.`;
-      // --- End Placeholder ---
+      const voiceInput: VoiceResponseInput = {
+        userInput: speechResult,
+        agentName: agent.generatedName,
+        agentPersona: agent.generatedPersona,
+        agentRole: agent.role,
+        shortHistory: shortHistoryFromUrl, // Pass the reconstructed history
+        knowledgeItems: agent.knowledgeItems && agent.primaryLogic === 'rag' ? agent.knowledgeItems : undefined,
+      };
+
+      try {
+        const llmResponse = await generateVoiceResponse(voiceInput);
+        agentResponseText = llmResponse.agentResponse;
+        console.log(`[${timestamp}] LLM Voice Response for ${callSid}: "${agentResponseText}"`);
+      } catch (flowError: any) {
+        console.error(`[${timestamp}] Error calling generateVoiceResponse flow for ${callSid}:`, flowError);
+        agentResponseText = "I'm having a little trouble understanding right now. Could you please repeat that?";
+      }
+      
+      // Prepare history for next turn's URL: Add current exchange and keep latest
+      const currentTurnHistory = [...shortHistoryFromUrl, `User: ${speechResult}`, `Agent: ${agentResponseText}`];
+      const historyToPassOn = currentTurnHistory.slice(-MAX_HISTORY_ITEMS_IN_URL * 2); // Keep last N items (user+agent pairs)
+      
+      let uIndex = 1, aIndex = 1;
+      historyToPassOn.forEach(item => {
+          if (item.startsWith("User: ") && uIndex <= MAX_HISTORY_ITEMS_IN_URL) {
+              newHistoryForUrlParams[`u${uIndex++}`] = item.substring(6);
+          } else if (item.startsWith("Agent: ") && aIndex <= MAX_HISTORY_ITEMS_IN_URL) {
+              newHistoryForUrlParams[`a${aIndex++}`] = item.substring(7);
+          }
+      });
 
     } else {
-      // Initial interaction or gather timeout
-      console.log(`[${timestamp}] Initial interaction or gather timeout for ${callSid} (Agent: ${agent.id}). Greeting with: "${agentResponseText}"`);
+      console.log(`[${timestamp}] Initial interaction or empty/timeout speech for ${callSid}. Greeting with: "${agentResponseText}"`);
+      // If it's the very first interaction (no history in URL) or a gather timeout with no speech,
+      // the agentResponseText is the greeting. We need to pass existing history if any, or this greeting as a1.
+      if (shortHistoryFromUrl.length > 0) {
+        let uIndex = 1, aIndex = 1;
+        shortHistoryFromUrl.forEach(item => { // Pass existing history forward
+            if (item.startsWith("User: ") && uIndex <= MAX_HISTORY_ITEMS_IN_URL) {
+                newHistoryForUrlParams[`u${uIndex++}`] = item.substring(6);
+            } else if (item.startsWith("Agent: ") && aIndex <= MAX_HISTORY_ITEMS_IN_URL) {
+                newHistoryForUrlParams[`a${aIndex++}`] = item.substring(7);
+            }
+        });
+      } else {
+         // This is the very first response (the greeting), so set it as 'a1' for the next turn
+         newHistoryForUrlParams['a1'] = agentResponseText;
+      }
     }
     
     twiml.say({ voice: 'alice', language: 'en-US' }, agentResponseText);
 
-    // Gather user's next input
-    const gather = twiml.gather({
-      input: 'speech',
-      action: `/api/agents/${agentId}/voice-hook`, // Twilio will POST back to this same URL
-      speechTimeout: 'auto', 
-      timeout: 5, 
-      // Consider adding:
-      // language: 'en-US', // Or dynamically based on agent config
-      // hints: 'common phrases, yes, no, support, sales', // If applicable
+    const actionUrl = new URL(`/api/agents/${agentId}/voice-hook`, request.nextUrl.origin);
+    Object.entries(newHistoryForUrlParams).forEach(([key, value]) => {
+        actionUrl.searchParams.set(key, value);
     });
-    // Optional: If gather times out without new speech, what should the agent say?
-    // gather.say('I didn't hear anything. Is there anything else?'); 
+    
+    console.log(`[${timestamp}] Next Gather Action URL for ${callSid}: ${actionUrl.toString()}`);
 
-    // If you always want to give the user a chance to speak again after the agent talks.
-    // If you want the call to end if the user doesn't respond to the gather prompt,
-    // you might add a twiml.hangup() after the gather if action doesn't receive a response.
-    // For now, it will loop back to this webhook.
+    twiml.gather({
+      input: 'speech',
+      action: actionUrl.pathname + actionUrl.search, 
+      speechTimeout: 'auto', // Let Twilio decide, or set e.g., '3s'
+      timeout: 5, // Seconds to wait for speech after prompt
+      profanityFilter: true, // Basic filter
+      language: 'en-US', // Or make configurable per agent
+      // hints: "yes, no, support, sales, help", // Optional: provide hints
+    });
+    
+    // If gather times out, Twilio re-POSTs to the action URL without SpeechResult.
+    // The logic above will replay the agentResponseText (which was the last thing said by agent or the greeting).
 
     return new NextResponse(twiml.toString(), {
       status: 200,
@@ -131,7 +169,6 @@ export async function GET(
   const timestamp = new Date().toISOString();
   console.log(`[${timestamp}] Twilio Voice Hook GET for Agent ID: ${agentId}`);
   
-  // Securely get these from your server's environment variables
   const accountSid = process.env.TWILIO_ACCOUNT_SID;
   const authToken = process.env.TWILIO_AUTH_TOKEN;
   const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
@@ -147,6 +184,8 @@ export async function GET(
         `TWILIO_PHONE_NUMBER: ${twilioPhoneNumber || 'Not Set - For agent reference or outbound calls'}`,
       ],
       current_agent_id_in_path: agentId,
+      history_passing_method: "Prototype via URL query parameters (u1, a1, u2, a2... for User/Agent turns). Limited robustness."
     },
   }, { status: 200 });
 }
+
