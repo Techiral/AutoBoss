@@ -147,7 +147,8 @@
 /* Typewriter effect */
 @keyframes typing {
   from { width: 0ch; }
-  to { width: 13ch; } /* "AI Teammates." is 13 characters */
+  /* "Build AI. Get Paid." is 19 characters */
+  to { width: 19ch; } 
 }
 
 @keyframes blink-caret {
@@ -162,7 +163,7 @@
   white-space: nowrap;
   letter-spacing: .03em;
   animation:
-    typing 1.5s steps(13, end) forwards, /* Match steps to char count */
+    typing 1.5s steps(19, end) forwards, /* Adjusted steps to 19 */
     blink-caret .75s step-end infinite;
   animation-delay: 0.2s;
   width: 0ch; /* Start with 0ch width, animation will expand it */
@@ -212,33 +213,17 @@
 
 
 /* Styles for simple feature card presentation */
-.simple-feature-card {
-    @apply bg-card/70 dark:bg-card/50 p-4 sm:p-5 rounded-xl border border-border/30 shadow-lg text-left transition-all duration-300 ease-out;
-    @apply hover:shadow-2xl hover:border-primary/50 hover:scale-[1.02];
+.simple-benefit-card { /* Renamed from simple-feature-card for consistency */
+    @apply bg-background p-4 sm:p-5 rounded-lg shadow-lg text-left transform hover:scale-105 transition-transform duration-300;
 }
-.simple-feature-card-icon {
-    @apply p-2 sm:p-2.5 rounded-lg bg-primary/10 text-primary mb-2 sm:mb-3 inline-block;
+.simple-benefit-card-icon {
+    @apply p-2 rounded-lg bg-primary/10 text-primary mb-2 inline-block;
 }
-.simple-feature-card-title {
-    @apply font-headline text-base sm:text-lg font-bold text-foreground mb-1 sm:mb-1.5;
-    @apply relative pt-1;
+.simple-benefit-card-title {
+    @apply font-headline text-base sm:text-lg font-semibold text-foreground mb-1;
 }
-.simple-feature-card-title::before {
-    content: '';
-    @apply absolute top-0 left-0 h-[2px] w-6 rounded-full bg-gradient-to-r from-electric-teal to-neon-lime;
-}
-
-.simple-feature-card-description {
-    @apply text-muted-foreground text-xs sm:text-sm leading-relaxed;
-}
-.simple-feature-card-case-study {
-    @apply mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-border/20 text-xs sm:text-sm;
-}
-.simple-feature-card-quote {
-     @apply italic text-muted-foreground/80;
-}
-.simple-feature-card-metric {
-    @apply font-semibold text-primary mt-1 sm:mt-1.5;
+.simple-benefit-card-description {
+    @apply text-xs text-muted-foreground leading-relaxed;
 }
 
 
@@ -317,3 +302,52 @@ div[data-ai-hint] {
 
 .step-card-container > :nth-child(1) .dashed-connector::before { @apply content-none; }
 .step-card-container > :nth-child(3) .dashed-connector::after { @apply content-none; }
+
+
+/* Roadmap List Item Styles */
+.roadmap-list-item {
+  @apply flex items-start gap-3 sm:gap-4 p-3 sm:p-4 hover:bg-muted/30 transition-colors duration-150;
+}
+.roadmap-list-item:not(:last-child) {
+  @apply border-b border-border/50;
+}
+
+.roadmap-vote-button {
+  @apply flex flex-col items-center justify-center p-1.5 sm:p-2 border rounded-md hover:border-primary transition-colors min-w-[40px] sm:min-w-[50px] cursor-pointer shrink-0 mt-0.5;
+}
+.roadmap-vote-button.voted {
+    @apply border-primary bg-primary/10 text-primary cursor-not-allowed;
+}
+.roadmap-vote-button.voted svg {
+    @apply text-primary;
+}
+.roadmap-vote-button:not(.voted):hover svg {
+    @apply text-primary;
+}
+.roadmap-vote-button svg {
+  @apply w-4 h-4 sm:w-5 sm:w-5 text-muted-foreground transition-colors;
+}
+.roadmap-vote-button span {
+  @apply text-xs sm:text-sm font-semibold text-foreground;
+}
+.roadmap-vote-button.voted span {
+  @apply text-primary;
+}
+
+.roadmap-feature-content {
+  @apply flex-1 space-y-0.5;
+}
+.roadmap-feature-title {
+  @apply text-sm sm:text-base font-semibold text-foreground flex items-center gap-1.5 sm:gap-2;
+}
+.roadmap-feature-title svg {
+  @apply w-4 h-4 sm:w-5 sm:w-5 text-primary shrink-0;
+}
+.roadmap-feature-description {
+  @apply text-xs text-muted-foreground leading-relaxed;
+}
+.roadmap-feature-tags {
+  @apply mt-1.5 sm:mt-2 flex flex-wrap items-center gap-1.5;
+}
+
+    

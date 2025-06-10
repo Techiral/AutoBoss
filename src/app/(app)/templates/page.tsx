@@ -32,14 +32,14 @@ const agentTemplates: AgentTemplate[] = [
   {
     id: 'ecommerce_support',
     name: 'E-commerce Support Bot',
-    description: 'Handles common customer questions, tracks orders, and explains returns for your client\'s online store. Saves them time & makes customers happier!',
+    description: 'Answers store questions, tracks orders, handles returns. Keeps client customers happy.',
     icon: ShoppingCart,
     category: "Client Customer Service",
     tags: ["e-commerce", "support", "chat", "save time"],
     defaultValues: {
       agentPurpose: 'support',
       agentType: 'chat',
-      primaryLogic: 'rag', // RAG is good for FAQ/Policy based support
+      primaryLogic: 'rag', 
       role: "I am a friendly and efficient support assistant for [Client Name]'s online store. I help customers by answering questions about their orders, our products, shipping, and returns. My goal is to provide quick and helpful information.",
       personality: "Patient, clear, and positive. I'm always happy to help!"
     }
@@ -47,14 +47,14 @@ const agentTemplates: AgentTemplate[] = [
   {
     id: 'real_estate_lead_gen',
     name: 'Real Estate Lead Catcher',
-    description: 'Talks to website visitors for your real estate client, finds out what they need (buy/sell/rent), gets their contact info, and can even suggest next steps like viewings.',
+    description: 'For real estate clients. Finds buyer/seller needs, gets contacts, suggests viewings.',
     icon: RealEstateIcon,
     category: "Client Sales & Lead Gen",
     tags: ["real estate", "leads", "sales", "get clients"],
     defaultValues: {
       agentPurpose: 'sales',
       agentType: 'chat',
-      primaryLogic: 'prompt', // Prompt-driven for more conversational lead qualification
+      primaryLogic: 'prompt', 
       role: "I'm an assistant for [Client Name]'s Real Estate. I chat with visitors to understand their property needs, like if they're looking to buy, sell, or rent, their budget, and preferred areas. I then collect their contact details so an agent can follow up.",
       personality: "Engaging, professional, and helpful. I ask good questions to understand what people are looking for."
     }
@@ -62,7 +62,7 @@ const agentTemplates: AgentTemplate[] = [
   {
     id: 'dental_appointment_voice',
     name: 'Dental Clinic Voice Booker',
-    description: 'A voice agent for your client\'s dental clinic. It answers calls 24/7 to book, change, or cancel appointments. Frees up their receptionist!',
+    description: 'Voice agent for dental clinics. Books, changes, cancels appointments 24/7. Saves receptionist time.',
     icon: CalendarCheck,
     category: "Client Appointment Scheduling",
     tags: ["healthcare", "dental", "appointments", "voice", "automation"],
@@ -70,7 +70,7 @@ const agentTemplates: AgentTemplate[] = [
       agentPurpose: 'custom', 
       agentType: 'voice',
       direction: 'inbound',
-      primaryLogic: 'prompt', // Good for conversational appointment setting
+      primaryLogic: 'prompt', 
       role: "I'm the automated assistant for [Client Name]'s Dental Clinic. I can help you schedule a new appointment, reschedule, or cancel an existing one. Just tell me what you need!",
       personality: "Clear, calm, and efficient. I speak naturally and confirm details carefully."
     }
@@ -78,29 +78,29 @@ const agentTemplates: AgentTemplate[] = [
   {
     id: 'faq_info_bot',
     name: 'Instant Info Bot (FAQ Master)',
-    description: 'Feed this agent your client\'s FAQs, service details, or any documents. It becomes an instant expert, answering questions on their website 24/7.',
+    description: 'Feed it client FAQs or docs. It becomes an expert, answering questions on their site 24/7.',
     icon: Lightbulb,
     category: "Client Information & Support",
     tags: ["faq", "info", "knowledge base", "website help"],
     defaultValues: {
         agentPurpose: "info",
         agentType: "chat",
-        primaryLogic: "rag", // Perfect for RAG
+        primaryLogic: "rag", 
         role: "I'm an information assistant for [Client Name]. I have access to their key documents and FAQs. Ask me anything about their services, policies, or general information, and I'll do my best to answer based on what I've learned.",
         personality: "Factual, direct, and helpful. My main job is to give you the correct information quickly."
     }
   },
   {
     id: 'general_purpose_assistant',
-    name: 'General Purpose AI Helper',
-    description: 'A flexible starting point for your client. Great for tasks like brainstorming ideas, drafting simple emails, or answering general questions. You define its exact job!',
+    name: 'General AI Helper',
+    description: 'Flexible AI for your client. Brainstorms ideas, drafts emails, answers general questions.',
     icon: BotIcon,
     category: "Client Custom & General",
     tags: ["general", "custom", "creative", "flexible"],
     defaultValues: {
         agentPurpose: "custom",
         agentType: "chat",
-        primaryLogic: "prompt", // Good for general, persona-driven tasks
+        primaryLogic: "prompt", 
         role: "I am a versatile AI assistant for [Client Name]. You can tell me what you need help with - whether it's brainstorming, summarizing text, or answering general questions. My goal is to be a helpful AI partner.",
         personality: "Adaptable! You can define my tone - friendly, formal, funny, etc. By default, I'm helpful and neutral."
     }
@@ -115,10 +115,10 @@ export default function TemplatesPage() {
         <CardHeader className="p-4 sm:p-6">
           <CardTitle className={cn("font-headline text-xl sm:text-2xl flex items-center gap-2", "text-gradient-dynamic")}>
             <LayoutGrid className="w-6 h-6 sm:w-7 sm:w-7 text-primary" />
-            AI Agent Recipes for Client Success
+            AI Agent Starters
           </CardTitle>
           <CardDescription className="text-sm">
-            Don't start from scratch! Use these templates to quickly build AI agents that solve real problems for your clients. Pick one, add it to a client's workspace, then customize!
+            Quick-start AI for your clients. Pick a ready-made agent. Add to client. Customize.
           </CardDescription>
         </CardHeader>
       </Card>
@@ -150,7 +150,7 @@ export default function TemplatesPage() {
             <CardFooter className="p-4 sm:p-5 pt-2">
               <Button asChild size="sm" className={cn("w-full text-xs sm:text-sm", "btn-gradient-primary")}>
                 <Link href={`/dashboard?info=selectClientFirst&templateId=${template.id}`}>
-                  Use This Recipe <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                  Use This AI <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
                 </Link>
               </Button>
             </CardFooter>
@@ -160,12 +160,12 @@ export default function TemplatesPage() {
        <Alert className="mt-4 sm:mt-6 bg-accent/10 dark:bg-accent/20 border-accent/30">
           <Info className="h-4 w-4 text-accent" />
           <AlertDescription className="text-accent/80 dark:text-accent/90 text-xs sm:text-sm">
-            <strong className="font-semibold text-accent">How to use these recipes:</strong>
+            <strong className="font-semibold text-accent">Important: How to Use Templates</strong>
             <ol className="list-decimal list-inside pl-3 mt-1">
-                <li>First, go to your <Link href="/dashboard" className="underline hover:text-primary">Client Dashboard</Link>.</li>
-                <li>Select an existing client or add a new one (this is who you're building the AI for).</li>
-                <li>Once in that client's workspace, click "Create New Agent for [Client Name]".</li>
-                <li>You'll then see an option to start with one of these recipes/templates, pre-filled for that client!</li>
+                <li>Go to your 'Client Dashboard'.</li>
+                <li>Pick or Add a Client.</li>
+                <li>In their workspace, click 'Create New Agent'.</li>
+                <li>You'll see template options there.</li>
             </ol>
           </AlertDescription>
       </Alert>
