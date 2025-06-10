@@ -1,5 +1,9 @@
+
 User-agent: *
 Allow: /
+Allow: /roadmap
+Allow: /templates
+Allow: /support
 Disallow: /api/
 Disallow: /login
 Disallow: /signup
