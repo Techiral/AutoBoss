@@ -8,7 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/logo";
 import { cn } from "@/lib/utils";
-import { Lightbulb, Users, Briefcase, MessageCircle, PresentationChartLine as Presentation, CheckCircle, ArrowRight, Sparkles, Handshake } from "lucide-react"; // Changed Presentation icon
+import { Lightbulb, Users, Briefcase, MessageCircle, Presentation, CheckCircle, ArrowRight, Sparkles, Handshake } from "lucide-react";
 
 export default function PlaybookPage() {
   const playbookSections = [
@@ -126,7 +126,7 @@ export default function PlaybookPage() {
     },
     {
       id: "closing",
-      icon: <Handshake className="w-5 h-5 text-primary" />, // Changed icon
+      icon: <Handshake className="w-5 h-5 text-primary" />,
       title: "5. Next Steps & Agreement (Keep it Simple)",
       content: (
         <div className="space-y-3 text-sm text-muted-foreground">
@@ -233,3 +233,5 @@ export default function PlaybookPage() {
     </div>
   );
 }
+
+    
