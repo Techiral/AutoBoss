@@ -19,6 +19,7 @@ import { Loader2, Bot, MessageSquare, Phone, Brain, DatabaseZap, ArrowDownCircle
 import { useAuth } from "@/contexts/AuthContext"; 
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 
 const formSchema = z.object({
@@ -39,22 +40,30 @@ export default function CreateAgentPage() {
   const router = useRouter();
   const { addAgent: addAgentToContext } = useAppContext();
   const { currentUser } = useAuth(); 
+  const [selectedDirection, setSelectedDirection] = useState<AgentDirection>("inbound");
 
-  const { control, register, handleSubmit, formState: { errors } } = useForm<FormData>({
+
+  const { control, register, handleSubmit, formState: { errors }, watch } = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       agentType: "chat",
       direction: "inbound",
       primaryLogic: "rag", 
+      name: "",
+      role: "",
+      personality: "",
     }
   });
   
+  const currentPrimaryLogic = watch("primaryLogic");
+  const currentAgentType = watch("agentType");
+
   const getLogicTypeLabel = (logicType?: AgentLogicType): string => {
     if (!logicType) return "Not Set";
     switch (logicType) {
-        case 'prompt': return "Direct AI Prompt";
-        case 'rag': return "Knowledge Q&A (RAG)";
-        default: return "Custom"; // Should not be reached with current enum
+        case 'prompt': return "Persona-Driven (Creative & General Chat)";
+        case 'rag': return "Learns from Your Data (Support & Info)";
+        default: return "Custom";
     }
   };
 
@@ -67,8 +76,8 @@ export default function CreateAgentPage() {
     setIsLoading(true);
     setGeneratedAgentDetails(null);
     try {
-      const logicTypeLabel = getLogicTypeLabel(data.primaryLogic as AgentLogicType);
-      const agentDescription = `Type: ${data.agentType}. Direction: ${data.direction}. Primary Logic: ${logicTypeLabel}.\nBusiness Purpose: ${data.name}\nIntended Role for the Business: ${data.role}\nDesired Personality & Tone: ${data.personality}`;
+      const logicTypeUserFriendly = getLogicTypeLabel(data.primaryLogic as AgentLogicType);
+      const agentDescription = `Type: ${data.agentType}. Direction: ${data.direction}. Primary Logic: ${logicTypeUserFriendly}.\nBusiness Purpose: ${data.name}\nIntended Role for the Business: ${data.role}\nDesired Personality & Tone: ${data.personality}`;
       const aiResult = await createAgent({ agentDescription, agentType: data.agentType, direction: data.direction as AgentDirection });
       setGeneratedAgentDetails(aiResult);
       
@@ -77,7 +86,7 @@ export default function CreateAgentPage() {
         direction: data.direction as AgentDirection,
         primaryLogic: data.primaryLogic as AgentLogicType, 
         name: data.name, 
-        description: `Type: ${data.agentType}. Direction: ${data.direction}. Logic: ${logicTypeLabel}. Role: ${data.role}. Personality: ${data.personality}.`, 
+        description: `Type: ${data.agentType}. Direction: ${data.direction}. Logic: ${logicTypeUserFriendly}. Role: ${data.role}. Personality: ${data.personality}.`, 
         role: data.role,
         personality: data.personality,
         generatedName: aiResult.agentName,
@@ -90,7 +99,7 @@ export default function CreateAgentPage() {
       if (newAgent) {
         toast({
           title: "Agent Base Created!",
-          description: `Agent "${aiResult.agentName}" (Type: ${data.agentType}, Direction: ${data.direction}, Logic: ${logicTypeLabel}) is ready. Next, customize its personality and add knowledge. Redirecting...`,
+          description: `Agent "${aiResult.agentName}" (Type: ${data.agentType}, Direction: ${data.direction}, Logic: ${logicTypeUserFriendly}) is ready. Next, customize its personality and add knowledge. Redirecting...`,
         });
         
         if (data.primaryLogic === 'rag') {
@@ -110,6 +119,20 @@ export default function CreateAgentPage() {
     } finally {
       setIsLoading(false);
     }
+  };
+  
+  const getRolePlaceholder = () => {
+    if (currentPrimaryLogic === 'prompt') {
+      return "e.g., A friendly marketing assistant that helps draft social media posts.";
+    }
+    return "e.g., A support agent for 'My Online Store' that answers questions about products and policies.";
+  };
+
+  const getPersonalityPlaceholder = () => {
+    if (currentPrimaryLogic === 'prompt') {
+      return "e.g., Creative, witty, and concise.";
+    }
+    return "e.g., Helpful, patient, and clear.";
   };
 
   return (
@@ -151,22 +174,38 @@ export default function CreateAgentPage() {
                   name="direction"
                   control={control}
                   render={({ field }) => (
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select 
+                        onValueChange={(value) => {
+                            field.onChange(value);
+                            setSelectedDirection(value as AgentDirection);
+                        }} 
+                        defaultValue={field.value}
+                    >
                       <SelectTrigger id="direction">
                         <SelectValue placeholder="Select direction" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="inbound"><div className="flex items-center gap-2"><ArrowDownCircle className="w-4 h-4"/>Inbound (Handles incoming)</div></SelectItem>
-                        <SelectItem value="outbound"><div className="flex items-center gap-2"><ArrowUpCircle className="w-4 h-4"/>Outbound (Initiates contact)</div></SelectItem>
+                        <SelectItem value="inbound"><div className="flex items-center gap-2"><ArrowDownCircle className="w-4 h-4"/>Handles Incoming</div></SelectItem>
+                        <SelectItem value="outbound"><div className="flex items-center gap-2"><ArrowUpCircle className="w-4 h-4"/>Initiates Contact</div></SelectItem>
                       </SelectContent>
                     </Select>
                   )}
                 />
                 {errors.direction && <p className="text-xs text-destructive">{errors.direction.message}</p>}
+                {selectedDirection === 'outbound' && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Primarily hints at AI persona for greetings. Actual outbound actions (SMS, email, calls) require separate setup using this app's <Link href="/api/outbound/send-sms" target="_blank" className="underline hover:text-primary">outbound APIs</Link>.
+                  </p>
+                )}
+                 {selectedDirection === 'inbound' && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Agent will respond to incoming chats or calls.
+                  </p>
+                )}
               </div>
             </div>
              <div className="space-y-1.5">
-                <Label htmlFor="primaryLogic">Agent's Brain</Label>
+                <Label htmlFor="primaryLogic">How this Agent Works</Label>
                 <Controller
                   name="primaryLogic"
                   control={control}
@@ -176,15 +215,18 @@ export default function CreateAgentPage() {
                         <SelectValue placeholder="Select brain logic" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="prompt"><div className="flex items-center gap-2"><Brain className="w-4 h-4"/>Direct AI Prompt (Persona-driven)</div></SelectItem>
-                        <SelectItem value="rag"><div className="flex items-center gap-2"><DatabaseZap className="w-4 h-4"/>Knowledge Q&A (Uses uploaded data)</div></SelectItem>
+                        <SelectItem value="prompt"><div className="flex items-center gap-2"><Brain className="w-4 h-4"/>Persona-Driven (Creative & General Chat)</div></SelectItem>
+                        <SelectItem value="rag"><div className="flex items-center gap-2"><DatabaseZap className="w-4 h-4"/>Learns from Your Data (Support & Info)</div></SelectItem>
                       </SelectContent>
                     </Select>
                   )}
                 />
                 {errors.primaryLogic && <p className="text-xs text-destructive">{errors.primaryLogic.message}</p>}
                  <p className="text-xs text-muted-foreground mt-1">
-                    'Direct AI Prompt' relies on the agent's persona for responses. 'Knowledge Q&A' primarily uses uploaded documents to answer questions.
+                    {currentPrimaryLogic === 'prompt'
+                        ? "The agent answers based on the Personality and Role you define. Good for general conversation, brainstorming, or when you don't have specific documents for it to learn from."
+                        : "The agent primarily answers questions using Business Data you upload (FAQs, product docs). Best for customer support or providing specific information."
+                    }
                 </p>
               </div>
 
@@ -196,12 +238,22 @@ export default function CreateAgentPage() {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="role">Role & Objectives for the Business</Label>
-              <Textarea id="role" placeholder="e.g., 'Answer customer questions about products via chat', 'Handle inbound calls, take messages, and book appointments for the dental clinic'" {...register("role")} rows={3} />
+              <Textarea 
+                id="role" 
+                placeholder={getRolePlaceholder()}
+                {...register("role")} 
+                rows={3} 
+              />
               {errors.role && <p className="text-xs text-destructive">{errors.role.message}</p>}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="personality">Desired Personality & Tone</Label>
-              <Textarea id="personality" placeholder="e.g., 'Friendly and helpful for website chat', 'Professional and efficient for phone interactions'" {...register("personality")} rows={3} />
+              <Textarea 
+                id="personality" 
+                placeholder={getPersonalityPlaceholder()}
+                {...register("personality")} 
+                rows={3} 
+               />
               {errors.personality && <p className="text-xs text-destructive">{errors.personality.message}</p>}
             </div>
           </CardContent>
@@ -218,6 +270,7 @@ export default function CreateAgentPage() {
         <Card className="mt-6 sm:mt-8">
           <CardHeader className="p-4 sm:p-6">
             <CardTitle className={cn("font-headline text-lg sm:text-xl", "text-gradient-dynamic")}>AI Generated Details (Suggestions)</CardTitle>
+            <CardDescription className="text-xs italic">You can refine these details in the 'Personality' section for this agent after creation.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6">
             <div>
@@ -232,7 +285,6 @@ export default function CreateAgentPage() {
               <Label className="text-xs font-semibold">Sample Greeting</Label>
               <p className="text-sm p-2 bg-muted rounded-md mt-1">{generatedAgentDetails.agentGreeting}</p>
             </div>
-            <p className="text-xs text-muted-foreground italic">You can further refine these details in the 'Personality' section for this agent.</p>
           </CardContent>
         </Card>
       )}
