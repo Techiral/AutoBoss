@@ -91,19 +91,19 @@ export default function MarketingPageClient() {
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
 
   const navLinks = [
-    { href: "#value", label: "Value" },
+    { href: "#value", label: "Why Us?" },
     { href: "#how-it-works", label: "How?" },
     { href: "/roadmap", label: "Roadmap" },
     { href: "#start", label: "Start Free" },
   ];
 
-    const socialProofItems = [
+  const socialProofItems = [
     {
       type: "testimonial", image: "https://placehold.co/32x32/6366F1/FFFFFF.png?text=MK", alt: "Maria K.", name: "Maria K.",
       quote: "No tech stress. Bakery client happy!", delay: "delay-100", aiHint: "woman diverse business"
     },
     {
-      type: "metric", metrics: [ { icon: <Zap className="w-5 h-5 sm:w-6 sm:h-6 mb-1 opacity-80"/>, value: "Zero Code", label: "Build AI" }, { icon: <Users className="w-4 h-4 sm:w-5 sm:w-5 mt-2 mb-1 opacity-80"/>, value: "Client Wins", label: "Real Results" } ],
+      type: "metric", metrics: [ { icon: <Zap className="w-5 h-5 sm:w-6 sm:h-6 mb-1 opacity-80"/>, value: "Zero Code.", label: "Build AI." }, { icon: <Users className="w-4 h-4 sm:w-5 sm:w-5 mt-2 mb-1 opacity-80"/>, value: "Client Wins.", label: "Real Results." } ],
       delay: "delay-200", aiHint: "dashboard ui modern"
     },
     {
@@ -173,7 +173,7 @@ export default function MarketingPageClient() {
               <h1 className="marketing-h1 text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-center">
                 AI Agency. Simple.
               </h1>
-              <span ref={typewriterRef} className="block mt-1 sm:mt-2 typewriter-text gradient-text-on-dark min-h-[1.2em] text-2xl sm:text-3xl md:text-4xl"></span>
+              <span ref={typewriterRef} className="block mt-1 sm:mt-2 typewriter-text gradient-text-on-dark min-h-[1.2em] text-2xl sm:text-3xl md:text-4xl">{heroPainPoint}</span>
               <p className="text-muted-foreground text-sm sm:text-base max-w-md mx-auto !mb-5 md:!mb-6">
                 AutoBoss: AI for *your* clients. No code. You build. They pay.
               </p>
@@ -215,10 +215,10 @@ export default function MarketingPageClient() {
               Tools that just work. For your clients.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-5 max-w-4xl mx-auto text-left">
-              <SimpleFeatureCard icon={<Briefcase className="w-5 h-5"/>} title="Client Spaces." description="Organized projects." animationDelay="delay-100" />
-              <SimpleFeatureCard icon={<BotIcon className="w-5 h-5"/>} title="AI Brains." description="Smart. For them." animationDelay="delay-200" />
-              <SimpleFeatureCard icon={<UploadCloud className="w-5 h-5"/>} title="Easy Training." description="Their data." animationDelay="delay-300" />
-              <SimpleFeatureCard icon={<Share2 className="w-5 h-5"/>} title="Simple Launch." description="Live fast." animationDelay="delay-400" />
+              <SimpleBenefitCard icon={<Briefcase className="w-5 h-5"/>} title="Client Spaces." description="Organized." animationDelay="delay-100" />
+              <SimpleBenefitCard icon={<BotIcon className="w-5 h-5"/>} title="AI Brains." description="Smart. For them." animationDelay="delay-200" />
+              <SimpleBenefitCard icon={<UploadCloud className="w-5 h-5"/>} title="Easy Training." description="Their data." animationDelay="delay-300" />
+              <SimpleBenefitCard icon={<Share2 className="w-5 h-5"/>} title="Simple Launch." description="Live fast." animationDelay="delay-400" />
             </div>
           </div>
         </section>
@@ -231,9 +231,9 @@ export default function MarketingPageClient() {
             </p>
             <div className="relative mx-auto max-w-5xl grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-5 items-stretch step-card-container">
                 {[
-                    { number: "1", title: "Client?", description: "Add their project.", icon: <Users2 className="w-5 h-5 text-electric-teal"/>, animationDelay:"delay-100", hint: "client simple icon" },
+                    { number: "1", title: "Client?", description: "Add project.", icon: <Users2 className="w-5 h-5 text-electric-teal"/>, animationDelay:"delay-100", hint: "client simple icon" },
                     { number: "2", title: "Build AI.", description: "Chat, Voice. No code.", icon: <Edit3 className="w-5 h-5 text-neon-lime"/>, animationDelay:"delay-150", hint: "easy ai build icon" },
-                    { number: "3", title: "Launch!", description: "Get client paid.", icon: <CheckCircle className="w-5 h-5 text-primary"/>, animationDelay:"delay-200", hint: "deploy success icon" },
+                    { number: "3", title: "Launch!", description: "Get paid.", icon: <CheckCircle className="w-5 h-5 text-primary"/>, animationDelay:"delay-200", hint: "deploy success icon" },
                 ].map((step, index, arr) => {
                   const [stepRef, stepIsVisible] = useIntersectionObserver({ threshold: 0.3 });
                   return (
@@ -254,7 +254,7 @@ export default function MarketingPageClient() {
         <section ref={videoDemoRef} id="video-demo-placeholder" className={cn("scroll-reveal section-dark w-full py-12 md:py-16 lg:py-20 text-center", videoDemoVisible && "visible")}>
           <div className="container mx-auto px-4 md:px-6 max-w-screen-xl">
             <h2 className="marketing-h2">See It.</h2>
-            <p className="section-description mt-1 mb-6">Quick demo. Real results.</p>
+            <p className="section-description mt-1 mb-6">Quick Demo. Real Results.</p>
             <div className="max-w-2xl mx-auto aspect-video bg-muted/20 rounded-lg shadow-xl flex items-center justify-center text-muted-foreground border border-border/50 relative overflow-hidden cursor-pointer group" data-ai-hint="clean video player interface dark theme">
                 <Image src="https://placehold.co/1280x720/0A0D13/0A0D13.png" alt="AutoBoss Platform Demo Video Thumbnail" layout="fill" objectFit="cover" className="opacity-20 group-hover:opacity-10 transition-opacity" data-ai-hint="dark theme agency software thumbnail" loading="lazy"/>
                 <div className="video-placeholder-text z-10">
@@ -313,7 +313,7 @@ export default function MarketingPageClient() {
             <h2 className="marketing-h2">Your AI Future.</h2>
             <div className="max-w-lg mx-auto bg-card/90 dark:bg-card/80 border-border/70 p-4 my-4 sm:my-6 text-left rounded-lg">
               <p className="text-sm text-card-foreground/90">
-                 AutoBoss is evolving. Use it free (Beta Access). Help us build the best AI agency tool.
+                 AutoBoss: Growing with you. Free access (Beta). Help us build your AI agency tool.
                  <Link href="/roadmap" className="font-semibold text-accent hover:underline ml-1">See roadmap.</Link>
               </p>
             </div>
@@ -338,7 +338,7 @@ export default function MarketingPageClient() {
                 Start Now. Free.
               </h2>
               <p className="text-muted-foreground text-xs md:text-sm !mb-5">
-                Build your first AI client solution today.
+                Build client AI. Your agency. Today.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center items-center pt-1">
                 <Button size="lg" asChild className="btn-gradient-primary shadow-xl font-bold text-sm px-6 py-2.5 hover:opacity-90 transition-all duration-300 hover:scale-105 group w-full sm:w-auto btn-interactive">
