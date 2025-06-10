@@ -2,7 +2,7 @@
 'use server';
 
 /**
- * @fileOverview A autonomous reasoning AI agent with knowledge base access, enhanced for RAG-like behavior and web search tool.
+ * @fileOverview A autonomous reasoning AI agent with knowledge base access.
  *
  * - autonomousReasoning - A function that handles the autonomous reasoning process.
  * - AutonomousReasoningInput - The input type for the autonomousReasoning function.
@@ -13,7 +13,7 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { KnowledgeItemSchema, type KnowledgeItem, AgentToneSchema, type AgentToneType } from '@/lib/types';
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
-import { webSearchTool } from '@/ai/tools/web-search-tool'; // Import the web search tool
+// Removed import for webSearchTool as it's being deleted.
 
 
 const AutonomousReasoningInputSchema = z.object({
@@ -28,8 +28,8 @@ const AutonomousReasoningInputSchema = z.object({
 export type AutonomousReasoningInput = z.infer<typeof AutonomousReasoningInputSchema>;
 
 const AutonomousReasoningOutputSchema = z.object({
-  responseToUser: z.string().describe('A direct, conversational reply to the user. If knowledge or web search was used, it cites the source implicitly (e.g., "Based on information I found..." or "According to recent findings...").'),
-  reasoning: z.string().describe('The reasoning behind the generated response, including which knowledge items (or chunks) were deemed relevant, or if a web search was performed and its outcome.'),
+  responseToUser: z.string().describe('A direct, conversational reply to the user. If knowledge was used, it cites the source implicitly (e.g., "Based on information I found...").'),
+  reasoning: z.string().describe('The reasoning behind the generated response, including which knowledge items (or chunks) were deemed relevant.'),
   relevantKnowledgeIds: z.array(z.string()).optional().describe('IDs of the original knowledge items from which relevant chunks were retrieved.')
 });
 export type AutonomousReasoningOutput = z.infer<typeof AutonomousReasoningOutputSchema>;
@@ -51,7 +51,6 @@ const PromptInputSchema = z.object({
   context: z.string(),
   userInput: z.string(),
   retrievedChunksText: z.string().optional().describe("Concatenated text of relevant chunks retrieved from the knowledge base."),
-  // No searchResultsText here, it's handled by the tool automatically
 });
 
 
@@ -59,7 +58,7 @@ const prompt = ai.definePrompt({
   name: 'autonomousReasoningPrompt',
   input: {schema: PromptInputSchema },
   output: {schema: AutonomousReasoningOutputSchema},
-  tools: [webSearchTool], // Make the web search tool available to the LLM
+  // tools: array removed as webSearchTool is deleted
   prompt: `
 {{#if agentTone}}
 Your conversational tone MUST be: {{agentTone}}.
@@ -97,13 +96,6 @@ Conversation Context (previous messages):
 User's Latest Input:
 {{{userInput}}}
 
---- Tool Usage Guidance ---
-You have access to a 'webSearchTool'. If the user's query asks for information about a company, person, or general topic that is not adequately covered by the "Relevant Information from Your Knowledge Base" below, or if the query implies seeking current/external information (e.g., "What's the latest news on X?", "Tell me more about Y company's recent activities"), consider using the 'webSearchTool'.
-To use it, provide a concise 'searchQuery'. The tool will return 'searchResultsText' which contains compiled information from web pages.
-Carefully review the 'searchResultsText' if provided by the tool, and incorporate relevant findings naturally into your 'responseToUser'.
-In your 'reasoning' field, explicitly state if you used the 'webSearchTool', the query used, and a brief summary of how the web results influenced your response.
---- End Tool Usage Guidance ---
-
 {{#if retrievedChunksText}}
 --- Relevant Information from Your Knowledge Base ---
 Carefully review the following information retrieved from your knowledge base. This is potentially relevant to the user's query.
@@ -114,14 +106,14 @@ When formulating your "responseToUser", synthesize information from this "Releva
 If you use this information, you can subtly weave it in. For example, instead of "Based on document X...", you might say, "I found some information that might help: ..." or directly answer using the facts.
 The "reasoning" field should explicitly mention that retrieved knowledge chunks were used.
 {{else}}
-You will rely on your general knowledge, the conversation context, and potentially the 'webSearchTool' to answer, as no specific knowledge base information was retrieved for this query.
-The "reasoning" field should reflect if general knowledge or web search was used.
+You will rely on your general knowledge and the conversation context to answer.
+The "reasoning" field should reflect if general knowledge was used.
 {{/if}}
 
 Your response MUST be a single, valid JSON object adhering to the output schema:
 {
   "responseToUser": "The conversational reply.",
-  "reasoning": "Explanation of how the response was derived, noting if specific knowledge chunks were used, if a web search was performed (and the query used, and summary of impact), or if it was general knowledge.",
+  "reasoning": "Explanation of how the response was derived, noting if specific knowledge chunks were used or if it was general knowledge.",
   "relevantKnowledgeIds": ["id_of_original_item_for_chunk_1", "id_of_original_item_for_chunk_2"]
 }
 `,
@@ -189,7 +181,6 @@ const autonomousReasoningFlow = ai.defineFlow(
       context: input.context,
       userInput: input.userInput,
       retrievedChunksText: retrievedChunksText,
-      // searchResultsText is NOT explicitly passed here; the 'tools' mechanism handles it.
     };
 
     const modelResponse = await prompt(promptInputData);
@@ -213,3 +204,4 @@ const autonomousReasoningFlow = ai.defineFlow(
     return { ...modelResponse.output, relevantKnowledgeIds: relevantOriginalItemIds };
   }
 );
+
