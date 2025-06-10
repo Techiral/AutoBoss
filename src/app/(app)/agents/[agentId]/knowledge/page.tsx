@@ -17,8 +17,13 @@ import { useAppContext } from "../../../layout";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Logo } from "@/components/logo";
 import { cn } from "@/lib/utils";
-import pdf from 'pdf-parse/lib/pdf-parse'; // Correct import for browser/webpack
 import mammoth from 'mammoth';
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Set workerSrc for pdfjs-dist. This is crucial for browser environments.
+// Use a specific version from a CDN to match the installed pdfjs-dist version.
+// Ensure the version in the URL matches the installed version of pdfjs-dist.
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 
 // Basic CSV to Text Converter
@@ -125,8 +130,19 @@ export default function KnowledgePage() {
 
       if (selectedFile.type === 'application/pdf' || fileNameLower.endsWith('.pdf')) {
         const arrayBuffer = await selectedFile.arrayBuffer();
-        const pdfData = await pdf(arrayBuffer);
-        const textContent = pdfData.text;
+        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+        const pdfDoc = await loadingTask.promise;
+        let textContent = "";
+        for (let i = 1; i <= pdfDoc.numPages; i++) {
+          const page = await pdfDoc.getPage(i);
+          const textContentItems = await page.getTextContent();
+          textContentItems.items.forEach(item => {
+            if ('str' in item) { // Type guard for TextItem
+              textContent += item.str + " ";
+            }
+          });
+          textContent += "\n"; // Add newline between pages
+        }
         if (!textContent.trim()) throw new Error("No text content found in PDF.");
         documentDataUri = `data:text/plain;charset=utf-8;base64,${Buffer.from(textContent).toString('base64')}`;
         effectiveMimeType = 'text/plain';
@@ -142,19 +158,17 @@ export default function KnowledgePage() {
         if (!plainTextFromCsv.trim()) throw new Error("Empty CSV or no content after conversion.");
         documentDataUri = `data:text/plain;charset=utf-8;base64,${Buffer.from(plainTextFromCsv).toString('base64')}`;
         effectiveMimeType = 'text/plain';
-      } else { // Handle other text-based files or pass through if already a Data URI string (though not expected here)
+      } else { 
         documentDataUri = await new Promise((resolve, reject) => {
           const reader = new FileReader();
           reader.onload = () => {
             let result = reader.result as string;
-            // Infer MIME type if not set or generic for common text formats
              if (!effectiveMimeType || effectiveMimeType === 'application/octet-stream') {
                 if (fileNameLower.endsWith('.txt')) effectiveMimeType = 'text/plain';
                 else if (fileNameLower.endsWith('.md')) effectiveMimeType = 'text/markdown';
                 else if (fileNameLower.endsWith('.json')) effectiveMimeType = 'application/json';
                 else if (fileNameLower.endsWith('.html') || fileNameLower.endsWith('.htm')) effectiveMimeType = 'text/html';
              }
-             // Reconstruct Data URI if MIME type was inferred and changed
              if (effectiveMimeType && effectiveMimeType !== selectedFile.type) {
                 const base64Marker = ';base64,';
                 const base64DataIndex = result.indexOf(base64Marker);
