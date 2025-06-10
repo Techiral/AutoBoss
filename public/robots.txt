@@ -1,7 +1,7 @@
 
 User-agent: *
 Allow: /
-Allow: /roadmap
+Allow: /playbook
 Allow: /templates
 Allow: /support
 Disallow: /api/

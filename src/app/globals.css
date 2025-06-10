@@ -305,7 +305,7 @@ div[data-ai-hint] {
 .step-card-container > :nth-child(3) .dashed-connector::after { @apply content-none; }
 
 
-/* Roadmap List Item Styles - Product Hunt Inspired */
+/* Roadmap List Item Styles - Product Hunt Inspired - (Kept for potential future use, but not active with Playbook page) */
 .roadmap-item-card {
   @apply bg-card border border-border rounded-lg p-3 sm:p-4 flex gap-3 sm:gap-4 items-start hover:shadow-md transition-shadow duration-200;
 }
@@ -351,7 +351,3 @@ div[data-ai-hint] {
 .roadmap-feature-tags-ph {
   @apply mt-2 flex flex-wrap items-center gap-1.5;
 }
-
-    
-
-    
