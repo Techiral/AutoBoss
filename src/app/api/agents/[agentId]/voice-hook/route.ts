@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import twilio from 'twilio';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, Timestamp } from 'firebase/firestore';
-import type { Agent } from '@/lib/types';
+import type { Agent, AgentToneType } from '@/lib/types'; // Added AgentToneType
 import { generateVoiceResponse, VoiceResponseInput } from '@/ai/flows/voice-response-flow'; 
 
 const MAX_HISTORY_ITEMS_IN_URL = 2; // Number of recent exchanges (1 user + 1 agent) = 4 items total (u1,a1,u2,a2)
@@ -78,6 +78,7 @@ export async function POST(
         agentName: agent.generatedName,
         agentPersona: agent.generatedPersona,
         agentRole: agent.role,
+        agentTone: agent.agentTone || "neutral", // Pass agentTone
         shortHistory: shortHistoryFromUrl, // Pass the reconstructed history
         knowledgeItems: agent.knowledgeItems && agent.primaryLogic === 'rag' ? agent.knowledgeItems : undefined,
       };

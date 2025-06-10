@@ -11,14 +11,17 @@
 
 import {ai} from '@/ai/genkit';
 import {z}from 'genkit';
-import type { AgentType, AgentDirection } from '@/lib/types';
+import type { AgentType, AgentDirection, AgentToneType } from '@/lib/types';
+import { AgentToneSchema } from '@/lib/types';
+
 
 const CreateAgentInputSchema = z.object({
   agentDescription: z
     .string()
     .describe('A description of the agent, including its role and personality.'),
   agentType: z.custom<AgentType>().optional().describe("The type of agent: 'chat', 'voice', or 'hybrid'. This can influence the generated persona and greeting."),
-  direction: z.custom<AgentDirection>().optional().describe("The direction of the agent: 'inbound' or 'outbound'. This can influence tone or initial greeting strategy.")
+  direction: z.custom<AgentDirection>().optional().describe("The direction of the agent: 'inbound' or 'outbound'. This can influence tone or initial greeting strategy."),
+  agentTone: AgentToneSchema.optional().describe("The desired conversational tone for the agent (e.g., 'friendly', 'professional').")
 });
 export type CreateAgentInput = z.infer<typeof CreateAgentInputSchema>;
 
@@ -56,6 +59,18 @@ For example:
 - An 'outbound' agent might have a more direct but polite opening if initiating contact (though full outbound logic is complex, its initial greeting tone can be considered).
 - A 'hybrid' agent should have a versatile greeting.
 This agent will primarily rely on its persona, direct AI prompting, and any trained knowledge (RAG), not a predefined visual flow.
+{{/if}}
+
+{{#if agentTone}}
+Desired Conversational Tone: {{agentTone}}.
+{{#switch agentTone}}
+  {{#case "friendly"}}Please adopt a warm, approachable, and casual conversational style. Use friendly language and express positive emotions where appropriate.{{/case}}
+  {{#case "professional"}}Maintain a formal, precise, and respectful tone. Use clear, direct language and avoid slang or overly casual expressions.{{/case}}
+  {{#case "witty"}}Incorporate humor, clever wordplay, and a playful attitude. Responses can be lighthearted and engaging, but still relevant.{{/case}}
+  {{#case "neutral"}}Use a balanced, objective, and straightforward tone. Avoid strong emotional expressions or overly casual/formal language.{{/case}}
+  {{#default}}Use a balanced and neutral conversational style.{{/default}}
+{{/switch}}
+This tone should influence the generated persona and sample greeting.
 {{/if}}
 
 Description:

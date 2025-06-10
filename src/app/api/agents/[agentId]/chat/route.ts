@@ -89,12 +89,13 @@ export async function POST(
 
     const historyForAutonomousReasoning = (clientHistory || []).join('\n');
 
-    console.log(`API Route (Simplified): Executing autonomousReasoning for agent ${agentId}. Primary Logic: ${primaryLogic}`);
+    console.log(`API Route (Simplified): Executing autonomousReasoning for agent ${agentId}. Primary Logic: ${primaryLogic}, Tone: ${agent.agentTone}`);
     
     const reasoningInput: AutonomousReasoningInput = {
       agentName: agent.generatedName,
       agentPersona: agent.generatedPersona,
       agentRole: agent.role,
+      agentTone: agent.agentTone || "neutral", // Pass agentTone
       context: historyForAutonomousReasoning, 
       userInput: userInput,
       knowledgeItems: primaryLogic === 'rag' ? knowledgeItems : (agent.primaryLogic === 'prompt' && knowledgeItems.length > 0 ? knowledgeItems : []),

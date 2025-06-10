@@ -10,13 +10,15 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import type { KnowledgeItem } from '@/lib/types'; // For potential RAG light
+import type { KnowledgeItem, AgentToneType } from '@/lib/types'; // For potential RAG light
+import { AgentToneSchema } from '@/lib/types';
 
 const VoiceResponseInputSchema = z.object({
   userInput: z.string().describe("The user's latest spoken input."),
   agentName: z.string().optional().describe("The name of the agent."),
   agentPersona: z.string().optional().describe("The persona of the agent."),
   agentRole: z.string().optional().describe("The role/objective of the agent."),
+  agentTone: AgentToneSchema.optional().describe("The desired conversational tone for the agent."),
   shortHistory: z.array(z.string()).optional().describe("A very short history of the last few turns, e.g., ['User: Hello', 'Agent: Hi there! How can I help?']. Keep this brief for voice context."),
   knowledgeItems: z.array(z.custom<KnowledgeItem>()).optional().describe("Relevant knowledge items, if RAG is used lightly."),
 });
@@ -36,6 +38,18 @@ const voicePrompt = ai.definePrompt({
   input: {schema: VoiceResponseInputSchema},
   output: {schema: VoiceResponseOutputSchema},
   prompt: `
+{{#if agentTone}}
+Your conversational tone MUST be: {{agentTone}}.
+{{#switch agentTone}}
+  {{#case "friendly"}}Adopt a warm, approachable, and casual conversational style. Use friendly language and express positive emotions where appropriate.{{/case}}
+  {{#case "professional"}}Maintain a formal, precise, and respectful tone. Use clear, direct language and avoid slang or overly casual expressions.{{/case}}
+  {{#case "witty"}}Incorporate humor, clever wordplay, and a playful attitude. Responses can be lighthearted and engaging, but still relevant.{{/case}}
+  {{#case "neutral"}}Use a balanced, objective, and straightforward tone. Avoid strong emotional expressions or overly casual/formal language.{{/case}}
+  {{#default}}Use a balanced and neutral conversational style.{{/default}}
+{{/switch}}
+---
+{{/if}}
+
 You are {{agentName}}{{^agentName}}a helpful voice assistant{{/agentName}}.
 {{#if agentPersona}}Your persona: {{agentPersona}}.{{/if}}
 {{#if agentRole}}Your role: {{agentRole}}.{{/if}}

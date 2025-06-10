@@ -9,11 +9,11 @@ export const UserProfileSchema = z.object({
   photoDataUri: z.string().optional().describe("Base64 encoded Data URI for profile photo."),
   phoneNumber: z.string().optional().describe("User's phone number, potentially for voice agent features or account recovery."),
   createdAt: z.custom<Timestamp>(),
-  sendGridApiKey: z.string().optional().describe("User's own SendGrid API Key."),
-  userDefaultFromEmail: z.string().email().optional().describe("User's default 'From' email for SendGrid."),
-  twilioAccountSid: z.string().optional().describe("User's Twilio Account SID."),
-  twilioAuthToken: z.string().optional().describe("User's Twilio Auth Token."),
-  twilioPhoneNumber: z.string().optional().describe("User's default Twilio Phone Number for sending SMS/making calls."),
+  sendGridApiKey: z.string().optional().nullable().describe("User's own SendGrid API Key."),
+  userDefaultFromEmail: z.string().email().optional().nullable().describe("User's default 'From' email for SendGrid."),
+  twilioAccountSid: z.string().optional().nullable().describe("User's Twilio Account SID."),
+  twilioAuthToken: z.string().optional().nullable().describe("User's Twilio Auth Token."),
+  twilioPhoneNumber: z.string().optional().nullable().describe("User's default Twilio Phone Number for sending SMS/making calls."),
 });
 export type UserProfile = z.infer<typeof UserProfileSchema>;
 
@@ -61,6 +61,9 @@ export type ProcessedUrlOutput = z.infer<typeof ProcessedUrlOutputSchema>;
 export type AgentType = 'chat' | 'voice' | 'hybrid';
 export type AgentLogicType = 'prompt' | 'rag';
 export type AgentDirection = 'inbound' | 'outbound';
+export const AgentToneSchema = z.enum(["neutral", "friendly", "professional", "witty"]);
+export type AgentToneType = z.infer<typeof AgentToneSchema>;
+
 
 export interface Agent {
   id: string;
@@ -68,6 +71,7 @@ export interface Agent {
   agentType: AgentType;
   primaryLogic?: AgentLogicType;
   direction?: AgentDirection;
+  agentTone?: AgentToneType; // Added agentTone
   name: string;
   description: string;
   role?: string;

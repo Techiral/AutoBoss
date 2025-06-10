@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useForm, SubmitHandler } from "react-hook-form";
+import { useForm, SubmitHandler, Controller } from "react-hook-form"; // Added Controller
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -14,15 +14,21 @@ import { useToast } from "@/hooks/use-toast";
 import { createAgent, CreateAgentOutput } from "@/ai/flows/agent-creation";
 import { useParams } from "next/navigation"; 
 import { useAppContext } from "../../../layout"; 
-import type { Agent } from "@/lib/types";
-import { Loader2 } from "lucide-react";
+import type { Agent, AgentToneType } from "@/lib/types"; // Added AgentToneType
+import { AgentToneSchema } from "@/lib/types"; // Import AgentToneSchema
+import { Loader2, Smile, Settings } from "lucide-react"; // Added Smile, Settings
 import { Logo } from "@/components/logo";
 import { cn } from "@/lib/utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // Import Select components
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"; // Import Tooltip
+import { HelpCircle } from "lucide-react";
+
 
 const formSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters").max(100, "Name too long"),
   role: z.string().min(10, "Role description must be at least 10 characters").max(500, "Role too long"),
   personality: z.string().min(10, "Personality description must be at least 10 characters").max(500, "Personality too long"),
+  agentTone: AgentToneSchema.default("neutral"), // Added agentTone with default
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -37,12 +43,13 @@ export default function PersonalityPage() {
   const agentId = Array.isArray(params.agentId) ? params.agentId[0] : params.agentId;
   const { getAgent, updateAgent, isLoadingAgents } = useAppContext();
 
-  const { register, handleSubmit, formState: { errors }, setValue } = useForm<FormData>({ 
+  const { control, register, handleSubmit, formState: { errors }, setValue } = useForm<FormData>({ 
     resolver: zodResolver(formSchema),
     defaultValues: { 
         name: "",
         role: "",
         personality: "",
+        agentTone: "neutral", // Default tone
     }
   });
 
@@ -54,6 +61,7 @@ export default function PersonalityPage() {
         setValue("name", agent.name);
         setValue("role", agent.role || '');
         setValue("personality", agent.personality || '');
+        setValue("agentTone", agent.agentTone || "neutral"); // Set agentTone
         if (agent.generatedName && agent.generatedPersona && agent.generatedGreeting) {
             setGeneratedDetails({
                 agentName: agent.generatedName,
@@ -73,15 +81,21 @@ export default function PersonalityPage() {
 
     setIsLoading(true);
     try {
-      const agentDescription = `Name: ${data.name}\nRole: ${data.role}\nPersonality: ${data.personality}`;
-      const result = await createAgent({ agentDescription });
+      const agentDescription = `Name: ${data.name}\nRole: ${data.role}\nPersonality: ${data.personality}\nTone: ${data.agentTone}`;
+      const result = await createAgent({ 
+        agentDescription, 
+        agentType: currentAgent.agentType, 
+        direction: currentAgent.direction,
+        agentTone: data.agentTone as AgentToneType, // Pass agentTone to createAgent
+      });
       setGeneratedDetails(result);
       
       const updatedAgentData: Partial<Agent> = { 
         name: data.name,
-        description: `Role: ${data.role}. Personality: ${data.personality}.`,
+        description: `Role: ${data.role}. Personality: ${data.personality}. Tone: ${data.agentTone}`,
         role: data.role,
         personality: data.personality,
+        agentTone: data.agentTone as AgentToneType, // Save agentTone
         generatedName: result.agentName,
         generatedPersona: result.agentPersona,
         generatedGreeting: result.agentGreeting,
@@ -90,7 +104,7 @@ export default function PersonalityPage() {
 
       toast({
         title: "Personality Updated!",
-        description: `Agent "${result.agentName}" personality has been successfully updated.`,
+        description: `Agent "${result.agentName}" personality and tone have been successfully updated.`,
       });
     } catch (error) {
       console.error("Error updating personality:", error);
@@ -121,11 +135,14 @@ export default function PersonalityPage() {
   }
 
   return (
+    <TooltipProvider>
     <Card>
       <CardHeader className="p-4 sm:p-6">
-        <CardTitle className={cn("font-headline text-xl sm:text-2xl", "text-gradient-dynamic")}>Edit Agent Personality</CardTitle>
+        <CardTitle className={cn("font-headline text-xl sm:text-2xl flex items-center gap-2", "text-gradient-dynamic")}>
+            <Settings className="w-6 h-6"/> Edit Agent Personality
+        </CardTitle>
         <CardDescription className="text-sm">
-          Refine your agent's name, role, personality, and how it introduces itself.
+          Refine your agent's name, role, personality, tone, and how it introduces itself.
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit(onSubmit)}>
@@ -141,10 +158,39 @@ export default function PersonalityPage() {
             {errors.role && <p className="text-xs text-destructive">{errors.role.message}</p>}
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="personality">Personality & Tone</Label>
-            <Textarea id="personality" placeholder="Describe the desired personality." {...register("personality")} rows={3} />
+            <Label htmlFor="personality">Personality & Tone Clues</Label>
+            <Textarea id="personality" placeholder="Describe the desired personality traits (e.g. empathetic, humorous, direct)." {...register("personality")} rows={3} />
             {errors.personality && <p className="text-xs text-destructive">{errors.personality.message}</p>}
           </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="agentTone" className="flex items-center">
+              Conversational Tone
+              <Tooltip>
+                <TooltipTrigger asChild><HelpCircle className="w-3.5 h-3.5 ml-1.5 text-muted-foreground cursor-help"/></TooltipTrigger>
+                <TooltipContent><p>Select the overall tone the agent should use in conversations.</p></TooltipContent>
+              </Tooltip>
+            </Label>
+            <Controller
+              name="agentTone"
+              control={control}
+              render={({ field }) => (
+                <Select onValueChange={field.onChange} defaultValue={field.value || "neutral"}>
+                  <SelectTrigger id="agentTone">
+                    <SelectValue placeholder="Select agent's tone" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="neutral"><div className="flex items-center gap-2"><Smile className="w-4 h-4 opacity-60"/>Neutral / Default</div></SelectItem>
+                    <SelectItem value="friendly"><div className="flex items-center gap-2"><Smile className="w-4 h-4 text-green-500"/>Friendly & Warm</div></SelectItem>
+                    <SelectItem value="professional"><div className="flex items-center gap-2"><Smile className="w-4 h-4 text-blue-500"/>Professional & Precise</div></SelectItem>
+                    <SelectItem value="witty"><div className="flex items-center gap-2"><Smile className="w-4 h-4 text-purple-500"/>Witty & Playful</div></SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {errors.agentTone && <p className="text-xs text-destructive">{errors.agentTone.message}</p>}
+          </div>
+
            {(generatedDetails || (currentAgent.generatedName && currentAgent.generatedPersona)) && (
             <div className="space-y-3 sm:space-y-4 pt-3 sm:pt-4 border-t">
                 <h3 className={cn("font-headline text-md sm:text-lg", "text-gradient-dynamic")}>Current AI Generated Details</h3>
@@ -171,5 +217,6 @@ export default function PersonalityPage() {
         </CardFooter>
       </form>
     </Card>
+    </TooltipProvider>
   );
 }

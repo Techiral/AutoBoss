@@ -11,18 +11,15 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { KnowledgeItemSchema, type KnowledgeItem } from '@/lib/types'; 
+import { KnowledgeItemSchema, type KnowledgeItem, AgentToneSchema, type AgentToneType } from '@/lib/types'; 
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
-// AnnoyIndex removed as annoy-node dependency is removed due to build issues.
 
-// Embedding related constants are currently unused as vector search is removed.
-// const EMBEDDING_DIMENSIONS = 768; // For text-embedding-004
-// const EMBEDDING_MODEL_NAME = 'googleai/text-embedding-004';
 
 const AutonomousReasoningInputSchema = z.object({
   agentName: z.string().optional().describe("The name of the agent."),
   agentPersona: z.string().optional().describe("The persona of the agent."),
   agentRole: z.string().optional().describe("The role/objective of the agent."),
+  agentTone: AgentToneSchema.optional().describe("The desired conversational tone for the agent."),
   context: z.string().describe('The current context of the conversation, including past messages.'),
   userInput: z.string().describe('The user input to analyze and respond to.'),
   knowledgeItems: z.array(KnowledgeItemSchema).optional().describe("An array of knowledge items for the agent. For RAG, these items' summaries will be chunked and indexed."),
@@ -46,12 +43,25 @@ const prompt = ai.definePrompt({
     agentName: z.string().optional(),
     agentPersona: z.string().optional(),
     agentRole: z.string().optional(),
+    agentTone: AgentToneSchema.optional(),
     context: z.string(),
     userInput: z.string(),
     retrievedChunksText: z.string().optional().describe("Concatenated text of relevant chunks retrieved from the knowledge base."),
   })},
   output: {schema: AutonomousReasoningOutputSchema},
   prompt: `
+{{#if agentTone}}
+Your conversational tone MUST be: {{agentTone}}.
+{{#switch agentTone}}
+  {{#case "friendly"}}Adopt a warm, approachable, and casual conversational style. Use friendly language and express positive emotions where appropriate.{{/case}}
+  {{#case "professional"}}Maintain a formal, precise, and respectful tone. Use clear, direct language and avoid slang or overly casual expressions.{{/case}}
+  {{#case "witty"}}Incorporate humor, clever wordplay, and a playful attitude. Responses can be lighthearted and engaging, but still relevant.{{/case}}
+  {{#case "neutral"}}Use a balanced, objective, and straightforward tone. Avoid strong emotional expressions or overly casual/formal language.{{/case}}
+  {{#default}}Use a balanced and neutral conversational style.{{/default}}
+{{/switch}}
+---
+{{/if}}
+
 {{#if agentName}}You are {{agentName}}.{{/if}}
 {{#if agentPersona}} Your persona is: {{agentPersona}}.{{/if}}
 {{#if agentRole}} Your role is: {{agentRole}}.{{else}}You are a helpful and conversational AI assistant.{{/if}}
@@ -151,6 +161,7 @@ const autonomousReasoningFlow = ai.defineFlow(
       agentName: input.agentName,
       agentPersona: input.agentPersona,
       agentRole: input.agentRole,
+      agentTone: input.agentTone, // Pass agentTone to prompt
       context: input.context,
       userInput: input.userInput,
       retrievedChunksText: retrievedChunksText,

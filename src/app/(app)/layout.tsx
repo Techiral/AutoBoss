@@ -20,7 +20,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { Home, PlusCircle, Bot, Settings, BookOpen, MessageSquare, Share2, Cog, LifeBuoy, Loader2, LogIn } from 'lucide-react';
-import type { Agent, KnowledgeItem, AgentLogicType } from '@/lib/types';
+import type { Agent, KnowledgeItem, AgentLogicType, AgentToneType } from '@/lib/types'; // Added AgentToneType
 import { db } from '@/lib/firebase';
 import {
   collection,
@@ -170,6 +170,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         userId: currentUser.uid,
         createdAt: Timestamp.now(), // Firestore Timestamp
         knowledgeItems: [],
+        agentTone: agentData.agentTone || "neutral", // Default agentTone
         // No flow property added
       };
 
@@ -213,6 +214,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           return item;
         });
       }
+       // Ensure agentTone is saved, defaulting to "neutral" if undefined
+      finalDataToUpdate.agentTone = finalDataToUpdate.agentTone || "neutral";
+
       // Remove 'flow' property before saving if it somehow still exists on the object
       if ('flow' in finalDataToUpdate) {
         delete finalDataToUpdate.flow;
