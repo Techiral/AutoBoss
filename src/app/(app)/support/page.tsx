@@ -4,45 +4,46 @@
 import Link from "next/link"; 
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { LifeBuoy, MessageCircleQuestion, AlertTriangle, Mail, Cog, BookOpen, Share2, Bot, Palette, Brain, Mic } from "lucide-react";
+import { LifeBuoy, MessageCircleQuestion, AlertTriangle, Mail, Cog, BookOpen, Share2, Bot, Palette, Brain, Mic, Users, Briefcase, DatabaseZap, Edit3, TestTubeDiagonal, Settings2, FilePlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export default function SupportPage() {
   const faqs = [
     {
-      question: "How do I create a new AI chatbot for a client's business?",
-      answer: "Navigate to your 'Agency Hub' (Dashboard) and click 'Build New Client Chatbot'. You'll first define its name (e.g., 'Acme Corp Support'), its primary role for the business (e.g., 'Handles customer inquiries about widgets'), and its desired personality (e.g., 'Friendly and professional'). AutoBoss will then assist in generating a base personality and a suitable greeting for the chatbot.",
+      question: "How do I add a new client to my workspace?",
+      answer: "From your main 'Client Dashboard', click the 'Add New Client' button. You'll be prompted to enter their name, and optionally, their website and a short description. This creates a dedicated workspace for that client where you can build and manage their specific AI agents.",
+      icon: FilePlus,
+    },
+    {
+      question: "Can I build different types of AI agents for the same client?",
+      answer: "Yes! For each client, you can create multiple agents. For example, a client might need a 'Chat' agent for website support (trained on FAQs) and a 'Voice' agent for automated appointment booking. You can tailor each agent's type (chat/voice/hybrid), logic (RAG/Prompt-driven), and personality to fit its specific purpose for that client.",
       icon: Bot,
     },
     {
-      question: "How do I train a chatbot with my client's specific business data?",
-      answer: "After creating a chatbot, access its 'Knowledge' section. Here, you can upload relevant documents such as FAQs, product catalogs, or policy documents (PDFs and TXT files are recommended). You can also add website URLs (e.g., your client's 'About Us' or 'Services' page). AutoBoss processes this information, enabling the chatbot to become an expert on that particular business.",
-      icon: Brain,
-    },
-    {
-      question: "What is the 'Design Conversation' (Studio) page for?",
-      answer: "The Studio is a visual tool where you map out how your chatbot should interact for specific tasks or scenarios. You can design step-by-step conversation paths, configure it to ask questions to gather information, make decisions based on user input, send specific messages, and leverage AI for smart, context-aware responses. This allows you to build highly customized and effective chatbot experiences for your clients.",
-      icon: Cog,
+      question: "What's the best way to train an agent with client-specific data?",
+      answer: "Navigate to the specific agent within a client's workspace and go to its 'Knowledge' section. Here, you can upload documents (PDF, DOCX, TXT, CSV), add website URLs (like client's FAQ page or product pages), or input plain text. For CSVs (like lead lists or product catalogs), AutoBoss converts them into a structured text format to make individual rows accessible to the AI.",
+      icon: DatabaseZap,
     },
      {
-      question: "How can I make the chatbot's personality match my client's brand?",
-      answer: "In the 'Personality' section for each chatbot, you can refine the AI-generated name, persona (how it describes itself and its speaking style), and sample greeting. You initially provide a basic description of the role and desired tone, and the AI helps expand on this. You can then tweak these AI suggestions as much as you need to perfectly align with the client's brand voice and image.",
+      question: "How do I customize an agent's personality to match my client's brand?",
+      answer: "In the 'Personality' section for each agent, you first define its core role and provide clues about its desired communication style. Our AI then generates a suggested name, a detailed persona (how it describes itself and its speaking style), and a sample greeting. You can then edit these AI suggestions extensively to perfectly align with your client's brand voice, tone, and image.",
       icon: Palette,
     },
     {
-      question: "How do I put the chatbot I built on my client's website?",
-      answer: "Go to the 'Export' tab for the specific chatbot you want to deploy. You will find an 'Embed Chatbot on Any Website' section. Copy the script provided there and paste it into the HTML of your client's website, typically just before the closing </body> tag. This action will add a floating chat launcher button to their site, making integration straightforward.",
+      question: "How do I deploy an agent for my client (e.g., on their website)?",
+      answer: "Once an agent is configured and tested, go to its 'Export' tab. For chat agents, you'll find a simple JavaScript embed code. Copy this and paste it into the HTML of your client's website (usually before the closing </body> tag). This adds a floating chat launcher. You can also get a direct link to the chat page. For voice agents, this section provides API endpoint details for integration with telephony services like Twilio.",
       icon: Share2,
     },
     {
-        question: "Do I or my clients need to know coding to use AutoBoss chatbots?",
-        answer: "Absolutely not! AutoBoss is specifically designed for users without a technical background. You can build, train, and deploy sophisticated AI chatbots using our intuitive visual tools and simple upload interfaces, all without writing a single line of code. Your clients also just need to paste the provided embed script onto their site, which is a simple copy-paste action."
+        question: "What are 'RAG' vs. 'Prompt-Driven' agents?",
+        answer: "'RAG' (Retrieval Augmented Generation) agents are best for Q&A and information retrieval. They primarily answer based on the specific knowledge documents you upload. 'Prompt-Driven' agents rely more on their defined persona, role, and general AI capabilities. They are great for more creative, conversational, or general-purpose tasks where specific document knowledge isn't the main focus.",
+        icon: Brain
     },
     {
-      question: "Can I build voice assistants or calling agents with AutoBoss?",
-      answer: "AutoBoss allows you to design the conversational logic and train the knowledge base for agents that could be used in voice interactions. You can prepare your agent by uploading sales scripts, product details for verbal explanation, and common objection handling guides in the 'Knowledge' section. To enable actual phone call capabilities, you would need to integrate this agent with a third-party telephony service like Twilio, using your own Twilio account credentials and performing some backend setup. The 'Export' page provides fields to note your Twilio details for such an integration, but the actual call plumbing is an advanced setup you or a developer would manage outside of AutoBoss's core offering.",
-      icon: Mic,
+      question: "My client's agent isn't answering questions correctly. What should I check?",
+      answer: "1. **Knowledge Base:** Is the agent trained on the correct and most relevant documents/URLs? Is the content clear and accurate? For RAG agents, this is crucial. \n2. **Personality & Role:** Is the agent's role and personality clearly defined? This guides its responses, especially for prompt-driven agents. \n3. **Testing:** Use the 'Test Agent' tab to see how it responds to various inputs. If you have access to agent's internal reasoning (developer view), that can provide clues. \n4. **Clarity of Input:** Ensure test questions are clear. Sometimes rephrasing a question helps.",
+      icon: TestTubeDiagonal,
     }
   ];
 
@@ -53,20 +54,20 @@ export default function SupportPage() {
           <CardTitle className={cn("font-headline text-xl sm:text-2xl flex items-center gap-2", "text-gradient-dynamic")}>
             <LifeBuoy className="w-5 h-5 sm:w-6 sm:h-6 text-primary" /> Help Center & Agency Resources
           </CardTitle>
-          <CardDescription className="text-sm">Get help building and selling AI chatbots for businesses with AutoBoss.</CardDescription>
+          <CardDescription className="text-sm">Get help building and selling AI agents for businesses with AutoBoss.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6 sm:space-y-8 p-4 sm:p-6">
           <section>
-            <h2 className={cn("text-lg sm:text-xl font-semibold mb-2 sm:mb-3 flex items-center gap-2", "text-gradient-dynamic")}><MessageCircleQuestion className="w-4 h-4 sm:w-5 sm:w-5 text-primary"/>Frequently Asked Questions (For Agencies)</h2>
+            <h2 className={cn("text-lg sm:text-xl font-semibold mb-2 sm:mb-3 flex items-center gap-2", "text-gradient-dynamic")}><MessageCircleQuestion className="w-4 h-4 sm:w-5 sm:w-5 text-primary"/>Frequently Asked Questions</h2>
             <Accordion type="single" collapsible className="w-full">
               {faqs.map((faq, index) => (
-                <AccordionItem value={`item-${index + 1}`} key={index}>
-                  <AccordionTrigger className="text-left hover:no-underline text-sm sm:text-base py-3 sm:py-4">
-                    {faq.icon && <faq.icon className="mr-2 h-4 w-4 text-muted-foreground shrink-0" />}
-                    {faq.question}
+                <AccordionItem value={`item-${index + 1}`} key={index} className="border-border/70">
+                  <AccordionTrigger className="text-left hover:no-underline text-sm sm:text-base py-3 sm:py-4 group">
+                    {faq.icon && <faq.icon className="mr-2 sm:mr-3 h-4 w-4 sm:h-5 sm:w-5 text-primary group-hover:text-accent transition-colors shrink-0" />}
+                    <span className="flex-1">{faq.question}</span>
                   </AccordionTrigger>
-                  <AccordionContent className="text-muted-foreground leading-relaxed text-xs sm:text-sm pb-3 sm:pb-4">
-                    {faq.answer}
+                  <AccordionContent className="text-muted-foreground leading-relaxed text-xs sm:text-sm pb-3 sm:pb-4 pl-8 sm:pl-10"> {/* Added pl for indentation */}
+                    {faq.answer.split('\n').map((paragraph, pIndex) => <p key={pIndex} className={pIndex > 0 ? 'mt-2' : ''}>{paragraph}</p>)}
                   </AccordionContent>
                 </AccordionItem>
               ))}
@@ -75,12 +76,12 @@ export default function SupportPage() {
 
           <section className="p-3 sm:p-4 border rounded-lg bg-muted/30">
             <h2 className={cn("text-lg sm:text-xl font-semibold mb-2 sm:mb-3 flex items-center gap-2", "text-gradient-dynamic")}><AlertTriangle className="w-4 h-4 sm:w-5 sm:w-5 text-primary"/>Quick Tips & Troubleshooting</h2>
-            <ul className="list-disc list-inside space-y-1 text-xs sm:text-sm text-muted-foreground">
-              <li>If a client's chatbot isn't answering correctly, first check its 'Trained Knowledge'. Does it have the right documents or website content?</li>
-              <li>For chatbots with specific tasks, review the 'Conversation Design' in the Studio. Ensure all paths are connected and logic is correct.</li>
-              <li>Always use the 'Test Chatbot' tab extensively before giving the embed code to a client.</li>
-              <li>If you're training from a URL and it fails, ensure the website is publicly accessible and not too heavily reliant on JavaScript for its main content. Plain text pages work best. Ensure your ScrapeNinja API key (if used) is correctly configured.</li>
-              <li>For file uploads, .txt, .md, and simple .pdf files are generally most reliable for training.</li>
+            <ul className="list-disc list-inside space-y-1.5 text-xs sm:text-sm text-muted-foreground">
+              <li>For optimal agent performance, ensure uploaded knowledge documents are clean, well-structured, and directly relevant to the agent's purpose for that client.</li>
+              <li>When training from a URL, prioritize pages with clear text content (FAQs, About Us, Service Details). Complex, dynamic web apps might not parse well.</li>
+              <li>If an agent's responses seem off-brand, revisit its 'Personality' section. Small tweaks to the role or personality clues can make a big difference.</li>
+              <li>Always test thoroughly in the 'Test Agent' tab, simulating various user queries your client might expect.</li>
+              <li>If using voice agents, ensure the 'Agent Tone' in Personality settings is suitable for spoken conversation (e.g., concise, natural language).</li>
             </ul>
           </section>
 
@@ -89,7 +90,7 @@ export default function SupportPage() {
             <p className="text-xs sm:text-sm text-muted-foreground">
               Need more help, have feature requests, or want to discuss partnership opportunities for your agency?
             </p>
-            <Button variant="outline" className="mt-2 sm:mt-3 text-xs sm:text-sm" asChild>
+            <Button variant="outline" className="mt-2 sm:mt-3 text-xs sm:text-sm btn-interactive" asChild>
                 <Link href="mailto:support@autoboss.dev?subject=AutoBoss%20Agency%20Support%20Request">Contact Support</Link>
             </Button>
           </section>
