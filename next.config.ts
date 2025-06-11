@@ -27,11 +27,9 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            // Allow framing from any origin for the chat widget.
-            // For production, you might want to restrict this to specific domains:
-            // value: "frame-ancestors https://your-embedding-site.com https://another-trusted-site.com;",
-            // Using '*' for general embeddability as a widget:
-            value: "frame-ancestors *;",
+            // Allow framing from self, any HTTP origin, and any HTTPS origin.
+            // This explicitly lists schemes which might be required by some browsers/environments.
+            value: "frame-ancestors 'self' http: https:;",
           },
           // If X-Frame-Options is also being set, ensure it's not DENY or SAMEORIGIN for chat.
           // CSP frame-ancestors should take precedence, but this is a fallback.
