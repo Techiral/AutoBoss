@@ -22,10 +22,10 @@ import * as pdfjsLib from 'pdfjs-dist';
 import Papa from 'papaparse';
 
 // Configure PDF.js worker to be loaded locally
-// IMPORTANT: You need to copy the 'pdf.worker.js' file (NOT .mjs) from
-// 'node_modules/pdfjs-dist/build/pdf.worker.js'
+// IMPORTANT: You need to copy the 'pdf.worker.mjs' file from
+// 'node_modules/pdfjs-dist/build/pdf.worker.mjs'
 // to your '/public' directory for this to work.
-pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf.worker.js`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf.worker.mjs`;
 
 function csvToStructuredText(csvString: string, fileName: string): string {
   const parseResult = Papa.parse<Record<string, string>>(csvString, {
@@ -431,6 +431,3 @@ export default function KnowledgePage() {
     </div>
   );
 }
-
-
-    
