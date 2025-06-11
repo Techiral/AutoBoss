@@ -29,13 +29,19 @@ export default function AgentDetailLayout({ children }: { children: React.ReactN
         setClientName(client?.name || null);
       } else if (foundAgent && foundAgent.clientName) { // Fallback to denormalized name
         setClientName(foundAgent.clientName);
+      } else if (foundAgent && !foundAgent.clientId && !isLoadingClients) {
+        setClientName(null); // Agent might not have a client ID
       }
-    } else if (!isLoadingAgents && !agentId) {
-      setAgent(null);
+    } else if (!isLoadingAgents && !agentId) { // No agentId in params
+      setAgent(null); 
     }
   }, [agentId, getAgent, isLoadingAgents, getClientById, isLoadingClients]);
 
-  if (isLoadingAgents || (agent === undefined && agentId) || (agent?.clientId && isLoadingClients && !clientName) ) {
+  // Refined loading condition: loading if app context is loading, or if agentId exists but agent details (or its client's name if applicable) haven't been fetched yet.
+  const isPageLoading = isLoadingAgents || isLoadingClients || (agentId && (agent === undefined || (agent?.clientId && clientName === undefined && agent?.clientName === undefined)));
+
+
+  if (isPageLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] p-4">
         <Logo className="mb-4 h-8 sm:h-10" />
@@ -45,7 +51,7 @@ export default function AgentDetailLayout({ children }: { children: React.ReactN
     );
   }
 
-  if (!agent) {
+  if (!agent) { // Agent not found or no agentId was provided
     return (
        <Alert variant="destructive">
         <AlertTriangle className="h-4 w-4" />
@@ -70,3 +76,4 @@ export default function AgentDetailLayout({ children }: { children: React.ReactN
     </div>
   );
 }
+

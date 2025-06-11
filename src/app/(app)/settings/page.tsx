@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Settings as SettingsIcon, Trash2, Moon, Sun, InfoIcon, Loader2, Mail, KeyRound, ShieldAlert, PhoneCall, MessageSquare } from "lucide-react";
+import { Settings as SettingsIcon, Trash2, Moon, Sun, InfoIcon, Loader2, Mail, KeyRound, ShieldAlert, PhoneCall, MessageSquare, AlertCircle } from "lucide-react";
 import { useAppContext } from "../layout";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -42,12 +42,16 @@ const credentialsFormSchema = z.object({
 type CredentialsFormData = z.infer<typeof credentialsFormSchema>;
 
 export default function SettingsPage() {
-  const { theme, toggleTheme, clearAllFirebaseData, isLoadingAgents: isAppLoading } = useAppContext();
+  const { theme, toggleTheme, clearAllFirebaseData, isLoadingAgents: isAppContextLoading } = useAppContext();
   const { currentUser, updateUserCredentials, getUserCredentials, loading: authLoading } = useAuth();
   
   const [isClearDataDialogOpen, setIsClearDataDialogOpen] = useState(false);
   const [isClearingData, setIsClearingData] = useState(false);
   const [isSavingCredentials, setIsSavingCredentials] = useState(false);
+  const [hasSendGridKey, setHasSendGridKey] = useState(false);
+  const [hasTwilioSid, setHasTwilioSid] = useState(false);
+  const [isLoadingCredentials, setIsLoadingCredentials] = useState(true);
+
 
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<CredentialsFormData>({
     resolver: zodResolver(credentialsFormSchema),
@@ -63,14 +67,23 @@ export default function SettingsPage() {
   useEffect(() => {
     if (currentUser && !authLoading) {
       const fetchConfig = async () => {
+        setIsLoadingCredentials(true);
         const creds = await getUserCredentials();
         if (creds) {
-          // API keys/tokens are not set back to the form for security
+          // API keys/tokens are not set back to the form for security reasons
           setValue("userDefaultFromEmail", creds.userDefaultFromEmail || "");
           setValue("twilioPhoneNumber", creds.twilioPhoneNumber || "");
+          setHasSendGridKey(!!creds.sendGridApiKey);
+          setHasTwilioSid(!!creds.twilioAccountSid);
+        } else {
+          setHasSendGridKey(false);
+          setHasTwilioSid(false);
         }
+        setIsLoadingCredentials(false);
       };
       fetchConfig();
+    } else if (!currentUser && !authLoading) {
+        setIsLoadingCredentials(false);
     }
   }, [currentUser, authLoading, setValue, getUserCredentials]);
 
@@ -83,13 +96,18 @@ export default function SettingsPage() {
 
   const onCredentialsSubmit: SubmitHandler<CredentialsFormData> = async (data) => {
     setIsSavingCredentials(true);
-    await updateUserCredentials({ 
+    const success = await updateUserCredentials({ 
       sendGridApiKey: data.sendGridApiKey,
       userDefaultFromEmail: data.userDefaultFromEmail,
       twilioAccountSid: data.twilioAccountSid,
       twilioAuthToken: data.twilioAuthToken,
       twilioPhoneNumber: data.twilioPhoneNumber,
     });
+    if (success) {
+        // Re-fetch or update local state for hasSendGridKey/hasTwilioSid
+        if (data.sendGridApiKey) setHasSendGridKey(true);
+        if (data.twilioAccountSid) setHasTwilioSid(true);
+    }
     setIsSavingCredentials(false);
     // Clear sensitive fields from form after submission attempt
     setValue("sendGridApiKey", ""); 
@@ -97,7 +115,7 @@ export default function SettingsPage() {
     setValue("twilioAuthToken", ""); 
   };
   
-  const isLoading = isAppLoading || authLoading;
+  const isLoading = isAppContextLoading || authLoading || isLoadingCredentials;
 
   return (
     <TooltipProvider>
@@ -105,7 +123,7 @@ export default function SettingsPage() {
       <Card>
         <CardHeader className="p-4 sm:p-6">
           <CardTitle className={cn("font-headline text-xl sm:text-2xl flex items-center gap-2", "text-gradient-dynamic")}>
-            <SettingsIcon className="w-5 h-5 sm:w-6 sm:h-6 text-primary" /> Application Settings
+            <SettingsIcon className="w-5 h-5 sm:w-6 sm:w-6 text-primary" /> Application Settings
           </CardTitle>
           <CardDescription className="text-sm">Manage your application preferences, integrations, and data.</CardDescription>
         </CardHeader>
@@ -127,7 +145,7 @@ export default function SettingsPage() {
                 checked={theme === 'dark'}
                 onCheckedChange={toggleTheme}
                 aria-label="Toggle theme"
-                disabled={isLoading}
+                disabled={isLoading && !authLoading && !isAppContextLoading} // Disable only if app context is loading
               />
               <Moon className={theme === 'dark' ? 'text-primary h-4 w-4 sm:h-5 sm:w-5' : 'text-muted-foreground h-4 w-4 sm:h-5 sm:w-5'} />
             </div>
@@ -150,6 +168,16 @@ export default function SettingsPage() {
                 {/* SendGrid Section */}
                 <div className="space-y-3 p-3 border rounded-md bg-muted/20">
                     <h3 className="text-sm font-semibold flex items-center gap-1.5"><Mail className="w-4 h-4 text-primary"/>SendGrid (Email)</h3>
+                    {isLoadingCredentials && <div className="flex items-center text-xs text-muted-foreground"><Loader2 className="h-3 w-3 mr-1 animate-spin"/>Loading SendGrid status...</div>}
+                    {!isLoadingCredentials && !hasSendGridKey && (
+                        <Alert variant="default" className="p-2 text-xs bg-yellow-500/10 dark:bg-yellow-500/20 border-yellow-500/30">
+                            <AlertCircle className="h-3.5 w-3.5 text-yellow-600 dark:text-yellow-400" />
+                            <AlertTitle className="text-yellow-700 dark:text-yellow-300 text-xs font-medium">SendGrid Not Configured</AlertTitle>
+                            <AlertDescription className="text-yellow-600/80 dark:text-yellow-200/80 text-[10px] sm:text-[11px]">
+                                Your agents cannot send emails using your account until you provide a SendGrid API Key. They may use system defaults (if any) or email features will be unavailable.
+                            </AlertDescription>
+                        </Alert>
+                    )}
                     <div className="space-y-1">
                         <Label htmlFor="sendGridApiKey" className="text-xs font-medium">Your SendGrid API Key</Label>
                         <Tooltip>
@@ -171,6 +199,16 @@ export default function SettingsPage() {
                 {/* Twilio Section */}
                 <div className="space-y-3 p-3 border rounded-md bg-muted/20">
                     <h3 className="text-sm font-semibold flex items-center gap-1.5"><MessageSquare className="w-4 h-4 text-primary"/>Twilio (SMS & Voice Calls)</h3>
+                    {isLoadingCredentials && <div className="flex items-center text-xs text-muted-foreground"><Loader2 className="h-3 w-3 mr-1 animate-spin"/>Loading Twilio status...</div>}
+                     {!isLoadingCredentials && !hasTwilioSid && (
+                        <Alert variant="default" className="p-2 text-xs bg-yellow-500/10 dark:bg-yellow-500/20 border-yellow-500/30">
+                            <AlertCircle className="h-3.5 w-3.5 text-yellow-600 dark:text-yellow-400" />
+                            <AlertTitle className="text-yellow-700 dark:text-yellow-300 text-xs font-medium">Twilio Not Configured</AlertTitle>
+                            <AlertDescription className="text-yellow-600/80 dark:text-yellow-200/80 text-[10px] sm:text-[11px]">
+                                Your agents cannot send SMS or make/receive calls using your account until you provide Twilio credentials. They may use system defaults (if any) or related features will be unavailable.
+                            </AlertDescription>
+                        </Alert>
+                    )}
                     <div className="space-y-1">
                         <Label htmlFor="twilioAccountSid" className="text-xs font-medium">Your Twilio Account SID</Label>
                         <Tooltip>
@@ -228,8 +266,8 @@ export default function SettingsPage() {
                 <AlertDialog open={isClearDataDialogOpen} onOpenChange={setIsClearDataDialogOpen}>
                     <AlertDialogTrigger asChild>
                         <Button variant="destructive" size="sm" disabled={isLoading || isClearingData} className="w-full sm:w-auto text-xs sm:text-sm">
-                          {isClearingData || isLoading ? <Loader2 className="mr-2 h-3 w-3 sm:h-4 sm:w-4 animate-spin" /> : <Trash2 className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />} 
-                          {isClearingData ? "Clearing..." : (isLoading && !isClearingData ? "Loading..." : "Clear All My Agent Data")}
+                          {isClearingData || (isLoading && !authLoading && !isAppContextLoading) ? <Loader2 className="mr-2 h-3 w-3 sm:h-4 sm:w-4 animate-spin" /> : <Trash2 className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />} 
+                          {isClearingData ? "Clearing..." : ((isLoading && !authLoading && !isAppContextLoading) && !isClearingData ? "Loading..." : "Clear All My Agent Data")}
                         </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
@@ -269,3 +307,4 @@ export default function SettingsPage() {
     </TooltipProvider>
   );
 }
+

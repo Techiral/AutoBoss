@@ -19,7 +19,7 @@ import {
   SidebarInset,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { Home, Bot, Settings, BookOpen, MessageSquare, Share2, Cog, LifeBuoy, Loader2, LogIn, LayoutGrid, Briefcase } from 'lucide-react';
+import { Home, Bot, Settings, BookOpen, MessageSquare, Share2, Cog, LifeBuoy, Loader2, LogIn, LayoutGrid, Briefcase, MessageSquarePlus } from 'lucide-react';
 import type { Agent, KnowledgeItem, AgentToneType, Client } from '@/lib/types';
 import { db } from '@/lib/firebase';
 import {
@@ -639,13 +639,20 @@ function AppSidebar() {
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="p-3 sm:p-4 space-y-1 sm:space-y-2">
-        {/* No Support link here, it's now public */}
         <Link href="/settings" onClick={handleMobileLinkClick}>
           <SidebarMenuButton tooltip={collapsed ? 'Settings' : undefined} isActive={pathname === '/settings'}>
             <Settings />
             <span>Settings</span>
           </SidebarMenuButton>
         </Link>
+        <SidebarMenuItem>
+          <Link href="mailto:feedback@YOUR_AUTOBOSS_DOMAIN.com?subject=AutoBoss%20Platform%20Feedback" target="_blank" onClick={handleMobileLinkClick}>
+            <SidebarMenuButton tooltip={collapsed ? 'Send Feedback' : undefined}>
+              <MessageSquarePlus />
+              <span>Send Feedback</span>
+            </SidebarMenuButton>
+          </Link>
+        </SidebarMenuItem>
       </SidebarFooter>
     </Sidebar>
   );

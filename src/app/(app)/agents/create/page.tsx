@@ -421,8 +421,8 @@ export default function CreateAgentPage() {
                 {errors.primaryLogic && <p className="text-xs text-destructive">{errors.primaryLogic.message}</p>}
                  <p className="text-xs text-muted-foreground mt-1">
                     {currentPrimaryLogic === 'prompt'
-                        ? "Agent answers based on Personality and Role. Good for general chat or when no specific documents are provided."
-                        : "Agent answers using Business Data you upload. Best for customer support or info bots."
+                        ? "Agent answers based on Personality and Role. Good for general chat or when no specific documents are provided. It can still use knowledge if you upload it."
+                        : "Agent answers using Business Data you upload. Best for customer support or info bots that need to be factual about the client's business."
                     }
                 </p>
               </div>
@@ -504,3 +504,4 @@ export default function CreateAgentPage() {
     </TooltipProvider>
   );
 }
+

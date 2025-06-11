@@ -21,6 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Logo } from '@/components/logo';
 
 export default function ClientAgentsDashboardPage() {
   const params = useParams();
@@ -43,12 +44,16 @@ export default function ClientAgentsDashboardPage() {
     if (!isLoadingClients && clientId) {
       const foundClient = getClientById(clientId);
       setClient(foundClient);
+    } else if (!isLoadingClients && !clientId) { // No clientId provided
+      setClient(null); 
     }
   }, [clientId, getClientById, isLoadingClients]);
 
   useEffect(() => {
     if (client && !isLoadingAgents) {
       setClientAgents(agents.filter(agent => agent.clientId === client.id));
+    } else if (!client && !isLoadingAgents) { // If client is null (e.g., not found or no ID)
+      setClientAgents([]);
     }
   }, [client, agents, isLoadingAgents]);
 
@@ -59,19 +64,21 @@ export default function ClientAgentsDashboardPage() {
     }
   };
   
-  const isLoading = isLoadingClients || (client === undefined && clientId) || isLoadingAgents;
+  // Refined loading condition
+  const isPageLoading = isLoadingClients || (clientId && client === undefined) || isLoadingAgents;
 
 
-  if (isLoading) {
+  if (isPageLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] p-4">
+        <Logo className="mb-4 h-8 sm:h-10" />
         <Loader2 className="h-8 w-8 sm:h-10 animate-spin text-primary mb-3" />
         <p className="text-sm text-muted-foreground">Loading client workspace...</p>
       </div>
     );
   }
 
-  if (!client) {
+  if (!client) { // This covers both client not found and case where clientId was not in params
     return (
       <Alert variant="destructive">
         <AlertTriangle className="h-4 w-4" />
@@ -144,3 +151,4 @@ export default function ClientAgentsDashboardPage() {
     </div>
   );
 }
+
