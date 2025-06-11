@@ -29,51 +29,6 @@ export async function processUrl(input: ProcessUrlInput): Promise<ProcessedUrlOu
   return processUrlFlow(input);
 }
 
-/**
- * Fetches the content of a URL using a scraping API (ScrapeNinja).
- * @param url The URL to fetch.
- * @returns The HTML content of the page.
- * @throws Error if fetching fails.
- */
-async function fetchRenderedPageViaScrapingAPI(url: string): Promise<string> {
-  const apiKey = process.env.NEXT_PUBLIC_SCRAPENINJA_API_KEY;
-  if (!apiKey) {
-    throw new Error("Scraping API key (NEXT_PUBLIC_SCRAPENINJA_API_KEY) is not set. Please configure it in your environment variables to process dynamic websites effectively.");
-  }
-  const scrapingApiUrl = `https://api.scrapeninja.net/scrape?url=${encodeURIComponent(url)}&js=true`;
-
-  try {
-    const response = await axios.get(scrapingApiUrl, {
-      headers: { 'x-api-key': apiKey },
-      timeout: 20000, // Increased timeout for scraping
-    });
-    if (response.data && response.data.html) {
-      return response.data.html;
-    } else if (response.data && response.data.error) {
-      throw new Error(`ScrapeNinja API error: ${response.data.error}`);
-    }
-    throw new Error('Invalid response structure from ScrapeNinja API.');
-  } catch (error: any) {
-    if (axios.isAxiosError(error)) {
-      if (error.code === 'ENOTFOUND' && error.config?.url?.includes('api.scrapeninja.net')) {
-        throw new Error(`Network Error: Could not resolve the domain api.scrapeninja.net. This indicates a DNS lookup failure. Please check the server's network configuration and DNS settings. (Original error: ${error.message})`);
-      }
-      const status = error.response?.status || 'N/A';
-      const responseData = error.response?.data;
-      let errorMessage = `Failed to fetch rendered page from ScrapeNinja for URL ${url}. Status: ${status}.`;
-      if (responseData && typeof responseData === 'string') {
-        errorMessage += ` Response: ${responseData.substring(0, 200)}`;
-      } else if (responseData && responseData.error) {
-        errorMessage += ` Response: ${responseData.error}`;
-      } else if (responseData) {
-        errorMessage += ` Response: ${JSON.stringify(responseData).substring(0,200)}`;
-      }
-      throw new Error(errorMessage);
-    }
-    throw new Error(`Failed to fetch rendered page from ScrapeNinja for URL ${url}: ${error.message}`);
-  }
-}
-
 const processUrlFlow = ai.defineFlow(
   {
     name: 'processUrlFlow',
@@ -85,26 +40,27 @@ const processUrlFlow = ai.defineFlow(
     let textContent: string;
     let pageTitle: string | undefined;
 
-    const scrapingApiKey = process.env.NEXT_PUBLIC_SCRAPENINJA_API_KEY;
-
+    console.log(`Attempting direct fetch for URL: ${input.url}`);
     try {
-      if (scrapingApiKey) {
-        console.log(`Attempting to fetch URL with ScrapeNinja: ${input.url}`);
-        htmlContent = await fetchRenderedPageViaScrapingAPI(input.url);
-      } else {
-        console.warn(`ScrapeNinja API key not found. Attempting direct fetch for URL: ${input.url}. This may not work for JavaScript-heavy sites.`);
-        const response = await axios.get(input.url, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)'
-          },
-          timeout: 10000
-        });
-        htmlContent = response.data;
-         if (response.headers['content-type'] &&
-            !response.headers['content-type'].includes('text/html') &&
-            !response.headers['content-type'].includes('text/plain')) {
-             throw new Error(`Content type is not HTML or plain text: ${response.headers['content-type']}. Only web pages or plain text URLs are supported for direct fetch.`);
-        }
+      const response = await axios.get(input.url, {
+        headers: {
+          // Using a common browser user-agent
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.5',
+        },
+        timeout: 15000 // 15 seconds timeout
+      });
+      htmlContent = response.data;
+
+      if (response.headers['content-type'] &&
+          !response.headers['content-type'].toLowerCase().includes('text/html') &&
+          !response.headers['content-type'].toLowerCase().includes('text/plain') &&
+          !response.headers['content-type'].toLowerCase().includes('application/xml') && // Allow XML for RSS/Atom feeds
+          !response.headers['content-type'].toLowerCase().includes('application/rss+xml') &&
+          !response.headers['content-type'].toLowerCase().includes('application/atom+xml')
+        ) {
+           throw new Error(`Content type (${response.headers['content-type']}) is not primarily HTML, plain text, or XML. Direct fetching may not yield meaningful text content.`);
       }
 
       // Extract title from HTML
@@ -113,7 +69,7 @@ const processUrlFlow = ai.defineFlow(
 
       // Convert HTML to text
       textContent = htmlToTextConverter(htmlContent, {
-        wordwrap: false,
+        wordwrap: false, // Keep as false, chunkText will handle wrapping/splitting later if needed
         selectors: [
           { selector: 'a', format: 'inline', options: { hideLinkHrefIfSameAsText: true, ignoreHref: false } },
           { selector: 'img', format: 'skip' },
@@ -136,11 +92,16 @@ const processUrlFlow = ai.defineFlow(
           { selector: 'article', options: { itemProp: 'articleBody'} },
           { selector: 'main', options: {} },
           { selector: '[role="main"]', options: {}},
+          // Add selectors for common article/blog content containers
+          { selector: '.post-content', options: {} },
+          { selector: '.entry-content', options: {} },
+          { selector: '.article-body', options: {} },
+          { selector: '.content', options: {} }, // Generic content class
         ],
       });
 
       if (!textContent.trim()) {
-        throw new Error('No meaningful text content extracted from the URL. The page might be empty, heavily JavaScript-based and failed to render, or an unsupported format.');
+        throw new Error('No meaningful text content extracted from the URL. The page might be empty, primarily image-based, or require JavaScript to render its content. Direct fetching has limitations.');
       }
 
       // Return the structured output matching ProcessedUrlOutputSchema
@@ -151,9 +112,21 @@ const processUrlFlow = ai.defineFlow(
       };
 
     } catch (error: any) {
-      console.error(`Error processing URL ${input.url}:`, error.message);
-      // Propagate the error with a more generic message for the flow, specific details are logged above or in fetchRenderedPageViaScrapingAPI
-      throw new Error(`Failed to fetch and process content from URL ${input.url}. Reason: ${error.message}`);
+      console.error(`Error processing URL ${input.url} with direct fetch:`, error.message);
+      let userFriendlyMessage = `Failed to fetch and process content from URL ${input.url}. `;
+      if (axios.isAxiosError(error)) {
+        if (error.response) {
+          userFriendlyMessage += `Server responded with status ${error.response.status}. The page may be inaccessible or block direct requests.`;
+        } else if (error.request) {
+          userFriendlyMessage += `No response received. The server might be down or the URL incorrect.`;
+        } else {
+          userFriendlyMessage += `Error setting up request: ${error.message}.`;
+        }
+      } else {
+        userFriendlyMessage += error.message;
+      }
+      // Ensure the error message propagated to the flow is user-understandable.
+      throw new Error(userFriendlyMessage);
     }
   }
 );
@@ -165,11 +138,10 @@ const processUrlFlow = ai.defineFlow(
  * @param maxLength The maximum length of each chunk (default: 800 characters).
  * @returns An array of text chunks.
  */
-function chunkText(text: string, maxLength = 800): string[] { // Removed 'export'
+function chunkText(text: string, maxLength = 800): string[] {
   if (!text) return [];
-  // Normalize whitespace and split into sentences
   const normalizedText = text.replace(/\s+/g, ' ').trim();
-  const sentences = normalizedText.split(/(?<=[.?!])\s+(?=[A-Z0-9À-ÖØ-öø-ÿ])/); // Split by sentence-ending punctuation followed by space and capital letter/number or common international caps
+  const sentences = normalizedText.split(/(?<=[.?!])\s+(?=[A-Z0-9À-ÖØ-öø-ÿ])/);
   const chunks: string[] = [];
   let currentChunk = '';
 
@@ -182,7 +154,6 @@ function chunkText(text: string, maxLength = 800): string[] { // Removed 'export
         chunks.push(currentChunk.trim());
       }
       currentChunk = trimmedSentence;
-      // If a single sentence is longer than maxLength, split it hard
       while (currentChunk.length > maxLength) {
         chunks.push(currentChunk.substring(0, maxLength));
         currentChunk = currentChunk.substring(maxLength);

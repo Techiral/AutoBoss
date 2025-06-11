@@ -258,14 +258,15 @@ export default function KnowledgePage() {
     } catch (error: any) {
         console.error("Error processing URL:", error);
         let errorMessage = error.message || "Failed to process the website. The content might be inaccessible or unsuitable for training.";
-        if (errorMessage.toLowerCase().includes("enotfound") || errorMessage.toLowerCase().includes("getaddrinfo")) {
-          errorMessage = `Could not connect to the scraping service due to a DNS resolution error for its domain. This might be a temporary network issue with the server or the scraping service. Please try again later. (Details: ${errorMessage})`;
-        } else if (errorMessage.includes("Failed to fetch URL")) {
-            errorMessage = `Could not access the website at ${validUrl}. Please check if the URL is correct, public, and not blocked.`;
+        // More specific error messages based on common issues with direct fetching
+        if (errorMessage.toLowerCase().includes("status 403") || errorMessage.toLowerCase().includes("status 401")) {
+            errorMessage = `Could not access ${validUrl}: Access denied (403/401). The site may require login or block automated access.`;
+        } else if (errorMessage.toLowerCase().includes("status 5")) {
+            errorMessage = `Could not access ${validUrl}: The website's server encountered an error. Please try again later.`;
+        } else if (errorMessage.toLowerCase().includes("enotfound") || errorMessage.toLowerCase().includes("getaddrinfo") || errorMessage.toLowerCase().includes("dns lookup failed")) {
+          errorMessage = `Could not connect to ${validUrl}. Please check the URL or your network connection. (DNS lookup failure)`;
         } else if (errorMessage.includes("No meaningful text content extracted")) {
-            errorMessage = `No useful text content was found at ${validUrl}. It might be an image, a very complex page, or require login.`;
-        } else if (errorMessage.includes("Scraping API key is not set")) {
-            errorMessage = "The Scraping API key is missing. Please configure it in your settings to train from websites effectively.";
+            errorMessage = `No useful text content was found at ${validUrl}. It might be an image, a very complex page, require JavaScript, or direct access might be limited.`;
         }
         toast({ title: "Website Training Error", description: errorMessage, variant: "destructive" });
     } finally {
@@ -344,7 +345,7 @@ export default function KnowledgePage() {
                 <Info className="h-3.5 w-3.5 text-accent" />
                 <AlertTitle className="text-accent text-xs font-medium">Website Training Tip</AlertTitle>
                 <AlertDescription className="text-accent/80 dark:text-accent/90 text-[11px]">
-                  This uses a scraping service (ScrapeNinja) to fetch website content. Ensure your ScrapeNinja API key is set in your environment variables for best results with dynamic websites.
+                  Directly fetching content from websites can be challenging. For best results, ensure the URL points to a page with clear, primary text content. Pages that heavily rely on JavaScript to load content, or those behind logins/paywalls, may not process well.
                 </AlertDescription>
             </Alert>
             <Button onClick={handleProcessUrl} disabled={isProcessingUrl || !urlInput.trim() || isLoadingFile} className={cn("w-full", "btn-gradient-primary")}>
