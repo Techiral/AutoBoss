@@ -53,14 +53,17 @@ const processUrlFlow = ai.defineFlow(
       });
       htmlContent = response.data;
 
-      if (response.headers['content-type'] &&
-          !response.headers['content-type'].toLowerCase().includes('text/html') &&
-          !response.headers['content-type'].toLowerCase().includes('text/plain') &&
-          !response.headers['content-type'].toLowerCase().includes('application/xml') && // Allow XML for RSS/Atom feeds
-          !response.headers['content-type'].toLowerCase().includes('application/rss+xml') &&
-          !response.headers['content-type'].toLowerCase().includes('application/atom+xml')
-        ) {
-           throw new Error(`Content type (${response.headers['content-type']}) is not primarily HTML, plain text, or XML. Direct fetching may not yield meaningful text content.`);
+      const contentType = response.headers['content-type']?.toLowerCase() || '';
+      if (
+        contentType &&
+        !contentType.includes('text/html') &&
+        !contentType.includes('text/plain') &&
+        !contentType.includes('application/xml') && 
+        !contentType.includes('application/xhtml+xml') &&
+        !contentType.includes('application/rss+xml') &&
+        !contentType.includes('application/atom+xml')
+      ) {
+           throw new Error(`Unsupported content type: ${response.headers['content-type']}. This tool primarily processes HTML, plain text, or XML-based web pages.`);
       }
 
       // Extract title from HTML
@@ -71,14 +74,16 @@ const processUrlFlow = ai.defineFlow(
       textContent = htmlToTextConverter(htmlContent, {
         wordwrap: false, // Keep as false, chunkText will handle wrapping/splitting later if needed
         selectors: [
+          // Keep links, but don't duplicate href if it's the same as text
           { selector: 'a', format: 'inline', options: { hideLinkHrefIfSameAsText: true, ignoreHref: false } },
+          // Skip common non-content elements
           { selector: 'img', format: 'skip' },
           { selector: 'nav', format: 'skip' },
           { selector: 'footer', format: 'skip' },
           { selector: 'script', format: 'skip' },
           { selector: 'style', format: 'skip' },
           { selector: 'aside', format: 'skip' },
-          { selector: 'header', format: 'skip' },
+          { selector: 'header', format: 'skip' }, // General headers often don't contain main content
           { selector: 'form', format: 'skip' },
           { selector: 'button', format: 'skip' },
           { selector: 'input', format: 'skip' },
@@ -88,20 +93,25 @@ const processUrlFlow = ai.defineFlow(
           { selector: 'svg', format: 'skip'},
           { selector: 'noscript', format: 'skip'},
           { selector: 'canvas', format: 'skip'},
-          // Try to keep main content areas
-          { selector: 'article', options: { itemProp: 'articleBody'} },
-          { selector: 'main', options: {} },
-          { selector: '[role="main"]', options: {}},
-          // Add selectors for common article/blog content containers
+          // Prioritize common main content elements
+          { selector: 'article', options: { itemProp: 'articleBody'} }, 
+          { selector: 'main', options: {} },                         
+          { selector: '[role="main"]', options: {}},                  
+          // Common class names for content areas in blogs/articles
           { selector: '.post-content', options: {} },
           { selector: '.entry-content', options: {} },
           { selector: '.article-body', options: {} },
-          { selector: '.content', options: {} }, // Generic content class
+          { selector: '.content', options: {} }, 
+          { selector: '.blog-post', options: {} },
+          { selector: '.single-post-content', options: {} },
+          // Medium-like structures (often content is within an <article> but this is more specific if needed)
+          { selector: 'section > .meteredContent', options: {} }, 
+          // Add any other selectors that might be useful for specific platforms you target
         ],
       });
 
       if (!textContent.trim()) {
-        throw new Error('No meaningful text content extracted from the URL. The page might be empty, primarily image-based, or require JavaScript to render its content. Direct fetching has limitations.');
+        throw new Error('No meaningful text content extracted from the URL. The page might be empty, primarily image-based, or require JavaScript to render its content. Direct fetching has limitations with highly dynamic sites.');
       }
 
       // Return the structured output matching ProcessedUrlOutputSchema
@@ -122,6 +132,8 @@ const processUrlFlow = ai.defineFlow(
         } else {
           userFriendlyMessage += `Error setting up request: ${error.message}.`;
         }
+      } else if (error.message.startsWith('Unsupported content type')) {
+         userFriendlyMessage = error.message; // Use the specific error message
       } else {
         userFriendlyMessage += error.message;
       }
@@ -168,3 +180,6 @@ function chunkText(text: string, maxLength = 800): string[] {
   }
   return chunks.filter(chunk => chunk.length > 0);
 }
+
+
+    
