@@ -72,18 +72,16 @@ const processUrlFlow = ai.defineFlow(
 
       // Convert HTML to text
       textContent = htmlToTextConverter(htmlContent, {
-        wordwrap: false, // Keep as false, chunkText will handle wrapping/splitting later if needed
+        wordwrap: false, 
         selectors: [
-          // Keep links, but don't duplicate href if it's the same as text
           { selector: 'a', format: 'inline', options: { hideLinkHrefIfSameAsText: true, ignoreHref: false } },
-          // Skip common non-content elements
           { selector: 'img', format: 'skip' },
           { selector: 'nav', format: 'skip' },
           { selector: 'footer', format: 'skip' },
           { selector: 'script', format: 'skip' },
           { selector: 'style', format: 'skip' },
           { selector: 'aside', format: 'skip' },
-          { selector: 'header', format: 'skip' }, // General headers often don't contain main content
+          { selector: 'header', format: 'skip' },
           { selector: 'form', format: 'skip' },
           { selector: 'button', format: 'skip' },
           { selector: 'input', format: 'skip' },
@@ -93,20 +91,17 @@ const processUrlFlow = ai.defineFlow(
           { selector: 'svg', format: 'skip'},
           { selector: 'noscript', format: 'skip'},
           { selector: 'canvas', format: 'skip'},
-          // Prioritize common main content elements
-          { selector: 'article', options: { itemProp: 'articleBody'} }, 
-          { selector: 'main', options: {} },                         
-          { selector: '[role="main"]', options: {}},                  
-          // Common class names for content areas in blogs/articles
-          { selector: '.post-content', options: {} },
-          { selector: '.entry-content', options: {} },
-          { selector: '.article-body', options: {} },
-          { selector: '.content', options: {} }, 
-          { selector: '.blog-post', options: {} },
-          { selector: '.single-post-content', options: {} },
-          // Medium-like structures (often content is within an <article> but this is more specific if needed)
-          { selector: 'section > .meteredContent', options: {} }, 
-          // Add any other selectors that might be useful for specific platforms you target
+          // Prioritize common main content elements by formatting them as blocks
+          { selector: 'article', format: 'block', options: { itemProp: 'articleBody'} }, 
+          { selector: 'main', format: 'block', options: {} },                         
+          { selector: '[role="main"]', format: 'block', options: {}},                  
+          { selector: '.post-content', format: 'block', options: {} },
+          { selector: '.entry-content', format: 'block', options: {} },
+          { selector: '.article-body', format: 'block', options: {} },
+          { selector: '.content', format: 'block', options: {} }, 
+          { selector: '.blog-post', format: 'block', options: {} },
+          { selector: '.single-post-content', format: 'block', options: {} },
+          { selector: 'section > .meteredContent', format: 'block', options: {} }, 
         ],
       });
 
@@ -114,7 +109,6 @@ const processUrlFlow = ai.defineFlow(
         throw new Error('No meaningful text content extracted from the URL. The page might be empty, primarily image-based, or require JavaScript to render its content. Direct fetching has limitations with highly dynamic sites.');
       }
 
-      // Return the structured output matching ProcessedUrlOutputSchema
       return {
         url: input.url,
         title: pageTitle,
@@ -133,11 +127,10 @@ const processUrlFlow = ai.defineFlow(
           userFriendlyMessage += `Error setting up request: ${error.message}.`;
         }
       } else if (error.message.startsWith('Unsupported content type')) {
-         userFriendlyMessage = error.message; // Use the specific error message
+         userFriendlyMessage = error.message; 
       } else {
         userFriendlyMessage += error.message;
       }
-      // Ensure the error message propagated to the flow is user-understandable.
       throw new Error(userFriendlyMessage);
     }
   }
@@ -180,6 +173,3 @@ function chunkText(text: string, maxLength = 800): string[] {
   }
   return chunks.filter(chunk => chunk.length > 0);
 }
-
-
-    
