@@ -16,13 +16,13 @@ import { createAgent, CreateAgentOutput } from "@/ai/flows/agent-creation";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAppContext } from "../../layout";
 import type { Agent, AgentType, AgentLogicType, AgentDirection, AgentPurposeType as FormAgentPurposeType, Client } from "@/lib/types";
-import { Loader2, Bot, MessageSquare, Phone, Brain, DatabaseZap, ArrowDownCircle, ArrowUpCircle, HelpCircle, Lightbulb, Users, Briefcase, AlertTriangle } from "lucide-react";
+import { Loader2, Bot, MessageSquare, Phone, Brain, DatabaseZap, ArrowDownCircle, ArrowUpCircle, HelpCircle, Lightbulb, Users, Briefcase, AlertTriangle, Mic, ExternalLink } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import Link from "next/link";
-import { AgentSchema } from "@/lib/types"; // Import AgentSchema for stricter type checking
+import { AgentSchema } from "@/lib/types";
 
 
 interface PredefinedAgentTemplate {
@@ -43,6 +43,7 @@ const agentTemplates: PredefinedAgentTemplate[] = [
     defaultValues: {
       agentPurpose: 'support',
       agentType: 'chat',
+      primaryLogic: 'rag',
       role: "I am a customer support specialist for [Client Name]. My main tasks are to help customers track their orders, answer questions about products, explain return policies, and resolve any shopping issues they might have. I aim to provide quick and accurate assistance to ensure a smooth and positive customer experience.",
       personality: "Friendly, patient, and highly efficient. I'm knowledgeable about our products and policies, and I communicate clearly and politely. I'm always ready to help with a positive attitude."
     }
@@ -52,6 +53,7 @@ const agentTemplates: PredefinedAgentTemplate[] = [
     defaultValues: {
       agentPurpose: 'sales',
       agentType: 'chat',
+      primaryLogic: 'prompt',
       role: "I'm a lead generation assistant for [Client Name]'s Real Estate Agency. I interact with website visitors to understand their property needs (buying, selling, or renting), gather their contact details, and schedule appointments for property viewings or consultations with an agent. My goal is to capture and qualify potential leads effectively.",
       personality: "Professional, engaging, and knowledgeable about the local real estate market. I'm proactive in asking relevant questions and persuasive in guiding users towards the next step. I build trust and rapport with potential clients."
     }
@@ -62,6 +64,7 @@ const agentTemplates: PredefinedAgentTemplate[] = [
       agentPurpose: 'custom',
       agentType: 'voice',
       direction: 'inbound',
+      primaryLogic: 'prompt',
       role: "I am the automated voice assistant for [Client Name]'s Dental Clinic. I can help you schedule a new dental appointment, reschedule an existing one, or cancel an appointment if needed. I can also provide basic information about our clinic's services, hours, and location.",
       personality: "Clear, calm, and friendly. I speak at a moderate pace and understand various ways users might state their requests. I confirm details carefully to ensure accuracy and provide a pleasant scheduling experience over the phone."
     }
@@ -209,7 +212,6 @@ export default function CreateAgentPage() {
     setGeneratedAgentDetails(null);
     try {
       const logicTypeUserFriendly = getLogicTypeLabel(data.primaryLogic as AgentLogicType);
-      // Agent description now includes the client's name for better AI context
       const agentDescription = `This agent is for client: ${clientNameFromQuery}. Primary Purpose: ${data.agentPurpose}. Type: ${data.agentType}. Direction: ${data.direction}. Primary Logic: ${logicTypeUserFriendly}.\nAgent Concept Name: ${data.name}\nIntended Role for the Business: ${data.role}\nDesired Personality & Tone: ${data.personality}`;
       
       const aiResult = await createAgent({ agentDescription, agentType: data.agentType, direction: data.direction as AgentDirection });
@@ -219,12 +221,12 @@ export default function CreateAgentPage() {
         agentType: data.agentType as AgentType,
         direction: data.direction as AgentDirection,
         primaryLogic: data.primaryLogic as AgentLogicType,
-        name: data.name, // This is the "Agent Concept Name" from the form
+        name: data.name, 
         description: `Purpose: ${data.agentPurpose}. Type: ${data.agentType}. Logic: ${logicTypeUserFriendly}. Role: ${data.role}. Personality: ${data.personality}.`,
         role: data.role,
         personality: data.personality,
         agentPurpose: data.agentPurpose as FormAgentPurposeType,
-        generatedName: aiResult.agentName, // AI suggested name
+        generatedName: aiResult.agentName,
         generatedPersona: aiResult.agentPersona,
         generatedGreeting: aiResult.agentGreeting,
       };
@@ -237,7 +239,6 @@ export default function CreateAgentPage() {
           description: `Agent "${aiResult.agentName}" for client "${clientNameFromQuery}" is ready. Next, customize its personality and add knowledge. Redirecting...`,
         });
 
-        // Redirect to knowledge page if RAG and client has a website
         if (data.primaryLogic === 'rag' && activeClient?.website) {
             router.push(`/agents/${newAgent.id}/knowledge?initialUrl=${encodeURIComponent(activeClient.website)}`);
         } else if (data.primaryLogic === 'rag') {
@@ -396,6 +397,15 @@ export default function CreateAgentPage() {
                   </p>
               </div>
             </div>
+            {(currentAgentType === 'voice' || currentAgentType === 'hybrid') && (
+                <Alert variant="default" className="p-3 text-xs bg-accent/10 dark:bg-accent/20 border-accent/30">
+                    <Mic className="h-4 w-4 text-accent"/>
+                    <AlertTitle className="text-accent text-xs sm:text-sm font-medium">Voice Agent Tip</AlertTitle>
+                    <AlertDescription className="text-accent/80 dark:text-accent/90 text-[11px] sm:text-xs">
+                        For voice agents to use your own Twilio account for calls, ensure your Twilio credentials are set up in <Link href="/settings" className="underline hover:text-accent-foreground">User Profile Settings <ExternalLink className="inline w-2.5 h-2.5 ml-0.5"/></Link>.
+                    </AlertDescription>
+                </Alert>
+            )}
              <div className="space-y-1.5">
                 <Label htmlFor="primaryLogic" className="flex items-center">How this Agent Works
                  <Tooltip>
