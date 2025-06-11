@@ -27,16 +27,11 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            // Allow framing from self, any HTTP origin, and any HTTPS origin.
-            // This explicitly lists schemes which might be required by some browsers/environments.
-            value: "frame-ancestors 'self' http: https:;",
+            // Allow framing from self, any HTTP origin, and any HTTPS origin using host wildcards.
+            value: "frame-ancestors 'self' http://* https://*;",
           },
-          // If X-Frame-Options is also being set, ensure it's not DENY or SAMEORIGIN for chat.
-          // CSP frame-ancestors should take precedence, but this is a fallback.
-          // {
-          //   key: 'X-Frame-Options',
-          //   value: 'ALLOWALL', // Or a specific domain if not using '*' in CSP
-          // }
+          // It's generally recommended NOT to use X-Frame-Options if CSP frame-ancestors is used.
+          // CSP should be sufficient for modern browsers.
         ],
       },
       // Example: You might want a more restrictive default CSP for other parts of your app
