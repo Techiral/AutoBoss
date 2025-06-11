@@ -8,33 +8,33 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/logo";
 import { cn } from "@/lib/utils";
-import { Lightbulb, Users, Briefcase, MessageCircle, Presentation, CheckCircle, ArrowRight, Sparkles, Handshake, BookOpen } from "lucide-react"; // Added BookOpen
+import { Lightbulb, Users, Briefcase, MessageCircle, Presentation, CheckCircle, ArrowRight, Sparkles, Handshake, BookOpen } from "lucide-react";
 
 export default function PlaybookPage() {
   const playbookSections = [
     {
       id: "niche",
       icon: <Users className="w-5 h-5 text-primary" />,
-      title: "1. Your First Client? The 'Hidden Market' Strategy",
+      title: "1. Finding Your First Client: The 'Easy Wins' Method",
       content: (
         <div className="space-y-3 text-sm text-muted-foreground">
-          <p>Forget chasing massive corporations. Your first win often lies with businesses you already know, or who desperately need a simple AI fix. Think:</p>
+          <p>No need to go after big companies right away. Your first clients are often businesses you know, or ones that need a quick AI helper. Think:</p>
           <ul className="list-disc list-inside pl-4 space-y-1">
-            <li>Local businesses drowning in repetitive questions (restaurants, salons, repair shops).</li>
-            <li>Service providers missing leads after hours (plumbers, consultants, coaches).</li>
-            <li>Online stores needing 24/7 basic FAQ support.</li>
+            <li>Local businesses swamped with the same questions over and over (restaurants, salons, repair shops).</li>
+            <li>Service pros losing leads when they're off duty (plumbers, consultants, coaches).</li>
+            <li>Online stores needing 24/7 basic FAQ help.</li>
           </ul>
-          <p className="font-semibold">Quick Questions to Uncover AI Opportunities (Ask any small business owner):</p>
+          <p className="font-semibold">Easy Questions to Find AI Needs (Ask any small business owner):</p>
           <ul className="list-disc list-inside pl-4 space-y-1">
-            <li>"If you had a magic assistant, what's the #1 repetitive task you'd give it?"</li>
-            <li>"How many customer questions do you answer daily that are basically the same?"</li>
-            <li>"Ever worry you're losing business because you can't respond instantly to every website visitor?"</li>
+            <li>"If you had a magic helper, what's the #1 task you'd give it that you do over and over?"</li>
+            <li>"About how many customer questions do you answer each day that are pretty much the same?"</li>
+            <li>"Ever worry you're missing out on business because you can't reply to every website visitor right away?"</li>
           </ul>
           <Alert variant="default" className="bg-accent/10 dark:bg-accent/20 border-accent/30">
             <Lightbulb className="h-4 w-4 text-accent" />
             <AlertTitle className="text-accent text-sm font-medium">Your Action Idea: The 30-Minute Client Finder</AlertTitle>
             <AlertDescription className="text-accent/80 dark:text-accent/90 text-xs">
-              List 3 local businesses you know. What one simple AI task from AutoBoss (like an FAQ bot) could genuinely help *them*? The answer might surprise you.
+              List 3 local businesses you know. What one simple AI task from AutoBoss (like an FAQ bot) could truly help *them*? You might be surprised by what you find.
             </AlertDescription>
           </Alert>
         </div>
@@ -43,23 +43,23 @@ export default function PlaybookPage() {
     {
       id: "offer",
       icon: <Briefcase className="w-5 h-5 text-primary" />,
-      title: "2. Your Irresistible 'Foot-in-the-Door' AI Offer",
+      title: "2. Your 'Can't Say No' AI Offer (Foot-in-the-Door)",
       content: (
         <div className="space-y-3 text-sm text-muted-foreground">
           <p>Don't sell 'AI'. Sell the *result*. For your first clients, offer a simple, high-value <span className="font-semibold text-foreground">"AI Quick-Win Package."</span></p>
           <p>What it includes (and what it does for them):</p>
           <ul className="list-disc list-inside pl-4 space-y-1">
-            <li><strong>One Custom AI Chatbot:</strong> ("Handles common questions on their website, 24/7, so they don't have to.")</li>
+            <li><strong>One Custom AI Chatbot:</strong> ("Answers common questions on their website, 24/7, so they don't have to.")</li>
             <li><strong>AI Training on Their Business Info:</strong> ("We'll teach the AI about *their* specific services, products, and FAQs.")</li>
-            <li><strong>Simple Website Integration:</strong> ("Adds to their site with a copy-paste. No tech headaches for them.")</li>
+            <li><strong>Simple Website Setup:</strong> ("Adds to their site with a copy-paste. No tech headaches for them.")</li>
           </ul>
           <p className="font-semibold">Pricing That Gets a 'Yes' (for your first 1-3 clients):</p>
-          <p>A one-time setup fee (e.g., $299 - $599) is less scary than a monthly cost. Frame it as an investment that saves them X hours or captures Y more leads. Once they see it work, then talk monthly support.</p>
+          <p>A one-time setup fee (maybe $299 - $599) feels safer to them than a monthly bill at first. Show it as something that saves them X hours or gets Y more leads. Once they see it work, then you can talk about monthly support.</p>
            <Alert variant="default" className="bg-accent/10 dark:bg-accent/20 border-accent/30">
             <Sparkles className="h-4 w-4 text-accent" />
             <AlertTitle className="text-accent text-sm font-medium">The "Aha!" Moment is Key</AlertTitle>
             <AlertDescription className="text-accent/80 dark:text-accent/90 text-xs">
-              You're not just selling tech. You're selling relief from a pain point (too many questions, lost leads). Make *that* the focus.
+              You're not just selling tech. You're selling relief from a headache (too many questions, lost leads). Make *that* the focus.
             </AlertDescription>
           </Alert>
         </div>
@@ -68,27 +68,27 @@ export default function PlaybookPage() {
     {
       id: "outreach",
       icon: <MessageCircle className="w-5 h-5 text-primary" />,
-      title: "3. First Contact: The 'No-Pressure AI Idea' Message",
+      title: "3. Reaching Out: The 'Helpful AI Idea' Message",
       content: (
         <div className="space-y-3 text-sm text-muted-foreground">
-          <p>Your first message isn't a sales pitch. It's a friendly, "Hey, I had an idea that might help *you*."</p>
-          <p className="font-semibold">Ultra-Simple Email/LinkedIn Template:</p>
+          <p>Your first message isn't a sales pitch. It's a friendly, "Hey, I thought of something that could help your business."</p>
+          <p className="font-semibold">Super Simple Email/LinkedIn Template:</p>
           <Card className="p-3 bg-muted/50 text-xs">
-            <p>Subject: A quick thought for [Their Business Name] + AI</p>
+            <p>Subject: A quick idea for [Their Business Name] + AI</p>
             <br />
             <p>Hi [Business Owner Name],</p>
-            <p>I was on your website and a thought struck me. Many businesses like yours are saving hours each week by using a simple AI assistant to handle common customer questions automatically. </p>
-            <p>I use a tool called AutoBoss that makes setting this up surprisingly straightforward, even for non-techy folks. </p>
-            <p>Would you be open to a super quick 10-min virtual coffee next week? I can show you how it might work for [Their Business Name] – no strings attached, just an idea I thought you'd find interesting.</p>
+            <p>I was looking at your website and had a thought. Many businesses like yours are saving hours each week using a simple AI helper for common customer questions. </p>
+            <p>I use a tool called AutoBoss that makes this easy to set up, even if you're not a tech whiz. </p>
+            <p>Would you be open to a super quick 10-min chat next week? I can show you how it might work for [Their Business Name] – no pressure, just an idea I thought you'd find interesting.</p>
             <br />
             <p>Best,</p>
             <p>[Your Name]</p>
           </Card>
           <Alert variant="default" className="bg-accent/10 dark:bg-accent/20 border-accent/30">
             <Lightbulb className="h-4 w-4 text-accent" />
-            <AlertTitle className="text-accent text-sm font-medium">Your Goal: Curiosity, Not a Sale (Yet!)</AlertTitle>
+            <AlertTitle className="text-accent text-sm font-medium">Your Goal: Spark Curiosity, Not a Sale (Yet!)</AlertTitle>
             <AlertDescription className="text-accent/80 dark:text-accent/90 text-xs">
-              Send this (personalized!) to 3 businesses from your "Hidden Market" list. The aim is just to get them curious enough for a quick chat.
+              Send this (make it personal!) to 3 businesses from your "Easy Wins" list. The aim is just to get them curious enough for a quick chat.
             </AlertDescription>
           </Alert>
         </div>
@@ -100,23 +100,23 @@ export default function PlaybookPage() {
       title: "4. The 10-Minute 'Wow' Demo (AutoBoss Makes This Easy)",
       content: (
         <div className="space-y-3 text-sm text-muted-foreground">
-          <p>This is your secret weapon. Before your chat:</p>
+          <p>This is your secret trick. Before your chat:</p>
           <ul className="list-disc list-inside pl-4 space-y-1">
-            <li><strong>5 Mins Prep:</strong> Visit their site. Grab a few sentences from their "About Us" or "Services" page.</li>
-            <li><strong>2 Mins in AutoBoss:</strong> Create a new agent FOR THEM. In "Knowledge," paste their text. Click "Train."</li>
-            <li><strong>3 Mins Test:</strong> Ask their new AI questions like "What services do you offer?" or "Tell me about [Their Business Name]."</li>
+            <li><strong>5 Mins Prep:</strong> Visit their site. Copy a few sentences from their "About Us" or "Services" page.</li>
+            <li><strong>2 Mins in AutoBoss:</strong> Make a new agent FOR THEM. In "Knowledge," paste their text. Click "Train."</li>
+            <li><strong>3 Mins Test:</strong> Ask their new AI questions like "What do you offer?" or "Tell me about [Their Business Name]."</li>
           </ul>
-          <p className="font-semibold">During your 10-15 minute chat (The "Can This Really Be So Simple?" Moment):</p>
+          <p className="font-semibold">During your 10-15 minute chat (The "Is it really this simple?" Moment):</p>
           <ul className="list-disc list-inside pl-4 space-y-1">
-            <li>Quickly state the benefit: "Imagine this on your site, instantly handling visitor questions..."</li>
+            <li>Quickly mention the benefit: "Imagine this on your site, instantly handling visitor questions..."</li>
             <li>Share your screen: Show them the AutoBoss test chat. Let *them* ask *their AI* questions about *their business*.</li>
           </ul>
-          <p>Seeing their own information used by an AI they didn't know existed 10 minutes ago? That's powerful.</p>
+          <p>Seeing their own business info used by an AI they didn't know existed 10 minutes ago? That's a game-changer.</p>
           <Alert variant="default" className="bg-accent/10 dark:bg-accent/20 border-accent/30">
             <Sparkles className="h-4 w-4 text-accent" />
-            <AlertTitle className="text-accent text-sm font-medium">The "Personalized Proof" Principle</AlertTitle>
+            <AlertTitle className="text-accent text-sm font-medium">The "Personalized Proof" Magic</AlertTitle>
             <AlertDescription className="text-accent/80 dark:text-accent/90 text-xs">
-              A live demo, however basic, using *their* business info, beats a thousand generic presentations. AutoBoss enables this rapid personalization.
+              A live demo, even a basic one, using *their* business info, beats any generic presentation. AutoBoss helps you do this fast.
             </AlertDescription>
           </Alert>
         </div>
@@ -128,27 +128,27 @@ export default function PlaybookPage() {
       title: "5. From 'Wow' to 'Yes': The Simple Close",
       content: (
         <div className="space-y-3 text-sm text-muted-foreground">
-          <p>If they're impressed, don't overcomplicate it. Make saying "yes" the easiest thing they do all day.</p>
+          <p>If they're impressed, keep it simple. Make saying "yes" easy for them.</p>
           <p className="font-semibold">Your "Let's Do This" Agreement (Simple Email Follow-Up):</p>
           <ul className="list-disc list-inside pl-4 space-y-1">
             <li><strong>The Goal:</strong> One AI Chatbot for their website.</li>
-            <li><strong>Their Part:</strong> Provide key info (FAQs, product details, etc. - you'll guide them).</li>
+            <li><strong>Their Part:</strong> Give you key info (FAQs, product details, etc. - you'll help them with this).</li>
             <li><strong>Your Part:</strong> Build, train, and give them the easy embed code.</li>
             <li><strong>The Investment:</strong> Your one-time setup fee (e.g., "$399 to get this live and saving you time").</li>
           </ul>
           <p className="font-semibold">Client Info Checklist (What you need to get started with AutoBoss):</p>
           <ul className="list-disc list-inside pl-4 space-y-1">
             <li>Their website link.</li>
-            <li>Any existing FAQ docs/pages.</li>
-            <li>Main services/products list.</li>
-            <li>Preferred bot tone (friendly, formal, etc.).</li>
+            <li>Any FAQ docs/pages they have.</li>
+            <li>List of their main services/products.</li>
+            <li>What kind of 'voice' they want for the bot (friendly, formal, etc.).</li>
           </ul>
-          <p>With this, AutoBoss empowers you to deliver quickly. Your first client is closer than you think!</p>
+          <p>With this, AutoBoss lets you deliver value quickly. Your first client is closer than you think!</p>
           <Alert variant="default" className="bg-green-500/10 dark:bg-green-500/20 border-green-500/30">
             <CheckCircle className="h-4 w-4 text-green-700 dark:text-green-400" />
-            <AlertTitle className="text-green-700 dark:text-green-400 text-sm font-medium">Your AI Agency Journey Begins!</AlertTitle>
+            <AlertTitle className="text-green-700 dark:text-green-400 text-sm font-medium">Your AI Agency Journey Starts Now!</AlertTitle>
             <AlertDescription className="text-green-600/80 dark:text-green-300/80 text-xs">
-              Each client builds your confidence and portfolio. AutoBoss is your partner in making AI accessible and profitable for you.
+              Each client builds your confidence and your business. AutoBoss is here to make AI easy and profitable for you.
             </AlertDescription>
           </Alert>
         </div>
@@ -178,10 +178,10 @@ export default function PlaybookPage() {
               <BookOpen className="w-8 h-8 text-primary" />
             </div>
             <CardTitle className={cn("font-headline text-2xl sm:text-3xl md:text-4xl", "text-gradient-dynamic")}>
-              The Non-Technical Founder's AI Agency Playbook
+              Your Simple Guide to AI Agency Clients (No Tech Skills Needed!)
             </CardTitle>
             <CardDescription className="text-sm sm:text-base text-muted-foreground mt-2 max-w-xl mx-auto">
-              Your step-by-step guide to landing your first paying AI clients using AutoBoss – even if you're new to AI!
+              Your step-by-step plan to land your first paying AI clients using AutoBoss – even if you're new to AI!
             </CardDescription>
           </CardHeader>
         </Card>
@@ -205,12 +205,12 @@ export default function PlaybookPage() {
         </Accordion>
 
         <Card className="mt-8 sm:mt-12 text-center p-6 bg-muted/30 border-dashed">
-            <CardTitle className="text-lg sm:text-xl font-semibold mb-2">Ready to Turn This Playbook into Profit?</CardTitle>
+            <CardTitle className="text-lg sm:text-xl font-semibold mb-2">Ready to Turn This Plan into Profit?</CardTitle>
             <CardDescription className="text-sm text-muted-foreground mb-4">
-                Combine these strategies with the AutoBoss platform to start building valuable AI solutions for businesses today.
+                Use these ideas with the AutoBoss platform to start building real AI solutions for businesses today.
             </CardDescription>
             <Button asChild className={cn("btn-gradient-primary font-semibold shadow-md hover:opacity-90 transition-opacity btn-interactive text-sm")}>
-                <Link href="/dashboard">Access Your AutoBoss Toolkit <ArrowRight className="ml-2 h-4 w-4"/></Link>
+                <Link href="/dashboard">Open Your AutoBoss Toolkit <ArrowRight className="ml-2 h-4 w-4"/></Link>
             </Button>
         </Card>
       </main>
