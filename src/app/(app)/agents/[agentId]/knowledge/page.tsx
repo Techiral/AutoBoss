@@ -10,7 +10,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { extractKnowledge } from "@/ai/flows/knowledge-extraction";
 import { processUrl } from "@/ai/flows/url-processor";
-import { Upload, Loader2, FileText, Tag, AlertTriangle, Link as LinkIcon, Brain, Info, Mic } from "lucide-react";
+import { Upload, Loader2, FileText, Tag, AlertTriangle, Link as LinkIcon, Brain, Info, Mic, CheckCircle2 } from "lucide-react";
 import type { KnowledgeItem, Agent, ProcessedUrlOutput } from "@/lib/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAppContext } from "../../../layout";
@@ -22,10 +22,10 @@ import * as pdfjsLib from 'pdfjs-dist';
 import Papa from 'papaparse';
 
 // Configure PDF.js worker to be loaded locally
-// IMPORTANT: You need to copy the 'pdf.worker.mjs' file from
-// 'node_modules/pdfjs-dist/build/pdf.worker.mjs'
+// IMPORTANT: You need to copy the 'pdf.worker.js' file (NOT .mjs) from
+// 'node_modules/pdfjs-dist/build/pdf.worker.js'
 // to your '/public' directory for this to work.
-pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf.worker.mjs`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf.worker.js`;
 
 function csvToStructuredText(csvString: string, fileName: string): string {
   const parseResult = Papa.parse<Record<string, string>>(csvString, {
@@ -431,3 +431,6 @@ export default function KnowledgePage() {
     </div>
   );
 }
+
+
+    
