@@ -21,8 +21,14 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700&display=swap" rel="stylesheet" />
         <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet" />
-        {/* Add favicon link. Ensure you have a site-icon.png in your /public folder or replace with your actual icon */}
-        <link rel="icon" type="image/png" href="/site-icon.png" />
+        {/*
+          To replace the favicon:
+          1. Place your new favicon file (e.g., my-favicon.ico or my-favicon.png) in the /public folder.
+          2. Update the href below to point to your new file.
+             For example, if your new file is named "my-favicon.png", change href="/site-icon.png" to href="/my-favicon.png".
+             Ensure the 'type' attribute matches your file type (e.g., "image/x-icon" for .ico files).
+        */}
+        <link rel="icon" type="image/png" href="/my-new-favicon.png" />
       </head>
       <body className="font-body antialiased min-h-screen flex flex-col" suppressHydrationWarning={true}>
         <AuthProvider> {/* Wrap children with AuthProvider */}
@@ -33,4 +39,3 @@ export default function RootLayout({
     </html>
   );
 }
-
