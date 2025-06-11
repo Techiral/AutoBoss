@@ -46,7 +46,7 @@ const processUrlFlow = ai.defineFlow(
         headers: {
           // Using a common browser user-agent
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8,text/xml;q=0.9',
           'Accept-Language': 'en-US,en;q=0.5',
         },
         timeout: 15000 // 15 seconds timeout
@@ -58,6 +58,7 @@ const processUrlFlow = ai.defineFlow(
         contentType &&
         !contentType.includes('text/html') &&
         !contentType.includes('text/plain') &&
+        !contentType.includes('text/xml') && // Added to allow text/xml
         !contentType.includes('application/xml') && 
         !contentType.includes('application/xhtml+xml') &&
         !contentType.includes('application/rss+xml') &&
@@ -66,11 +67,11 @@ const processUrlFlow = ai.defineFlow(
            throw new Error(`Unsupported content type: ${response.headers['content-type']}. This tool primarily processes HTML, plain text, or XML-based web pages.`);
       }
 
-      // Extract title from HTML
+      // Extract title from HTML (might not be relevant for pure XML, but harmless)
       const titleMatch = htmlContent.match(/<title[^>]*>([^<]+)<\/title>/i);
       pageTitle = titleMatch ? titleMatch[1].trim() : undefined;
 
-      // Convert HTML to text
+      // Convert HTML/XML to text
       textContent = htmlToTextConverter(htmlContent, {
         wordwrap: false, 
         selectors: [
@@ -173,3 +174,4 @@ function chunkText(text: string, maxLength = 800): string[] {
   }
   return chunks.filter(chunk => chunk.length > 0);
 }
+
