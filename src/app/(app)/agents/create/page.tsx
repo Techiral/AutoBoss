@@ -112,7 +112,6 @@ const agentPurposeTemplates: Record<FormAgentPurposeType, { role: string; person
 };
 
 
-// Keep original form schema, name is agent's internal concept/purpose for the client business
 const formSchema = z.object({
   agentPurpose: z.enum(["support", "sales", "info", "custom"], { required_error: "Please select the agent's primary purpose."}),
   agentType: z.enum(["chat", "voice", "hybrid"], { required_error: "Please select an agent type."}),
@@ -121,6 +120,7 @@ const formSchema = z.object({
   name: z.string().min(3, "Agent concept/name must be at least 3 characters").max(100, "Name too long"),
   role: z.string().min(10, "Role description must be at least 10 characters").max(1000, "Role too long (max 1000 chars)"),
   personality: z.string().min(10, "Personality description must be at least 10 characters").max(1000, "Personality too long (max 1000 chars)"),
+  selectedClientId: z.string().optional(), // New field for client selection if needed
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -131,24 +131,18 @@ export default function CreateAgentPage() {
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { addAgent: addAgentToContext, getClientById, isLoadingClients } = useAppContext();
+  const { clients, addAgent: addAgentToContext, getClientById, isLoadingClients } = useAppContext();
   const { currentUser } = useAuth();
   const [selectedDirection, setSelectedDirection] = useState<AgentDirection>("inbound");
-  const [activeClient, setActiveClient] = useState<Client | null | undefined>(undefined);
-
-  const clientId = searchParams.get('clientId');
-  const clientNameFromQuery = searchParams.get('clientName'); // This is the client's actual name
+  
+  const queryClientId = searchParams.get('clientId');
+  const queryClientName = searchParams.get('clientName');
   const templateId = searchParams.get('templateId');
-  const selectedTemplate = useMemo(() => agentTemplates.find(t => t.id === templateId), [templateId]);
 
-  useEffect(() => {
-    if (!isLoadingClients && clientId) {
-      const client = getClientById(clientId);
-      setActiveClient(client);
-    } else if (!isLoadingClients && !clientId) {
-      setActiveClient(null); // No client ID
-    }
-  }, [clientId, getClientById, isLoadingClients]);
+  const [activeClient, setActiveClient] = useState<Client | null | undefined>(undefined);
+  const [requiresClientSelection, setRequiresClientSelection] = useState(false);
+
+  const selectedTemplate = useMemo(() => agentTemplates.find(t => t.id === templateId), [templateId]);
 
   const { control, register, handleSubmit, formState: { errors }, watch, setValue, reset } = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -157,35 +151,62 @@ export default function CreateAgentPage() {
       agentType: selectedTemplate?.defaultValues.agentType || "chat",
       direction: selectedTemplate?.defaultValues.direction || "inbound",
       primaryLogic: selectedTemplate?.defaultValues.primaryLogic || "rag",
-      name: "", // Agent concept name, e.g., "Support Bot for Acme"
-      role: selectedTemplate?.defaultValues.role.replace("[Client Name]", clientNameFromQuery || "the business") || agentPurposeTemplates.support.role.replace("[Client Name]", clientNameFromQuery || "the business"),
-      personality: selectedTemplate?.defaultValues.personality.replace("[Client Name]", clientNameFromQuery || "the business") || agentPurposeTemplates.support.personality.replace("[Client Name]", clientNameFromQuery || "the business"),
+      name: "", 
+      role: selectedTemplate?.defaultValues.role || agentPurposeTemplates.support.role,
+      personality: selectedTemplate?.defaultValues.personality || agentPurposeTemplates.support.personality,
+      selectedClientId: queryClientId || undefined,
     }
   });
 
   const currentPrimaryLogic = watch("primaryLogic");
   const currentAgentType = watch("agentType");
   const currentAgentPurpose = watch("agentPurpose");
+  const formSelectedClientId = watch("selectedClientId");
 
   useEffect(() => {
-    const template = agentTemplates.find(t => t.id === templateId);
-    const effectiveClientName = clientNameFromQuery || "the business";
-    if (template) {
-      reset({
-        agentPurpose: template.defaultValues.agentPurpose,
-        agentType: template.defaultValues.agentType || "chat",
-        direction: template.defaultValues.direction || "inbound",
-        primaryLogic: template.defaultValues.primaryLogic || "rag",
-        name: "",
-        role: template.defaultValues.role.replace("[Client Name]", effectiveClientName),
-        personality: template.defaultValues.personality.replace("[Client Name]", effectiveClientName),
-      });
-      setSelectedDirection(template.defaultValues.direction || "inbound");
-    } else if (!templateId) {
-        setValue("role", agentPurposeTemplates[currentAgentPurpose].role.replace("[Client Name]", effectiveClientName));
-        setValue("personality", agentPurposeTemplates[currentAgentPurpose].personality.replace("[Client Name]", effectiveClientName));
+    const effectiveClientName = activeClient?.name || "[Client Name]";
+    if (selectedTemplate) {
+      setValue("role", selectedTemplate.defaultValues.role.replace("[Client Name]", effectiveClientName));
+      setValue("personality", selectedTemplate.defaultValues.personality.replace("[Client Name]", effectiveClientName));
+    } else {
+      setValue("role", agentPurposeTemplates[currentAgentPurpose].role.replace("[Client Name]", effectiveClientName));
+      setValue("personality", agentPurposeTemplates[currentAgentPurpose].personality.replace("[Client Name]", effectiveClientName));
     }
-  }, [templateId, currentAgentPurpose, clientNameFromQuery, setValue, reset]);
+  }, [selectedTemplate, currentAgentPurpose, activeClient, setValue]);
+
+  useEffect(() => {
+    if (!isLoadingClients) {
+      if (queryClientId) {
+        const client = getClientById(queryClientId);
+        setActiveClient(client);
+        setRequiresClientSelection(false);
+        setValue("selectedClientId", queryClientId); 
+      } else if (templateId) { // Template ID present, but no client ID
+        setRequiresClientSelection(true);
+        setActiveClient(undefined); // No client initially active
+        if (clients.length === 1) { // Auto-select if only one client
+            setValue("selectedClientId", clients[0].id);
+            setActiveClient(clients[0]);
+            setRequiresClientSelection(false);
+        }
+      } else {
+        // No client ID and no template ID that would require client selection
+        setRequiresClientSelection(false); 
+        setActiveClient(null); // Signifies no specific client context from URL
+      }
+    }
+  }, [queryClientId, templateId, isLoadingClients, getClientById, clients, setValue]);
+
+  // Update activeClient and role/personality fields when formSelectedClientId changes
+  useEffect(() => {
+    if (formSelectedClientId && !isLoadingClients) {
+      const client = getClientById(formSelectedClientId);
+      setActiveClient(client);
+      // Role/personality update will be handled by the other useEffect dependent on activeClient
+    } else if (!formSelectedClientId && requiresClientSelection) {
+      setActiveClient(undefined); // Clear active client if selection is required but none chosen
+    }
+  }, [formSelectedClientId, isLoadingClients, getClientById, requiresClientSelection]);
 
 
   const getLogicTypeLabel = (logicType?: AgentLogicType): string => {
@@ -203,16 +224,35 @@ export default function CreateAgentPage() {
       router.push('/login');
       return;
     }
-    if (!clientId || !clientNameFromQuery) {
-        toast({ title: "Client Context Missing", description: "Cannot create agent without a client context.", variant: "destructive" });
+
+    const finalClientId = queryClientId || data.selectedClientId;
+    let finalClientName = queryClientName;
+
+    if (!finalClientId) {
+        toast({ title: "Client Not Selected", description: "Please select a client for this agent.", variant: "destructive" });
         return;
     }
+    
+    if (!finalClientName && finalClientId) {
+        const client = getClientById(finalClientId);
+        if (!client) {
+            toast({ title: "Client Not Found", description: "Selected client could not be found.", variant: "destructive" });
+            return;
+        }
+        finalClientName = client.name;
+    }
+    
+    if (!finalClientName) { // Should not happen if finalClientId is set and client is found
+        toast({ title: "Client Information Error", description: "Could not determine client name.", variant: "destructive" });
+        return;
+    }
+
 
     setIsLoading(true);
     setGeneratedAgentDetails(null);
     try {
       const logicTypeUserFriendly = getLogicTypeLabel(data.primaryLogic as AgentLogicType);
-      const agentDescription = `This agent is for client: ${clientNameFromQuery}. Primary Purpose: ${data.agentPurpose}. Type: ${data.agentType}. Direction: ${data.direction}. Primary Logic: ${logicTypeUserFriendly}.\nAgent Concept Name: ${data.name}\nIntended Role for the Business: ${data.role}\nDesired Personality & Tone: ${data.personality}`;
+      const agentDescription = `This agent is for client: ${finalClientName}. Primary Purpose: ${data.agentPurpose}. Type: ${data.agentType}. Direction: ${data.direction}. Primary Logic: ${logicTypeUserFriendly}.\nAgent Concept Name: ${data.name}\nIntended Role for the Business: ${data.role}\nDesired Personality & Tone: ${data.personality}`;
       
       const aiResult = await createAgent({ agentDescription, agentType: data.agentType, direction: data.direction as AgentDirection });
       setGeneratedAgentDetails(aiResult);
@@ -231,12 +271,12 @@ export default function CreateAgentPage() {
         generatedGreeting: aiResult.agentGreeting,
       };
 
-      const newAgent = await addAgentToContext(agentDataForContext, clientId, clientNameFromQuery);
+      const newAgent = await addAgentToContext(agentDataForContext, finalClientId, finalClientName);
 
       if (newAgent) {
         toast({
           title: "Agent Base Created!",
-          description: `Agent "${aiResult.agentName}" for client "${clientNameFromQuery}" is ready. Next, customize its personality and add knowledge. Redirecting...`,
+          description: `Agent "${aiResult.agentName}" for client "${finalClientName}" is ready. Next, customize its personality and add knowledge. Redirecting...`,
         });
 
         if (data.primaryLogic === 'rag' && activeClient?.website) {
@@ -260,26 +300,20 @@ export default function CreateAgentPage() {
     }
   };
   
-  if (isLoadingClients && clientId) {
+  if (isLoadingClients && (queryClientId || templateId)) {
     return (
       <Card>
-        <CardHeader><CardTitle>Loading Client Information...</CardTitle></CardHeader>
-        <CardContent><Loader2 className="animate-spin" /></CardContent>
+        <CardHeader className="p-4 sm:p-6"><CardTitle>Loading Client Information...</CardTitle></CardHeader>
+        <CardContent className="p-4 sm:p-6"><Loader2 className="animate-spin" /></CardContent>
       </Card>
     );
   }
 
-  if (!clientId || !clientNameFromQuery) {
-    return (
-      <Alert variant="destructive">
-        <AlertTriangle className="h-4 w-4" />
-        <AlertTitle>Client Information Missing</AlertTitle>
-        <AlertDescription>
-          Agents must be created under a specific client. Please <Link href="/dashboard" className="underline">go to your dashboard</Link> to select or create a client first.
-        </AlertDescription>
-      </Alert>
-    );
-  }
+  const pageTitle = activeClient 
+    ? `Define New Agent for ${activeClient.name}`
+    : (queryClientName ? `Define New Agent for ${queryClientName}` : "Define New Agent");
+
+  const clientForRoleText = activeClient?.name || queryClientName || "[Client Name]";
 
 
   return (
@@ -288,19 +322,67 @@ export default function CreateAgentPage() {
       <Card>
         <CardHeader className="p-4 sm:p-6">
           <CardTitle className={cn("font-headline text-xl sm:text-2xl flex items-center gap-2", "text-gradient-dynamic")}>
-             <Bot className="w-6 h-6 sm:w-7 sm:w-7"/>Step 1: Define New Agent for <span className="text-accent">{clientNameFromQuery}</span>
+             <Bot className="w-6 h-6 sm:w-7 sm:w-7"/>{pageTitle}
           </CardTitle>
           <CardDescription className="text-sm">
-            {selectedTemplate ? `Starting with the "${selectedTemplate.id.replace(/_/g, ' ')}" template for ${clientNameFromQuery}. ` : ""}
-            Tell us about the agent you want to build for {clientNameFromQuery}. This information will help our AI craft a baseline personality and greeting. Not sure? <Link href="/templates" className="underline hover:text-primary">Browse templates</Link>.
+            {selectedTemplate ? `Starting with the "${selectedTemplate.id.replace(/_/g, ' ')}" template. ` : ""}
+            Tell us about the agent you want to build. This information will help our AI craft a baseline personality and greeting.
+            {!selectedTemplate && <Link href="/app/templates-gallery" className="underline hover:text-primary">Browse templates</Link>}
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
           <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
 
+            {requiresClientSelection && !isLoadingClients && (
+                <div className="space-y-1.5 p-3 rounded-md border border-warning bg-warning/10">
+                    <Label htmlFor="selectedClientId" className="flex items-center text-warning-foreground font-semibold">
+                        <AlertTriangle className="w-4 h-4 mr-2"/> Select Client for this Template
+                    </Label>
+                    {clients.length === 0 ? (
+                        <Alert variant="destructive">
+                            <AlertTriangle className="h-4 w-4" />
+                            <AlertTitle>No Clients Found</AlertTitle>
+                            <AlertDescription>
+                                You need to create a client before using a template. 
+                                <Link href="/dashboard" className="underline ml-1">Go to Dashboard to add a client.</Link>
+                            </AlertDescription>
+                        </Alert>
+                    ) : (
+                        <Controller
+                            name="selectedClientId"
+                            control={control}
+                            rules={{ required: "Please select a client." }}
+                            render={({ field }) => (
+                                <Select
+                                    onValueChange={(value) => {
+                                        field.onChange(value);
+                                        const client = getClientById(value);
+                                        setActiveClient(client);
+                                    }}
+                                    value={field.value}
+                                >
+                                <SelectTrigger id="selectedClientId">
+                                    <SelectValue placeholder="Choose a client..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {clients.map(client => (
+                                    <SelectItem key={client.id} value={client.id}>
+                                        {client.name}
+                                    </SelectItem>
+                                    ))}
+                                </SelectContent>
+                                </Select>
+                            )}
+                        />
+                    )}
+                    {errors.selectedClientId && <p className="text-xs text-destructive">{errors.selectedClientId.message}</p>}
+                </div>
+            )}
+
+
             <div className="space-y-1.5">
               <Label htmlFor="agentPurpose" className="flex items-center">
-                What's this agent's primary purpose for {clientNameFromQuery}?
+                What's this agent's primary purpose for {clientForRoleText}?
                 <Tooltip>
                     <TooltipTrigger asChild><HelpCircle className="w-3.5 h-3.5 ml-1.5 text-muted-foreground cursor-help"/></TooltipTrigger>
                     <TooltipContent><p>Select the main goal for this agent. This helps pre-fill some settings.</p></TooltipContent>
@@ -313,8 +395,8 @@ export default function CreateAgentPage() {
                   <Select
                      onValueChange={(value) => {
                         field.onChange(value);
-                        const effectiveClientName = clientNameFromQuery || "the business";
-                        if (!templateId) {
+                        const effectiveClientName = activeClient?.name || queryClientName || "[Client Name]";
+                        if (!selectedTemplate) { // Only update if not using a template, or if client changes
                             setValue("role", agentPurposeTemplates[value as FormAgentPurposeType].role.replace("[Client Name]", effectiveClientName));
                             setValue("personality", agentPurposeTemplates[value as FormAgentPurposeType].personality.replace("[Client Name]", effectiveClientName));
                         }
@@ -392,9 +474,6 @@ export default function CreateAgentPage() {
                   )}
                 />
                 {errors.direction && <p className="text-xs text-destructive">{errors.direction.message}</p>}
-                 <p className="text-xs text-muted-foreground mt-1">
-                    {selectedDirection === 'inbound' ? "Agent will respond to incoming chats or calls." : "Primarily hints AI persona for greetings. Outbound actions require separate setup."}
-                  </p>
               </div>
             </div>
             {(currentAgentType === 'voice' || currentAgentType === 'hybrid') && (
@@ -439,7 +518,7 @@ export default function CreateAgentPage() {
 
 
             <div className="space-y-1.5">
-              <Label htmlFor="name" className="flex items-center">Agent Concept/Name for {clientNameFromQuery}
+              <Label htmlFor="name" className="flex items-center">Agent Concept/Name for {clientForRoleText}
                 <Tooltip>
                     <TooltipTrigger asChild><HelpCircle className="w-3.5 h-3.5 ml-1.5 text-muted-foreground cursor-help"/></TooltipTrigger>
                     <TooltipContent><p>A specific name or concept for this agent, e.g., "Support Bot for Product X" or "Lead Gen for Fall Campaign". The AI will also suggest a user-facing name.</p></TooltipContent>
@@ -449,30 +528,30 @@ export default function CreateAgentPage() {
               {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="role" className="flex items-center">What is this Agent's job for {clientNameFromQuery}?
+              <Label htmlFor="role" className="flex items-center">What is this Agent's job for {clientForRoleText}?
                 <Tooltip>
                     <TooltipTrigger asChild><HelpCircle className="w-3.5 h-3.5 ml-1.5 text-muted-foreground cursor-help"/></TooltipTrigger>
-                    <TooltipContent><p>Describe the agent's main responsibilities and goals. The pre-filled text is based on the 'Purpose' you selected and customized for {clientNameFromQuery}.</p></TooltipContent>
+                    <TooltipContent><p>Describe the agent's main responsibilities and goals. The pre-filled text is based on the 'Purpose' you selected and customized for {clientForRoleText}.</p></TooltipContent>
                 </Tooltip>
               </Label>
               <Textarea
                 id="role"
-                placeholder={agentPurposeTemplates[currentAgentPurpose]?.role.replace("[Client Name]", clientNameFromQuery || "the business") || "Describe the agent's primary function..."}
+                placeholder={agentPurposeTemplates[currentAgentPurpose]?.role.replace("[Client Name]", clientForRoleText) || "Describe the agent's primary function..."}
                 {...register("role")}
                 rows={4}
               />
               {errors.role && <p className="text-xs text-destructive">{errors.role.message}</p>}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="personality" className="flex items-center">How should this Agent sound and behave for {clientNameFromQuery}?
+              <Label htmlFor="personality" className="flex items-center">How should this Agent sound and behave for {clientForRoleText}?
                 <Tooltip>
                     <TooltipTrigger asChild><HelpCircle className="w-3.5 h-3.5 ml-1.5 text-muted-foreground cursor-help"/></TooltipTrigger>
-                    <TooltipContent><p>Define the agent's communication style and tone. The pre-filled text is based on the 'Purpose' you selected and customized for {clientNameFromQuery}.</p></TooltipContent>
+                    <TooltipContent><p>Define the agent's communication style and tone. The pre-filled text is based on the 'Purpose' you selected and customized for {clientForRoleText}.</p></TooltipContent>
                 </Tooltip>
               </Label>
               <Textarea
                 id="personality"
-                placeholder={agentPurposeTemplates[currentAgentPurpose]?.personality.replace("[Client Name]", clientNameFromQuery || "the business") || "Describe the desired personality..."}
+                placeholder={agentPurposeTemplates[currentAgentPurpose]?.personality.replace("[Client Name]", clientForRoleText) || "Describe the desired personality..."}
                 {...register("personality")}
                 rows={4}
                />
@@ -480,9 +559,13 @@ export default function CreateAgentPage() {
             </div>
           </CardContent>
           <CardFooter className="p-4 sm:p-6">
-            <Button type="submit" disabled={isLoading} className={cn("w-full", "btn-gradient-primary")}>
+            <Button 
+              type="submit" 
+              disabled={isLoading || (requiresClientSelection && !formSelectedClientId && clients.length > 0) || (requiresClientSelection && clients.length === 0)} 
+              className={cn("w-full", "btn-gradient-primary")}
+            >
               {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              {isLoading ? "Creating Agent..." : `Create Agent for ${clientNameFromQuery}`}
+              {isLoading ? "Creating Agent..." : `Create Agent for ${activeClient?.name || queryClientName || "Selected Client"}`}
             </Button>
           </CardFooter>
         </form>
@@ -514,4 +597,3 @@ export default function CreateAgentPage() {
     </TooltipProvider>
   );
 }
-

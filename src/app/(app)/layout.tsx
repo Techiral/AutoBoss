@@ -19,7 +19,7 @@ import {
   SidebarInset,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { Home, Bot, Settings, BookOpen, MessageSquare, Share2, Cog, LifeBuoy, Loader2, LogIn, LayoutGrid, Briefcase, MessageSquarePlus } from 'lucide-react';
+import { Home, Bot, Settings, BookOpen, MessageSquare, Share2, Cog, LifeBuoy, Loader2, LogIn, LayoutGrid, Briefcase, MessageSquarePlus, Library, HelpCircleIcon } from 'lucide-react';
 import type { Agent, KnowledgeItem, AgentToneType, Client } from '@/lib/types';
 import { db } from '@/lib/firebase';
 import {
@@ -191,22 +191,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       const newClientId = doc(collection(db, CLIENTS_COLLECTION)).id;
       const newClientTimestamp = Timestamp.now();
 
-      // Prepare data for Firestore, omitting undefined fields
       const dataToSave: {[key: string]: any} = {
         userId: currentUser.uid,
         name: clientData.name,
         createdAt: newClientTimestamp,
       };
       if (clientData.website !== undefined) {
-        dataToSave.website = clientData.website; // Stores "" if website is ""
+        dataToSave.website = clientData.website; 
       }
       if (clientData.description !== undefined) {
-        dataToSave.description = clientData.description; // Stores "" if description is ""
+        dataToSave.description = clientData.description; 
       }
 
       await setDoc(doc(db, CLIENTS_COLLECTION, newClientId), dataToSave);
       
-      // Prepare data for local state, ensuring conformity with Client type (e.g., empty strings for optional fields)
       const clientForState: Client = {
         id: newClientId,
         userId: currentUser.uid,
@@ -238,7 +236,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     try {
       await deleteDoc(doc(db, CLIENTS_COLLECTION, clientId));
       setClients(prev => prev.filter(c => c.id !== clientId));
-      // Optionally, delete associated agents here or handle it via a separate mechanism/prompt
       toast({ title: "Client Deleted", description: "The client has been successfully deleted." });
     } catch (error) {
       console.error("Error deleting client from Firestore:", error);
@@ -264,7 +261,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         userId: currentUser.uid,
         clientId: clientId,
         clientName: clientName,
-        createdAt: Timestamp.now() as any, // Firestore Timestamp
+        createdAt: Timestamp.now() as any, 
         knowledgeItems: [],
         agentTone: agentData.agentTone || "neutral",
       };
@@ -575,7 +572,23 @@ function AppSidebar() {
               </SidebarMenuButton>
             </Link>
           </SidebarMenuItem>
-          {/* Removed Templates and Support from authenticated sidebar */}
+          <SidebarMenuItem>
+            <Link href="/app/templates-gallery" onClick={handleMobileLinkClick}>
+              <SidebarMenuButton isActive={pathname === '/app/templates-gallery'} tooltip={collapsed ? 'Agent Templates' : undefined}>
+                <Library />
+                <span>Agent Templates</span>
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
+           <SidebarMenuItem>
+            <Link href="/app/user-support" onClick={handleMobileLinkClick}>
+              <SidebarMenuButton isActive={pathname === '/app/user-support'} tooltip={collapsed ? 'Help & Support' : undefined}>
+                <HelpCircleIcon />
+                <span>Help & Support</span>
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
+
 
           {isDataLoading && currentClientId && (
             <>
@@ -601,7 +614,6 @@ function AppSidebar() {
                   </SidebarMenuButton>
                 </Link>
               </SidebarMenuItem>
-              {/* Future: Add client settings link here */}
             </>
           )}
 
@@ -657,5 +669,3 @@ function AppSidebar() {
     </Sidebar>
   );
 }
-
-    
