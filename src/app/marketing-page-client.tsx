@@ -55,10 +55,7 @@ const SimpleBenefitCard: React.FC<SimpleBenefitCardProps> = ({ icon, title, desc
   );
 };
 
-const heroTypewriterText = "Build AI. Serve Clients. Earn.";
-
 export default function MarketingPageClient() {
-  const typewriterRef = useRef<HTMLSpanElement>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isHeaderScrolled, setIsHeaderScrolled] = useState(false);
 
@@ -66,15 +63,6 @@ export default function MarketingPageClient() {
     const handleScroll = () => setIsHeaderScrolled(window.scrollY > 30);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  useEffect(() => {
-    if (typewriterRef.current) {
-      typewriterRef.current.textContent = heroTypewriterText; 
-      typewriterRef.current.classList.remove("typewriter-text"); 
-      void typewriterRef.current.offsetWidth; 
-      typewriterRef.current.classList.add("typewriter-text"); 
-    }
   }, []);
 
   const observerOptions = { threshold: 0.1 };
@@ -162,7 +150,7 @@ export default function MarketingPageClient() {
       </div>
 
       <main className="flex-1">
-        <section ref={heroRef} className={cn("scroll-reveal section-dark w-full min-h-[calc(80vh-3.5rem)] sm:min-h-[calc(80vh-4rem)] flex items-center justify-center text-center py-10 md:py-12 relative overflow-hidden", heroVisible && "visible")}>
+        <section ref={heroRef} className={cn("scroll-reveal section-dark w-full min-h-[calc(80vh-3.5rem)] sm:min-h-[calc(70vh-4rem)] flex items-center justify-center text-center py-10 md:py-12 relative overflow-hidden", heroVisible && "visible")}>
           <div className="absolute inset-0 z-0 opacity-[0.02]">
              <video autoPlay loop muted playsInline className="w-full h-full object-cover" poster="https://placehold.co/1920x1080/0A0F14/0A0F14.png" data-ai-hint="dark abstract particles subtle motion professional">
               <source src="https://placehold.co/1920x1080.mp4?text=." type="video/mp4" />
@@ -174,8 +162,8 @@ export default function MarketingPageClient() {
               <h1 className="marketing-h1 text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-center">
                 Create AI for Your Clients. Simply.
               </h1>
-              <span ref={typewriterRef} className="block mt-1 sm:mt-2 typewriter-text gradient-text-on-dark min-h-[1.2em] text-2xl sm:text-3xl md:text-4xl">{heroTypewriterText}</span>
-              <p className="text-muted-foreground text-sm sm:text-base max-w-md mx-auto !mb-5 md:!mb-6">
+              {/* Typewriter text removed */}
+              <p className="text-muted-foreground text-sm sm:text-base md:text-lg max-w-md mx-auto !mb-5 md:!mb-6 pt-1 sm:pt-2">
                 Welcome to AutoBoss. We provide clear tools to help you build AI agents for businesses—even if you're new to AI. Let's help you get started with your AI agency.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center items-center pt-1">

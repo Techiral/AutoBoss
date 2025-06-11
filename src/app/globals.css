@@ -144,32 +144,6 @@
   }
 }
 
-/* Typewriter effect */
-@keyframes typing {
-  from { width: 0ch; }
-  to { width: 30ch; } /* "Build AI. Serve Clients. Earn." is 30 characters. */
-}
-
-@keyframes blink-caret {
-  from, to { border-color: transparent; }
-  50% { border-color: hsl(var(--electric-teal)); }
-}
-
-.typewriter-text {
-  display: inline-block;
-  overflow: hidden;
-  border-right: .12em solid hsl(var(--electric-teal));
-  white-space: nowrap;
-  letter-spacing: .03em; 
-  animation:
-    typing 3s steps(30, end) forwards, /* Adjusted to 3s for 30 steps */
-    blink-caret .75s step-end infinite;
-  animation-delay: 0.2s;
-  width: 0ch; 
-  min-height: 1.2em; 
-}
-
-
 /* Section specific alternating background styles */
 .section-dark {
   @apply bg-background text-foreground;
@@ -357,3 +331,5 @@ div[data-ai-hint] {
 .public-page-footer {
     @apply py-6 text-center border-t border-border/60;
 }
+
+    
