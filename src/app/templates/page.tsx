@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import type { AgentPurposeType, AgentType, AgentDirection, AgentLogicType } from "@/lib/types"; 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Logo } from "@/components/logo";
-import { Badge } from "@/components/ui/badge"; // Added this import
+import { Badge } from "@/components/ui/badge"; 
 
 export interface AgentTemplate {
   id: string;
@@ -33,10 +33,10 @@ const agentTemplates: AgentTemplate[] = [
   {
     id: 'ecommerce_support',
     name: 'E-commerce Support Bot',
-    description: 'Answers store questions, tracks orders, handles returns. Keeps client customers happy.',
+    description: 'Instantly answer store questions, track orders, and handle return queries. Make your client’s customers happier, 24/7.',
     icon: ShoppingCart,
     category: "Client Customer Service",
-    tags: ["e-commerce", "support", "chat", "save time"],
+    tags: ["e-commerce", "support", "chat", "save time", "24/7 help"],
     defaultValues: {
       agentPurpose: 'support',
       agentType: 'chat',
@@ -48,10 +48,10 @@ const agentTemplates: AgentTemplate[] = [
   {
     id: 'real_estate_lead_gen',
     name: 'Real Estate Lead Catcher',
-    description: 'For real estate clients. Finds buyer/seller needs, gets contacts, suggests viewings.',
+    description: 'Never miss a lead for your real estate client. This AI qualifies buyers/sellers and schedules viewings, even after hours.',
     icon: RealEstateIcon,
     category: "Client Sales & Lead Gen",
-    tags: ["real estate", "leads", "sales", "get clients"],
+    tags: ["real estate", "leads", "sales", "get clients", "automation"],
     defaultValues: {
       agentPurpose: 'sales',
       agentType: 'chat',
@@ -63,10 +63,10 @@ const agentTemplates: AgentTemplate[] = [
   {
     id: 'dental_appointment_voice',
     name: 'Dental Clinic Voice Booker',
-    description: 'Voice agent for dental clinics. Books, changes, cancels appointments 24/7. Saves receptionist time.',
+    description: 'AI Voice agent that books, reschedules, or cancels dental appointments over the phone. Frees up your client’s receptionist.',
     icon: CalendarCheck,
     category: "Client Appointment Scheduling",
-    tags: ["healthcare", "dental", "appointments", "voice", "automation"],
+    tags: ["healthcare", "dental", "appointments", "voice", "efficiency"],
     defaultValues: {
       agentPurpose: 'custom', 
       agentType: 'voice',
@@ -79,10 +79,10 @@ const agentTemplates: AgentTemplate[] = [
   {
     id: 'faq_info_bot',
     name: 'Instant Info Bot (FAQ Master)',
-    description: 'Feed it client FAQs or docs. It becomes an expert, answering questions on their site 24/7.',
+    description: 'Train this AI on your client’s FAQs or documents. It becomes their 24/7 know-it-all expert on their website.',
     icon: Lightbulb,
     category: "Client Information & Support",
-    tags: ["faq", "info", "knowledge base", "website help"],
+    tags: ["faq", "info", "knowledge base", "website help", "self-service"],
     defaultValues: {
         agentPurpose: "info",
         agentType: "chat",
@@ -93,11 +93,11 @@ const agentTemplates: AgentTemplate[] = [
   },
   {
     id: 'general_purpose_assistant',
-    name: 'General AI Helper',
-    description: 'Flexible AI for your client. Brainstorms ideas, drafts emails, answers general questions.',
+    name: 'General AI Helper (Your Client’s Sidekick)',
+    description: 'A flexible AI for any client. Helps brainstorm ideas, draft emails, summarize content, or answer general questions.',
     icon: BotIcon,
     category: "Client Custom & General",
-    tags: ["general", "custom", "creative", "flexible"],
+    tags: ["general", "custom", "creative", "flexible", "productivity"],
     defaultValues: {
         agentPurpose: "custom",
         agentType: "chat",
@@ -130,10 +130,10 @@ export default function PublicTemplatesPage() {
               <LayoutGrid className="w-8 h-8 text-primary" />
             </div>
             <CardTitle className={cn("font-headline text-2xl sm:text-3xl md:text-4xl", "text-gradient-dynamic")}>
-              AI Agent Templates
+              Kickstart Your Client Projects: AI Agent Templates
             </CardTitle>
             <CardDescription className="text-sm sm:text-base text-muted-foreground mt-2 max-w-xl mx-auto">
-              Jumpstart your client projects with these pre-configured AI agent templates. Select a template, add it to a client in your dashboard, and customize!
+              Why start from scratch? Use these pre-built AI agent templates to deliver value to your clients faster. Select, customize, and deploy!
             </CardDescription>
           </CardHeader>
         </Card>
@@ -169,7 +169,7 @@ export default function PublicTemplatesPage() {
               <CardFooter className="p-4 sm:p-5 pt-2">
                 <Button asChild size="sm" className={cn("w-full text-xs sm:text-sm", "btn-gradient-primary")}>
                   <Link href={`/dashboard?templateId=${template.id}&info=selectClientFirst`}>
-                    Use Template (Login to Dashboard) <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                    Use This Template (Go to Dashboard) <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
                   </Link>
                 </Button>
               </CardFooter>
@@ -179,12 +179,12 @@ export default function PublicTemplatesPage() {
          <Alert className="mt-6 sm:mt-8 bg-accent/10 dark:bg-accent/20 border-accent/30">
             <Info className="h-4 w-4 text-accent" />
             <AlertDescription className="text-accent/80 dark:text-accent/90 text-xs sm:text-sm">
-              <strong className="font-semibold text-accent">How to Use These Templates:</strong>
+              <strong className="font-semibold text-accent">Quick Start with Templates:</strong>
               <ol className="list-decimal list-inside pl-3 mt-1">
-                  <li>Click "Use Template". You'll be guided to your Dashboard.</li>
-                  <li>If you're not logged in, you'll be asked to log in or sign up first.</li>
-                  <li>Once in your Dashboard, select or create a Client for this agent.</li>
-                  <li>The agent creation form will be pre-filled with the template's settings. Customize as needed!</li>
+                  <li>Click "Use This Template". This takes you to your AutoBoss Dashboard.</li>
+                  <li>If you're not logged in, you'll be prompted to log in or sign up.</li>
+                  <li>In your Dashboard, simply select an existing client or create a new one for this agent.</li>
+                  <li>The agent creation form will auto-fill with the template's settings. Customize as needed and launch!</li>
               </ol>
             </AlertDescription>
         </Alert>
@@ -205,3 +205,4 @@ export default function PublicTemplatesPage() {
     </div>
   );
 }
+
