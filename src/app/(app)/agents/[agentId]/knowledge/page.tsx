@@ -23,7 +23,6 @@ import Papa from 'papaparse';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
-// PapaParse CSV to descriptive text
 function csvToStructuredText(csvString: string, fileName: string): string {
   const parseResult = Papa.parse<Record<string, string>>(csvString, {
     header: true,
@@ -32,7 +31,6 @@ function csvToStructuredText(csvString: string, fileName: string): string {
 
   if (parseResult.errors.length > 0) {
     console.warn(`CSV parsing errors for ${fileName}:`, parseResult.errors);
-    // Fallback or throw error
     return `Could not fully parse CSV: ${fileName}. Errors: ${parseResult.errors.map(e => e.message).join(', ')}`;
   }
 
@@ -44,7 +42,7 @@ function csvToStructuredText(csvString: string, fileName: string): string {
 
   parseResult.data.forEach((row, index) => {
     const headers = Object.keys(row);
-    if (headers.length === 0) return; // Skip rows that might be empty after parsing
+    if (headers.length === 0) return; 
 
     const firstHeader = headers[0];
     const firstValue = row[firstHeader];
@@ -55,7 +53,6 @@ function csvToStructuredText(csvString: string, fileName: string): string {
     } else if (firstHeader) {
       entryPreamble = `Entry ${index + 1} (First Header: ${firstHeader.trim()})`;
     }
-
 
     textRepresentation += `${entryPreamble}:\n`;
 
@@ -177,7 +174,7 @@ export default function KnowledgePage() {
         if (!plainTextFromCsv.trim()) throw new Error("Empty CSV or no content after conversion.");
         documentDataUri = `data:text/plain;charset=utf-8;base64,${Buffer.from(plainTextFromCsv).toString('base64')}`;
         effectiveMimeType = 'text/plain';
-        isPreStructured = true; // Mark as pre-structured for the knowledge flow
+        isPreStructured = true; 
       } else {
         documentDataUri = await new Promise((resolve, reject) => {
           const reader = new FileReader();
@@ -251,14 +248,13 @@ export default function KnowledgePage() {
         } catch { /* ignore if parsing fails, use validUrl or title */ }
 
         const textDataUri = `data:text/plain;charset=utf-8;base64,${Buffer.from(result.extractedText).toString('base64')}`;
-        const knowledgeResult = await extractKnowledge({ documentDataUri: textDataUri, isPreStructuredText: false }); // URLs are not pre-structured
+        const knowledgeResult = await extractKnowledge({ documentDataUri: textDataUri, isPreStructuredText: false }); 
 
         addKnowledgeToAgent(displayFileName.substring(0,100), knowledgeResult.summary, knowledgeResult.keywords);
         setUrlInput("");
     } catch (error: any) {
         console.error("Error processing URL:", error);
         let errorMessage = error.message || "Failed to process the website. The content might be inaccessible or unsuitable for training.";
-        // More specific error messages based on common issues with direct fetching
         if (errorMessage.toLowerCase().includes("status 403") || errorMessage.toLowerCase().includes("status 401")) {
             errorMessage = `Could not access ${validUrl}: Access denied (403/401). The site may require login or block automated access.`;
         } else if (errorMessage.toLowerCase().includes("status 5")) {
