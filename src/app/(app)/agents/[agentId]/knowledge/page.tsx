@@ -21,7 +21,11 @@ import mammoth from 'mammoth';
 import * as pdfjsLib from 'pdfjs-dist';
 import Papa from 'papaparse';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Configure PDF.js worker to be loaded locally
+// IMPORTANT: You need to copy the 'pdf.worker.mjs' file from
+// 'node_modules/pdfjs-dist/build/pdf.worker.mjs'
+// to your '/public' directory for this to work.
+pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf.worker.mjs`;
 
 function csvToStructuredText(csvString: string, fileName: string): string {
   const parseResult = Papa.parse<Record<string, string>>(csvString, {
