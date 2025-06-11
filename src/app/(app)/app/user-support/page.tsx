@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { LifeBuoy, MessageCircleQuestion, AlertTriangle, Mail, HelpCircle, Bot, DatabaseZap, Palette, Share2, TestTubeDiagonal, DollarSign, FilePlus, Lightbulb } from "lucide-react";
+import { LifeBuoy, MessageCircleQuestion, AlertTriangle, Mail, HelpCircle, Bot, DatabaseZap, Palette, Share2, TestTubeDiagonal, DollarSign, FilePlus, Lightbulb, Brain } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
