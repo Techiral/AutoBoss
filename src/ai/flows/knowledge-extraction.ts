@@ -59,29 +59,56 @@ const extractKnowledgeFlow = ai.defineFlow(
     outputSchema: KnowledgeExtractionOutputSchema, // Uses imported schema
   },
   async (input: KnowledgeExtractionInput): Promise<KnowledgeExtractionOutput> => {
-    const modelResponse = await extractKnowledgePrompt(input);
-    if (!modelResponse.output) {
-      const rawText = modelResponse.response?.text;
-      console.error(
-        'Failed to get structured output from extractKnowledgePrompt. Raw model response:',
-        rawText || 'No raw text available'
-      );
-      // Attempt to parse raw text if it seems like JSON
-      if (rawText) {
-        try {
-          const parsedFallback = JSON.parse(rawText);
-          if (KnowledgeExtractionOutputSchema.safeParse(parsedFallback).success) {
-            console.warn("extractKnowledgeFlow: Successfully parsed raw text as fallback output.");
-            return parsedFallback as KnowledgeExtractionOutput;
+    try {
+      const modelResponse = await extractKnowledgePrompt(input);
+      
+      if (!modelResponse.output) {
+        const rawText = modelResponse.response?.text;
+        console.error(
+          'Failed to get structured output from extractKnowledgePrompt. Raw model response:',
+          rawText || 'No raw text available'
+        );
+
+        // Attempt to parse raw text if it seems like JSON and matches the schema
+        if (rawText) {
+          try {
+            const parsedFallback = JSON.parse(rawText);
+            if (KnowledgeExtractionOutputSchema.safeParse(parsedFallback).success) {
+              console.warn("extractKnowledgeFlow: Successfully parsed raw text as fallback output.");
+              return parsedFallback as KnowledgeExtractionOutput;
+            }
+          } catch (e) {
+            // Not valid JSON or doesn't match schema, will fall through to throw
           }
-        } catch (e) {
-          // Not valid JSON or doesn't match schema
         }
+        throw new Error(
+          `AI model did not return the expected JSON format. Raw response snippet: ${rawText ? rawText.substring(0, 100) + '...' : 'N/A'}`
+        );
       }
-      throw new Error(
-        'AI could not extract knowledge. The model did not return the expected JSON format.'
-      );
+      return modelResponse.output;
+
+    } catch (flowError: any) {
+      console.error("Critical error in extractKnowledgeFlow:", flowError.message, flowError.stack);
+      // Re-throw a standard error to ensure Next.js can handle it and pass to client
+      // It's crucial that the error message here is helpful.
+      let detailedErrorMessage = 'Knowledge extraction process failed.';
+      if (flowError.message) {
+        detailedErrorMessage += ` Details: ${flowError.message}`;
+      }
+      if (flowError.cause && flowError.cause.message) {
+         detailedErrorMessage += ` Cause: ${flowError.cause.message}`;
+      }
+      // Check for common Genkit/Gemini issues if possible (e.g. API key, quota, content filtering)
+      // This is a placeholder for more specific error type checking if Genkit provides it
+      if (typeof flowError.message === 'string' && (flowError.message.includes('API key') || flowError.message.includes('quota'))) {
+        detailedErrorMessage = `There might be an issue with the AI service configuration (e.g., API key or quota). Original error: ${flowError.message}`;
+      } else if (typeof flowError.message === 'string' && flowError.message.includes('SAFETY')) {
+        detailedErrorMessage = `The AI model blocked the request due to safety settings. Original error: ${flowError.message}`;
+      }
+
+      throw new Error(detailedErrorMessage);
     }
-    return modelResponse.output;
   }
 );
+
+    
