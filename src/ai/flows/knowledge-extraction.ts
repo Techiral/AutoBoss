@@ -27,15 +27,7 @@ export type { KnowledgeExtractionInput, KnowledgeExtractionOutput };
 
 export async function extractKnowledge(input: KnowledgeExtractionInput): Promise<KnowledgeExtractionOutput> {
   console.log("[TEMP DEBUG] extractKnowledge Server Action called with input:", input.documentDataUri.substring(0, 50) + "...", "isPreStructured:", input.isPreStructuredText);
-  
-  // TEMPORARY: Return dummy data to isolate "Failed to fetch" issue.
-  // Comment out the actual Genkit flow call for now.
-  // return extractKnowledgeFlow(input);
-
-  return {
-    summary: "This is a temporary dummy summary. Genkit flow was not called.",
-    keywords: ["dummy", "debug", "test"],
-  };
+  return extractKnowledgeFlow(input);
 }
 
 const extractKnowledgePrompt = ai.definePrompt({
@@ -104,16 +96,20 @@ const extractKnowledgeFlow = ai.defineFlow(
       if (flowError.message) {
         detailedErrorMessage += ` Details: ${flowError.message}`;
       }
+      // Check for specific error causes if possible (e.g., from Genkit or Google AI)
       if (flowError.cause && flowError.cause.message) {
          detailedErrorMessage += ` Cause: ${flowError.cause.message}`;
       }
+      // Example: Checking for API key or quota issues (these strings are hypothetical)
       if (typeof flowError.message === 'string' && (flowError.message.includes('API key') || flowError.message.includes('quota'))) {
         detailedErrorMessage = `There might be an issue with the AI service configuration (e.g., API key or quota). Original error: ${flowError.message}`;
-      } else if (typeof flowError.message === 'string' && flowError.message.includes('SAFETY')) {
+      } else if (typeof flowError.message === 'string' && flowError.message.includes('SAFETY')) { // Gemini specific safety error
         detailedErrorMessage = `The AI model blocked the request due to safety settings. Original error: ${flowError.message}`;
       }
 
+      // Re-throw a new error with potentially more context for the Server Action layer
       throw new Error(detailedErrorMessage);
     }
   }
 );
+
