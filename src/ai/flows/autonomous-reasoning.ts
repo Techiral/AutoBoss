@@ -76,6 +76,7 @@ Your Conversational Tone MUST BE: {{agentTone}}.
   {{else}}
     Use a balanced and neutral conversational style.
   {{/if}}
+{{/if}}
 --- End Core Agent Identity ---
 
 --- Role-Specific Behavior Guidance ---
@@ -213,6 +214,3 @@ const autonomousReasoningFlow = ai.defineFlow(
     return { ...modelResponse.output, relevantKnowledgeIds: relevantOriginalItemIds };
   }
 );
-
-
-    
