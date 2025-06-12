@@ -11,7 +11,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { extractKnowledge } from "@/ai/flows/knowledge-extraction";
 import { processUrl } from "@/ai/flows/url-processor";
-import { Upload, Loader2, FileText, Tag, AlertTriangle, Link as LinkIcon, Brain, Info, Mic, CheckCircle2, TextQuote } from "lucide-react"; // Added TextQuote
+import { Upload, Loader2, FileText, Tag, AlertTriangle, Link as LinkIcon, Brain, Info, Mic, CheckCircle2, TextQuote, FileWarning } from "lucide-react"; // Added TextQuote and FileWarning
 import type { KnowledgeItem, Agent, ProcessedUrlOutput } from "@/lib/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAppContext } from "../../../layout";
@@ -225,7 +225,11 @@ export default function KnowledgePage() {
 
     } catch (extractionError: any) {
         console.error("Error processing or extracting knowledge from file:", extractionError);
-        const errorMessage = extractionError.message || `Failed to extract information from "${originalFileName}". The file might be too complex, empty, or in an unsupported format.`;
+        let errorMessage = extractionError.message || `Failed to extract information from "${originalFileName}". The file might be too complex, empty, or in an unsupported format.`;
+        // Check if the error message is from the overloaded server scenario
+        if (errorMessage.includes("503") || errorMessage.toLowerCase().includes("model is overloaded")) {
+            errorMessage = `The AI model is currently overloaded. Please try uploading "${originalFileName}" again in a few moments. For very large documents, consider breaking them into smaller parts.`;
+        }
         toast({ title: "File Training Error", description: errorMessage, variant: "destructive" });
     } finally {
       setSelectedFile(null);
@@ -278,6 +282,8 @@ export default function KnowledgePage() {
           errorMessage = `Could not connect to ${validUrl}. Please check the URL or your network connection. (DNS lookup failure)`;
         } else if (errorMessage.includes("No meaningful text content extracted")) {
             errorMessage = `No useful text content was found at ${validUrl}. It might be an image, a very complex page, require JavaScript, or direct access might be limited.`;
+        } else if (errorMessage.includes("503") || errorMessage.toLowerCase().includes("model is overloaded")) {
+            errorMessage = `The AI model is currently overloaded processing the content from ${validUrl}. Please try again in a few moments.`;
         }
         toast({ title: "Website Training Error", description: errorMessage, variant: "destructive" });
     } finally {
@@ -300,7 +306,11 @@ export default function KnowledgePage() {
       setPastedTextInput("");
     } catch (error: any) {
       console.error("Error processing pasted text:", error);
-      toast({ title: "Pasted Text Training Error", description: error.message || "Failed to process the pasted text.", variant: "destructive" });
+      let errorMessage = error.message || "Failed to process the pasted text.";
+      if (errorMessage.includes("503") || errorMessage.toLowerCase().includes("model is overloaded")) {
+            errorMessage = `The AI model is currently overloaded processing the pasted text. Please try again in a few moments. For very long text, consider breaking it into smaller parts.`;
+      }
+      toast({ title: "Pasted Text Training Error", description: errorMessage, variant: "destructive" });
     } finally {
       setIsProcessingPastedText(false);
     }
@@ -342,6 +352,16 @@ export default function KnowledgePage() {
           <CardDescription className="text-sm">Make your agent an expert! Upload documents, add website pages, or paste text specific to the business it will serve for <span className="font-semibold">{currentAgent.generatedName || currentAgent.name}</span>.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
+            
+            <Alert variant="default" className="p-3 text-xs bg-amber-500/10 dark:bg-amber-500/20 border-amber-500/40">
+                <FileWarning className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                <AlertTitle className="text-amber-700 dark:text-amber-300 text-xs font-medium">Training Large Documents (e.g., Books)</AlertTitle>
+                <AlertDescription className="text-amber-600/90 dark:text-amber-200/90 text-[11px]">
+                  For very large documents like entire books, processing can take longer and may sometimes fail if the AI model is temporarily busy.
+                  If you encounter issues, try uploading smaller sections or chapters individually. This can also lead to more focused knowledge for your agent.
+                </AlertDescription>
+            </Alert>
+
             <div className="space-y-1.5">
                 <Label htmlFor="document">Upload Document</Label>
                 <Input id="document" type="file" onChange={handleFileChange} accept=".txt,.pdf,.md,.docx,.json,.csv,.html,.htm,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/csv,text/markdown,application/json,text/html" disabled={isAnyLoading}/>
@@ -354,9 +374,9 @@ export default function KnowledgePage() {
 
             <Alert variant="default" className="p-3 text-xs bg-accent/10 dark:bg-accent/20 border-accent/30">
                 <Info className="h-3.5 w-3.5 text-accent" />
-                <AlertTitle className="text-accent text-xs font-medium">Tip for File Uploads</AlertTitle>
+                <AlertTitle className="text-accent text-xs font-medium">Supported File Types</AlertTitle>
                 <AlertDescription className="text-accent/80 dark:text-accent/90 text-[11px]">
-                  Supported formats: TXT, MD, PDF, DOCX, CSV, JSON, HTML. For best results with PDF/DOCX, ensure they contain selectable text. Complex layouts or scanned images may not parse well. CSVs are converted to detailed textual descriptions.
+                  TXT, MD, PDF (text-based), DOCX, CSV, JSON, HTML. For PDF/DOCX, ensure selectable text. Scanned images may not work well. CSVs become detailed text descriptions.
                 </AlertDescription>
             </Alert>
 
@@ -378,7 +398,7 @@ export default function KnowledgePage() {
                 <Info className="h-3.5 w-3.5 text-accent" />
                 <AlertTitle className="text-accent text-xs font-medium">Website Training Tip</AlertTitle>
                 <AlertDescription className="text-accent/80 dark:text-accent/90 text-[11px]">
-                  Directly fetching content from websites can be challenging. For best results, ensure the URL points to a page with clear, primary text content. Pages that heavily rely on JavaScript to load content, or those behind logins/paywalls, may not process well.
+                  Best for pages with clear text content. Complex sites or those needing logins may not process well.
                 </AlertDescription>
             </Alert>
             <Button onClick={handleProcessUrl} disabled={isProcessingUrl || !urlInput.trim() || isLoadingFile || isProcessingPastedText} className={cn("w-full", "btn-gradient-primary")}>
@@ -399,7 +419,7 @@ export default function KnowledgePage() {
                 <Label htmlFor="pastedText">Paste Text Content (e.g., FAQ, Product Info)</Label>
                 <Textarea 
                   id="pastedText" 
-                  placeholder="Paste up to 4-5 paragraphs of text here..." 
+                  placeholder="Paste text here (e.g., product details, FAQs, sections of a document)..." 
                   value={pastedTextInput} 
                   onChange={handlePastedTextInputChange} 
                   rows={8}
@@ -415,9 +435,9 @@ export default function KnowledgePage() {
             {isVoiceAgent && (
                 <Alert variant="default" className="mt-4 p-3 text-xs bg-secondary/20 dark:bg-secondary/30 border-secondary/50">
                     <Mic className="h-3.5 w-3.5 text-secondary-foreground" />
-                    <AlertTitle className="text-secondary-foreground text-xs font-medium">Training for Voice Agents?</AlertTitle>
+                    <AlertTitle className="text-secondary-foreground text-xs font-medium">Training Voice Agents?</AlertTitle>
                     <AlertDescription className="text-secondary-foreground/80 dark:text-secondary-foreground/90 text-[11px]">
-                    If you plan to use this agent for voice interactions (e.g., phone calls), upload relevant sales scripts, product details, common customer objections, and how to handle them. This will help the AI sound natural and be effective in voice conversations.
+                    For voice, upload sales scripts, product details, common objections, and how to handle them. This helps the AI sound natural and effective.
                     </AlertDescription>
                 </Alert>
             )}
@@ -494,3 +514,5 @@ export default function KnowledgePage() {
 }
 
       
+
+    
