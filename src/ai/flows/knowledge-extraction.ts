@@ -26,7 +26,16 @@ import {
 export type { KnowledgeExtractionInput, KnowledgeExtractionOutput };
 
 export async function extractKnowledge(input: KnowledgeExtractionInput): Promise<KnowledgeExtractionOutput> {
-  return extractKnowledgeFlow(input);
+  console.log("[TEMP DEBUG] extractKnowledge Server Action called with input:", input.documentDataUri.substring(0, 50) + "...", "isPreStructured:", input.isPreStructuredText);
+  
+  // TEMPORARY: Return dummy data to isolate "Failed to fetch" issue.
+  // Comment out the actual Genkit flow call for now.
+  // return extractKnowledgeFlow(input);
+
+  return {
+    summary: "This is a temporary dummy summary. Genkit flow was not called.",
+    keywords: ["dummy", "debug", "test"],
+  };
 }
 
 const extractKnowledgePrompt = ai.definePrompt({
@@ -60,37 +69,37 @@ const extractKnowledgeFlow = ai.defineFlow(
   },
   async (input: KnowledgeExtractionInput): Promise<KnowledgeExtractionOutput> => {
     try {
+      console.log("[TEMP DEBUG] Entering extractKnowledgeFlow with input:", input.documentDataUri.substring(0, 50) + "...", "isPreStructured:", input.isPreStructuredText);
       const modelResponse = await extractKnowledgePrompt(input);
+      console.log("[TEMP DEBUG] extractKnowledgePrompt modelResponse received.");
       
       if (!modelResponse.output) {
         const rawText = modelResponse.response?.text;
         console.error(
-          'Failed to get structured output from extractKnowledgePrompt. Raw model response:',
+          '[TEMP DEBUG] Failed to get structured output from extractKnowledgePrompt. Raw model response:',
           rawText || 'No raw text available'
         );
 
-        // Attempt to parse raw text if it seems like JSON and matches the schema
         if (rawText) {
           try {
             const parsedFallback = JSON.parse(rawText);
             if (KnowledgeExtractionOutputSchema.safeParse(parsedFallback).success) {
-              console.warn("extractKnowledgeFlow: Successfully parsed raw text as fallback output.");
+              console.warn("[TEMP DEBUG] extractKnowledgeFlow: Successfully parsed raw text as fallback output.");
               return parsedFallback as KnowledgeExtractionOutput;
             }
           } catch (e) {
-            // Not valid JSON or doesn't match schema, will fall through to throw
+             console.error("[TEMP DEBUG] Failed to parse rawText as JSON in fallback:", e);
           }
         }
         throw new Error(
           `AI model did not return the expected JSON format. Raw response snippet: ${rawText ? rawText.substring(0, 100) + '...' : 'N/A'}`
         );
       }
+      console.log("[TEMP DEBUG] extractKnowledgeFlow returning structured output.");
       return modelResponse.output;
 
     } catch (flowError: any) {
-      console.error("Critical error in extractKnowledgeFlow:", flowError.message, flowError.stack);
-      // Re-throw a standard error to ensure Next.js can handle it and pass to client
-      // It's crucial that the error message here is helpful.
+      console.error("[TEMP DEBUG] Critical error in extractKnowledgeFlow:", flowError.message, flowError.stack);
       let detailedErrorMessage = 'Knowledge extraction process failed.';
       if (flowError.message) {
         detailedErrorMessage += ` Details: ${flowError.message}`;
@@ -98,8 +107,6 @@ const extractKnowledgeFlow = ai.defineFlow(
       if (flowError.cause && flowError.cause.message) {
          detailedErrorMessage += ` Cause: ${flowError.cause.message}`;
       }
-      // Check for common Genkit/Gemini issues if possible (e.g. API key, quota, content filtering)
-      // This is a placeholder for more specific error type checking if Genkit provides it
       if (typeof flowError.message === 'string' && (flowError.message.includes('API key') || flowError.message.includes('quota'))) {
         detailedErrorMessage = `There might be an issue with the AI service configuration (e.g., API key or quota). Original error: ${flowError.message}`;
       } else if (typeof flowError.message === 'string' && flowError.message.includes('SAFETY')) {
@@ -110,5 +117,3 @@ const extractKnowledgeFlow = ai.defineFlow(
     }
   }
 );
-
-    
