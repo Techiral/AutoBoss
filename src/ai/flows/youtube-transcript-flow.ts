@@ -28,6 +28,36 @@ export async function fetchYouTubeTranscript(input: FetchYouTubeTranscriptInput)
   return youtubeTranscriptFlow(input);
 }
 
+function extractYouTubeVideoId(url: string): string | null {
+  let videoId: string | null = null;
+  try {
+    const urlObj = new URL(url);
+    if (urlObj.hostname === 'youtu.be') {
+      videoId = urlObj.pathname.split('/')[1]?.split('?')[0] || null;
+    } else if (urlObj.hostname === 'www.youtube.com' || urlObj.hostname === 'youtube.com') {
+      videoId = urlObj.searchParams.get('v');
+      if (!videoId) {
+        if (urlObj.pathname.startsWith('/embed/')) {
+          videoId = urlObj.pathname.split('/embed/')[1]?.split('?')[0] || null;
+        } else if (urlObj.pathname.startsWith('/shorts/')) {
+          videoId = urlObj.pathname.split('/shorts/')[1]?.split('?')[0] || null;
+        } else if (urlObj.pathname.startsWith('/live/')) {
+            videoId = urlObj.pathname.split('/live/')[1]?.split('?')[0] || null;
+        }
+      }
+    }
+  } catch (e) {
+    console.error(`[YouTube Transcript Flow] Error parsing URL for Video ID: ${url}`, e);
+    return null;
+  }
+  // Validate basic YouTube ID format (11 chars, alphanumeric, -, _)
+  if (videoId && /^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
+    return videoId;
+  }
+  return null;
+}
+
+
 const youtubeTranscriptFlow = ai.defineFlow(
   {
     name: 'youtubeTranscriptFlow',
@@ -35,28 +65,20 @@ const youtubeTranscriptFlow = ai.defineFlow(
     outputSchema: FetchYouTubeTranscriptOutputSchema,
   },
   async (input: FetchYouTubeTranscriptInput): Promise<FetchYouTubeTranscriptOutput> => {
-    let videoId: string | undefined;
+    let videoId: string | null = null;
     try {
-      const url = new URL(input.youtubeUrl);
-      if (url.hostname === 'youtu.be') {
-        videoId = url.pathname.substring(1);
-      } else if (url.hostname === 'www.youtube.com' || url.hostname === 'youtube.com') {
-        videoId = url.searchParams.get('v') || undefined;
-        if (!videoId && url.pathname.startsWith('/embed/')) {
-            videoId = url.pathname.split('/embed/')[1].split('?')[0];
-        } else if (!videoId && url.pathname.startsWith('/shorts/')) {
-            videoId = url.pathname.split('/shorts/')[1].split('?')[0];
-        }
-      }
+      videoId = extractYouTubeVideoId(input.youtubeUrl);
 
       if (!videoId) {
-        return { error: 'Could not extract Video ID from the URL. Please provide a valid YouTube video URL.' };
+        return { error: 'Could not extract a valid YouTube Video ID from the URL. Please provide a standard YouTube video URL (e.g., watch, shorts, embed, youtu.be).' };
       }
       console.log(`[YouTube Transcript Flow] Extracted Video ID: ${videoId}`);
 
       const transcript = await YoutubeTranscript.fetchTranscript(videoId);
+      
       if (!transcript || transcript.length === 0) {
-        return { videoId, error: 'No transcript found for this video, or it might be disabled.' };
+        console.log(`[YouTube Transcript Flow] Library returned empty transcript array for Video ID: ${videoId}`);
+        return { videoId, error: 'The transcript library found no transcript segments for this video. This might be due to language settings, the type of transcript available on YouTube, or it might be disabled by the uploader.' };
       }
 
       const transcriptText = transcript.map(item => item.text).join(' ');
@@ -64,16 +86,25 @@ const youtubeTranscriptFlow = ai.defineFlow(
       return { transcriptText, videoId };
 
     } catch (error: any) {
-      console.error(`[YouTube Transcript Flow] Error processing YouTube URL ${input.youtubeUrl} (Video ID: ${videoId || 'unknown'}):`, error);
-      let errorMessage = 'Failed to fetch transcript.';
-      if (error.message && error.message.toLowerCase().includes('transcripts disabled')) {
-        errorMessage = 'Transcripts are disabled for this video.';
-      } else if (error.message && error.message.toLowerCase().includes('no transcript found')) {
-        errorMessage = 'No transcript could be found for this video.';
-      } else if (error.message) {
-        errorMessage = `Error fetching transcript: ${error.message.substring(0,150)}`;
+      console.error(`[YouTube Transcript Flow] Error processing YouTube URL ${input.youtubeUrl} (Video ID: ${videoId || 'unknown'}):`, error.message);
+      let errorMessage = 'Failed to fetch transcript due to an unexpected error.';
+      
+      // Use more specific error messages from the library if available
+      if (error.message) {
+        if (error.message.toLowerCase().includes('transcripts are disabled')) {
+          errorMessage = 'Transcripts appear to be disabled for this YouTube video.';
+        } else if (error.message.toLowerCase().includes('no transcript found')) { // This catches various "no transcript found" messages from the library
+          errorMessage = 'The transcript library reported that no transcript could be found for this video. It might be private, deleted, or lack transcripts in common languages.';
+        } else if (error.message.toLowerCase().includes('is private or deleted')) {
+            errorMessage = 'This video may be private or deleted, so its transcript cannot be accessed.';
+        }
+         else {
+          // Pass through a snippet of the original error if it's not one of the common cases
+          errorMessage = `YouTube transcript error: ${error.message.substring(0, 200)}`;
+        }
       }
       return { videoId, error: errorMessage };
     }
   }
 );
+
