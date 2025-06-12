@@ -6,11 +6,12 @@ import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea"; // Added Textarea
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { extractKnowledge } from "@/ai/flows/knowledge-extraction";
 import { processUrl } from "@/ai/flows/url-processor";
-import { Upload, Loader2, FileText, Tag, AlertTriangle, Link as LinkIcon, Brain, Info, Mic, CheckCircle2 } from "lucide-react";
+import { Upload, Loader2, FileText, Tag, AlertTriangle, Link as LinkIcon, Brain, Info, Mic, CheckCircle2, TextQuote } from "lucide-react"; // Added TextQuote
 import type { KnowledgeItem, Agent, ProcessedUrlOutput } from "@/lib/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAppContext } from "../../../layout";
@@ -21,10 +22,6 @@ import mammoth from 'mammoth';
 import * as pdfjsLib from 'pdfjs-dist';
 import Papa from 'papaparse';
 
-// Configure PDF.js worker to be loaded locally
-// IMPORTANT: You need to copy the 'pdf.worker.mjs' file from
-// 'node_modules/pdfjs-dist/build/pdf.worker.mjs'
-// to your '/public' directory for this to work.
 pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf.worker.mjs`;
 
 function csvToStructuredText(csvString: string, fileName: string): string {
@@ -75,8 +72,10 @@ function csvToStructuredText(csvString: string, fileName: string): string {
 export default function KnowledgePage() {
   const [isLoadingFile, setIsLoadingFile] = useState(false);
   const [isProcessingUrl, setIsProcessingUrl] = useState(false);
+  const [isProcessingPastedText, setIsProcessingPastedText] = useState(false); // New state
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [urlInput, setUrlInput] = useState("");
+  const [pastedTextInput, setPastedTextInput] = useState(""); // New state for pasted text
 
   const { toast } = useToast();
   const params = useParams();
@@ -99,6 +98,7 @@ export default function KnowledgePage() {
     if (event.target.files && event.target.files[0]) {
       setSelectedFile(event.target.files[0]);
       setUrlInput("");
+      setPastedTextInput("");
     } else {
       setSelectedFile(null);
     }
@@ -108,6 +108,17 @@ export default function KnowledgePage() {
     setUrlInput(event.target.value);
     if (event.target.value) {
         setSelectedFile(null);
+        setPastedTextInput("");
+        const fileInput = document.getElementById('document') as HTMLInputElement;
+        if (fileInput) fileInput.value = '';
+    }
+  };
+
+  const handlePastedTextInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setPastedTextInput(event.target.value);
+    if (event.target.value) {
+        setSelectedFile(null);
+        setUrlInput("");
         const fileInput = document.getElementById('document') as HTMLInputElement;
         if (fileInput) fileInput.value = '';
     }
@@ -274,6 +285,27 @@ export default function KnowledgePage() {
     }
   };
 
+  const handleSubmitPastedText = async () => {
+    if (!pastedTextInput.trim()) {
+      toast({ title: "No text provided", description: "Please paste some text to train from.", variant: "destructive"});
+      return;
+    }
+    setIsProcessingPastedText(true);
+    try {
+      const fileName = `Pasted Text - ${new Date().toLocaleString()}`;
+      const textDataUri = `data:text/plain;charset=utf-8;base64,${Buffer.from(pastedTextInput).toString('base64')}`;
+      
+      const knowledgeResult = await extractKnowledge({ documentDataUri: textDataUri, isPreStructuredText: false });
+      addKnowledgeToAgent(fileName, knowledgeResult.summary, knowledgeResult.keywords);
+      setPastedTextInput("");
+    } catch (error: any) {
+      console.error("Error processing pasted text:", error);
+      toast({ title: "Pasted Text Training Error", description: error.message || "Failed to process the pasted text.", variant: "destructive" });
+    } finally {
+      setIsProcessingPastedText(false);
+    }
+  };
+
 
   if (isLoadingAgents || currentAgent === undefined) {
     return (
@@ -300,21 +332,22 @@ export default function KnowledgePage() {
   }
 
   const isVoiceAgent = currentAgent.agentType === 'voice' || currentAgent.agentType === 'hybrid';
+  const isAnyLoading = isLoadingFile || isProcessingUrl || isProcessingPastedText;
 
   return (
     <div className="grid gap-4 md:gap-6 grid-cols-1 lg:grid-cols-3">
       <Card className="lg:col-span-1">
         <CardHeader className="p-4 sm:p-6">
           <CardTitle className={cn("font-headline text-lg sm:text-2xl", "text-gradient-dynamic")}>Train Your Agent with Business Data</CardTitle>
-          <CardDescription className="text-sm">Make your agent an expert! Upload documents (FAQs, product lists, policies, PDF, DOCX, CSV) or add website pages specific to the business it will serve for <span className="font-semibold">{currentAgent.generatedName || currentAgent.name}</span>.</CardDescription>
+          <CardDescription className="text-sm">Make your agent an expert! Upload documents, add website pages, or paste text specific to the business it will serve for <span className="font-semibold">{currentAgent.generatedName || currentAgent.name}</span>.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
             <div className="space-y-1.5">
                 <Label htmlFor="document">Upload Document</Label>
-                <Input id="document" type="file" onChange={handleFileChange} accept=".txt,.pdf,.md,.docx,.json,.csv,.html,.htm,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/csv,text/markdown,application/json,text/html" disabled={isLoadingFile || isProcessingUrl}/>
+                <Input id="document" type="file" onChange={handleFileChange} accept=".txt,.pdf,.md,.docx,.json,.csv,.html,.htm,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/csv,text/markdown,application/json,text/html" disabled={isAnyLoading}/>
                 {selectedFile && <p className="text-xs sm:text-sm text-muted-foreground">Selected: {selectedFile.name}</p>}
             </div>
-            <Button onClick={handleSubmitFile} disabled={isLoadingFile || !selectedFile || isProcessingUrl} className={cn("w-full", "btn-gradient-primary")}>
+            <Button onClick={handleSubmitFile} disabled={isLoadingFile || !selectedFile || isProcessingUrl || isProcessingPastedText} className={cn("w-full", "btn-gradient-primary")}>
                 {isLoadingFile ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
                 {isLoadingFile ? "Processing File..." : "Upload & Train File"}
             </Button>
@@ -339,7 +372,7 @@ export default function KnowledgePage() {
 
             <div className="space-y-1.5">
                 <Label htmlFor="url">Train from Website URL</Label>
-                <Input id="url" type="url" placeholder="e.g., https://example.com/services" value={urlInput} onChange={handleUrlInputChange} disabled={isProcessingUrl || isLoadingFile}/>
+                <Input id="url" type="url" placeholder="e.g., https://example.com/services" value={urlInput} onChange={handleUrlInputChange} disabled={isAnyLoading}/>
             </div>
              <Alert variant="default" className="p-3 text-xs bg-accent/10 dark:bg-accent/20 border-accent/30 mb-2">
                 <Info className="h-3.5 w-3.5 text-accent" />
@@ -348,10 +381,36 @@ export default function KnowledgePage() {
                   Directly fetching content from websites can be challenging. For best results, ensure the URL points to a page with clear, primary text content. Pages that heavily rely on JavaScript to load content, or those behind logins/paywalls, may not process well.
                 </AlertDescription>
             </Alert>
-            <Button onClick={handleProcessUrl} disabled={isProcessingUrl || !urlInput.trim() || isLoadingFile} className={cn("w-full", "btn-gradient-primary")}>
+            <Button onClick={handleProcessUrl} disabled={isProcessingUrl || !urlInput.trim() || isLoadingFile || isProcessingPastedText} className={cn("w-full", "btn-gradient-primary")}>
                 {isProcessingUrl ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LinkIcon className="mr-2 h-4 w-4" />}
                 {isProcessingUrl ? "Fetching Website..." : "Fetch & Train URL"}
             </Button>
+
+            <div className="relative my-3 sm:my-4">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">Or</span>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+                <Label htmlFor="pastedText">Paste Text Content (e.g., FAQ, Product Info)</Label>
+                <Textarea 
+                  id="pastedText" 
+                  placeholder="Paste up to 4-5 paragraphs of text here..." 
+                  value={pastedTextInput} 
+                  onChange={handlePastedTextInputChange} 
+                  rows={8}
+                  disabled={isAnyLoading}
+                />
+            </div>
+            <Button onClick={handleSubmitPastedText} disabled={isProcessingPastedText || !pastedTextInput.trim() || isLoadingFile || isProcessingUrl} className={cn("w-full", "btn-gradient-primary")}>
+                {isProcessingPastedText ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <TextQuote className="mr-2 h-4 w-4" />}
+                {isProcessingPastedText ? "Processing Text..." : "Train from Pasted Text"}
+            </Button>
+
 
             {isVoiceAgent && (
                 <Alert variant="default" className="mt-4 p-3 text-xs bg-secondary/20 dark:bg-secondary/30 border-secondary/50">
@@ -380,7 +439,9 @@ export default function KnowledgePage() {
                 <Card key={item.id} className="bg-muted/50">
                   <CardHeader className="p-3 sm:p-4">
                     <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                        {(item.fileName.startsWith('http://') || item.fileName.startsWith('https://')) ? <LinkIcon className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0"/> : <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0"/>}
+                        {(item.fileName.startsWith('http://') || item.fileName.startsWith('https://')) ? <LinkIcon className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0"/> : 
+                         (item.fileName.startsWith('Pasted Text')) ? <TextQuote className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0"/> :
+                         <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0"/>}
                         <span className="truncate text-sm sm:text-base" title={item.fileName}>{item.fileName}</span>
                     </CardTitle>
                     <CardDescription className="text-xs">Trained: {new Date(item.uploadedAt).toLocaleString()}</CardDescription>
@@ -424,10 +485,12 @@ export default function KnowledgePage() {
            <CardContent className="flex flex-col items-center justify-center min-h-[200px] sm:min-h-[300px] p-4 sm:p-6">
             <FileText className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground mb-3 sm:mb-4" />
             <p className="text-sm sm:text-base text-muted-foreground">Your agent hasn't been trained with any business data yet.</p>
-            <p className="text-xs text-muted-foreground mt-1">Use the panel on the left to upload documents or add website content.</p>
+            <p className="text-xs text-muted-foreground mt-1">Use the panel on the left to upload documents, add website content, or paste text.</p>
           </CardContent>
         </Card>
        )}
     </div>
   );
 }
+
+      
