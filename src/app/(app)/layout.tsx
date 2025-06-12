@@ -550,7 +550,7 @@ function AppSidebar() {
   }
 
   if (!currentUser && !(pathname.startsWith('/chat/') || pathname === '/playbook' || pathname === '/templates' || pathname === '/support')) {
-    return <Sidebar><SidebarHeader className="p-3 sm:p-4"><Link href="/" aria-label="AutoBoss Homepage" className="hover:opacity-80 transition-opacity"><Logo collapsed={collapsed} className="h-7 sm:h-8 px-1 sm:px-2 py-1"/></Link></SidebarHeader></Sidebar>;
+    return <Sidebar><SidebarHeader className="p-3 sm:p-4"><Link href="/" aria-label="AutoBoss Homepage" className="hover:opacity-80 transition-opacity"><Logo collapsed={collapsed} className="h-6 sm:h-7 px-1 sm:px-2 py-1"/></Link></SidebarHeader></Sidebar>;
   }
 
   const isDataLoading = authLoading || (currentAgentId && isAppContextLoading) || (currentClientId && isLoadingClients);
@@ -559,7 +559,7 @@ function AppSidebar() {
     <Sidebar>
       <SidebarHeader className="p-3 sm:p-4">
         <Link href="/dashboard" className="hover:opacity-80 transition-opacity" aria-label="AutoBoss Homepage" onClick={handleMobileLinkClick}>
-            <Logo collapsed={collapsed} className="h-7 sm:h-8 px-1 sm:px-2 py-1"/>
+            <Logo collapsed={collapsed} className="h-6 sm:h-7 px-1 sm:px-2 py-1"/>
         </Link>
       </SidebarHeader>
       <SidebarContent>
