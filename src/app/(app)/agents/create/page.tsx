@@ -118,9 +118,9 @@ const formSchema = z.object({
   direction: z.enum(["inbound", "outbound"], { required_error: "Please select agent direction."}),
   primaryLogic: z.enum(["prompt", "rag"], { required_error: "Please select how the agent works."}),
   name: z.string().min(3, "Agent concept/name must be at least 3 characters").max(100, "Name too long"),
-  role: z.string().min(10, "Role description must be at least 10 characters").max(1000, "Role too long (max 1000 chars)"),
-  personality: z.string().min(10, "Personality description must be at least 10 characters").max(1000, "Personality too long (max 1000 chars)"),
-  selectedClientId: z.string().optional(), // New field for client selection if needed
+  role: z.string().min(10, "Role description must be at least 10 characters").max(1000, "Role description too long (max 1000 chars)"),
+  personality: z.string().min(10, "Personality description must be at least 10 characters").max(1000, "Personality description too long (max 1000 chars)"),
+  selectedClientId: z.string().optional(), 
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -181,30 +181,30 @@ export default function CreateAgentPage() {
         setActiveClient(client);
         setRequiresClientSelection(false);
         setValue("selectedClientId", queryClientId); 
-      } else if (templateId) { // Template ID present, but no client ID
+      } else if (templateId) { 
         setRequiresClientSelection(true);
-        setActiveClient(undefined); // No client initially active
-        if (clients.length === 1) { // Auto-select if only one client
+        setActiveClient(undefined); 
+        if (clients.length === 1) { 
             setValue("selectedClientId", clients[0].id);
             setActiveClient(clients[0]);
             setRequiresClientSelection(false);
         }
       } else {
-        // No client ID and no template ID that would require client selection
+        
         setRequiresClientSelection(false); 
-        setActiveClient(null); // Signifies no specific client context from URL
+        setActiveClient(null); 
       }
     }
   }, [queryClientId, templateId, isLoadingClients, getClientById, clients, setValue]);
 
-  // Update activeClient and role/personality fields when formSelectedClientId changes
+  
   useEffect(() => {
     if (formSelectedClientId && !isLoadingClients) {
       const client = getClientById(formSelectedClientId);
       setActiveClient(client);
-      // Role/personality update will be handled by the other useEffect dependent on activeClient
+      
     } else if (!formSelectedClientId && requiresClientSelection) {
-      setActiveClient(undefined); // Clear active client if selection is required but none chosen
+      setActiveClient(undefined); 
     }
   }, [formSelectedClientId, isLoadingClients, getClientById, requiresClientSelection]);
 
@@ -242,7 +242,7 @@ export default function CreateAgentPage() {
         finalClientName = client.name;
     }
     
-    if (!finalClientName) { // Should not happen if finalClientId is set and client is found
+    if (!finalClientName) { 
         toast({ title: "Client Information Error", description: "Could not determine client name.", variant: "destructive" });
         return;
     }
@@ -396,7 +396,7 @@ export default function CreateAgentPage() {
                      onValueChange={(value) => {
                         field.onChange(value);
                         const effectiveClientName = activeClient?.name || queryClientName || "[Client Name]";
-                        if (!selectedTemplate) { // Only update if not using a template, or if client changes
+                        if (!selectedTemplate) { 
                             setValue("role", agentPurposeTemplates[value as FormAgentPurposeType].role.replace("[Client Name]", effectiveClientName));
                             setValue("personality", agentPurposeTemplates[value as FormAgentPurposeType].personality.replace("[Client Name]", effectiveClientName));
                         }
@@ -531,14 +531,15 @@ export default function CreateAgentPage() {
               <Label htmlFor="role" className="flex items-center">What is this Agent's job for {clientForRoleText}?
                 <Tooltip>
                     <TooltipTrigger asChild><HelpCircle className="w-3.5 h-3.5 ml-1.5 text-muted-foreground cursor-help"/></TooltipTrigger>
-                    <TooltipContent><p>Describe the agent's main responsibilities and goals. The pre-filled text is based on the 'Purpose' you selected and customized for {clientForRoleText}.</p></TooltipContent>
+                    <TooltipContent><p>Describe the agent's main responsibilities and goals. The pre-filled text is based on the 'Purpose' you selected and customized for {clientForRoleText}. Max 1000 characters.</p></TooltipContent>
                 </Tooltip>
               </Label>
               <Textarea
                 id="role"
                 placeholder={agentPurposeTemplates[currentAgentPurpose]?.role.replace("[Client Name]", clientForRoleText) || "Describe the agent's primary function..."}
                 {...register("role")}
-                rows={4}
+                rows={5}
+                maxLength={1000}
               />
               {errors.role && <p className="text-xs text-destructive">{errors.role.message}</p>}
             </div>
@@ -546,14 +547,15 @@ export default function CreateAgentPage() {
               <Label htmlFor="personality" className="flex items-center">How should this Agent sound and behave for {clientForRoleText}?
                 <Tooltip>
                     <TooltipTrigger asChild><HelpCircle className="w-3.5 h-3.5 ml-1.5 text-muted-foreground cursor-help"/></TooltipTrigger>
-                    <TooltipContent><p>Define the agent's communication style and tone. The pre-filled text is based on the 'Purpose' you selected and customized for {clientForRoleText}.</p></TooltipContent>
+                    <TooltipContent><p>Define the agent's communication style and tone. The pre-filled text is based on the 'Purpose' you selected and customized for {clientForRoleText}. Max 1000 characters.</p></TooltipContent>
                 </Tooltip>
               </Label>
               <Textarea
                 id="personality"
                 placeholder={agentPurposeTemplates[currentAgentPurpose]?.personality.replace("[Client Name]", clientForRoleText) || "Describe the desired personality..."}
                 {...register("personality")}
-                rows={4}
+                rows={5}
+                maxLength={1000}
                />
               {errors.personality && <p className="text-xs text-destructive">{errors.personality.message}</p>}
             </div>

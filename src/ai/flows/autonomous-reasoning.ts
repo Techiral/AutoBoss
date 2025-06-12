@@ -13,7 +13,6 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { KnowledgeItemSchema, type KnowledgeItem, AgentToneSchema, type AgentToneType } from '@/lib/types';
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
-// Removed import for webSearchTool as it's being deleted.
 
 
 const AutonomousReasoningInputSchema = z.object({
@@ -28,7 +27,7 @@ const AutonomousReasoningInputSchema = z.object({
 export type AutonomousReasoningInput = z.infer<typeof AutonomousReasoningInputSchema>;
 
 const AutonomousReasoningOutputSchema = z.object({
-  responseToUser: z.string().describe('A direct, conversational reply to the user. If knowledge was used, it cites the source implicitly (e.g., "Based on information I found...").'),
+  responseToUser: z.string().describe('A direct, conversational reply to the user, including a follow-up question. If knowledge was used, it cites the source implicitly (e.g., "Based on information I found...").'),
   reasoning: z.string().describe('The reasoning behind the generated response, including which knowledge items (or chunks) were deemed relevant.'),
   relevantKnowledgeIds: z.array(z.string()).optional().describe('IDs of the original knowledge items from which relevant chunks were retrieved.')
 });
@@ -43,7 +42,7 @@ const PromptInputSchema = z.object({
   agentName: z.string().optional(),
   agentPersona: z.string().optional(),
   agentRole: z.string().optional(),
-  agentTone: AgentToneSchema.optional(), // Keep original tone for display in prompt
+  agentTone: AgentToneSchema.optional(), 
   isFriendlyTone: z.boolean().optional(),
   isProfessionalTone: z.boolean().optional(),
   isWittyTone: z.boolean().optional(),
@@ -58,7 +57,7 @@ const prompt = ai.definePrompt({
   name: 'autonomousReasoningPrompt',
   input: {schema: PromptInputSchema },
   output: {schema: AutonomousReasoningOutputSchema},
-  // tools: array removed as webSearchTool is deleted
+  
   prompt: `
 {{#if agentTone}}
 Your conversational tone MUST be: {{agentTone}}.
@@ -89,6 +88,13 @@ Be helpful and persuasive, but not overly aggressive. Your goal is to assist the
 --- End Role-Specific Behavior Guidance ---
 
 Your goal is to understand the user's input within the given conversation context and respond effectively.
+After providing the main part of your response, ALWAYS conclude with a natural, open-ended follow-up question to encourage further interaction and check if the user needs more assistance.
+Examples of good follow-up questions:
+- "What other questions do you have about this?"
+- "Is there anything else I can help you with today?"
+- "Can I provide more details on any part of that?"
+- "Does that make sense, or would you like me to explain further?"
+If your role ({{{agentRole}}}) suggests a specific next step, your follow-up can also gently guide towards that. For example, a sales agent might ask, "Would you be interested in learning about our different plans now?" after answering a feature question.
 
 Conversation Context (previous messages):
 {{{context}}}
@@ -112,7 +118,7 @@ The "reasoning" field should reflect if general knowledge was used.
 
 Your response MUST be a single, valid JSON object adhering to the output schema:
 {
-  "responseToUser": "The conversational reply.",
+  "responseToUser": "The conversational reply, including the follow-up question at the end.",
   "reasoning": "Explanation of how the response was derived, noting if specific knowledge chunks were used or if it was general knowledge.",
   "relevantKnowledgeIds": ["id_of_original_item_for_chunk_1", "id_of_original_item_for_chunk_2"]
 }
@@ -140,7 +146,7 @@ const autonomousReasoningFlow = ai.defineFlow(
       const allOriginalItemIds = new Set<string>();
 
       for (const item of input.knowledgeItems) {
-        const sourceText = item.summary || ""; // For CSVs, item.summary IS the full structured text
+        const sourceText = item.summary || ""; 
         if (!sourceText.trim()) continue;
 
         const docs = await textSplitter.createDocuments([sourceText]);
@@ -156,7 +162,7 @@ const autonomousReasoningFlow = ai.defineFlow(
 
       if (allChunks.length > 0) {
         console.log(`RAG: Generated ${allChunks.length} chunks. Concatenating all for context.`);
-        // Simplified RAG: Concatenate all chunks instead of vector search
+        
         retrievedChunksText = allChunks
           .map(chunk => `Source Document: ${chunk.originalItemFileName}\nContent Snippet:\n${chunk.text}\n---`)
           .join('\n\n');
@@ -196,7 +202,7 @@ const autonomousReasoningFlow = ai.defineFlow(
                     return { ...parsedOutput, relevantKnowledgeIds: relevantOriginalItemIds } as AutonomousReasoningOutput;
                 }
             } catch (e) {
-                 // Ignore
+                 
             }
         }
         throw new Error(`Autonomous reasoning failed. Model response: ${rawText ? rawText.substring(0,200) : 'No raw text'}`);
@@ -204,4 +210,3 @@ const autonomousReasoningFlow = ai.defineFlow(
     return { ...modelResponse.output, relevantKnowledgeIds: relevantOriginalItemIds };
   }
 );
-

@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useForm, SubmitHandler, Controller } from "react-hook-form"; // Added Controller
+import { useForm, SubmitHandler, Controller } from "react-hook-form"; 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -14,21 +14,21 @@ import { useToast } from "@/hooks/use-toast";
 import { createAgent, CreateAgentOutput } from "@/ai/flows/agent-creation";
 import { useParams } from "next/navigation"; 
 import { useAppContext } from "../../../layout"; 
-import type { Agent, AgentToneType } from "@/lib/types"; // Added AgentToneType
-import { AgentToneSchema } from "@/lib/types"; // Import AgentToneSchema
-import { Loader2, Smile, Settings } from "lucide-react"; // Added Smile, Settings
+import type { Agent, AgentToneType } from "@/lib/types"; 
+import { AgentToneSchema } from "@/lib/types"; 
+import { Loader2, Smile, Settings } from "lucide-react"; 
 import { Logo } from "@/components/logo";
 import { cn } from "@/lib/utils";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // Import Select components
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"; // Import Tooltip
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; 
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"; 
 import { HelpCircle } from "lucide-react";
 
 
 const formSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters").max(100, "Name too long"),
-  role: z.string().min(10, "Role description must be at least 10 characters").max(500, "Role too long"),
-  personality: z.string().min(10, "Personality description must be at least 10 characters").max(500, "Personality too long"),
-  agentTone: AgentToneSchema.default("neutral"), // Added agentTone with default
+  role: z.string().min(10, "Role description must be at least 10 characters").max(1000, "Role description too long (max 1000 chars)"),
+  personality: z.string().min(10, "Personality description must be at least 10 characters").max(1000, "Personality description too long (max 1000 chars)"),
+  agentTone: AgentToneSchema.default("neutral"), 
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -49,7 +49,7 @@ export default function PersonalityPage() {
         name: "",
         role: "",
         personality: "",
-        agentTone: "neutral", // Default tone
+        agentTone: "neutral", 
     }
   });
 
@@ -61,7 +61,7 @@ export default function PersonalityPage() {
         setValue("name", agent.name);
         setValue("role", agent.role || '');
         setValue("personality", agent.personality || '');
-        setValue("agentTone", agent.agentTone || "neutral"); // Set agentTone
+        setValue("agentTone", agent.agentTone || "neutral"); 
         if (agent.generatedName && agent.generatedPersona && agent.generatedGreeting) {
             setGeneratedDetails({
                 agentName: agent.generatedName,
@@ -86,7 +86,7 @@ export default function PersonalityPage() {
         agentDescription, 
         agentType: currentAgent.agentType, 
         direction: currentAgent.direction,
-        agentTone: data.agentTone as AgentToneType, // Pass agentTone to createAgent
+        agentTone: data.agentTone as AgentToneType, 
       });
       setGeneratedDetails(result);
       
@@ -95,7 +95,7 @@ export default function PersonalityPage() {
         description: `Role: ${data.role}. Personality: ${data.personality}. Tone: ${data.agentTone}`,
         role: data.role,
         personality: data.personality,
-        agentTone: data.agentTone as AgentToneType, // Save agentTone
+        agentTone: data.agentTone as AgentToneType, 
         generatedName: result.agentName,
         generatedPersona: result.agentPersona,
         generatedGreeting: result.agentGreeting,
@@ -130,7 +130,7 @@ export default function PersonalityPage() {
       </Card>
     )
   }
-  if (!currentAgent) { // Agent not found or no agentId
+  if (!currentAgent) { 
       return null; 
   }
 
@@ -153,13 +153,25 @@ export default function PersonalityPage() {
             {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="role">Role & Objectives</Label>
-            <Textarea id="role" placeholder="Describe the agent's primary function." {...register("role")} rows={3} />
+            <Label htmlFor="role" className="flex items-center">
+                Role & Objectives
+                <Tooltip>
+                    <TooltipTrigger asChild><HelpCircle className="w-3.5 h-3.5 ml-1.5 text-muted-foreground cursor-help"/></TooltipTrigger>
+                    <TooltipContent><p>Describe the agent's main responsibilities and goals. Max 1000 characters.</p></TooltipContent>
+                </Tooltip>
+            </Label>
+            <Textarea id="role" placeholder="Describe the agent's primary function." {...register("role")} rows={5} maxLength={1000} />
             {errors.role && <p className="text-xs text-destructive">{errors.role.message}</p>}
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="personality">Personality & Tone Clues</Label>
-            <Textarea id="personality" placeholder="Describe the desired personality traits (e.g. empathetic, humorous, direct)." {...register("personality")} rows={3} />
+            <Label htmlFor="personality" className="flex items-center">
+                Personality & Tone Clues
+                <Tooltip>
+                    <TooltipTrigger asChild><HelpCircle className="w-3.5 h-3.5 ml-1.5 text-muted-foreground cursor-help"/></TooltipTrigger>
+                    <TooltipContent><p>Describe the desired personality traits (e.g. empathetic, humorous, direct). Max 1000 characters.</p></TooltipContent>
+                </Tooltip>
+            </Label>
+            <Textarea id="personality" placeholder="Describe the desired personality traits (e.g. empathetic, humorous, direct)." {...register("personality")} rows={5} maxLength={1000}/>
             {errors.personality && <p className="text-xs text-destructive">{errors.personality.message}</p>}
           </div>
 
