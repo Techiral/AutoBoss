@@ -11,8 +11,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { extractKnowledge } from "@/ai/flows/knowledge-extraction";
 import { processUrl } from "@/ai/flows/url-processor";
-import { fetchYouTubeTranscript } from "@/ai/flows/youtube-transcript-flow"; // New import
-import { Upload, Loader2, FileText, Tag, AlertTriangle, Link as LinkIcon, Brain, Info, Mic, CheckCircle2, TextQuote, FileWarning, Youtube } from "lucide-react"; // Added Youtube
+// Removed: import { fetchYouTubeTranscript } from "@/ai/flows/youtube-transcript-flow";
+import { Upload, Loader2, FileText, Tag, AlertTriangle, Link as LinkIcon, Brain, Info, Mic, CheckCircle2, TextQuote, FileWarning } from "lucide-react"; // Removed Youtube
 import type { KnowledgeItem, Agent, ProcessedUrlOutput } from "@/lib/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAppContext } from "../../../layout";
@@ -74,11 +74,11 @@ export default function KnowledgePage() {
   const [isLoadingFile, setIsLoadingFile] = useState(false);
   const [isProcessingUrl, setIsProcessingUrl] = useState(false);
   const [isProcessingPastedText, setIsProcessingPastedText] = useState(false);
-  const [isProcessingYouTubeUrl, setIsProcessingYouTubeUrl] = useState(false); // New state
+  // Removed: const [isProcessingYouTubeUrl, setIsProcessingYouTubeUrl] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [urlInput, setUrlInput] = useState("");
   const [pastedTextInput, setPastedTextInput] = useState("");
-  const [youtubeUrlInput, setYoutubeUrlInput] = useState(""); // New state for YouTube URL
+  // Removed: const [youtubeUrlInput, setYoutubeUrlInput] = useState("");
 
   const { toast } = useToast();
   const params = useParams();
@@ -97,7 +97,7 @@ export default function KnowledgePage() {
 
   const knowledgeItems = currentAgent?.knowledgeItems || [];
 
-  const clearOtherInputs = (except: 'file' | 'url' | 'paste' | 'youtube') => {
+  const clearOtherInputs = (except: 'file' | 'url' | 'paste') => { // Removed 'youtube'
     if (except !== 'file') {
         setSelectedFile(null);
         const fileInput = document.getElementById('document') as HTMLInputElement;
@@ -105,7 +105,7 @@ export default function KnowledgePage() {
     }
     if (except !== 'url') setUrlInput("");
     if (except !== 'paste') setPastedTextInput("");
-    if (except !== 'youtube') setYoutubeUrlInput("");
+    // Removed: if (except !== 'youtube') setYoutubeUrlInput("");
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -127,11 +127,7 @@ export default function KnowledgePage() {
     if (event.target.value) clearOtherInputs('paste');
   };
   
-  const handleYoutubeUrlInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setYoutubeUrlInput(event.target.value);
-    if (event.target.value) clearOtherInputs('youtube');
-  };
-
+  // Removed: handleYoutubeUrlInputChange
 
   const addKnowledgeToAgent = (fileName: string, summary: string, keywords: string[]) => {
      if (!agentId) {
@@ -325,53 +321,7 @@ export default function KnowledgePage() {
     }
   };
   
-  const handleProcessYouTubeUrl = async () => {
-    if (!youtubeUrlInput.trim()) {
-        toast({ title: "No YouTube URL provided", description: "Please enter a YouTube video URL.", variant: "destructive"});
-        return;
-    }
-    let validUrl = youtubeUrlInput;
-    if (!youtubeUrlInput.startsWith('http://') && !youtubeUrlInput.startsWith('https://')) {
-      validUrl = `https://${youtubeUrlInput}`;
-    }
-
-    try {
-        const parsedUrl = new URL(validUrl);
-        if (! (parsedUrl.hostname.includes('youtube.com') || parsedUrl.hostname.includes('youtu.be'))) {
-            throw new Error("Not a YouTube URL");
-        }
-    } catch (_) {
-        toast({ title: "Invalid YouTube URL", description: "Please enter a valid YouTube video URL.", variant: "destructive"});
-        return;
-    }
-
-    setIsProcessingYouTubeUrl(true);
-    try {
-        const transcriptResult = await fetchYouTubeTranscript({ youtubeUrl: validUrl });
-
-        if (transcriptResult.error || !transcriptResult.transcriptText) {
-            throw new Error(transcriptResult.error || "Failed to fetch transcript, or transcript is empty.");
-        }
-        
-        const displayFileName = `YouTube: ${transcriptResult.videoId || validUrl.substring(0, 50)}`;
-        const textDataUri = `data:text/plain;charset=utf-8;base64,${Buffer.from(transcriptResult.transcriptText).toString('base64')}`;
-        const knowledgeResult = await extractKnowledge({ documentDataUri: textDataUri, isPreStructuredText: false }); 
-
-        addKnowledgeToAgent(displayFileName, knowledgeResult.summary, knowledgeResult.keywords);
-        setYoutubeUrlInput("");
-
-    } catch (error: any) {
-        console.error("Error processing YouTube URL:", error);
-        let errorMessage = error.message || "Failed to process the YouTube video. The transcript might be unavailable or an error occurred.";
-         if (errorMessage.includes("503") || errorMessage.toLowerCase().includes("model is overloaded")) {
-            errorMessage = `The AI model is currently overloaded processing the transcript from ${validUrl}. Please try again in a few moments.`;
-        }
-        toast({ title: "YouTube Training Error", description: errorMessage, variant: "destructive" });
-    } finally {
-        setIsProcessingYouTubeUrl(false);
-    }
-  };
-
+  // Removed: handleProcessYouTubeUrl
 
   if (isLoadingAgents || currentAgent === undefined) {
     return (
@@ -398,7 +348,7 @@ export default function KnowledgePage() {
   }
 
   const isVoiceAgent = currentAgent.agentType === 'voice' || currentAgent.agentType === 'hybrid';
-  const isAnyLoading = isLoadingFile || isProcessingUrl || isProcessingPastedText || isProcessingYouTubeUrl;
+  const isAnyLoading = isLoadingFile || isProcessingUrl || isProcessingPastedText; // Removed isProcessingYouTubeUrl
 
   return (
     <div className="grid gap-4 md:gap-6 grid-cols-1 lg:grid-cols-3">
@@ -462,31 +412,7 @@ export default function KnowledgePage() {
                 {isProcessingUrl ? "Fetching Website..." : "Fetch & Train URL"}
             </Button>
             
-            <div className="relative my-3 sm:my-4">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">Or</span>
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-                <Label htmlFor="youtubeUrlInput">Train from YouTube Video URL</Label>
-                <Input id="youtubeUrlInput" type="url" placeholder="e.g., https://www.youtube.com/watch?v=VIDEO_ID" value={youtubeUrlInput} onChange={handleYoutubeUrlInputChange} disabled={isAnyLoading}/>
-            </div>
-             <Alert variant="default" className="p-3 text-xs bg-accent/10 dark:bg-accent/20 border-accent/30 mb-2">
-                <Info className="h-3.5 w-3.5 text-accent" />
-                <AlertTitle className="text-accent text-xs font-medium">YouTube Training Tip</AlertTitle>
-                <AlertDescription className="text-accent/80 dark:text-accent/90 text-[11px]">
-                 Fetches the video's transcript. Ensure the video has accurate, available captions/transcripts.
-                </AlertDescription>
-            </Alert>
-            <Button onClick={handleProcessYouTubeUrl} disabled={isAnyLoading || !youtubeUrlInput.trim()} className={cn("w-full", "btn-gradient-primary")}>
-                {isProcessingYouTubeUrl ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Youtube className="mr-2 h-4 w-4" />}
-                {isProcessingYouTubeUrl ? "Fetching Transcript..." : "Fetch & Train YouTube Video"}
-            </Button>
-
+            {/* Removed YouTube URL Input and Button */}
 
             <div className="relative my-3 sm:my-4">
               <div className="absolute inset-0 flex items-center">
@@ -541,8 +467,7 @@ export default function KnowledgePage() {
                 <Card key={item.id} className="bg-muted/50">
                   <CardHeader className="p-3 sm:p-4">
                     <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                        {(item.fileName.toLowerCase().startsWith('youtube:')) ? <Youtube className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0"/> :
-                         (item.fileName.startsWith('http://') || item.fileName.startsWith('https://')) ? <LinkIcon className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0"/> : 
+                        {(item.fileName.startsWith('http://') || item.fileName.startsWith('https://')) ? <LinkIcon className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0"/> : 
                          (item.fileName.startsWith('Pasted Text')) ? <TextQuote className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0"/> :
                          <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0"/>}
                         <span className="truncate text-sm sm:text-base" title={item.fileName}>{item.fileName}</span>
@@ -553,7 +478,7 @@ export default function KnowledgePage() {
                     {item.summary && (
                       <div>
                         <h4 className="font-semibold text-xs sm:text-sm mb-1">
-                          {item.fileName.toLowerCase().endsWith('.csv') ? "Full Structured Content:" : "Key Information (Summary/Transcript):"}
+                          {item.fileName.toLowerCase().endsWith('.csv') ? "Full Structured Content:" : "Key Information (Summary):"}
                         </h4>
                         <p className="text-xs sm:text-sm text-muted-foreground mb-2 whitespace-pre-wrap max-h-48 overflow-y-auto">{item.summary}</p>
                       </div>
@@ -595,3 +520,5 @@ export default function KnowledgePage() {
     </div>
   );
 }
+
+    
