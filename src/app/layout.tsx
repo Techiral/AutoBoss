@@ -6,17 +6,17 @@ import { AuthProvider } from '@/contexts/AuthContext'; // Import AuthProvider
 
 // Metadata for SEO - specific to this page
 export const metadata: Metadata = {
-  title: "Start Your AI Agency (No Code!) - World's #1 Starter Kit | AutoBoss",
-  description: "Stop wondering 'How to start an AI automation agency?' AutoBoss is the simple, step-by-step starter kit for non-technical founders. Build AI for clients for FREE. Your 2025 AI agency dream starts here.",
-  keywords: "how to start ai automation agency, ai agency starter kit, no-code ai agency, ai agency for beginners, start ai agency step-by-step, ai agency software, ai tools for agencies, build ai agents no code, ai business kit, start ai automation agency 2025, ai agency for non-technical, world's first ai agency kit, ai agency for free, non technical ai agency, AI agency India, AI agency US",
+  title: "AutoBoss: AI Agency Starter Kit - Build AI For Clients (No Code!)",
+  description: "Start your AI Automation Agency today with AutoBoss! The #1 No-Code Starter Kit for non-technical founders to build & sell AI solutions. Your step-by-step guide to AI agency success in 2025. Get Free Early Access!",
+  keywords: "how to start ai automation agency, no-code ai agency, ai agency starter kit, ai agency for beginners, non-technical ai agency, build ai for clients, ai agency software, ai tools for agencies, start ai automation agency 2025, ai business kit for free, world's first ai agency kit, ai agency india, ai agency us",
   openGraph: {
-    title: "AutoBoss: Your AI Agency Dream, Simplified (No Code Needed!)",
-    description: "Ready to start an AI automation agency but don't know how? AutoBoss is the world's FIRST starter kit. Get the tools, templates, and playbook. FREE access for early adopters!",
+    title: "Launch Your AI Agency (No Code!) - AutoBoss: World's First Starter Kit",
+    description: "Stop wondering 'How to start an AI automation agency?' AutoBoss is the simple, step-by-step starter kit. Build AI for clients FREE. Your AI agency dream starts now!",
     type: 'website',
-    url: 'https://YOUR_APP_DOMAIN.com', // Replace with your actual domain
+    url: 'https://YOUR_APP_DOMAIN.com', // ACTION REQUIRED: Replace with your actual domain
     images: [
       {
-        url: 'https://YOUR_APP_DOMAIN.com/og-image-autoboss-starter-kit-v2.png', // Replace with your actual OG image URL (e.g., /og-image.png if in public folder)
+        url: 'https://YOUR_APP_DOMAIN.com/og-image-autoboss-starter-kit-v2.png', // ACTION REQUIRED: Create and replace with your actual OG image URL
         width: 1200,
         height: 630,
         alt: 'AutoBoss - AI Automation Agency Starter Kit: Build AI for Clients, No Code',
@@ -26,11 +26,11 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: "Launch Your AI Agency (Even if You're Not a Techie!) - AutoBoss Starter Kit",
-    description: "Think starting an AI agency is too complex? Think again! AutoBoss is the free, no-code starter kit for 2025. Get your playbook & build client AI today.",
+    title: "AutoBoss: AI Agency Kit for Non-Techies - Start Free!",
+    description: "Think starting an AI agency is hard? AutoBoss is your no-code solution for 2025. Build AI for clients, get your playbook. Free access for a limited time!",
     // site: '@YourTwitterHandle', // Optional: Replace with your Twitter handle
     // creator: '@YourTwitterHandle', // Optional: Replace with your Twitter handle
-    images: ['https://YOUR_APP_DOMAIN.com/twitter-card-autoboss-starter-kit-v2.png'], // Replace with your actual Twitter card image URL (e.g., /twitter-card.png if in public folder)
+    images: ['https://YOUR_APP_DOMAIN.com/twitter-card-autoboss-starter-kit-v2.png'], // ACTION REQUIRED: Create and replace with your actual Twitter card image URL
   },
 };
 
@@ -47,11 +47,9 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700&display=swap" rel="stylesheet" />
         <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet" />
         {/*
-          ACTION REQUIRED: Favicon Setup
-          1. Create your favicon file (e.g., favicon.png). A good size is 32x32px or 64x64px.
-          2. Place this file in your /public folder (e.g., /public/favicon.png).
-          3. The link below is set up for favicon.png. If your file is named differently, update the href.
-             For example, if your new file is named "my-brand-icon.png", change href="/favicon.png" to href="/my-brand-icon.png".
+          Favicon Setup:
+          You've placed 'favicon.png' in your /public folder.
+          The link below is correctly set up for '/favicon.png'.
         */}
         <link rel="icon" type="image/png" href="/favicon.png" />
         {/* For a more complete favicon setup including apple-touch-icon, etc.,

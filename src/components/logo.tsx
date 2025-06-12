@@ -3,28 +3,25 @@ import { cn } from "@/lib/utils";
 import Image from "next/image";
 
 export function Logo({ collapsed, className }: { collapsed?: boolean; className?: string }) {
-  // ACTION REQUIRED: Logo Replacement & Dimension Update
-  // 1. Replace src="/my-company-logo.png" with the path to your new logo image file in the /public folder.
-  //    This new image should contain both your icon AND the "AutoBoss" text.
-  // 2. CRITICAL: Update the width and height attributes below to match the
-  //    actual aspect ratio of your new combined logo image.
-  //    For example, if your new logo is 120px wide and 40px high, set width={120} height={40}
-  //    or a proportional representation like width={90} height={30}.
+  // ACTION REQUIRED: Verify Logo Dimensions
+  // The width and height attributes below are set to 240x80, assuming a 3:1 aspect ratio for high quality.
+  // If your 'public/logo.png' file has DIFFERENT DIMENSIONS,
+  // PLEASE UPDATE the width={240} and height={80} attributes below
+  // to match the ACTUAL aspect ratio and desired base size of your logo.png.
   return (
     <div className={cn(
       "flex items-center gap-2 text-foreground",
       className
     )}>
       <Image
-        src="/my-company-logo.png" // Replace this!
-        alt="AutoBoss Company Logo" // Updated alt text
-        width={96} // Example: Update this to your new logo's width
-        height={32} // Example: Update this to your new logo's height
+        src="/logo.png" // Updated to use your specific file name
+        alt="AutoBoss Company Logo"
+        width={240}  // Assumed width, please verify and adjust if your logo.png is different
+        height={80} // Assumed height, please verify and adjust if your logo.png is different
         className="shrink-0"
-        data-ai-hint="modern tech company logo with text" // Hint updated
+        priority // Adding priority as logos are often LCP elements
+        data-ai-hint="modern tech company logo with text"
       />
-      {/* The text span has been removed as per your request.
-          The logo image above should now contain both the icon and company name. */}
     </div>
   );
 }
