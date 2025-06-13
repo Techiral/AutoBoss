@@ -10,13 +10,6 @@ import { Send, Bot, User, Loader2, Info, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ChatMessage as ChatMessageType, Agent } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
-// Accordion imports are no longer needed here if we remove the AI details display
-// import {
-//   Accordion,
-//   AccordionContent,
-//   AccordionItem,
-//   AccordionTrigger,
-// } from "@/components/ui/accordion";
 import type { useAppContext as UseAppContextType } from "@/app/(app)/layout";
 import { Badge } from "@/components/ui/badge";
 
@@ -49,8 +42,8 @@ const PLACEHOLDER_RESPONSES = [
   "allow me a moment",
 ];
 
-const MAX_AUTO_RETRIES = 1; // Max number of automatic retries for placeholder responses
-const AUTO_RETRY_DELAY_MS = 1000; // Delay before auto-retrying
+const MAX_AUTO_RETRIES = 1; 
+const AUTO_RETRY_DELAY_MS = 1000; 
 
 export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps>(({ agent: initialAgent, appContext, onNewAgentMessage }, ref) => {
   const [messages, setMessages] = useState<ExtendedChatMessage[]>([]);
@@ -134,8 +127,8 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
     if (messageText.trim() === "" || (isLoading && !isAutoRetry) || isInitializing) return;
 
     if (!isAutoRetry) {
-      lastUserMessageRef.current = messageText; // Store the original user message
-      autoRetryCountRef.current = 0; // Reset retry counter for new user message
+      lastUserMessageRef.current = messageText; 
+      autoRetryCountRef.current = 0; 
 
       const userMessage: ExtendedChatMessage = {
         id: Date.now().toString(),
@@ -157,8 +150,8 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: messageText, // Send current messageText (original user msg or retry msg)
-          conversationHistory: conversationHistoryRef.current, // Send the full history up to this point
+          message: messageText, 
+          conversationHistory: conversationHistoryRef.current, 
         }),
       });
 
@@ -178,15 +171,14 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
           sender: 'agent',
           text: agentResponseText,
           timestamp: Date.now(),
-          reasoning: data.reasoning, // Data still received
-          relevantKnowledgeIds: data.relevantKnowledgeIds, // Data still received
+          reasoning: data.reasoning, 
+          relevantKnowledgeIds: data.relevantKnowledgeIds, 
         };
         
         setMessages((prev) => [...prev, agentResponse as ExtendedChatMessage]);
         if (onNewAgentMessage) onNewAgentMessage(agentResponse);
         conversationHistoryRef.current.push(`Agent: ${(agentResponse as ExtendedChatMessage).text}`); 
         
-        // Check for placeholder and attempt auto-retry
         const lowerCaseAgentResponse = agentResponseText.toLowerCase();
         const isPlaceholder = PLACEHOLDER_RESPONSES.some(phrase => lowerCaseAgentResponse.includes(phrase));
 
@@ -194,15 +186,13 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
           console.log(`ChatInterface: Agent responded with placeholder "${agentResponseText}". Attempting auto-retry ${autoRetryCountRef.current + 1}.`);
           autoRetryCountRef.current++;
           setTimeout(() => {
-            // Re-send the *last user message*
             handleSendMessageInternal(lastUserMessageRef.current!, true); 
           }, AUTO_RETRY_DELAY_MS);
-          // Don't setIsLoading(false) yet, as we're retrying
           return; 
         } else if (isPlaceholder) {
           console.log("ChatInterface: Agent responded with placeholder, but max auto-retries reached or no last user message.");
         }
-        autoRetryCountRef.current = 0; // Reset if not a placeholder or retries exhausted
+        autoRetryCountRef.current = 0; 
 
       } else {
          const noReplyMsg: ExtendedChatMessage = {
@@ -232,8 +222,6 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
       conversationHistoryRef.current.push(`Agent: ${errorResponse.text}`);
       autoRetryCountRef.current = 0; 
     } finally {
-      // Only set isLoading to false if not in an auto-retry loop that will continue.
-      // If it was a placeholder and we are retrying, isLoading remains true.
       const lowerCaseAgentResponse = messages[messages.length -1]?.text?.toLowerCase() || "";
       const wasPlaceholderAndRetrying = PLACEHOLDER_RESPONSES.some(phrase => lowerCaseAgentResponse.includes(phrase)) && autoRetryCountRef.current > 0 && autoRetryCountRef.current <= MAX_AUTO_RETRIES;
       
@@ -271,7 +259,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
 
 
   return (
-    <div className="flex flex-col h-full border rounded-lg shadow-sm bg-card">
+    <div className="flex flex-col h-full border rounded-lg shadow-sm bg-card overflow-hidden">
       <div className="p-2 border-b flex flex-col sm:flex-row justify-between items-center gap-2 text-xs">
         <Button
           variant="outline"
@@ -290,61 +278,62 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
             </span>
         </div>
       </div>
-      <ScrollArea className="flex-1 p-3 sm:p-4" ref={scrollAreaRef}>
-        <div className="space-y-3 sm:space-y-4">
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={cn(
-                "flex items-end gap-2",
-                message.sender === "user" ? "justify-end" : "justify-start"
-              )}
-            >
-              {message.sender === "agent" && (
+      <div className="flex-1 min-h-0"> {/* Wrapper for ScrollArea with flex-1 */}
+        <ScrollArea className="h-full" ref={scrollAreaRef}> {/* ScrollArea takes h-full */}
+          <div className="space-y-3 sm:space-y-4 p-3 sm:p-4"> {/* Padding moved here */}
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={cn(
+                  "flex items-end gap-2",
+                  message.sender === "user" ? "justify-end" : "justify-start"
+                )}
+              >
+                {message.sender === "agent" && (
+                  <Avatar className="h-7 w-7 sm:h-8 sm:w-8">
+                    <AvatarFallback><Bot size={16} className="sm:size-18" /></AvatarFallback>
+                  </Avatar>
+                )}
+                <div
+                  className={cn(
+                    "max-w-[75%] sm:max-w-[70%] rounded-lg p-2 sm:p-3 text-sm shadow",
+                    message.sender === "user"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted"
+                  )}
+                >
+                  <p className="whitespace-pre-wrap text-xs sm:text-sm">{message.text}</p>
+                </div>
+                {message.sender === "user" && (
+                  <Avatar className="h-7 w-7 sm:h-8 sm:w-8">
+                    <AvatarFallback><User size={16} className="sm:size-18" /></AvatarFallback>
+                  </Avatar>
+                )}
+              </div>
+            ))}
+            {(isLoading && isInitializing) && messages.length === 0 && (
+              <div className="flex items-end gap-2 justify-start">
                 <Avatar className="h-7 w-7 sm:h-8 sm:w-8">
                   <AvatarFallback><Bot size={16} className="sm:size-18" /></AvatarFallback>
                 </Avatar>
-              )}
-              <div
-                className={cn(
-                  "max-w-[75%] sm:max-w-[70%] rounded-lg p-2 sm:p-3 text-sm shadow",
-                  message.sender === "user"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted"
-                )}
-              >
-                <p className="whitespace-pre-wrap text-xs sm:text-sm">{message.text}</p>
-                {/* AI Details Accordion Removed */}
+                <div className="max-w-[70%] rounded-lg p-2 sm:p-3 text-sm shadow bg-muted">
+                  <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin text-primary" />
+                </div>
               </div>
-              {message.sender === "user" && (
+            )}
+            {isLoading && !isInitializing && messages.length > 0 && messages[messages.length - 1].sender === 'user' && (
+              <div className="flex items-end gap-2 justify-start">
                 <Avatar className="h-7 w-7 sm:h-8 sm:w-8">
-                  <AvatarFallback><User size={16} className="sm:size-18" /></AvatarFallback>
+                  <AvatarFallback><Bot size={16} className="sm:size-18" /></AvatarFallback>
                 </Avatar>
-              )}
-            </div>
-          ))}
-          {(isLoading && isInitializing) && messages.length === 0 && (
-            <div className="flex items-end gap-2 justify-start">
-              <Avatar className="h-7 w-7 sm:h-8 sm:w-8">
-                <AvatarFallback><Bot size={16} className="sm:size-18" /></AvatarFallback>
-              </Avatar>
-              <div className="max-w-[70%] rounded-lg p-2 sm:p-3 text-sm shadow bg-muted">
-                <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin text-primary" />
+                <div className="max-w-[70%] rounded-lg p-2 sm:p-3 text-sm shadow bg-muted">
+                  <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin text-primary" />
+                </div>
               </div>
-            </div>
-          )}
-          {isLoading && !isInitializing && messages.length > 0 && messages[messages.length - 1].sender === 'user' && (
-            <div className="flex items-end gap-2 justify-start">
-              <Avatar className="h-7 w-7 sm:h-8 sm:w-8">
-                <AvatarFallback><Bot size={16} className="sm:size-18" /></AvatarFallback>
-              </Avatar>
-              <div className="max-w-[70%] rounded-lg p-2 sm:p-3 text-sm shadow bg-muted">
-                <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin text-primary" />
-              </div>
-            </div>
-          )}
-        </div>
-      </ScrollArea>
+            )}
+          </div>
+        </ScrollArea>
+      </div>
       <div className="border-t p-2 sm:p-4">
         <form
           onSubmit={handleFormSubmit}
@@ -368,6 +357,4 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
   );
 });
 ChatInterface.displayName = "ChatInterface";
-    
 
-    
