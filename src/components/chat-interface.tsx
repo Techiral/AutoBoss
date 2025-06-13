@@ -259,8 +259,8 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
 
 
   return (
-    <div className="flex flex-col h-full border rounded-lg shadow-sm bg-card overflow-hidden">
-      <div className="p-2 border-b flex flex-col sm:flex-row justify-between items-center gap-2 text-xs">
+    <div className="flex flex-col h-full border rounded-lg shadow-sm bg-card"> {/* Removed overflow-hidden from root */}
+      <div className="p-2 border-b flex flex-col sm:flex-row justify-between items-center gap-2 text-xs"> {/* Header */}
         <Button
           variant="outline"
           size="sm"
@@ -278,9 +278,11 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
             </span>
         </div>
       </div>
-      <div className="flex-1 min-h-0"> {/* Wrapper for ScrollArea with flex-1 */}
-        <ScrollArea className="h-full" ref={scrollAreaRef}> {/* ScrollArea takes h-full */}
-          <div className="space-y-3 sm:space-y-4 p-3 sm:p-4"> {/* Padding moved here */}
+      
+      {/* Message Area Wrapper - This div takes up available space and allows its child (ScrollArea) to scroll */}
+      <div className="flex-1 min-h-0"> 
+        <ScrollArea className="h-full" ref={scrollAreaRef}> 
+          <div className="space-y-3 sm:space-y-4 p-3 sm:p-4"> {/* Message List with padding */}
             {messages.map((message) => (
               <div
                 key={message.id}
@@ -313,28 +315,21 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
             ))}
             {(isLoading && isInitializing) && messages.length === 0 && (
               <div className="flex items-end gap-2 justify-start">
-                <Avatar className="h-7 w-7 sm:h-8 sm:w-8">
-                  <AvatarFallback><Bot size={16} className="sm:size-18" /></AvatarFallback>
-                </Avatar>
-                <div className="max-w-[70%] rounded-lg p-2 sm:p-3 text-sm shadow bg-muted">
-                  <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin text-primary" />
-                </div>
+                <Avatar className="h-7 w-7 sm:h-8 sm:w-8"><AvatarFallback><Bot size={16} /></AvatarFallback></Avatar>
+                <div className="max-w-[70%] rounded-lg p-2 sm:p-3 text-sm shadow bg-muted"><Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin text-primary" /></div>
               </div>
             )}
             {isLoading && !isInitializing && messages.length > 0 && messages[messages.length - 1].sender === 'user' && (
               <div className="flex items-end gap-2 justify-start">
-                <Avatar className="h-7 w-7 sm:h-8 sm:w-8">
-                  <AvatarFallback><Bot size={16} className="sm:size-18" /></AvatarFallback>
-                </Avatar>
-                <div className="max-w-[70%] rounded-lg p-2 sm:p-3 text-sm shadow bg-muted">
-                  <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin text-primary" />
-                </div>
+                <Avatar className="h-7 w-7 sm:h-8 sm:w-8"><AvatarFallback><Bot size={16} /></AvatarFallback></Avatar>
+                <div className="max-w-[70%] rounded-lg p-2 sm:p-3 text-sm shadow bg-muted"><Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin text-primary" /></div>
               </div>
             )}
           </div>
         </ScrollArea>
       </div>
-      <div className="border-t p-2 sm:p-4">
+
+      <div className="border-t p-2 sm:p-4"> {/* Input Area */}
         <form
           onSubmit={handleFormSubmit}
           className="flex items-center gap-2"
@@ -357,4 +352,3 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
   );
 });
 ChatInterface.displayName = "ChatInterface";
-
