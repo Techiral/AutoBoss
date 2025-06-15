@@ -1,0 +1,76 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users collection:
+    // Users can read and write their own user profile document.
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Clients collection:
+    // Authenticated users can create clients for themselves.
+    // Users can read, update, or delete clients they own.
+    match /clients/{clientId} {
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
+    // Agents collection:
+    // Authenticated users can create agents for themselves.
+    // Users can update or delete agents they own.
+    // Authenticated owners can read (get and list) their own agents.
+    // ANYONE can perform a 'get' (read a single document) on an agent
+    // document IF that agent has `isPubliclyShared == true`.
+    match /agents/{agentId} {
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      
+      // Owners can get and list their own agents
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid; 
+      
+      // Anyone can get (read a single document) an agent if it's publicly shared.
+      // This allows the /chat/[agentId] page to work for public agents.
+      // Owner access for 'get' is already covered by the 'read' rule above.
+      allow get: if resource.data.isPubliclyShared == true; 
+    }
+
+    // OutboundQueue collection:
+    // Authenticated users can create new tasks in the queue.
+    match /outboundQueue/{taskId} {
+      allow create: if request.auth != null;
+      // allow read, update, delete: if <your_condition_for_admin_or_backend_worker>; // Example
+    }
+
+    // Roadmap Features: Anyone can read.
+    // Authenticated users can update votes by exactly +1, only affecting the currentVotes field.
+    match /roadmapFeatures/{featureDocId} {
+      allow read: if true;
+      allow update: if request.auth != null &&
+                       request.resource.data.currentVotes == resource.data.currentVotes + 1 &&
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['currentVotes']);
+    }
+
+    // User Votes:
+    // - Documents are named like "{userId}_{featureId}".
+    // - Users can read their own vote documents (by checking resource.data.userId).
+    // - Users can create a vote document if:
+    //   - They are authenticated.
+    //   - The 'userId' field in the document data matches their auth UID.
+    //   - The 'featureId' field exists in the document data.
+    //   - The document's ID ({voteId}) matches the pattern "data.userId + '_' + data.featureId".
+    // This ensures a user can only create one vote document per feature for themselves.
+    match /userVotes/{voteId} {
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null &&
+                       request.resource.data.userId == request.auth.uid &&
+                       request.resource.data.featureId != null &&
+                       voteId == request.resource.data.userId + '_' + request.resource.data.featureId;
+      // No updates or deletes for votes to keep it simple and prevent tampering.
+    }
+  }
+}
+
+    
