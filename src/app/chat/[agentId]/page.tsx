@@ -12,7 +12,8 @@ import { Logo } from "@/components/logo";
 import { db } from '@/lib/firebase';
 import { doc, getDoc, Timestamp } from 'firebase/firestore';
 import { Button } from "@/components/ui/button";
-import { useAppContext } from "@/app/(app)/layout"; // Import useAppContext to get app context
+import { useAppContext } from "@/app/(app)/layout";
+import type { Metadata, ResolvingMetadata } from 'next';
 
 const convertTimestampsToISOForChat = (agentData: any): Agent => {
   const newAgent = { ...agentData };
@@ -30,6 +31,78 @@ const convertTimestampsToISOForChat = (agentData: any): Agent => {
   return newAgent as Agent;
 };
 
+// This type is for the props that generateMetadata will receive
+type Props = {
+  params: { agentId: string }
+}
+
+// Function to generate metadata dynamically
+export async function generateMetadata(
+  { params }: Props,
+  parent: ResolvingMetadata
+): Promise<Metadata> {
+  const agentId = params.agentId;
+  if (!agentId) {
+    return {
+      title: "Chat Agent",
+      description: "Chat with an AI agent.",
+    };
+  }
+
+  try {
+    const agentRef = doc(db, 'agents', agentId as string);
+    const agentSnap = await getDoc(agentRef);
+
+    if (agentSnap.exists()) {
+      const agent = convertTimestampsToISOForChat({ id: agentSnap.id, ...agentSnap.data() });
+      const title = agent.generatedName || agent.name || "AI Chat Agent";
+      const description = agent.ogDescription || agent.description || `Chat with ${title}.`;
+      const imageUrl = agent.agentImageUrl || (await parent).openGraph?.images?.[0]?.url || 'https://YOUR_APP_DOMAIN.com/default-og-image.png'; // Ensure you have a default OG image for your app
+
+      return {
+        title: `${title} - Powered by AutoBoss`,
+        description: description,
+        openGraph: {
+          title: title,
+          description: description,
+          images: [{ url: imageUrl, width: 1200, height: 630, alt: title }], // Standard OG image size
+          type: 'website',
+        },
+        twitter: {
+          card: 'summary_large_image',
+          title: title,
+          description: description,
+          images: [imageUrl],
+        },
+      };
+    }
+  } catch (error) {
+    console.error("Error fetching agent data for metadata:", error);
+  }
+  
+  // Fallback metadata
+  const defaultTitle = "AI Chat Agent - Powered by AutoBoss";
+  const defaultDescription = "Engage in a conversation with an intelligent AI agent.";
+  const defaultOgImage = (await parent).openGraph?.images?.[0]?.url || 'https://YOUR_APP_DOMAIN.com/default-og-image.png'; // Update with your actual domain and default image
+  
+  return {
+    title: defaultTitle,
+    description: defaultDescription,
+     openGraph: {
+      title: defaultTitle,
+      description: defaultDescription,
+      images: [{ url: defaultOgImage, width: 1200, height: 630, alt: "AI Chat Agent" }],
+      type: 'website',
+    },
+    twitter: {
+        card: 'summary_large_image',
+        title: defaultTitle,
+        description: defaultDescription,
+        images: [defaultOgImage],
+    }
+  };
+}
+
 
 export default function PublicChatPage() {
   const params = useParams();
@@ -38,14 +111,12 @@ export default function PublicChatPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Use a try-catch block for useAppContext as this page might be accessed outside the main app layout
   let appContextInstance;
   try {
     appContextInstance = useAppContext();
   } catch (e) {
-    appContextInstance = undefined; // Silently fail if not in context (e.g. direct public access)
+    appContextInstance = undefined; 
   }
-
 
   const agentId = Array.isArray(params.agentId) ? params.agentId[0] : params.agentId;
 
@@ -96,7 +167,7 @@ export default function PublicChatPage() {
      return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4 text-center">
         <Alert variant="destructive" className="max-w-md w-full">
-          <AlertTriangle className="h-6 w-6 sm:h-8 sm:w-8 mx-auto mb-2" />
+          <AlertTriangle className="h-6 w-6 sm:h-8 sm:h-8 mx-auto mb-2" />
           <AlertTitle className="text-lg sm:text-xl mb-1">Error Loading Chat</AlertTitle>
           <AlertDescription className="text-sm">{error}</AlertDescription>
         </Alert>

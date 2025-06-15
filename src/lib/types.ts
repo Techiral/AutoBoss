@@ -98,6 +98,8 @@ export const AgentSchema = z.object({
   generatedGreeting: z.string().optional(),
   createdAt: z.custom<Timestamp>(), // Will be converted to string in app state
   knowledgeItems: z.array(KnowledgeItemSchema).optional(),
+  agentImageUrl: z.string().url().optional().describe("Public URL for the agent's branding image."),
+  ogDescription: z.string().max(300, "OG description should be 300 characters or less.").optional().describe("Custom description for social media sharing."),
 });
 export type Agent = z.infer<typeof AgentSchema>;
 
