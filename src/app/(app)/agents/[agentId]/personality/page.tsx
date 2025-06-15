@@ -16,18 +16,17 @@ import { useParams } from "next/navigation";
 import { useAppContext } from "../../../layout"; 
 import type { Agent, AgentToneType } from "@/lib/types"; 
 import { AgentToneSchema } from "@/lib/types"; 
-import { Loader2, Smile, Settings, HelpCircle, Image as ImageIcon, MessageCircle } from "lucide-react"; 
+import { Loader2, Smile, Settings, HelpCircle, Image as ImageIcon, MessageCircle, AlertTriangle } from "lucide-react"; 
 import { Logo } from "@/components/logo";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"; 
-import { storage } from '@/lib/firebase'; // Import Firebase Storage
-import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import Image from 'next/image';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 
-const MAX_IMAGE_SIZE_MB = 2;
+const MAX_IMAGE_SIZE_BYTES = 100 * 1024; // 100KB limit for Data URI storage
+const MAX_IMAGE_SIZE_MB_DISPLAY = (MAX_IMAGE_SIZE_BYTES / (1024 * 1024)).toFixed(1);
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
 const formSchema = z.object({
@@ -42,17 +41,15 @@ type FormData = z.infer<typeof formSchema>;
 
 export default function PersonalityPage() {
   const [isLoading, setIsLoading] = useState(false);
-  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [currentAgent, setCurrentAgent] = useState<Agent | null | undefined>(undefined); 
   const [generatedDetails, setGeneratedDetails] = useState<CreateAgentOutput | null>(null);
-  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [selectedImageDataUri, setSelectedImageDataUri] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { toast } = useToast();
   const params = useParams();
   const agentId = Array.isArray(params.agentId) ? params.agentId[0] : params.agentId;
-  const { getAgent, updateAgent, isLoadingAgents, currentUser } = useAppContext(); // Added currentUser
+  const { getAgent, updateAgent, isLoadingAgents } = useAppContext();
 
   const { control, register, handleSubmit, formState: { errors }, setValue, watch } = useForm<FormData>({ 
     resolver: zodResolver(formSchema),
@@ -75,8 +72,8 @@ export default function PersonalityPage() {
         setValue("personality", agent.personality || '');
         setValue("agentTone", agent.agentTone || "neutral"); 
         setValue("ogDescription", agent.ogDescription || '');
-        if (agent.agentImageUrl) {
-          setImagePreview(agent.agentImageUrl);
+        if (agent.agentImageDataUri) {
+          setSelectedImageDataUri(agent.agentImageDataUri);
         }
         if (agent.generatedName && agent.generatedPersona && agent.generatedGreeting) {
             setGeneratedDetails({
@@ -95,74 +92,44 @@ export default function PersonalityPage() {
   const handleImageFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (file.size > MAX_IMAGE_SIZE_MB * 1024 * 1024) {
-        toast({ title: "Image Too Large", description: `Please select an image smaller than ${MAX_IMAGE_SIZE_MB}MB.`, variant: "destructive" });
+      if (file.size > MAX_IMAGE_SIZE_BYTES) {
+        toast({ title: "Image Too Large", description: `Please select an image smaller than ${MAX_IMAGE_SIZE_MB_DISPLAY}MB. Larger images may not save correctly or impact performance.`, variant: "destructive" });
         return;
       }
       if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
         toast({ title: "Invalid Image Type", description: "Please select a JPG, PNG, WEBP, or GIF image.", variant: "destructive" });
         return;
       }
-      setSelectedImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
+      
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSelectedImageDataUri(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   };
   
   const removeImage = async () => {
-    if (!currentAgent?.agentImageUrl || !currentAgent?.userId || !currentAgent?.id) return;
-    setIsUploadingImage(true); // Use same loading state
+    if (!currentAgent) return;
+    setIsLoading(true); // Use general loading state
     try {
-      const imagePath = `agent_images/${currentAgent.userId}/${currentAgent.id}/profile_image`;
-      const imageToDeleteRef = storageRef(storage, imagePath);
-      await deleteObject(imageToDeleteRef);
-      
-      updateAgent({ ...currentAgent, agentImageUrl: undefined });
-      setImagePreview(null);
-      setSelectedImageFile(null);
+      updateAgent({ ...currentAgent, agentImageDataUri: undefined });
+      setSelectedImageDataUri(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
       toast({ title: "Image Removed", description: "Agent image has been removed." });
     } catch (error: any) {
-      if (error.code === 'storage/object-not-found') {
-        // If not found in storage, just clear it from DB and UI
-        updateAgent({ ...currentAgent, agentImageUrl: undefined });
-        setImagePreview(null);
-        setSelectedImageFile(null);
-        toast({ title: "Image Cleared", description: "Agent image reference cleared." });
-      } else {
-        console.error("Error removing image:", error);
-        toast({ title: "Error Removing Image", description: error.message, variant: "destructive" });
-      }
+      console.error("Error removing image:", error);
+      toast({ title: "Error Removing Image", description: error.message, variant: "destructive" });
     } finally {
-      setIsUploadingImage(false);
+      setIsLoading(false);
     }
   };
 
 
   const onSubmit: SubmitHandler<FormData> = async (data) => {
-    if (!currentAgent || !currentUser) return;
+    if (!currentAgent) return;
 
     setIsLoading(true);
-    let agentImageUrl = currentAgent.agentImageUrl; // Keep existing if no new file
-
-    if (selectedImageFile) {
-      setIsUploadingImage(true);
-      try {
-        const imagePath = `agent_images/${currentUser.uid}/${currentAgent.id}/profile_image`;
-        const imageToUploadRef = storageRef(storage, imagePath);
-        await uploadBytes(imageToUploadRef, selectedImageFile);
-        agentImageUrl = await getDownloadURL(imageToUploadRef);
-        setSelectedImageFile(null); // Clear after successful upload
-        toast({ title: "Image Uploaded", description: "Agent image updated successfully." });
-      } catch (error: any) {
-        console.error("Error uploading image:", error);
-        toast({ title: "Image Upload Failed", description: error.message, variant: "destructive" });
-        setIsUploadingImage(false);
-        setIsLoading(false);
-        return; // Stop submission if image upload fails
-      } finally {
-        setIsUploadingImage(false);
-      }
-    }
     
     try {
       const agentDescriptionForAI = `Name: ${data.name}\nRole: ${data.role}\nPersonality: ${data.personality}\nTone: ${data.agentTone}`;
@@ -183,7 +150,7 @@ export default function PersonalityPage() {
         generatedName: result.agentName,
         generatedPersona: result.agentPersona,
         generatedGreeting: result.agentGreeting,
-        agentImageUrl: agentImageUrl,
+        agentImageDataUri: selectedImageDataUri || undefined, // Save the selected Data URI
         ogDescription: data.ogDescription || undefined,
       };
       updateAgent({ ...currentAgent, ...updatedAgentData });
@@ -325,12 +292,14 @@ export default function PersonalityPage() {
                     Agent Image (for Social Sharing)
                     <Tooltip>
                         <TooltipTrigger asChild><HelpCircle className="w-3.5 h-3.5 ml-1.5 text-muted-foreground cursor-help"/></TooltipTrigger>
-                        <TooltipContent><p>Upload an image to represent this agent (e.g., logo, character). Recommended: square, &lt; {MAX_IMAGE_SIZE_MB}MB.</p></TooltipContent>
+                        <TooltipContent side="top">
+                            <p className="max-w-xs">Upload an image (e.g., logo). <span className="font-bold text-destructive">IMPORTANT:</span> Keep file size under {MAX_IMAGE_SIZE_MB_DISPLAY}MB (e.g. 100KB). Larger images may fail to save or cause issues.</p>
+                        </TooltipContent>
                     </Tooltip>
                 </Label>
-                {imagePreview && (
+                {selectedImageDataUri && (
                   <div className="my-2 relative w-32 h-32 sm:w-40 sm:h-40 rounded-md overflow-hidden border">
-                    <Image src={imagePreview} alt="Agent image preview" layout="fill" objectFit="cover" />
+                    <Image src={selectedImageDataUri} alt="Agent image preview" layout="fill" objectFit="cover" />
                   </div>
                 )}
                 <Input 
@@ -341,13 +310,24 @@ export default function PersonalityPage() {
                     ref={fileInputRef}
                     className="text-xs"
                 />
-                {currentAgent.agentImageUrl && !selectedImageFile && (
-                     <Button type="button" variant="outline" size="sm" onClick={removeImage} disabled={isUploadingImage || isLoading} className="text-xs mt-1">
-                        {isUploadingImage ? <Loader2 className="mr-1.5 h-3 w-3 animate-spin"/> : null}
+                {currentAgent.agentImageDataUri && !selectedImageDataUri && ( // Show remove if there's a saved image and no new one selected
+                     <Button type="button" variant="outline" size="sm" onClick={removeImage} disabled={isLoading} className="text-xs mt-1">
+                        {isLoading ? <Loader2 className="mr-1.5 h-3 w-3 animate-spin"/> : null}
                         Remove Current Image
                     </Button>
                 )}
-                 <p className="text-xs text-muted-foreground">Upload a square image (e.g., 400x400px). Max {MAX_IMAGE_SIZE_MB}MB. JPG, PNG, GIF, WEBP.</p>
+                 {selectedImageDataUri && currentAgent.agentImageDataUri !== selectedImageDataUri && ( // Show remove if a new image is staged
+                     <Button type="button" variant="outline" size="sm" onClick={() => { setSelectedImageDataUri(currentAgent.agentImageDataUri || null); if(fileInputRef.current) fileInputRef.current.value = ""; }} disabled={isLoading} className="text-xs mt-1">
+                        Cancel Change
+                    </Button>
+                 )}
+                 <Alert variant="default" className="mt-2 p-2 text-xs bg-amber-500/10 dark:bg-amber-500/20 border-amber-500/40">
+                    <AlertTriangle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400"/>
+                    <AlertTitle className="text-amber-700 dark:text-amber-300 text-xs font-medium">Image Size Limit!</AlertTitle>
+                    <AlertDescription className="text-amber-600/90 dark:text-amber-200/90 text-[10px]">
+                        Use small images (e.g. &lt; {MAX_IMAGE_SIZE_MB_DISPLAY}MB, like 100KB). Large images will fail to save or cause performance issues.
+                    </AlertDescription>
+                </Alert>
             </div>
              <div className="space-y-1.5">
                 <Label htmlFor="ogDescription" className="flex items-center">
@@ -364,9 +344,9 @@ export default function PersonalityPage() {
         </Card>
 
         <div className="md:col-span-3 mt-2 sm:mt-0">
-          <Button type="submit" disabled={isLoading || isUploadingImage} className={cn("w-full sm:w-auto", "btn-gradient-primary")}>
-            {(isLoading || isUploadingImage) ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            {(isLoading || isUploadingImage) ? "Saving Changes..." : "Save All Changes & Regenerate Details"}
+          <Button type="submit" disabled={isLoading} className={cn("w-full sm:w-auto", "btn-gradient-primary")}>
+            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            {isLoading ? "Saving Changes..." : "Save All Changes & Regenerate Details"}
           </Button>
         </div>
       </div>
@@ -374,3 +354,4 @@ export default function PersonalityPage() {
     </TooltipProvider>
   );
 }
+

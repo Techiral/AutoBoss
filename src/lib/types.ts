@@ -98,7 +98,7 @@ export const AgentSchema = z.object({
   generatedGreeting: z.string().optional(),
   createdAt: z.custom<Timestamp>(), // Will be converted to string in app state
   knowledgeItems: z.array(KnowledgeItemSchema).optional(),
-  agentImageUrl: z.string().url().optional().describe("Public URL for the agent's branding image."),
+  agentImageDataUri: z.string().optional().describe("Base64 Data URI for the agent's branding image. Keep very small!"),
   ogDescription: z.string().max(300, "OG description should be 300 characters or less.").optional().describe("Custom description for social media sharing."),
 });
 export type Agent = z.infer<typeof AgentSchema>;
@@ -134,3 +134,4 @@ export const OutboundTaskPayloadSchema = z.object({
   scheduledAt: z.string().datetime({ offset: true }).optional().describe("Optional ISO 8601 timestamp for scheduled sending."),
 });
 export type OutboundTaskPayload = z.infer<typeof OutboundTaskPayloadSchema>;
+
