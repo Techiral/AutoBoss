@@ -62,6 +62,7 @@ interface AppContextType {
   clearAllFirebaseData: () => Promise<void>;
   isLoadingAgents: boolean;
   isLoadingClients: boolean;
+  currentUserUidOnLoad: string | null; // For debugging
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -86,8 +87,14 @@ const convertFirestoreTimestampToISO = (data: any, fields: string[]): any => {
       if (item.uploadedAt && item.uploadedAt.toDate) {
         return { ...item, uploadedAt: item.uploadedAt.toDate().toISOString() };
       }
+      if (item.uploadedAt && typeof item.uploadedAt === 'object' && item.uploadedAt._seconds) { // Handle already serialized-like structure if any
+         return { ...item, uploadedAt: new Date(item.uploadedAt._seconds * 1000).toISOString() };
+      }
       return item;
     });
+  }
+   if (newData.sharedAt && newData.sharedAt.toDate) {
+    newData.sharedAt = newData.sharedAt.toDate().toISOString();
   }
   return newData;
 };
@@ -100,6 +107,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [isContextInitialized, setIsContextInitialized] = useState(false);
   const [isLoadingAgents, setIsLoadingAgents] = useState(true);
   const [isLoadingClients, setIsLoadingClients] = useState(true);
+  const [currentUserUidOnLoad, setCurrentUserUidOnLoad] = useState<string | null>(null);
   const { toast } = useToast();
   const { currentUser, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -126,13 +134,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (authLoading) {
-      setIsLoadingAgents(false);
-      setIsLoadingClients(false);
+      // Don't set loading to false here, let the auth state change handle it
+      console.log("AppLayout: Auth loading, waiting...");
       setIsContextInitialized(false);
       return;
     }
     if (!currentUser) {
+       console.log("AppLayout: No current user, authLoading is false.");
       if (pathname !== '/login' && pathname !== '/signup' && !pathname.startsWith('/chat/') && pathname !== '/playbook' && pathname !== '/templates' && pathname !== '/support') {
+        console.log("AppLayout: Redirecting to login from", pathname);
         router.push('/login');
       } else {
         setIsLoadingAgents(false);
@@ -140,12 +150,25 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         setIsContextInitialized(true);
       }
     } else {
+      console.log("AppLayout: Current user found (UID:", currentUser.uid, "), fetching data.");
+      setCurrentUserUidOnLoad(currentUser.uid); // Store UID for logging
       const fetchData = async () => {
-        if (!currentUser) return;
+        if (!currentUser || !currentUser.uid) { // Explicitly check currentUser.uid
+          console.error("AppLayout: fetchData called but currentUser or currentUser.uid is null/undefined. UID:", currentUser?.uid);
+          setIsLoadingAgents(false);
+          setIsLoadingClients(false);
+          setIsContextInitialized(true); // Mark as initialized to prevent infinite loading screen
+          toast({ title: "Authentication Error", description: "Could not verify user. Please try logging in again.", variant: "destructive" });
+          router.push('/login'); // Redirect to login if critical auth info is missing
+          return;
+        }
+        
+        console.log("AppLayout: Fetching data for user:", currentUser.uid);
         setIsLoadingAgents(true);
         setIsLoadingClients(true);
         try {
           // Fetch Clients
+          console.log("AppLayout: Querying clients for userId:", currentUser.uid);
           const clientQuery = query(collection(db, CLIENTS_COLLECTION), where("userId", "==", currentUser.uid));
           const clientSnapshot = await getDocs(clientQuery);
           const fetchedClients: Client[] = [];
@@ -153,9 +176,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             fetchedClients.push(convertFirestoreTimestampToISO({ id: doc.id, ...doc.data() }, ['createdAt']) as Client);
           });
           setClients(fetchedClients);
+          console.log("AppLayout: Fetched clients:", fetchedClients.length);
           setIsLoadingClients(false);
 
           // Fetch Agents
+          console.log("AppLayout: Querying agents for userId:", currentUser.uid);
           const agentQuery = query(collection(db, AGENTS_COLLECTION), where("userId", "==", currentUser.uid));
           const agentSnapshot = await getDocs(agentQuery);
           const fetchedAgents: Agent[] = [];
@@ -164,18 +189,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             if ('flow' in agentData) {
               delete (agentData as any).flow;
             }
-            fetchedAgents.push(convertFirestoreTimestampToISO(agentData, ['createdAt']) as Agent);
+            fetchedAgents.push(convertFirestoreTimestampToISO(agentData, ['createdAt', 'sharedAt']) as Agent);
           });
           setAgents(fetchedAgents);
+          console.log("AppLayout: Fetched agents:", fetchedAgents.length);
           setIsLoadingAgents(false);
 
-        } catch (error) {
-          console.error("Error fetching data from Firestore:", error);
-          toast({ title: "Error Loading Data", description: "Could not load your workspace data.", variant: "destructive" });
+        } catch (error: any) {
+          console.error("AppLayout: Error fetching data from Firestore:", error.message, error.code, error.stack);
+          toast({ title: "Error Loading Workspace", description: `Could not load your data: ${error.message}. Please check console for details.`, variant: "destructive" });
           setIsLoadingAgents(false);
           setIsLoadingClients(false);
         } finally {
           setIsContextInitialized(true);
+           console.log("AppLayout: Data fetching process complete. isContextInitialized:", true);
         }
       };
       fetchData();
@@ -197,10 +224,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         createdAt: newClientTimestamp,
       };
       if (clientData.website !== undefined) {
-        dataToSave.website = clientData.website; 
+        dataToSave.website = clientData.website;
       }
       if (clientData.description !== undefined) {
-        dataToSave.description = clientData.description; 
+        dataToSave.description = clientData.description;
       }
 
       await setDoc(doc(db, CLIENTS_COLLECTION, newClientId), dataToSave);
@@ -264,16 +291,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         createdAt: Timestamp.now() as any, 
         knowledgeItems: [],
         agentTone: agentData.agentTone || "neutral",
+        isPubliclyShared: false, // Default value
+        sharedAt: null, // Default value
       };
 
       const { id, ...dataToSave } = newAgentWithDetails;
       const saveData = {
         ...dataToSave,
-        createdAt: dataToSave.createdAt instanceof Timestamp ? dataToSave.createdAt : Timestamp.fromDate(new Date(dataToSave.createdAt as string))
+        createdAt: dataToSave.createdAt instanceof Timestamp ? dataToSave.createdAt : Timestamp.fromDate(new Date(dataToSave.createdAt as string)),
+        sharedAt: dataToSave.sharedAt instanceof Timestamp ? dataToSave.sharedAt : (dataToSave.sharedAt ? Timestamp.fromDate(new Date(dataToSave.sharedAt as string)) : null)
       };
 
       await setDoc(doc(db, AGENTS_COLLECTION, newAgentId), saveData);
-      const agentForState = convertFirestoreTimestampToISO(newAgentWithDetails, ['createdAt']) as Agent;
+      const agentForState = convertFirestoreTimestampToISO(newAgentWithDetails, ['createdAt', 'sharedAt']) as Agent;
       setAgents((prevAgents) => [...prevAgents, agentForState]);
       return agentForState;
     } catch (error) {
@@ -296,6 +326,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       if (typeof finalDataToUpdate.createdAt === 'string') {
         finalDataToUpdate.createdAt = Timestamp.fromDate(new Date(finalDataToUpdate.createdAt));
       }
+      if (typeof finalDataToUpdate.sharedAt === 'string') {
+        finalDataToUpdate.sharedAt = Timestamp.fromDate(new Date(finalDataToUpdate.sharedAt));
+      } else if (finalDataToUpdate.sharedAt === null) {
+        finalDataToUpdate.sharedAt = null;
+      }
+
+
       if (finalDataToUpdate.knowledgeItems) {
         finalDataToUpdate.knowledgeItems = finalDataToUpdate.knowledgeItems.map((item: any) => {
           if (typeof item.uploadedAt === 'string') {
@@ -310,7 +347,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       await setDoc(agentRef, finalDataToUpdate, { merge: true });
       setAgents((prevAgents) =>
         prevAgents.map((agent) =>
-          agent.id === updatedAgent.id ? convertFirestoreTimestampToISO(updatedAgent, ['createdAt']) as Agent : agent
+          agent.id === updatedAgent.id ? convertFirestoreTimestampToISO(updatedAgent, ['createdAt', 'sharedAt']) as Agent : agent
         )
       );
     } catch (error) {
@@ -416,7 +453,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [currentUser, toast]);
 
   const renderContent = () => {
-    if (authLoading || (isLoadingAgents && isLoadingClients && currentUser) ) {
+    if (authLoading || (!isContextInitialized && currentUser)) {
+      console.log("AppLayout: Render condition - Auth loading or context not initialized with user. AuthLoading:", authLoading, "IsContextInitialized:", isContextInitialized, "CurrentUser:", !!currentUser);
       return (
         <div className="flex flex-col items-center justify-center flex-1 p-4">
           <Logo className="mb-4 h-8 sm:h-10" />
@@ -426,6 +464,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       );
     }
     if (!authLoading && !currentUser && !(pathname === '/login' || pathname === '/signup' || pathname.startsWith('/chat/') || pathname === '/playbook' || pathname === '/templates' || pathname === '/support')) {
+        console.log("AppLayout: Render condition - Not auth loading, no current user, not public page. Pathname:", pathname);
       return (
         <div className="flex flex-col items-center justify-center flex-1 p-4 text-center">
             <LogIn className="h-10 w-10 sm:h-12 sm:h-12 text-primary mb-3" />
@@ -433,9 +472,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       );
     }
-    if (isContextInitialized || ( (!authLoading && !currentUser) && (pathname === '/login' || pathname === '/signup' || pathname.startsWith('/chat/') || pathname === '/playbook' || pathname === '/templates' || pathname === '/support') ) ) {
+    // If context is initialized OR it's a public page and auth is done (even if no user)
+    if (isContextInitialized || (!authLoading && (pathname === '/login' || pathname === '/signup' || pathname.startsWith('/chat/') || pathname === '/playbook' || pathname === '/templates' || pathname === '/support'))) {
+      console.log("AppLayout: Render condition - Context initialized or public page. Children will be rendered.");
       return children;
     }
+    // Fallback loading for edge cases
+    console.log("AppLayout: Render condition - Fallback loading state.");
     return (
        <div className="flex items-center justify-center flex-1">
           <Loader2 className="h-10 w-10 sm:h-12 sm:h-12 animate-spin text-primary" />
@@ -461,6 +504,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         clearAllFirebaseData,
         isLoadingAgents,
         isLoadingClients,
+        currentUserUidOnLoad,
     }}>
       <SidebarProvider defaultOpen={true}>
         <AppSidebar />
