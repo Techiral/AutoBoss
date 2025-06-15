@@ -98,8 +98,15 @@ export const AgentSchema = z.object({
   generatedGreeting: z.string().optional(),
   createdAt: z.custom<Timestamp>(), // Will be converted to string in app state
   knowledgeItems: z.array(KnowledgeItemSchema).optional(),
-  agentImageDataUri: z.string().optional().describe("Base64 Data URI for the agent's branding image. Keep very small!"),
+  agentImageDataUri: z.string().optional().describe("Base64 Data URI for the agent's branding image. Keep very small for Firestore!"),
   ogDescription: z.string().max(300, "OG description should be 300 characters or less.").optional().describe("Custom description for social media sharing."),
+  isPubliclyShared: z.boolean().optional().default(false),
+  sharedAt: z.custom<Timestamp>().optional().nullable(),
+  showcaseMetrics: z.object({
+    queriesHandled: z.number().optional(),
+    customMetricLabel: z.string().optional(),
+    customMetricValue: z.string().optional(),
+  }).optional(),
 });
 export type Agent = z.infer<typeof AgentSchema>;
 

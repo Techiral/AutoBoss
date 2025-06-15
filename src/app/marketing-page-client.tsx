@@ -3,7 +3,7 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Zap, Brain, Rocket, Eye, Palette, BarChart3, PlayCircle, Star, Menu, X as CloseIcon, ShieldCheck, Smile, TrendingUp, SearchCode, Edit3, Handshake, Info, Layers, LifeBuoy, Users, Filter, UploadCloud, Share2, DollarSign, Store, Users2, Briefcase, BotIcon, LayoutGrid, Settings, UserCheck, AlertTriangle, BookOpen, MessageSquarePlus, GitFork, Gauge, Languages, CheckCircle, Users as ClientIcon, Lightbulb, Book } from "lucide-react";
+import { ArrowRight, Zap, Brain, Rocket, Eye, Palette, BarChart3, PlayCircle, Star, Menu, X as CloseIcon, ShieldCheck, Smile, TrendingUp, SearchCode, Edit3, Handshake, Info, Layers, LifeBuoy, Users, Filter, UploadCloud, Share2, DollarSign, Store, Users2, Briefcase, BotIcon, LayoutGrid, Settings, UserCheck, AlertTriangle, BookOpen, MessageSquarePlus, GitFork, Gauge, Languages, CheckCircle, Users as ClientIcon, Lightbulb, Book, PackageSearch } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { Logo } from "@/components/logo";
@@ -81,6 +81,7 @@ export default function MarketingPageClient() {
   const navLinks = [
     { href: "#value", label: "How It Helps" },
     { href: "#how-it-works", label: "How It Works" },
+    { href: "/showcase", label: "Agent Showcase" },
     { href: "/playbook", label: "Client Playbook" },
     { href: "/templates", label: "AI Templates" },
     { href: "/support", label: "Help Center" },
@@ -353,6 +354,7 @@ export default function MarketingPageClient() {
             <p className="text-[10px] text-muted-foreground">&copy; {new Date().getFullYear()} AutoBoss.</p>
           </div>
           <nav className="flex flex-wrap justify-center gap-1 sm:gap-2 mt-1 sm:mt-0">
+            <Link href="/showcase" className="text-[10px] text-muted-foreground hover:text-primary transition-colors" prefetch={false}>Agent Showcase</Link>
             <Link href="/playbook" className="text-[10px] text-muted-foreground hover:text-primary transition-colors" prefetch={false}>Client Playbook</Link>
             <Link href="/templates" className="text-[10px] text-muted-foreground hover:text-primary transition-colors" prefetch={false}>AI Templates</Link>
             <Link href="/support" className="text-[10px] text-muted-foreground hover:text-primary transition-colors" prefetch={false}>Help Center</Link>

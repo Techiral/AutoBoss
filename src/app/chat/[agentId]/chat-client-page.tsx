@@ -1,8 +1,8 @@
 
-"use client"; // This component handles client-side logic
+"use client"; 
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation"; // Removed useParams as agentId is passed as prop
+import { useRouter } from "next/navigation"; 
 import Link from "next/link";
 import { ChatInterface } from "@/components/chat-interface";
 import type { Agent } from "@/lib/types";
@@ -10,15 +10,19 @@ import { Loader2, AlertTriangle } from "lucide-react";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Logo } from "@/components/logo";
 import { db } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore'; // Removed Timestamp as it's handled by helper
+import { doc, getDoc } from 'firebase/firestore'; 
 import { Button } from "@/components/ui/button";
-import { useAppContext } from "@/app/(app)/layout"; // Adjusted import path assuming standard structure
+import { useAppContext } from "@/app/(app)/layout"; 
+import { cn } from "@/lib/utils";
 
-// Helper to convert Firestore Timestamps in agent data (can be shared or defined locally if not already)
+
 const convertTimestampsToISOForChat = (agentData: any): Agent => {
   const newAgent = { ...agentData };
   if (newAgent.createdAt && newAgent.createdAt.toDate) {
     newAgent.createdAt = newAgent.createdAt.toDate().toISOString();
+  }
+  if (newAgent.sharedAt && newAgent.sharedAt.toDate) { // Added sharedAt
+    newAgent.sharedAt = newAgent.sharedAt.toDate().toISOString();
   }
   if (newAgent.knowledgeItems) {
     newAgent.knowledgeItems = newAgent.knowledgeItems.map((item: any) => {
@@ -40,11 +44,16 @@ export default function ChatClientPage({ agentId }: ChatClientPageProps) {
   const [agent, setAgent] = useState<Agent | null | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [appDomain, setAppDomain] = useState("");
   
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setAppDomain(window.location.origin);
+    }
+  }, []);
+
   let appContextInstance;
   try {
-    // This might still throw an error if ChatClientPage is rendered outside AppContext,
-    // which is expected for a public page. We catch it.
     appContextInstance = useAppContext();
   } catch (e) {
     appContextInstance = undefined; 
@@ -66,7 +75,14 @@ export default function ChatClientPage({ agentId }: ChatClientPageProps) {
 
         if (agentSnap.exists()) {
           const agentData = agentSnap.data();
-          setAgent(convertTimestampsToISOForChat({ id: agentSnap.id, ...agentData }));
+           const convertedAgent = convertTimestampsToISOForChat({ id: agentSnap.id, ...agentData });
+          // Ensure agent is publicly shared or user is authenticated app owner (simplified check here)
+          if (convertedAgent.isPubliclyShared || appContextInstance?.currentUser?.uid === convertedAgent.userId) {
+            setAgent(convertedAgent);
+          } else {
+            setError(`Access denied. This agent is not publicly shared.`);
+            setAgent(null);
+          }
         } else {
           setError(`Agent with ID "${agentId}" not found.`);
           setAgent(null);
@@ -81,7 +97,7 @@ export default function ChatClientPage({ agentId }: ChatClientPageProps) {
     };
 
     fetchAgent();
-  }, [agentId]);
+  }, [agentId, appContextInstance]);
 
   if (isLoading) {
     return (
@@ -117,7 +133,7 @@ export default function ChatClientPage({ agentId }: ChatClientPageProps) {
          <Alert variant="destructive" className="max-w-md w-full">
             <AlertTriangle className="h-6 w-6 sm:h-8 sm:h-8 mx-auto mb-2" />
             <AlertTitle className="text-lg sm:text-xl mb-1">Agent Not Found</AlertTitle>
-            <AlertDescription className="text-sm">The specified agent could not be loaded.</AlertDescription>
+            <AlertDescription className="text-sm">The specified agent could not be loaded or access is denied.</AlertDescription>
         </Alert>
          <div className="mt-6 sm:mt-8">
            <Link href="/" aria-label="AutoBoss Homepage">
@@ -128,6 +144,8 @@ export default function ChatClientPage({ agentId }: ChatClientPageProps) {
       </div>
     );
   }
+
+  const poweredByLink = appDomain || "https://autoboss.com"; // Fallback, should be set
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
@@ -146,8 +164,13 @@ export default function ChatClientPage({ agentId }: ChatClientPageProps) {
             </div>
         </main>
          <footer className="text-center p-3 sm:p-4 border-t text-xs text-muted-foreground">
-            Powered by AutoBoss
+            {agent.isPubliclyShared ? (
+                <>Powered by <Link href={poweredByLink} target="_blank" rel="noopener noreferrer" className="hover:underline text-primary">AutoBoss</Link></>
+            ) : (
+                "AI Agent"
+            )}
         </footer>
     </div>
   );
 }
+

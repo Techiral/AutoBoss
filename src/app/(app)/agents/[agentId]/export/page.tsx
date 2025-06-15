@@ -1,15 +1,15 @@
 
 "use client";
 
-import { useState, useEffect, useRef } from "react"; // Added useRef here
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Copy, Check, Globe, Code, Server, MessageSquare, Info, ShieldCheck, Share2, Mic, PhoneCall, Loader2, ExternalLink } from "lucide-react";
+import { Copy, Check, Globe, Code, Server, MessageSquare, Info, ShieldCheck, Share2, Mic, PhoneCall, Loader2, ExternalLink, Eye, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAppContext } from "../../../layout";
 import type { Agent } from "@/lib/types";
@@ -17,11 +17,13 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
+import { Timestamp } from "firebase/firestore";
 
 export default function ExportAgentPage() {
   const params = useParams();
   const router = useRouter();
-  const { getAgent } = useAppContext();
+  const { getAgent, updateAgent } = useAppContext(); // Added updateAgent
   const [agent, setAgent] = useState<Agent | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const { toast } = useToast();
@@ -30,6 +32,8 @@ export default function ExportAgentPage() {
   const [twilioAccountSid, setTwilioAccountSid] = useState("");
   const [twilioAuthToken, setTwilioAuthToken] = useState("");
   const [twilioPhoneNumber, setTwilioPhoneNumber] = useState("");
+  const [isPubliclyShared, setIsPubliclyShared] = useState(false);
+  const [isSavingShareSetting, setIsSavingShareSetting] = useState(false);
 
   const agentId = Array.isArray(params.agentId) ? params.agentId[0] : params.agentId;
 
@@ -43,6 +47,9 @@ export default function ExportAgentPage() {
     if (agentId) {
       const foundAgent = getAgent(agentId as string);
       setAgent(foundAgent || null);
+      if (foundAgent) {
+        setIsPubliclyShared(foundAgent.isPubliclyShared || false);
+      }
     }
   }, [agentId, getAgent]);
 
@@ -61,8 +68,8 @@ export default function ExportAgentPage() {
   const apiEndpointChat = agent && baseUrl ? `${baseUrl}/api/agents/${agent.id}/chat` : "";
   const apiEndpointVoice = agent && baseUrl ? `${baseUrl}/api/agents/${agent.id}/voice-hook` : "";
 
-  const primaryHslRef = useRef("217 91% 58%"); // Default primary HSL
-  const primaryFgHslRef = useRef("210 100% 98%"); // Default primary-foreground HSL
+  const primaryHslRef = useRef("217 91% 58%"); 
+  const primaryFgHslRef = useRef("210 100% 98%");
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -74,6 +81,10 @@ export default function ExportAgentPage() {
     }
   }, []);
 
+  const poweredByAttribution = `
+    <div style="font-family: sans-serif; text-align: center; font-size: 10px; color: #aaa; padding: 5px 0; margin-top: 5px; border-top: 1px solid #eee;">
+        Powered by <a href="${baseUrl}" target="_blank" style="color: #888; text-decoration: none;">AutoBoss</a>
+    </div>`;
 
   const chatLauncherScript = agent && baseUrl ? `
 <script type="text/javascript">
@@ -87,6 +98,7 @@ export default function ExportAgentPage() {
     const HEADER_BG_COLOR = LAUNCHER_BG_COLOR;
     const HEADER_FG_COLOR = LAUNCHER_FG_COLOR;
     const WIDGET_BORDER_COLOR = '#e0e0e0';
+    const POWERED_BY_HTML = \`${agent.isPubliclyShared ? poweredByAttribution.replace(/\n\s*/g, '') : ''}\`;
 
     const styles = \`
         #autoboss-launcher-button {
@@ -121,8 +133,9 @@ export default function ExportAgentPage() {
             font-weight: 300; cursor: pointer; line-height: 1; padding: 0 5px; opacity: 0.8;
         }
         #autoboss-widget-close-button:hover { opacity: 1; }
-        #autoboss-widget-iframe-wrapper { flex-grow: 1; overflow: hidden; }
+        #autoboss-widget-iframe-wrapper { flex-grow: 1; overflow: hidden; position: relative; }
         #autoboss-widget-container iframe { width: 100%; height: 100%; border: none; }
+        #autoboss-powered-by { position: absolute; bottom: 0; left: 0; right: 0; background: #fff; z-index: 1; }
     \`;
     const styleSheet = document.createElement("style"); styleSheet.type = "text/css"; styleSheet.innerText = styles; document.head.appendChild(styleSheet);
     const launcherButton = document.createElement('button'); launcherButton.id = 'autoboss-launcher-button'; launcherButton.title = \`Chat with \${AGENT_NAME}\`;
@@ -135,7 +148,17 @@ export default function ExportAgentPage() {
     const iframeWrapper = document.createElement('div'); iframeWrapper.id = 'autoboss-widget-iframe-wrapper'; widgetContainer.appendChild(iframeWrapper);
     let iframe = null;
     function openWidget() {
-        if (!iframe) { iframe = document.createElement('iframe'); iframe.src = CHAT_URL; iframeWrapper.appendChild(iframe); }
+        if (!iframe) { 
+            iframe = document.createElement('iframe'); iframe.src = CHAT_URL; 
+            iframeWrapper.appendChild(iframe); 
+            if (POWERED_BY_HTML) { 
+                const poweredByDiv = document.createElement('div'); 
+                poweredByDiv.id = 'autoboss-powered-by'; 
+                poweredByDiv.innerHTML = POWERED_BY_HTML; 
+                iframeWrapper.appendChild(poweredByDiv);
+                iframe.style.height = 'calc(100% - 25px)'; // Adjust iframe height if attribution is present
+            }
+        }
         widgetContainer.style.display = 'flex'; setTimeout(() => { widgetContainer.classList.add('autoboss-widget-open'); }, 10);
         launcherButton.style.display = 'none';
     }
@@ -151,18 +174,29 @@ export default function ExportAgentPage() {
 </script>
 ` : "";
 
-  const apiRequestExampleMinimal = `{
-  "message": "Hello, what can you do?"
-}`;
-  const apiRequestExampleWithFlow = `{
-  "message": "My order ID is 12345",
-  "conversationHistory": ["User: I want to check my order status", "Agent: Sure, what is your order ID?"]
-}`;
-  const apiAutonomousResponseExample = `{
-  "reply": "As an AI assistant, I can answer your questions based on my knowledge.",
-  "reasoning": "...",
-  "relevantKnowledgeIds": []
-}`;
+  const handleShareToggle = async (checked: boolean) => {
+    if (!agent) return;
+    setIsSavingShareSetting(true);
+    try {
+      const updatedAgentData: Partial<Agent> = {
+        isPubliclyShared: checked,
+        sharedAt: checked ? Timestamp.now() : null,
+      };
+      await updateAgent({ ...agent, ...updatedAgentData });
+      setIsPubliclyShared(checked);
+      setAgent(prev => prev ? ({...prev, ...updatedAgentData, sharedAt: checked ? (Timestamp.now() as any) : null }) : null); // Update local agent state
+      toast({
+        title: `Agent Showcase Status Updated`,
+        description: `Agent is now ${checked ? 'publicly shared' : 'private'}.`,
+      });
+    } catch (error) {
+      console.error("Error updating share setting:", error);
+      toast({ title: "Error", description: "Could not update share setting.", variant: "destructive" });
+    } finally {
+      setIsSavingShareSetting(false);
+    }
+  };
+
 
   if (!agent) {
     return (
@@ -185,10 +219,11 @@ export default function ExportAgentPage() {
         </CardHeader>
         <CardContent className="p-4 sm:p-6">
           <Tabs defaultValue="embed" className="w-full">
-            <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 mb-4 sm:mb-6 h-auto sm:h-10">
+            <TabsList className="grid w-full grid-cols-1 sm:grid-cols-4 mb-4 sm:mb-6 h-auto sm:h-10">
               <TabsTrigger value="embed" className="text-xs sm:text-sm py-1.5 sm:py-2">Embed & Share Links</TabsTrigger>
               <TabsTrigger value="voice" className="text-xs sm:text-sm py-1.5 sm:py-2" disabled={!showVoiceFeatures}>Voice (Twilio Setup)</TabsTrigger>
               <TabsTrigger value="api" className="text-xs sm:text-sm py-1.5 sm:py-2">Developer API</TabsTrigger>
+              <TabsTrigger value="showcase" className="text-xs sm:text-sm py-1.5 sm:py-2">Public Showcase</TabsTrigger>
             </TabsList>
 
             <TabsContent value="embed" className="space-y-6 sm:space-y-8">
@@ -346,8 +381,8 @@ export default function ExportAgentPage() {
                       Example Chat API Request (Simple):
                       </Label>
                       <div className="relative">
-                          <Textarea id="apiRequestExampleMinimal" value={apiRequestExampleMinimal} readOnly rows={3} className="font-code text-[10px] sm:text-xs bg-muted/50 p-2"/>
-                          <Button variant="outline" size="icon" className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 h-6 w-6 sm:h-7 sm:w-7" onClick={() => handleCopy(apiRequestExampleMinimal, "API Request Minimal")} aria-label="Copy API Request Minimal" disabled={!apiRequestExampleMinimal}>
+                          <Textarea id="apiRequestExampleMinimal" value={`{\n  "message": "Hello, what can you do?"\n}`} readOnly rows={3} className="font-code text-[10px] sm:text-xs bg-muted/50 p-2"/>
+                          <Button variant="outline" size="icon" className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 h-6 w-6 sm:h-7 sm:w-7" onClick={() => handleCopy(`{\n  "message": "Hello, what can you do?"\n}`, "API Request Minimal")} aria-label="Copy API Request Minimal" >
                               {copied === "API Request Minimal" ? <Check className="w-3 h-3 sm:w-4 sm:w-4 text-green-500" /> : <Copy className="w-3 h-3 sm:w-4 sm:w-4" />}
                           </Button>
                       </div>
@@ -357,8 +392,8 @@ export default function ExportAgentPage() {
                       Example Chat API Request (With History):
                       </Label>
                       <div className="relative">
-                          <Textarea id="apiRequestExampleWithFlow" value={apiRequestExampleWithFlow} readOnly rows={6} className="font-code text-[10px] sm:text-xs bg-muted/50 p-2"/>
-                          <Button variant="outline" size="icon" className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 h-6 w-6 sm:h-7 sm:w-7" onClick={() => handleCopy(apiRequestExampleWithFlow, "API Request With Flow")} aria-label="Copy API Request With Flow" disabled={!apiRequestExampleWithFlow}>
+                          <Textarea id="apiRequestExampleWithFlow" value={`{\n  "message": "My order ID is 12345",\n  "conversationHistory": ["User: I want to check my order status", "Agent: Sure, what is your order ID?"]\n}`} readOnly rows={6} className="font-code text-[10px] sm:text-xs bg-muted/50 p-2"/>
+                          <Button variant="outline" size="icon" className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 h-6 w-6 sm:h-7 sm:w-7" onClick={() => handleCopy(`{\n  "message": "My order ID is 12345",\n  "conversationHistory": ["User: I want to check my order status", "Agent: Sure, what is your order ID?"]\n}`, "API Request With Flow")} aria-label="Copy API Request With Flow">
                               {copied === "API Request With Flow" ? <Check className="w-3 h-3 sm:w-4 sm:w-4 text-green-500" /> : <Copy className="w-3 h-3 sm:w-4 sm:w-4" />}
                           </Button>
                       </div>
@@ -369,8 +404,8 @@ export default function ExportAgentPage() {
                     <div>
                         <Label htmlFor="apiAutonomousResponseExample" className="text-[11px] sm:text-xs font-medium">Typical Chat Response:</Label>
                          <div className="relative">
-                            <Textarea id="apiAutonomousResponseExample" value={apiAutonomousResponseExample} readOnly rows={5} className="font-code text-[10px] sm:text-xs bg-muted/50 p-2"/>
-                            <Button variant="outline" size="icon" className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 h-6 w-6 sm:h-7 sm:w-7" onClick={() => handleCopy(apiAutonomousResponseExample, "API Autonomous Response")} aria-label="Copy API Autonomous Response" disabled={!apiAutonomousResponseExample}>
+                            <Textarea id="apiAutonomousResponseExample" value={`{\n  "reply": "As an AI assistant, I can answer your questions based on my knowledge.",\n  "reasoning": "...",\n  "relevantKnowledgeIds": []\n}`} readOnly rows={5} className="font-code text-[10px] sm:text-xs bg-muted/50 p-2"/>
+                            <Button variant="outline" size="icon" className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 h-6 w-6 sm:h-7 sm:w-7" onClick={() => handleCopy(`{\n  "reply": "As an AI assistant, I can answer your questions based on my knowledge.",\n  "reasoning": "...",\n  "relevantKnowledgeIds": []\n}`, "API Autonomous Response")} aria-label="Copy API Autonomous Response">
                                 {copied === "API Autonomous Response" ? <Check className="w-3 h-3 sm:w-4 sm:w-4 text-green-500" /> : <Copy className="w-3 h-3 sm:w-4 sm:w-4" />}
                             </Button>
                         </div>
@@ -384,6 +419,48 @@ export default function ExportAgentPage() {
                    </AlertDescription>
                </Alert>
             </TabsContent>
+
+            <TabsContent value="showcase" className="space-y-4">
+                <div className="space-y-2">
+                    <h3 className="text-lg sm:text-xl font-semibold flex items-center gap-2">
+                        <Eye className="w-5 h-5 sm:w-6 sm:w-6 text-primary" /> Public Agent Showcase
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                        Opt-in to list this agent in the public AutoBoss Showcase. This can help attract users and demonstrate your work.
+                    </p>
+                </div>
+                <div className="flex items-center space-x-3 p-4 border rounded-lg bg-muted/30">
+                    <Switch
+                        id="showcase-switch"
+                        checked={isPubliclyShared}
+                        onCheckedChange={handleShareToggle}
+                        disabled={isSavingShareSetting}
+                    />
+                    <Label htmlFor="showcase-switch" className="text-sm font-medium flex-1 cursor-pointer">
+                        {isPubliclyShared ? "This agent IS publicly listed in the Showcase" : "List this agent in the Public Showcase"}
+                    </Label>
+                    {isSavingShareSetting && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
+                </div>
+                {isPubliclyShared && (
+                    <Alert variant="default" className="bg-green-500/10 dark:bg-green-500/20 border-green-500/30">
+                        <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400"/>
+                        <AlertTitle className="text-green-700 dark:text-green-300 font-medium">Agent is Live in Showcase!</AlertTitle>
+                        <AlertDescription className="text-green-600/90 dark:text-green-200/90 text-xs">
+                            Other users can now discover this agent. 
+                            <Link href="/showcase" className="underline ml-1 hover:text-green-500" target="_blank">View Showcase</Link>
+                        </AlertDescription>
+                    </Alert>
+                )}
+                 <Alert variant="default" className="mt-3">
+                   <Info className="h-4 w-4"/>
+                   <AlertTitle>Important Considerations</AlertTitle>
+                   <AlertDescription className="text-xs">
+                     By making this agent public, its name, description, image, and a link to its chat interface will be visible to anyone visiting the showcase. Ensure your agent's personality and branding are client-appropriate if you built this for someone else.
+                     You can toggle this off at any time.
+                   </AlertDescription>
+               </Alert>
+            </TabsContent>
+
           </Tabs>
         </CardContent>
       </Card>
