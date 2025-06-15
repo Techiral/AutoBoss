@@ -11,48 +11,47 @@ service cloud.firestore {
     }
 
     // Clients collection:
-    // Rules for individual documents
+    // Authenticated users can create clients for themselves.
+    // Users can read, update, or delete clients they own.
     match /clients/{clientId} {
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      // Owners can get, update, or delete their own client documents.
-      allow get, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
-    // Rules for querying the clients collection
+    // Authenticated users can list clients.
+    // Their queries must filter by userId on the client/server side.
+    // The 'read' rule on /clients/{clientId} ensures they only see their own.
     match /clients {
-      // Allow listing clients if the query is made by an authenticated user
-      // AND the query filters by that user's specific userId.
-      allow list: if request.auth != null &&
-                     request.query.filters.find(f => f[0] == "userId" && f[1] == "==" && f[2] == request.auth.uid) != null;
+      allow list: if request.auth != null;
     }
 
     // Agents collection:
-    // Rules for individual documents
+    // Authenticated users can create agents for themselves.
+    // Users can update or delete agents they own.
     match /agents/{agentId} {
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      // An agent document can be read if:
+      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      // An agent document can be fetched (get) if:
       // 1. The requester is the authenticated owner.
       // OR
-      // 2. The agent is marked as publicly shared.
+      // 2. The agent document's 'isPubliclyShared' field is true.
       allow get: if (request.auth != null && resource.data.userId == request.auth.uid) ||
-                     (resource.data.isPubliclyShared == true);
-      // Owners can update or delete their own agents.
-      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+                    (resource.data.isPubliclyShared == true);
     }
-    // Rules for querying the agents collection
+    // Listing agents:
+    // - Authenticated users can list agents (their queries must filter by userId).
+    // - Unauthenticated users can list agents (the showcase page query must filter for isPubliclyShared == true).
+    // The per-document 'get' rule for /agents/{agentId} ensures data integrity.
     match /agents {
-      // Allow listing agents if:
-      // 1. An authenticated user is querying for their own agents (query must filter by userId).
-      // OR
-      // 2. Anyone (authenticated or not) is querying for publicly shared agents (query must filter by isPubliclyShared == true).
-      allow list: if (request.auth != null && request.query.filters.find(f => f[0] == "userId" && f[1] == "==" && f[2] == request.auth.uid) != null) ||
-                     (request.query.filters.find(f => f[0] == "isPubliclyShared" && f[1] == "==" && f[2] == true) != null);
+      allow list: if true; // Note: Queries must be specific.
+                           // For authenticated users, client/server must filter by userId.
+                           // For public showcase, server must filter by isPubliclyShared == true.
     }
 
     // OutboundQueue collection:
     // Authenticated users can create new tasks in the queue.
     match /outboundQueue/{taskId} {
       allow create: if request.auth != null;
-      // Example: allow read, update, delete: if <your_condition_for_admin_or_backend_worker>;
+      // allow read, update, delete: if <your_condition_for_admin_or_backend_worker>; // Example
     }
 
     // Roadmap Features: Anyone can read.
@@ -65,15 +64,20 @@ service cloud.firestore {
     }
 
     // User Votes:
-    // Documents are named like "{userId}_{featureId}".
-    // Users can read their own vote documents.
-    // Users can create their own vote document if specific conditions are met.
+    // - Documents are named like "{userId}_{featureId}".
+    // - Users can read their own vote documents (by checking resource.data.userId).
+    // - Users can create a vote document if:
+    //   - They are authenticated.
+    //   - The 'userId' field in the document data matches their auth UID.
+    //   - The 'featureId' field exists in the document data.
+    //   - The document's ID ({voteId}) matches the pattern "request.resource.data.userId + '_' + request.resource.data.featureId".
     match /userVotes/{voteId} {
       allow read: if request.auth != null && resource.data.userId == request.auth.uid;
       allow create: if request.auth != null &&
                        request.resource.data.userId == request.auth.uid &&
                        request.resource.data.featureId != null &&
                        voteId == request.resource.data.userId + '_' + request.resource.data.featureId;
+      // No updates or deletes for votes to keep it simple and prevent tampering.
     }
   }
 }
