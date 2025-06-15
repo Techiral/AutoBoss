@@ -18,39 +18,26 @@ service cloud.firestore {
       allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
 
-    // Agents collection - Document Level Rules
+    // Agents collection:
+    // Rules for accessing a SINGLE agent document
     match /agents/{agentId} {
-      // Create, Update, Delete only by the authenticated owner
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
       allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
-
-      // GET rule:
-      // - Authenticated owner can get their own agent (whether public or private).
-      // - Anyone can get an agent IF it is publicly shared.
-      // This rule is checked for every document read, including those returned by a list operation.
-      allow get: if (request.auth != null && resource.data.userId == request.auth.uid) ||
-                       (resource.data.isPubliclyShared == true);
+      
+      // Who can GET a specific agent document?
+      // 1. The owner.
+      // 2. Anyone, IF the agent is publicly shared.
+      allow get: if (request.auth != null && request.auth.uid == resource.data.userId) || 
+                     (resource.data.isPubliclyShared == true);
     }
 
-    // Agents collection - Collection Level Rules (for list operations)
+    // Rules for LISTING agents from the 'agents' collection
     match /agents {
-      // Authenticated users can list agents.
-      // For users to see only "their" agents, the client-side query MUST include
-      // `where('userId', '==', request.auth.uid)`.
-      // The per-document 'get' rule above will then ensure they can read their own.
-      // If they query more broadly, the 'get' rule still filters what they can actually see.
-      allow list: if request.auth != null;
-
-      // Unauthenticated users (e.g., the public showcase page) can list agents.
-      // The client-side query for the showcase page MUST filter by `where('isPubliclyShared', '==', true)`.
-      // The per-document 'get' rule for `agents/{agentId}` (specifically `resource.data.isPubliclyShared == true`)
-      // will then ensure that only these publicly shared documents are actually returned from the list operation.
-      allow list: if request.auth == null;
-
-      // Note: Firestore rules OR conditions within the same 'allow' statement.
-      // The two 'allow list' rules above effectively mean `allow list: if true;` (anyone can attempt to list),
-      // but separating them can make intent clearer. The crucial part is that the per-document 'get' rule
-      // correctly filters the results of any list operation.
+      // Allow list operations. The effective security for what documents are returned
+      // is then enforced by the 'get' rule on /agents/{agentId} for each document
+      // that matches the query's filters (e.g., where('isPubliclyShared', '==', true) for showcase).
+      // Authenticated users should filter their queries by their userId to list their own agents.
+      allow list: if true;
     }
 
     // OutboundQueue collection:
