@@ -75,20 +75,22 @@ export default function ChatClientPage({ agentId }: ChatClientPageProps) {
 
         if (agentSnap.exists()) {
           const agentData = agentSnap.data();
-           const convertedAgent = convertTimestampsToISOForChat({ id: agentSnap.id, ...agentData });
-          if (convertedAgent.isPubliclyShared || appContextInstance?.currentUser?.uid === convertedAgent.userId) {
-            setAgent(convertedAgent);
-          } else {
-            setError(`Access denied. This agent is not publicly shared.`);
-            setAgent(null);
-          }
+          const convertedAgent = convertTimestampsToISOForChat({ id: agentSnap.id, ...agentData });
+          // If Firestore rules allowed the getDoc, we assume the agent is accessible.
+          // The isPubliclyShared flag is for showcase visibility, not direct link access.
+          setAgent(convertedAgent);
         } else {
           setError(`Agent with ID "${agentId}" not found.`);
           setAgent(null);
         }
       } catch (e: any) {
         console.error("Error loading agent for public chat:", e);
-        setError(`Could not load agent data: ${e.message}`);
+        // Check if the error is due to permissions, which shouldn't happen if rules are `allow get: if true;`
+        if (e.message && (e.message.includes("Missing or insufficient permissions") || e.message.includes("permission-denied"))) {
+            setError(`Access to agent data denied by security rules. This agent may not exist or direct access is restricted.`);
+        } else {
+            setError(`Could not load agent data: ${e.message}`);
+        }
         setAgent(null);
       } finally {
         setIsLoading(false);
@@ -96,7 +98,7 @@ export default function ChatClientPage({ agentId }: ChatClientPageProps) {
     };
 
     fetchAgent();
-  }, [agentId, appContextInstance]);
+  }, [agentId]); // Removed appContextInstance from dependencies as it's not strictly needed for this fetch logic for a public page
 
   if (isLoading) {
     return (
@@ -150,7 +152,7 @@ export default function ChatClientPage({ agentId }: ChatClientPageProps) {
     <div className="flex flex-col min-h-screen bg-background text-foreground">
         <header className="p-3 sm:p-4 border-b flex items-center justify-between bg-card sticky top-0 z-10">
            <Link href="/" aria-label="AutoBoss Homepage" className="hover:opacity-80 transition-opacity">
-            <Logo className="h-6 sm:h-7"/> {/* Standardized height */}
+            <Logo className="h-6 sm:h-7"/>
            </Link>
            <div className="text-right">
              <h1 className="font-headline text-lg sm:text-xl font-semibold truncate max-w-[150px] sm:max-w-xs md:max-w-sm" title={agent.generatedName || agent.name}>{agent.generatedName || agent.name}</h1>
@@ -163,10 +165,10 @@ export default function ChatClientPage({ agentId }: ChatClientPageProps) {
             </div>
         </main>
          <footer className="text-center p-3 sm:p-4 border-t text-xs text-muted-foreground">
-            {agent.isPubliclyShared ? (
+            {(agent.isPubliclyShared || appContextInstance?.currentUser?.uid === agent.userId) ? ( // Show "Powered by" if it's from showcase or owner is viewing
                 <>Powered by <Link href={poweredByLink} target="_blank" rel="noopener noreferrer" className="hover:underline text-primary">AutoBoss</Link></>
             ) : (
-                "AI Agent"
+                "AI Agent" // Generic for privately shared links to clients
             )}
         </footer>
     </div>

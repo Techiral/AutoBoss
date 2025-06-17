@@ -11,35 +11,36 @@ service cloud.firestore {
     // --- Clients ---
     match /clients/{clientId} {
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      // Owners can read, update, delete their own clients. 'read' includes 'get'.
       allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
-    // Authenticated users can list clients.
-    // Their app-side queries MUST filter by `where("userId", "==", request.auth.uid)`.
-    // The document-level `read` rule above will then grant access to the individual documents.
     match /clients {
-      allow list: if request.auth != null;
+      allow list: if request.auth != null; // Owners list their own clients (app query must filter by userId)
     }
 
     // --- Agents ---
     match /agents/{agentId} {
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
       allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
-      // Owners can get/read their own agents.
-      // Publicly shared agents can also be fetched by anyone (for chat page OG tags, showcase details).
-      allow get: if (request.auth != null && resource.data.userId == request.auth.uid) ||
-                     (resource.data.isPubliclyShared == true);
+
+      // ANYONE can GET an agent document if they have its ID.
+      // This is necessary for direct chat links and the iframe embed to work
+      // when shared by an agent owner with their client, regardless of showcase status.
+      // The agentId itself acts as a capability token.
+      allow get: if true;
+
+      // Owners can always perform full read (get + list for their own agents)
+      // This 'read' also covers the 'get' for an owner.
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
     }
-    // Authenticated users can list agents.
-    // Their app-side queries MUST filter by `where("userId", "==", request.auth.uid)`.
-    // The document-level `get` rule above will then grant access to those agents.
-    //
-    // For the public showcase page (Server Component fetching data):
-    // This rule also allows listing if the query is for public agents.
-    // The query in showcase page MUST filter `where("isPubliclyShared", "==", true)`.
-    // The document-level `get` rule will then grant access to those specific public agents.
+
+    // For the public showcase page to list agents:
+    // The query MUST include `where("isPubliclyShared", "==", true)`.
+    // The `allow get: if true` rule above will then allow these specific documents
+    // (that are public and returned by the filtered list) to be read.
+    // For authenticated users listing their own agents, their query must filter by userId.
+    // The document-level `read` for owners covers their listing needs.
     match /agents {
-      allow list: if true; // Relies on the per-document 'get' rule and correct client-side/server-side query filtering.
+      allow list: if true;
     }
 
     // --- OutboundQueue ---
