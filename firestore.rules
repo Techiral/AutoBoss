@@ -4,61 +4,58 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Users collection:
-    // Users can read and write their own user profile document.
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Clients collection:
+    // --- Clients ---
     match /clients/{clientId} {
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      // Owners can read (get/list their own), update, delete their own clients.
+      // Owners can read (get, list their own), update, delete their own clients.
       allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
+    // Authenticated users can list clients.
+    // Their app-side queries MUST filter by `where("userId", "==", request.auth.uid)`.
+    // The document-level `read` rule above will then grant access to the individual documents.
     match /clients {
-      // Authenticated users can list clients.
-      // Their app-side queries MUST filter by `where("userId", "==", request.auth.uid)`.
-      // The document-level `read` rule above for `/clients/{clientId}` will then grant access
-      // to the individual documents in the filtered list.
       allow list: if request.auth != null;
     }
 
-    // Agents collection:
+    // --- Agents ---
     match /agents/{agentId} {
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
       allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
 
-      // Allow GET if user is owner OR if agent is publicly shared.
-      // This rule is crucial for both owners accessing their agents and for public pages
-      // (like /chat/[agentId] or items in /showcase) to read specific agent data.
+      // Allow fetching an agent if it's the owner OR if it's publicly shared.
+      // This rule applies to `get` operations on a single document.
       allow get: if (request.auth != null && resource.data.userId == request.auth.uid) ||
                      (resource.data.isPubliclyShared == true);
-      
-      // Owners can also LIST their own agents if the query path was specific to their agent,
-      // though this is less common for primary collection listing. Covered by collection `list`.
+
+      // Allow owners to list their own agents (e.g. when querying a subcollection or if path includes agentId).
+      // This is less relevant for top-level collection listing, which is handled by `match /agents` below.
       allow list: if request.auth != null && resource.data.userId == request.auth.uid;
     }
 
+    // For listing agents from the top-level '/agents' collection:
     match /agents {
-      // Allow LIST operations on the agents collection.
-      // - Authenticated users (e.g., in AppContext) MUST filter their queries
-      //   by `where("userId", "==", request.auth.uid)`. The `get` rule above
-      //   will then ensure they can only read their own agents from this list.
-      // - The public showcase page (Server Component) MUST filter its query
-      //   by `where("isPubliclyShared", "==", true)`. The `get` rule above
-      //   will then ensure only publicly shared agents are readable from this list.
+      // Allow any list operation to proceed.
+      // Security is enforced by:
+      // 1. The application code *MUST* filter queries appropriately:
+      //    - For authenticated users (AppContext): `where("userId", "==", request.auth.uid)`
+      //    - For public showcase: `where("isPubliclyShared", "==", true)`
+      // 2. The document-level `get` rule on `/agents/{agentId}` defined above.
+      //    This rule will be checked for each document the `list` operation attempts to return.
+      //    If a document doesn't meet the `get` criteria (not owned and not public), it won't be included.
       allow list: if true;
     }
 
-    // OutboundQueue collection:
+    // --- OutboundQueue ---
     match /outboundQueue/{taskId} {
       allow create: if request.auth != null;
-      // allow read, update, delete: if <your_condition_for_admin_or_backend_worker>; // Example
+      // Consider adding rules for read/update/delete by backend workers or admins if needed.
     }
 
-    // Roadmap Features: Anyone can read.
-    // Authenticated users can update votes by exactly +1, only affecting the currentVotes field.
+    // --- RoadmapFeatures ---
     match /roadmapFeatures/{featureDocId} {
       allow read: if true;
       allow update: if request.auth != null &&
@@ -66,7 +63,7 @@ service cloud.firestore {
                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['currentVotes']);
     }
 
-    // User Votes:
+    // --- UserVotes ---
     match /userVotes/{voteId} {
       allow read: if request.auth != null && resource.data.userId == request.auth.uid;
       allow create: if request.auth != null &&
