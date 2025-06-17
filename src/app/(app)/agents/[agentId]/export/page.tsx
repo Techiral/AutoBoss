@@ -23,7 +23,7 @@ import { Timestamp } from "firebase/firestore";
 export default function ExportAgentPage() {
   const params = useParams();
   const router = useRouter();
-  const { getAgent, updateAgent } = useAppContext(); // Added updateAgent
+  const { getAgent, updateAgent } = useAppContext(); 
   const [agent, setAgent] = useState<Agent | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const { toast } = useToast();
@@ -98,7 +98,7 @@ export default function ExportAgentPage() {
     const HEADER_BG_COLOR = LAUNCHER_BG_COLOR;
     const HEADER_FG_COLOR = LAUNCHER_FG_COLOR;
     const WIDGET_BORDER_COLOR = '#e0e0e0';
-    const POWERED_BY_HTML = \`${agent.isPubliclyShared ? poweredByAttribution.replace(/\n\s*/g, '') : ''}\`;
+    const POWERED_BY_HTML = \`${agent.isPubliclyShared ? poweredByAttribution.replace(/\\n\\s*/g, '').replace(/"/g, '\\"') : ''}\`;
 
     const styles = \`
         #autoboss-launcher-button {
@@ -135,7 +135,11 @@ export default function ExportAgentPage() {
         #autoboss-widget-close-button:hover { opacity: 1; }
         #autoboss-widget-iframe-wrapper { flex-grow: 1; overflow: hidden; position: relative; }
         #autoboss-widget-container iframe { width: 100%; height: 100%; border: none; }
-        #autoboss-powered-by { position: absolute; bottom: 0; left: 0; right: 0; background: #fff; z-index: 1; }
+        #autoboss-powered-by { 
+            font-family: sans-serif; text-align: center; font-size: 10px; color: #aaa; 
+            padding: 3px 0; border-top: 1px solid #eee; background-color: #fff;
+            position: absolute; bottom: 0; left: 0; right: 0; z-index: 1;
+        }
     \`;
     const styleSheet = document.createElement("style"); styleSheet.type = "text/css"; styleSheet.innerText = styles; document.head.appendChild(styleSheet);
     const launcherButton = document.createElement('button'); launcherButton.id = 'autoboss-launcher-button'; launcherButton.title = \`Chat with \${AGENT_NAME}\`;
@@ -156,7 +160,7 @@ export default function ExportAgentPage() {
                 poweredByDiv.id = 'autoboss-powered-by'; 
                 poweredByDiv.innerHTML = POWERED_BY_HTML; 
                 iframeWrapper.appendChild(poweredByDiv);
-                iframe.style.height = 'calc(100% - 25px)'; // Adjust iframe height if attribution is present
+                iframe.style.height = 'calc(100% - 25px)'; 
             }
         }
         widgetContainer.style.display = 'flex'; setTimeout(() => { widgetContainer.classList.add('autoboss-widget-open'); }, 10);
@@ -184,7 +188,7 @@ export default function ExportAgentPage() {
       };
       await updateAgent({ ...agent, ...updatedAgentData });
       setIsPubliclyShared(checked);
-      setAgent(prev => prev ? ({...prev, ...updatedAgentData, sharedAt: checked ? (Timestamp.now() as any) : null }) : null); // Update local agent state
+      setAgent(prev => prev ? ({...prev, ...updatedAgentData, sharedAt: checked ? (Timestamp.now() as any) : null }) : null); 
       toast({
         title: `Agent Showcase Status Updated`,
         description: `Agent is now ${checked ? 'publicly shared' : 'private'}.`,
@@ -467,4 +471,3 @@ export default function ExportAgentPage() {
     </div>
   );
 }
-

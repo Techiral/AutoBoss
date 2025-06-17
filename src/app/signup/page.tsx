@@ -10,10 +10,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { useRouter, useSearchParams } from "next/navigation"; // Import useSearchParams
+import { useRouter, useSearchParams } from "next/navigation"; 
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2, UserPlus, Mail } from "lucide-react";
+import { Loader2, UserPlus, Mail, Eye, EyeOff } from "lucide-react"; // Added Eye, EyeOff
 import { Logo } from "@/components/logo";
 import { cn } from "@/lib/utils";
 
@@ -30,9 +30,11 @@ type FormData = z.infer<typeof formSchema>;
 
 export default function SignupPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
-  const searchParams = useSearchParams(); // Get search params
+  const searchParams = useSearchParams(); 
   const { signUp, currentUser, loading: authLoading } = useAuth();
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
@@ -50,9 +52,7 @@ export default function SignupPage() {
     setIsSubmitting(true);
     const user = await signUp(data.email, data.password);
     setIsSubmitting(false);
-    if (user) { // User will be defined by useEffect above, so this check is redundant but safe
-      // Redirect logic is now handled by the useEffect
-    }
+    // Redirect logic is handled by the useEffect
   };
 
   if (authLoading) {
@@ -64,7 +64,6 @@ export default function SignupPage() {
   }
 
   if (currentUser && !authLoading) {
-    // This prevents the signup page from flashing if the user is already logged in and redirection is in progress
      return (
        <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4">
         <Loader2 className="h-12 w-12 sm:h-16 sm:w-16 animate-spin text-primary" />
@@ -83,7 +82,7 @@ export default function SignupPage() {
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center p-4 sm:p-6">
           <CardTitle className={cn("font-headline text-2xl sm:text-3xl flex items-center justify-center gap-2", "text-gradient-dynamic")}>
-           <UserPlus className="w-6 h-6 sm:w-7 sm:w-7" /> Create Your AutoBoss Account
+           <UserPlus className="w-6 h-6 sm:w-7 sm:h-7" /> Create Your AutoBoss Account
           </CardTitle>
           <CardDescription className="text-sm">
             Join AutoBoss to start building and managing your AI agents.
@@ -99,12 +98,46 @@ export default function SignupPage() {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" placeholder="•••••••• (min. 6 characters)" {...register("password")} />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="•••••••• (min. 6 characters)"
+                  {...register("password")}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
               {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="confirmPassword">Confirm Password</Label>
-              <Input id="confirmPassword" type="password" placeholder="••••••••" {...register("confirmPassword")} />
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  {...register("confirmPassword")}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                >
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
               {errors.confirmPassword && <p className="text-xs text-destructive">{errors.confirmPassword.message}</p>}
             </div>
             <Button type="submit" disabled={isSubmitting} className={cn("w-full py-2.5", "btn-gradient-primary")}>
@@ -126,5 +159,3 @@ export default function SignupPage() {
     </div>
   );
 }
-
-    

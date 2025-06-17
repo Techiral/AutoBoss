@@ -10,10 +10,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { useRouter, useSearchParams } from "next/navigation"; // Import useSearchParams
+import { useRouter, useSearchParams } from "next/navigation"; 
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2, LogIn, Mail } from "lucide-react";
+import { Loader2, LogIn, Mail, Eye, EyeOff } from "lucide-react"; // Added Eye, EyeOff
 import { Logo } from "@/components/logo";
 import { cn } from "@/lib/utils";
 
@@ -26,9 +26,10 @@ type FormData = z.infer<typeof formSchema>;
 
 export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false); // State for password visibility
   const { toast } = useToast();
   const router = useRouter();
-  const searchParams = useSearchParams(); // Get search params
+  const searchParams = useSearchParams(); 
   const { signIn, currentUser, loading: authLoading } = useAuth();
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
@@ -46,9 +47,7 @@ export default function LoginPage() {
     setIsSubmitting(true);
     const user = await signIn(data.email, data.password);
     setIsSubmitting(false);
-    if (user) { // User will be defined by useEffect above, so this check is redundant but safe
-      // Redirect logic is now handled by the useEffect
-    }
+    // Redirect logic is handled by the useEffect
   };
 
   if (authLoading) {
@@ -60,7 +59,6 @@ export default function LoginPage() {
   }
 
   if (currentUser && !authLoading) {
-    // This prevents the login page from flashing if the user is already logged in and redirection is in progress
     return (
        <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4">
         <Loader2 className="h-12 w-12 sm:h-16 sm:w-16 animate-spin text-primary" />
@@ -94,7 +92,24 @@ export default function LoginPage() {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" placeholder="••••••••" {...register("password")} />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  {...register("password")}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
               {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
             </div>
             <Button type="submit" disabled={isSubmitting} className={cn("w-full py-2.5", "btn-gradient-primary")}>
@@ -116,5 +131,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    

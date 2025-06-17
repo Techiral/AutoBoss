@@ -21,7 +21,7 @@ const convertTimestampsToISOForChat = (agentData: any): Agent => {
   if (newAgent.createdAt && newAgent.createdAt.toDate) {
     newAgent.createdAt = newAgent.createdAt.toDate().toISOString();
   }
-  if (newAgent.sharedAt && newAgent.sharedAt.toDate) { // Added sharedAt
+  if (newAgent.sharedAt && newAgent.sharedAt.toDate) { 
     newAgent.sharedAt = newAgent.sharedAt.toDate().toISOString();
   }
   if (newAgent.knowledgeItems) {
@@ -76,7 +76,6 @@ export default function ChatClientPage({ agentId }: ChatClientPageProps) {
         if (agentSnap.exists()) {
           const agentData = agentSnap.data();
            const convertedAgent = convertTimestampsToISOForChat({ id: agentSnap.id, ...agentData });
-          // Ensure agent is publicly shared or user is authenticated app owner (simplified check here)
           if (convertedAgent.isPubliclyShared || appContextInstance?.currentUser?.uid === convertedAgent.userId) {
             setAgent(convertedAgent);
           } else {
@@ -145,13 +144,13 @@ export default function ChatClientPage({ agentId }: ChatClientPageProps) {
     );
   }
 
-  const poweredByLink = appDomain || "https://autoboss.com"; // Fallback, should be set
+  const poweredByLink = appDomain || "https://autoboss.com"; 
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
         <header className="p-3 sm:p-4 border-b flex items-center justify-between bg-card sticky top-0 z-10">
            <Link href="/" aria-label="AutoBoss Homepage" className="hover:opacity-80 transition-opacity">
-            <Logo className="h-7 sm:h-8"/>
+            <Logo className="h-6 sm:h-7"/> {/* Standardized height */}
            </Link>
            <div className="text-right">
              <h1 className="font-headline text-lg sm:text-xl font-semibold truncate max-w-[150px] sm:max-w-xs md:max-w-sm" title={agent.generatedName || agent.name}>{agent.generatedName || agent.name}</h1>
@@ -173,4 +172,3 @@ export default function ChatClientPage({ agentId }: ChatClientPageProps) {
     </div>
   );
 }
-

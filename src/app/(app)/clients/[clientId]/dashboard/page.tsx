@@ -44,7 +44,7 @@ export default function ClientAgentsDashboardPage() {
     if (!isLoadingClients && clientId) {
       const foundClient = getClientById(clientId);
       setClient(foundClient);
-    } else if (!isLoadingClients && !clientId) { // No clientId provided
+    } else if (!isLoadingClients && !clientId) { 
       setClient(null); 
     }
   }, [clientId, getClientById, isLoadingClients]);
@@ -52,7 +52,7 @@ export default function ClientAgentsDashboardPage() {
   useEffect(() => {
     if (client && !isLoadingAgents) {
       setClientAgents(agents.filter(agent => agent.clientId === client.id));
-    } else if (!client && !isLoadingAgents) { // If client is null (e.g., not found or no ID)
+    } else if (!client && !isLoadingAgents) { 
       setClientAgents([]);
     }
   }, [client, agents, isLoadingAgents]);
@@ -64,7 +64,6 @@ export default function ClientAgentsDashboardPage() {
     }
   };
   
-  // Refined loading condition
   const isPageLoading = isLoadingClients || (clientId && client === undefined) || isLoadingAgents;
 
 
@@ -78,7 +77,7 @@ export default function ClientAgentsDashboardPage() {
     );
   }
 
-  if (!client) { // This covers both client not found and case where clientId was not in params
+  if (!client) { 
     return (
       <Alert variant="destructive">
         <AlertTriangle className="h-4 w-4" />
@@ -96,7 +95,7 @@ export default function ClientAgentsDashboardPage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
         <div>
             <h1 className={cn("font-headline text-2xl sm:text-3xl font-bold flex items-center gap-2", "text-gradient-dynamic")}>
-                <Bot className="w-7 h-7 sm:w-8 sm:h-8"/> Agents for: {client.name}
+                <Bot className="w-7 h-7 sm:w-8 sm:w-8"/> Agents for: {client.name}
             </h1>
             {client.description && <p className="text-sm text-muted-foreground mt-1">{client.description}</p>}
         </div>
@@ -151,4 +150,3 @@ export default function ClientAgentsDashboardPage() {
     </div>
   );
 }
-

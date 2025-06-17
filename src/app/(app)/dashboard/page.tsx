@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ClientCard } from "@/components/client-card"; // New component for client cards
+import { ClientCard } from "@/components/client-card"; 
 import { PlusCircle, Info, Briefcase, Loader2 } from "lucide-react";
 import { useAppContext } from "../layout";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -36,7 +36,7 @@ import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { cn } from "@/lib/utils";
-import type { Client } from "@/lib/types"; // Import Client type
+import type { Client } from "@/lib/types"; 
 import { useToast } from "@/hooks/use-toast";
 
 const addClientFormSchema = z.object({
@@ -79,8 +79,6 @@ export default function ClientDashboardPage() {
 
   const handleDeleteConfirm = async () => {
     if (clientToDelete) {
-      // Note: This only deletes the client, not associated agents yet.
-      // A more robust solution would involve a confirmation about orphaned agents or cascading delete.
       await deleteClient(clientToDelete);
       setClientToDelete(null);
     }
@@ -92,7 +90,7 @@ export default function ClientDashboardPage() {
     <div className="space-y-6 sm:space-y-8">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
         <h1 className={cn("font-headline text-2xl sm:text-3xl font-bold flex items-center gap-2", "text-gradient-dynamic")}>
-          <Briefcase className="w-7 h-7 sm:w-8 sm:h-8" /> Your Client Workspace
+          <Briefcase className="w-7 h-7 sm:w-8 sm:w-8" /> Your Client Workspace
         </h1>
         <Dialog open={isAddClientDialogOpen} onOpenChange={setIsAddClientDialogOpen}>
           <DialogTrigger asChild>
