@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Eye, Search, Info, Bot } from "lucide-react";
+import { ArrowRight, Eye, Search, Info, Bot, AlertTriangle } from "lucide-react"; // Added AlertTriangle
 import { cn } from "@/lib/utils";
 import type { Agent } from "@/lib/types";
 import { db } from '@/lib/firebase';
@@ -50,7 +50,10 @@ async function getPublicAgents(): Promise<Agent[]> {
     return agents;
   } catch (error) {
     console.error("Error fetching public agents for showcase:", error);
-    return []; // Return empty array on error
+    // It's important to re-throw or handle this, as a permissions error here
+    // will manifest on this page. For now, returning [] and letting the UI
+    // show a message is one approach.
+    return [];
   }
 }
 
@@ -143,14 +146,25 @@ export default async function ShowcasePage() {
         </Card>
 
         {agents.length === 0 && (
-          <Alert className="max-w-lg mx-auto">
-            <Search className="h-4 w-4" />
-            <AlertTitle>Showcase Coming Soon!</AlertTitle>
-            <AlertDescription>
-              No agents have been publicly shared yet. Be the first to showcase your creation!
-              You can make your agent public from its 'Export' settings page in your dashboard.
-            </AlertDescription>
-          </Alert>
+          <div className="space-y-4">
+            <Alert className="max-w-lg mx-auto">
+              <Search className="h-4 w-4" />
+              <AlertTitle>Showcase Is Eagerly Awaiting Agents!</AlertTitle>
+              <AlertDescription>
+                No agents have been publicly shared yet, or there might be a configuration step needed.
+                Be the first to showcase your creation! You can make your agent public from its 'Export' settings page in your dashboard.
+              </AlertDescription>
+            </Alert>
+            <Alert variant="destructive" className="max-w-lg mx-auto bg-destructive/10 border-destructive/30">
+                <AlertTriangle className="h-4 w-4 text-destructive" />
+                <AlertTitle className="text-destructive font-semibold">Important for Admins/Developers</AlertTitle>
+                <AlertDescription className="text-destructive/90 text-xs">
+                    If this showcase remains empty after agents have been marked public, please ensure a <strong>composite index</strong> is created in Firestore for the 'agents' collection.
+                    It should include `isPubliclyShared` (Ascending/Descending) and `sharedAt` (Descending).
+                    Firestore often provides a link to create this index in the server logs or console if the query fails.
+                </AlertDescription>
+            </Alert>
+          </div>
         )}
 
         {agents.length > 0 && (
