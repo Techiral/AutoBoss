@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter, useSearchParams } from "next/navigation"; 
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2, UserPlus, Mail, Eye, EyeOff } from "lucide-react"; // Added Eye, EyeOff
+import { Loader2, UserPlus, Mail, Eye, EyeOff } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { cn } from "@/lib/utils";
 
@@ -81,7 +81,7 @@ export default function SignupPage() {
       </div>
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center p-4 sm:p-6">
-          <CardTitle className={cn("font-headline text-2xl sm:text-3xl flex items-center justify-center gap-2", "text-gradient-dynamic")}>
+          <CardTitle className="font-headline text-primary text-2xl sm:text-3xl flex items-center justify-center gap-2">
            <UserPlus className="w-6 h-6 sm:w-7 sm:h-7" /> Create Your AutoBoss Account
           </CardTitle>
           <CardDescription className="text-sm">
@@ -140,16 +140,16 @@ export default function SignupPage() {
               </div>
               {errors.confirmPassword && <p className="text-xs text-destructive">{errors.confirmPassword.message}</p>}
             </div>
-            <Button type="submit" disabled={isSubmitting} className={cn("w-full py-2.5", "btn-gradient-primary")}>
+            <Button type="submit" disabled={isSubmitting} className="w-full py-2.5 btn-gradient-primary">
               {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
               {isSubmitting ? "Creating Account..." : "Sign Up with Email"}
             </Button>
           </form>
         </CardContent>
         <CardFooter className="flex flex-col gap-3 p-4 sm:p-6 pt-3 sm:pt-4">
-          <p className="text-xs sm:text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Already have an account?{" "}
-            <Button variant="link" className="p-0 h-auto text-xs sm:text-sm" asChild>
+            <Button variant="link" className="p-0 h-auto text-sm" asChild>
               <Link href={`/login${searchParams.get('redirect') ? `?redirect=${searchParams.get('redirect')}` : ''}`}>Log In</Link>
             </Button>
           </p>

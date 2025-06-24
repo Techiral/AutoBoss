@@ -193,7 +193,7 @@ export default function PersonalityPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
         <Card className="md:col-span-2">
           <CardHeader className="p-4 sm:p-6">
-            <CardTitle className={cn("font-headline text-xl sm:text-2xl flex items-center gap-2", "text-gradient-dynamic")}>
+            <CardTitle className="font-headline text-primary text-xl sm:text-2xl flex items-center gap-2">
                 <Settings className="w-6 h-6"/> Edit Agent Personality & Core Details
             </CardTitle>
             <CardDescription className="text-sm">
@@ -259,7 +259,7 @@ export default function PersonalityPage() {
 
              {(generatedDetails || (currentAgent.generatedName && currentAgent.generatedPersona)) && (
               <div className="space-y-3 sm:space-y-4 pt-3 sm:pt-4 border-t">
-                  <h3 className={cn("font-headline text-md sm:text-lg", "text-gradient-dynamic")}>Current AI Generated Details</h3>
+                  <h3 className="font-headline text-primary text-md sm:text-lg">Current AI Generated Details</h3>
                   <div>
                       <Label className="text-xs font-semibold">Generated Name (User-Facing)</Label>
                       <p className="text-sm p-2 bg-muted rounded-md mt-1">{generatedDetails?.agentName || currentAgent.generatedName}</p>
@@ -279,7 +279,7 @@ export default function PersonalityPage() {
         
         <Card className="md:col-span-1">
            <CardHeader className="p-4 sm:p-6">
-             <CardTitle className={cn("font-headline text-xl sm:text-2xl flex items-center gap-2", "text-gradient-dynamic")}>
+             <CardTitle className="font-headline text-primary text-xl sm:text-2xl flex items-center gap-2">
                 <ImageIcon className="w-6 h-6"/> Social Sharing & Branding
             </CardTitle>
              <CardDescription className="text-sm">
@@ -344,7 +344,7 @@ export default function PersonalityPage() {
         </Card>
 
         <div className="md:col-span-3 mt-2 sm:mt-0">
-          <Button type="submit" disabled={isLoading} className={cn("w-full sm:w-auto", "btn-gradient-primary")}>
+          <Button type="submit" disabled={isLoading} className="w-full sm:w-auto btn-gradient-primary">
             {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             {isLoading ? "Saving Changes..." : "Save All Changes & Regenerate Details"}
           </Button>
@@ -354,4 +354,3 @@ export default function PersonalityPage() {
     </TooltipProvider>
   );
 }
-

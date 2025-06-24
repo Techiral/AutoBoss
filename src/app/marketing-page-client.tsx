@@ -160,7 +160,7 @@ export default function MarketingPageClient() {
           </div>
           <div className="container mx-auto px-4 md:px-6 relative z-10 max-w-screen-xl">
             <div className="max-w-2xl mx-auto space-y-3 md:space-y-4">
-              <h1 className="marketing-h1 text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-center">
+              <h1 className="marketing-h1 gradient-text-on-dark text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-center">
                 Start Your AI Agency: Easy, No-Code, No PhD Needed!
               </h1>
               <p className="text-muted-foreground text-sm sm:text-base md:text-lg max-w-md mx-auto !mb-5 md:!mb-6 pt-1 sm:pt-2">
@@ -228,7 +228,7 @@ export default function MarketingPageClient() {
                   return (
                     <div key={step.title} ref={stepRef} className={cn("relative scroll-reveal", step.animationDelay, (index === 0 || index === 1) ? "md:dashed-connector md:right" : "", stepIsVisible && "visible")}>
                       <article className={cn("relative flex flex-col items-center gap-2 p-4 sm:p-5 rounded-lg bg-background shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 text-foreground z-10 h-full")}>
-                          <div className="absolute -top-3 bg-gradient-to-br from-electric-teal to-neon-lime text-background text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center border-2 border-card shadow-md">{step.number}</div>
+                          <div className="absolute -top-3 bg-primary text-primary-foreground text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center border-2 border-card shadow-md">{step.number}</div>
                           <div className="mt-5 mb-1" data-ai-hint={step.hint}>{step.icon}</div>
                           <h3 className="font-headline text-md sm:text-lg font-semibold text-center">{step.title}</h3>
                           <p className="text-xs text-muted-foreground text-center leading-relaxed">{step.description}</p>
@@ -268,7 +268,7 @@ export default function MarketingPageClient() {
                        <article ref={cardRef} key={index} className={cn("scroll-reveal transform hover:scale-103 transition-transform duration-300",
                          item.delay, cardIsVisible && "visible",
                          item.type === 'testimonial' ? "bg-background p-4 sm:p-5 rounded-lg shadow-lg text-foreground" :
-                         "bg-gradient-to-br from-electric-teal to-neon-lime p-4 sm:p-5 rounded-lg shadow-lg text-background flex flex-col items-center justify-center text-center")}
+                         "bg-primary p-4 sm:p-5 rounded-lg shadow-lg text-primary-foreground flex flex-col items-center justify-center text-center")}
                          data-ai-hint={item.aiHint || (item.type === 'testimonial' ? 'user review card design' : 'feature metrics card design')}
                          >
                         {item.type === 'testimonial' ? (

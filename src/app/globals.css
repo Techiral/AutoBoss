@@ -152,7 +152,7 @@
   @apply bg-card/30 dark:bg-card/50 text-card-foreground;
 }
 .section-cta-final {
-  @apply bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 text-foreground dark:from-slate-800 dark:via-gray-900 dark:to-slate-900;
+  @apply bg-card text-card-foreground;
 }
 
 /* Sticky Header */
@@ -163,26 +163,14 @@
     @apply bg-background/95 backdrop-blur-sm shadow-lg;
 }
 
-/* Gradient Text Helpers */
-.gradient-text-on-dark { /* For dark backgrounds, e.g., hero */
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-electric-teal via-neon-lime to-primary;
-}
-.dark .gradient-text-on-dark { /* Ensure dark mode consistency */
-    @apply bg-gradient-to-r from-[hsl(var(--electric-teal))] via-[hsl(var(--neon-lime))] to-[hsl(var(--primary))];
-}
-
-.text-gradient-dynamic { /* For general use on titles, potentially on lighter card backgrounds */
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-neon-lime to-primary;
-}
-.dark .text-gradient-dynamic {
-    @apply bg-gradient-to-r from-[hsl(var(--primary))] via-[hsl(var(--neon-lime))] to-[hsl(var(--primary))];
+/* Solid Color Text & Button Helpers (Replaces Gradients) */
+.gradient-text-on-dark,
+.text-gradient-dynamic {
+  @apply text-primary;
 }
 
 .btn-gradient-primary {
-  @apply bg-gradient-to-r from-primary to-neon-lime text-primary-foreground shadow-md hover:opacity-90 transition-opacity;
-}
-.dark .btn-gradient-primary {
-  @apply text-primary-foreground; /* Ensures dark text on light gradient for dark mode buttons */
+  @apply bg-primary text-primary-foreground shadow-md hover:bg-primary/90 transition-colors;
 }
 
 

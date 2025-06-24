@@ -94,12 +94,12 @@ export default function ClientAgentsDashboardPage() {
     <div className="space-y-6 sm:space-y-8">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-            <h1 className={cn("font-headline text-2xl sm:text-3xl font-bold flex items-center gap-2", "text-gradient-dynamic")}>
+            <h1 className="font-headline text-primary text-2xl sm:text-3xl font-bold flex items-center gap-2">
                 <Bot className="w-7 h-7 sm:w-8 sm:w-8"/> Agents for: {client.name}
             </h1>
             {client.description && <p className="text-sm text-muted-foreground mt-1">{client.description}</p>}
         </div>
-        <Button asChild size="sm" className={cn("w-full sm:w-auto", "btn-gradient-primary")}>
+        <Button asChild size="sm" className="w-full sm:w-auto btn-gradient-primary">
           <Link href={`/agents/create?clientId=${client.id}&clientName=${encodeURIComponent(client.name)}`}>
             <PlusCircle className="mr-2 h-4 w-4 sm:h-5 sm:w-5" /> Create New Agent for {client.name}
           </Link>

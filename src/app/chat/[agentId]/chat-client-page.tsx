@@ -76,8 +76,6 @@ export default function ChatClientPage({ agentId }: ChatClientPageProps) {
         if (agentSnap.exists()) {
           const agentData = agentSnap.data();
           const convertedAgent = convertTimestampsToISOForChat({ id: agentSnap.id, ...agentData });
-          // If Firestore rules allowed the getDoc, we assume the agent is accessible.
-          // The isPubliclyShared flag is for showcase visibility, not direct link access.
           setAgent(convertedAgent);
         } else {
           setError(`Agent with ID "${agentId}" not found.`);
@@ -85,9 +83,8 @@ export default function ChatClientPage({ agentId }: ChatClientPageProps) {
         }
       } catch (e: any) {
         console.error("Error loading agent for public chat:", e);
-        // Check if the error is due to permissions, which shouldn't happen if rules are `allow get: if true;`
         if (e.message && (e.message.includes("Missing or insufficient permissions") || e.message.includes("permission-denied"))) {
-            setError(`Access to agent data denied by security rules. This agent may not exist or direct access is restricted.`);
+            setError(`Access denied. Please check Firestore rules for agent reads.`);
         } else {
             setError(`Could not load agent data: ${e.message}`);
         }
@@ -98,7 +95,7 @@ export default function ChatClientPage({ agentId }: ChatClientPageProps) {
     };
 
     fetchAgent();
-  }, [agentId]); // Removed appContextInstance from dependencies as it's not strictly needed for this fetch logic for a public page
+  }, [agentId]);
 
   if (isLoading) {
     return (

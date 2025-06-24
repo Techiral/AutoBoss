@@ -321,8 +321,8 @@ export default function CreateAgentPage() {
     <div className="max-w-2xl mx-auto">
       <Card>
         <CardHeader className="p-4 sm:p-6">
-          <CardTitle className={cn("font-headline text-xl sm:text-2xl flex items-center gap-2", "text-gradient-dynamic")}>
-             <Bot className="w-6 h-6 sm:w-7 sm:w-7"/>{pageTitle}
+          <CardTitle className="font-headline text-primary text-xl sm:text-2xl flex items-center gap-2">
+             <Bot className="w-6 h-6 sm:w-7 sm:h-7"/>{pageTitle}
           </CardTitle>
           <CardDescription className="text-sm">
             {selectedTemplate ? `Starting with the "${selectedTemplate.id.replace(/_/g, ' ')}" template. ` : ""}
@@ -564,7 +564,7 @@ export default function CreateAgentPage() {
             <Button 
               type="submit" 
               disabled={isLoading || (requiresClientSelection && !formSelectedClientId && clients.length > 0) || (requiresClientSelection && clients.length === 0)} 
-              className={cn("w-full", "btn-gradient-primary")}
+              className="w-full btn-gradient-primary"
             >
               {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               {isLoading ? "Creating Agent..." : `Create Agent for ${activeClient?.name || queryClientName || "Selected Client"}`}
@@ -576,7 +576,7 @@ export default function CreateAgentPage() {
       {generatedAgentDetails && (
         <Card className="mt-6 sm:mt-8">
           <CardHeader className="p-4 sm:p-6">
-            <CardTitle className={cn("font-headline text-lg sm:text-xl", "text-gradient-dynamic")}>AI Generated Details (Suggestions)</CardTitle>
+            <CardTitle className="font-headline text-primary text-lg sm:text-xl">AI Generated Details (Suggestions)</CardTitle>
             <CardDescription className="text-xs italic">You can refine these details in the 'Personality' section for this agent after creation.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6">
