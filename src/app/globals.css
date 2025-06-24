@@ -1,82 +1,95 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    /* Light Theme Palette - Amber Accent */
-    --background: 0 0% 96%; /* #F5F5F5 */
-    --foreground: 0 0% 0%; /* #000000 */
-    --card: 0 0% 96%; /* #F5F5F5 */
+    /* Light Theme: Black on White */
+    --background: 0 0% 100%; /* #FFFFFF */
+    --foreground: 0 0% 0%;   /* #000000 */
+    
+    --card: 0 0% 100%; /* Card has same bg as page */
     --card-foreground: 0 0% 0%;
-    --popover: 0 0% 96%;
+    
+    --popover: 0 0% 100%;
     --popover-foreground: 0 0% 0%;
-    --primary: 45 100% 33%; /* #A67C00 */
-    --primary-foreground: 0 0% 100%; /* #FFFFFF */
-    --secondary: 0 0% 96%;
-    --secondary-foreground: 0 0% 0%;
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 40%;
-    --accent: 45 100% 33%;
-    --accent-foreground: 0 0% 100%;
+
+    /* This is for the button hover fill */
+    --primary: 0 0% 0%;   /* black */
+    --primary-foreground: 0 0% 100%; /* white */
+
+    /* For ShadCN compatibility, these must exist. Set to neutral values. */
+    --secondary: 0 0% 98%;
+    --secondary-foreground: 0 0% 9%;
+
+    --muted: 0 0% 98%; /* A very light gray for muted backgrounds like agent chat bubbles */
+    --muted-foreground: 0 0% 45%; /* for placeholders */
+
+    /* Accent is for hover states. */
+    --accent: 0 0% 95%; /* Subtle hover for non-button elements */
+    --accent-foreground: 0 0% 9%;
+
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 85%;
-    --input: 0 0% 85%;
-    --ring: 45 100% 33%;
-
-    --chart-1: 45 100% 33%;
-    --chart-2: 45 80% 45%;
-    --chart-3: 45 70% 55%;
-    --chart-4: 45 60% 65%;
-    --chart-5: 45 50% 75%;
     
-    --sidebar-background: 0 0% 96%;
+    --border: 0 0% 83%;   /* A light gray border */
+    --input: 0 0% 83%;
+    --ring: 0 0% 0%;     /* black for focus rings */
+    
+    /* Sidebar specific */
+    --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 0 0% 0%;
-    --sidebar-primary: 45 100% 33%;
+    --sidebar-primary: 0 0% 0%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 90%;
-    --sidebar-accent-foreground: 45 100% 33%;
-    --sidebar-border: 0 0% 85%;
-    --sidebar-ring: 45 100% 33%;
+    --sidebar-accent: 0 0% 95%;
+    --sidebar-accent-foreground: 0 0% 9%;
+    --sidebar-border: 0 0% 90%;
+    --sidebar-ring: 0 0% 0%;
   }
 
   .dark {
-    /* Dark Theme Palette - Amber Accent */
-    --background: 0 0% 7%; /* #121212 */
+    /* Dark Theme: White on Black */
+    --background: 0 0% 0%; /* #000000 */
     --foreground: 0 0% 100%; /* #FFFFFF */
-    --card: 0 0% 7%; /* #121212 */
-    --card-foreground: 0 0% 100%;
-    --popover: 0 0% 7%;
-    --popover-foreground: 0 0% 100%;
-    --primary: 45 100% 33%; /* #A67C00 */
-    --primary-foreground: 0 0% 100%; /* #FFFFFF */
-    --secondary: 0 0% 7%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 0 0% 7%;
-    --muted-foreground: 0 0% 50%;
-    --accent: 45 100% 33%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 72% 51%; /* Red */
-    --destructive-foreground: 0 0% 96%;
-    --border: 0 0% 15%;
-    --input: 0 0% 15%;
-    --ring: 45 100% 33%;
-
-    --chart-1: 45 100% 33%;
-    --chart-2: 45 80% 45%;
-    --chart-3: 45 70% 55%;
-    --chart-4: 45 60% 65%;
-    --chart-5: 45 50% 75%;
     
-    --sidebar-background: 0 0% 7%;
+    --card: 0 0% 0%;
+    --card-foreground: 0 0% 100%;
+    
+    --popover: 0 0% 0%;
+    --popover-foreground: 0 0% 100%;
+
+    /* The hover fill color */
+    --primary: 0 0% 100%; /* white */
+    --primary-foreground: 0 0% 0%; /* black */
+    
+    /* For ShadCN compatibility, these must exist. Set to neutral values. */
+    --secondary: 0 0% 8%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 0 0% 8%; /* A very dark gray for muted backgrounds */
+    --muted-foreground: 0 0% 63%; /* for placeholders */
+    
+    /* Accent is for hover states. */
+    --accent: 0 0% 12%; /* Subtle hover for non-button elements */
+    --accent-foreground: 0 0% 98%;
+    
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --border: 0 0% 20%; /* A dark gray border */
+    --input: 0 0% 20%;
+    --ring: 0 0% 100%;   /* white for focus rings */
+
+    /* Sidebar specific */
+    --sidebar-background: 0 0% 0%;
     --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 45 100% 33%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 15%;
-    --sidebar-accent-foreground: 45 100% 33%;
-    --sidebar-border: 0 0% 15%;
-    --sidebar-ring: 45 100% 33%;
+    --sidebar-primary: 0 0% 100%;
+    --sidebar-primary-foreground: 0 0% 0%;
+    --sidebar-accent: 0 0% 12%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 0 0% 20%;
+    --sidebar-ring: 0 0% 100%;
   }
 }
 

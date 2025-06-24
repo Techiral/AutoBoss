@@ -259,8 +259,8 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
 
 
   return (
-    <div className="flex flex-col h-full border rounded-lg shadow-sm bg-card"> {/* Removed overflow-hidden from root */}
-      <div className="p-2 border-b flex flex-col sm:flex-row justify-between items-center gap-2 text-xs"> {/* Header */}
+    <div className="flex flex-col h-full border rounded-lg bg-card">
+      <div className="p-2 border-b flex flex-col sm:flex-row justify-between items-center gap-2 text-xs">
         <Button
           variant="outline"
           size="sm"
@@ -279,10 +279,9 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
         </div>
       </div>
       
-      {/* Message Area Wrapper - This div takes up available space and allows its child (ScrollArea) to scroll */}
       <div className="flex-1 min-h-0"> 
         <ScrollArea className="h-full" ref={scrollAreaRef}> 
-          <div className="space-y-3 sm:space-y-4 p-3 sm:p-4"> {/* Message List with padding */}
+          <div className="space-y-3 sm:space-y-4 p-3 sm:p-4">
             {messages.map((message) => (
               <div
                 key={message.id}
@@ -298,10 +297,10 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
                 )}
                 <div
                   className={cn(
-                    "max-w-[75%] sm:max-w-[70%] rounded-lg p-2 sm:p-3 text-sm shadow",
+                    "max-w-[75%] sm:max-w-[70%] rounded-lg p-2 sm:p-3 text-sm",
                     message.sender === "user"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted"
+                      ? "bg-foreground text-background"
+                      : "bg-muted text-muted-foreground"
                   )}
                 >
                   <p className="whitespace-pre-wrap text-xs sm:text-sm">{message.text}</p>
@@ -316,20 +315,20 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
             {(isLoading && isInitializing) && messages.length === 0 && (
               <div className="flex items-end gap-2 justify-start">
                 <Avatar className="h-7 w-7 sm:h-8 sm:w-8"><AvatarFallback><Bot size={16} /></AvatarFallback></Avatar>
-                <div className="max-w-[70%] rounded-lg p-2 sm:p-3 text-sm shadow bg-muted"><Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin text-primary" /></div>
+                <div className="max-w-[70%] rounded-lg p-2 sm:p-3 text-sm bg-muted"><Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin text-muted-foreground" /></div>
               </div>
             )}
             {isLoading && !isInitializing && messages.length > 0 && messages[messages.length - 1].sender === 'user' && (
               <div className="flex items-end gap-2 justify-start">
                 <Avatar className="h-7 w-7 sm:h-8 sm:w-8"><AvatarFallback><Bot size={16} /></AvatarFallback></Avatar>
-                <div className="max-w-[70%] rounded-lg p-2 sm:p-3 text-sm shadow bg-muted"><Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin text-primary" /></div>
+                <div className="max-w-[70%] rounded-lg p-2 sm:p-3 text-sm bg-muted"><Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin text-muted-foreground" /></div>
               </div>
             )}
           </div>
         </ScrollArea>
       </div>
 
-      <div className="border-t p-2 sm:p-4"> {/* Input Area */}
+      <div className="border-t p-2 sm:p-4">
         <form
           onSubmit={handleFormSubmit}
           className="flex items-center gap-2"
@@ -338,7 +337,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
             ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={"Ask your chatbot anything..."}
+            placeholder={"Type your message..."}
             className="flex-1 h-9 sm:h-10 text-sm"
             disabled={isLoading || isInitializing}
           />
