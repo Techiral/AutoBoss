@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ClientCard } from "@/components/client-card"; 
-import { PlusCircle, Info, Briefcase, Loader2, Bot, BookOpen } from "lucide-react";
+import { PlusCircle, Info, Briefcase, Loader2, Bot, BookOpen, Library, LifeBuoy, ArrowRight } from "lucide-react";
 import { useAppContext } from "../layout";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
@@ -35,7 +35,7 @@ import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 
 const addClientFormSchema = z.object({
   name: z.string().min(2, "Client name must be at least 2 characters.").max(100, "Client name too long."),
@@ -46,55 +46,87 @@ type AddClientFormData = z.infer<typeof addClientFormSchema>;
 
 function WelcomeDashboard() {
     return (
-        <Card className="bg-card/50">
-            <CardHeader>
-                <CardTitle className="font-headline text-2xl text-primary text-center">Welcome to Your AI Agency HQ!</CardTitle>
-            </CardHeader>
-            <CardContent className="text-center space-y-6">
-                <p className="text-muted-foreground max-w-lg mx-auto">
-                    This is where you'll manage all your clients and their AI agents. Let's get your first client set up.
-                </p>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left max-w-2xl mx-auto">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><span className="flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-sm font-bold">1</span> Add a Client</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-sm text-muted-foreground mb-4">Create a workspace for your first client. All their agents and knowledge will be organized here.</p>
-                             <Dialog>
-                                <DialogTrigger asChild>
-                                    <Button className="w-full">
-                                    <PlusCircle className="mr-2 h-4 w-4" /> Add Your First Client
-                                    </Button>
-                                </DialogTrigger>
-                                <AddClientDialogContent />
-                            </Dialog>
-                        </CardContent>
-                    </Card>
-                     <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><span className="flex items-center justify-center h-6 w-6 rounded-full border-2 border-primary text-primary text-sm font-bold">2</span> Build an AI Agent</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-sm text-muted-foreground mb-4">Use a template to quickly create a support bot, a lead qualifier, or a custom AI assistant.</p>
-                            <Button variant="secondary" className="w-full" asChild>
-                                <Link href="/app/templates-gallery">
-                                    <Bot className="mr-2 h-4 w-4" /> Browse Agent Templates
-                                </Link>
-                            </Button>
-                        </CardContent>
-                    </Card>
+        <div className="space-y-8">
+            <Card className="border-foreground/20">
+                <CardHeader>
+                    <CardTitle className="font-headline text-3xl">Welcome to Your AI Agency HQ</CardTitle>
+                    <CardDescription className="text-foreground/80">This is your starting point. Follow these steps to launch your first AI agent for a client.</CardDescription>
+                </CardHeader>
+                <CardContent className="grid md:grid-cols-2 gap-6">
+                    <div className="space-y-4 rounded-lg border border-foreground/20 p-6">
+                        <div className="flex items-center gap-3">
+                            <span className="flex items-center justify-center h-8 w-8 rounded-full border-2 border-foreground text-lg font-bold">1</span>
+                            <h3 className="font-headline text-xl">Add Your First Client</h3>
+                        </div>
+                        <p className="text-sm text-foreground/80">Create a workspace for your client. All their agents and knowledge will be organized here.</p>
+                        <Dialog>
+                            <DialogTrigger asChild>
+                                <Button className="w-full">
+                                <PlusCircle className="mr-2 h-4 w-4" /> Add Client
+                                </Button>
+                            </DialogTrigger>
+                            <AddClientDialogContent />
+                        </Dialog>
+                    </div>
+                    <div className="space-y-4 rounded-lg border border-foreground/20 p-6">
+                        <div className="flex items-center gap-3">
+                            <span className="flex items-center justify-center h-8 w-8 rounded-full border-2 border-foreground text-lg font-bold">2</span>
+                            <h3 className="font-headline text-xl">Build an AI Agent</h3>
+                        </div>
+                        <p className="text-sm text-foreground/80">Use a template to quickly create a support bot, a lead qualifier, or a custom AI assistant for the client you just added.</p>
+                        <Button variant="outline" className="w-full" asChild>
+                            <Link href="/app/templates-gallery">
+                                <Bot className="mr-2 h-4 w-4" /> Browse Agent Templates
+                            </Link>
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card className="border-foreground/20">
+                <CardHeader>
+                    <CardTitle className="font-headline text-2xl">Resources & Guidance</CardTitle>
+                    <CardDescription className="text-foreground/80">Everything you need to succeed is right here. No need to get lost.</CardDescription>
+                </CardHeader>
+                <CardContent className="grid sm:grid-cols-1 md:grid-cols-3 gap-4">
+                    <ResourceCard
+                        href="/playbook"
+                        icon={<BookOpen />}
+                        title="Client Playbook"
+                        description="Your step-by-step guide to finding clients and selling your AI services."
+                    />
+                    <ResourceCard
+                        href="/app/user-support"
+                        icon={<LifeBuoy />}
+                        title="Help & FAQ"
+                        description="Find answers to common questions about using the platform."
+                    />
+                    <ResourceCard
+                        href="/app/templates-gallery"
+                        icon={<Library />}
+                        title="Agent Templates"
+                        description="Kickstart projects with pre-built agents for common use-cases."
+                    />
+                </CardContent>
+            </Card>
+        </div>
+    );
+}
+
+function ResourceCard({ href, icon, title, description }: { href: string, icon: React.ReactNode, title: string, description: string }) {
+    return (
+        <Link href={href} className="block group">
+            <div className="p-4 rounded-lg border border-foreground/20 h-full flex flex-col items-start transition-colors group-hover:bg-foreground/5">
+                <div className="p-2 bg-foreground/10 rounded-md mb-3 text-foreground">
+                    {icon}
                 </div>
-                <Alert className="max-w-2xl mx-auto mt-6">
-                    <BookOpen className="h-4 w-4" />
-                    <AlertTitle>Pro Tip:</AlertTitle>
-                    <AlertDescription>
-                        Check out the <Link href="/playbook" className="font-semibold underline hover:text-primary">Client Playbook</Link> for strategies on finding clients and selling your new AI services.
-                    </AlertDescription>
-                </Alert>
-            </CardContent>
-        </Card>
+                <h4 className="font-semibold text-foreground">{title}</h4>
+                <p className="text-sm text-foreground/80 flex-grow">{description}</p>
+                <div className="mt-3 text-sm font-medium text-foreground flex items-center">
+                    Go to {title} <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </div>
+            </div>
+        </Link>
     );
 }
 
@@ -183,7 +215,7 @@ export default function ClientDashboardPage() {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center py-10">
-          <Loader2 className="h-10 w-10 animate-spin text-primary"/>
+          <Loader2 className="h-10 w-10 animate-spin text-foreground"/>
       </div>
     );
   }

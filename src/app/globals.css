@@ -5,70 +5,87 @@
 
 @layer base {
   :root {
-    /* Light Theme */
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 210 100% 50%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
+    /* Light Theme - Black & White Minimalist */
+    --background: 255 100% 100%; /* #FFFFFF */
+    --foreground: 0 0% 0%;       /* #000000 */
+
+    --card: 255 100% 100%;       /* #FFFFFF */
+    --card-foreground: 0 0% 0%;  /* #000000 */
+
+    --popover: 255 100% 100%;
+    --popover-foreground: 0 0% 0%;
+
+    --primary: 0 0% 0%;          /* Black for text on buttons */
+    --primary-foreground: 255 100% 100%; /* White for background of buttons */
+
+    --secondary: 0 0% 96.1%;    /* #F5F5F5 - for subtle backgrounds */
+    --secondary-foreground: 0 0% 9%; /* #171717 */
+
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+
+    --accent: 0 0% 96.1%;
+    --accent-foreground: 0 0% 9%;
+
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 210 100% 50%;
+
+    --border: 0 0% 89.8%; /* #E5E5E5 */
+    --input: 0 0% 89.8%;
+    --ring: 0 0% 0%;
+
     --radius: 0.5rem;
-    
+
     /* Sidebar specific for light theme */
-    --sidebar-background: 240 4.8% 95.9%;
-    --sidebar-foreground: 240 5.9% 10%;
-    --sidebar-primary: 210 100% 50%;
-    --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 0 0% 100%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 240 5.9% 90%;
-    --sidebar-ring: 210 100% 50%;
+    --sidebar-background: 255 100% 100%;
+    --sidebar-foreground: 0 0% 0%;
+    --sidebar-primary: 0 0% 0%;
+    --sidebar-primary-foreground: 255 100% 100%;
+    --sidebar-accent: 0 0% 96.1%;
+    --sidebar-accent-foreground: 0 0% 9%;
+    --sidebar-border: 0 0% 89.8%;
+    --sidebar-ring: 0 0% 0%;
   }
 
   .dark {
-    /* Dark Theme */
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 10%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 210 100% 50%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
+    /* Dark Theme - Black & White Minimalist */
+    --background: 0 0% 0%;       /* #000000 */
+    --foreground: 255 100% 100%; /* #FFFFFF */
+    
+    --card: 0 0% 0%;             /* #000000 */
+    --card-foreground: 255 100% 100%; /* #FFFFFF */
+    
+    --popover: 0 0% 0%;
+    --popover-foreground: 255 100% 100%;
+    
+    --primary: 255 100% 100%;   /* White for text on buttons */
+    --primary-foreground: 0 0% 0%; /* Black for background of buttons */
+    
+    --secondary: 0 0% 14.9%;    /* #262626 - for subtle backgrounds */
+    --secondary-foreground: 0 0% 98%; /* #FAFAFA */
+    
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
+    
+    --accent: 0 0% 14.9%;
     --accent-foreground: 0 0% 98%;
+    
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 210 100% 50%;
+    
+    --border: 255 100% 100%; /* #FFFFFF */
+    --input: 255 100% 100%;
+    --ring: 255 100% 100%;
     
     /* Sidebar specific for dark theme */
-    --sidebar-background: 240 10% 7%;
-    --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 210 100% 50%;
-    --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 240 10% 15%;
+    --sidebar-background: 0 0% 0%;
+    --sidebar-foreground: 255 100% 100%;
+    --sidebar-primary: 255 100% 100%;
+    --sidebar-primary-foreground: 0 0% 0%;
+    --sidebar-accent: 0 0% 14.9%;
     --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 210 100% 50%;
+    --sidebar-border: 255 100% 100%;
+    --sidebar-ring: 255 100% 100%;
   }
 }
 

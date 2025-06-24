@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, User, Settings, LifeBuoy, LogIn, UserPlus } from "lucide-react";
+import { LogOut, User, Settings, LifeBuoy, LogIn, UserPlus, BookOpen, Library } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext"; 
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -61,7 +61,7 @@ export function UserNav() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 sm:h-10 sm:w-10 rounded-full p-0">
-          <Avatar className="h-8 w-8 sm:h-10 sm:w-10">
+          <Avatar className="h-8 w-8 sm:h-10 sm:w-10 border-2 border-transparent hover:border-ring">
             {currentUser.photoURL ? (
                 <AvatarImage src={currentUser.photoURL} alt={userDisplayName} />
             ) : (
@@ -75,7 +75,7 @@ export function UserNav() {
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-0.5">
             <p className="text-sm font-medium leading-none truncate">{userDisplayName}</p>
-            <p className="text-xs leading-none text-muted-foreground truncate">
+            <p className="text-xs leading-none text-foreground/80 truncate">
               {userEmail}
             </p>
           </div>
@@ -96,12 +96,27 @@ export function UserNav() {
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link href="/support">
-            <LifeBuoy className="mr-2 h-4 w-4" />
-            <span>Support</span>
-          </Link>
-        </DropdownMenuItem>
+        <DropdownMenuGroup>
+           <DropdownMenuLabel className="text-xs text-foreground/70">Resources</DropdownMenuLabel>
+           <DropdownMenuItem asChild>
+            <Link href="/playbook">
+              <BookOpen className="mr-2 h-4 w-4" />
+              <span>Client Playbook</span>
+            </Link>
+          </DropdownMenuItem>
+           <DropdownMenuItem asChild>
+            <Link href="/app/user-support">
+              <LifeBuoy className="mr-2 h-4 w-4" />
+              <span>Help & FAQ</span>
+            </Link>
+          </DropdownMenuItem>
+           <DropdownMenuItem asChild>
+            <Link href="/app/templates-gallery">
+              <Library className="mr-2 h-4 w-4" />
+              <span>Agent Templates</span>
+            </Link>
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10">
           <LogOut className="mr-2 h-4 w-4" />

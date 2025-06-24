@@ -54,8 +54,8 @@ export default function AgentDetailLayout({ children }: { children: React.ReactN
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] p-4">
         <Logo className="mb-4 h-8 sm:h-10" />
-        <Loader2 className="h-8 w-8 sm:h-10 animate-spin text-primary mb-3" />
-        <p className="text-sm text-muted-foreground">Loading agent details...</p>
+        <Loader2 className="h-8 w-8 sm:h-10 animate-spin text-foreground mb-3" />
+        <p className="text-sm text-foreground/80">Loading agent details...</p>
       </div>
     );
   }
@@ -77,9 +77,9 @@ export default function AgentDetailLayout({ children }: { children: React.ReactN
       <div>
         <h1 className="font-headline text-foreground text-2xl sm:text-3xl font-bold break-words">
           {agent.generatedName || agent.name}
-          {clientName && <span className="text-muted-foreground text-lg sm:text-xl font-normal"> (for {clientName})</span>}
+          {clientName && <span className="text-foreground/80 text-lg sm:text-xl font-normal"> (for {clientName})</span>}
         </h1>
-        <p className="text-sm sm:text-base text-muted-foreground break-words">{agent.description}</p>
+        <p className="text-sm sm:text-base text-foreground/80 break-words">{agent.description}</p>
       </div>
       
       <Tabs value={pathname} className="w-full">
