@@ -4,79 +4,79 @@
 
 @layer base {
   :root {
-    /* Light Theme Palette - Based on user feedback */
-    --background: 0 0% 100%; /* #FFFFFF */
-    --foreground: 0 0% 20%; /* #333333 */
-    --card: 0 0% 98%; /* #FAFAFA - Surface */
-    --card-foreground: 0 0% 20%; /* #333333 */
-    --popover: 0 0% 100%; /* #FFFFFF */
-    --popover-foreground: 0 0% 20%; /* #333333 */
-    --primary: 192 100% 50%; /* #00D1FF - Accent */
-    --primary-foreground: 0 0% 5%; /* #0D0D0D - For high contrast on the accent button */
-    --secondary: 0 0% 98%; /* #FAFAFA - Surface */
-    --secondary-foreground: 0 0% 20%; /* #333333 */
-    --muted: 0 0% 98%; /* #FAFAFA - Surface */
-    --muted-foreground: 0 0% 53%; /* #888888 */
-    --accent: 192 100% 50%; /* #00D1FF - Accent */
-    --accent-foreground: 0 0% 5%; /* #0D0D0D */
+    /* Light Theme Palette - Amber Accent */
+    --background: 0 0% 96%; /* #F5F5F5 */
+    --foreground: 0 0% 0%; /* #000000 */
+    --card: 0 0% 96%; /* #F5F5F5 */
+    --card-foreground: 0 0% 0%;
+    --popover: 0 0% 96%;
+    --popover-foreground: 0 0% 0%;
+    --primary: 45 100% 33%; /* #A67C00 */
+    --primary-foreground: 0 0% 100%; /* #FFFFFF */
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 0%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 40%;
+    --accent: 45 100% 33%;
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 93%; /* Lighter border for light mode */
-    --input: 0 0% 93%;
-    --ring: 192 100% 50%; /* #00D1FF - Accent */
+    --border: 0 0% 85%;
+    --input: 0 0% 85%;
+    --ring: 45 100% 33%;
 
-    --chart-1: 192 100% 50%;
-    --chart-2: 192 80% 65%;
-    --chart-3: 192 70% 75%;
-    --chart-4: 192 60% 85%;
-    --chart-5: 192 50% 95%;
+    --chart-1: 45 100% 33%;
+    --chart-2: 45 80% 45%;
+    --chart-3: 45 70% 55%;
+    --chart-4: 45 60% 65%;
+    --chart-5: 45 50% 75%;
     
-    --sidebar-background: 0 0% 99%; /* Surface-adjacent */
-    --sidebar-foreground: 0 0% 20%; /* #333333 */
-    --sidebar-primary: 192 100% 50%;
-    --sidebar-primary-foreground: 0 0% 5%;
-    --sidebar-accent: 0 0% 95%; /* Hover/active state background */
-    --sidebar-accent-foreground: 192 100% 50%; /* Icon/text color on hover/active */
-    --sidebar-border: 0 0% 90%;
-    --sidebar-ring: 192 100% 50%;
+    --sidebar-background: 0 0% 96%;
+    --sidebar-foreground: 0 0% 0%;
+    --sidebar-primary: 45 100% 33%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 90%;
+    --sidebar-accent-foreground: 45 100% 33%;
+    --sidebar-border: 0 0% 85%;
+    --sidebar-ring: 45 100% 33%;
   }
 
   .dark {
-    /* Dark Theme Palette - Based on user feedback */
-    --background: 0 0% 5%; /* #0D0D0D */
-    --foreground: 0 0% 96%; /* #F5F5F5 */
-    --card: 0 0% 12%; /* #1F1F1F - Surface */
-    --card-foreground: 0 0% 96%; /* #F5F5F5 */
-    --popover: 0 0% 12%; /* #1F1F1F - Surface */
-    --popover-foreground: 0 0% 96%; /* #F5F5F5 */
-    --primary: 192 100% 50%; /* #00D1FF - Accent */
-    --primary-foreground: 0 0% 5%; /* #0D0D0D - For high contrast on the accent button */
-    --secondary: 0 0% 12%; /* #1F1F1F - Surface */
-    --secondary-foreground: 0 0% 96%; /* #F5F5F5 */
-    --muted: 0 0% 12%; /* #1F1F1F - Surface */
-    --muted-foreground: 0 0% 63%; /* #A1A1A1 */
-    --accent: 192 100% 50%; /* #00D1FF - Accent */
-    --accent-foreground: 0 0% 5%; /* #0D0D0D */
+    /* Dark Theme Palette - Amber Accent */
+    --background: 0 0% 7%; /* #121212 */
+    --foreground: 0 0% 100%; /* #FFFFFF */
+    --card: 0 0% 7%; /* #121212 */
+    --card-foreground: 0 0% 100%;
+    --popover: 0 0% 7%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 45 100% 33%; /* #A67C00 */
+    --primary-foreground: 0 0% 100%; /* #FFFFFF */
+    --secondary: 0 0% 7%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 0 0% 7%;
+    --muted-foreground: 0 0% 50%;
+    --accent: 45 100% 33%;
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 72% 51%; /* Red */
     --destructive-foreground: 0 0% 96%;
-    --border: 0 0% 18%; /* Border for dark mode */
-    --input: 0 0% 18%;
-    --ring: 192 100% 50%; /* #00D1FF - Accent */
+    --border: 0 0% 15%;
+    --input: 0 0% 15%;
+    --ring: 45 100% 33%;
 
-    --chart-1: 192 100% 50%;
-    --chart-2: 192 80% 55%;
-    --chart-3: 192 70% 65%;
-    --chart-4: 192 60% 75%;
-    --chart-5: 192 50% 85%;
+    --chart-1: 45 100% 33%;
+    --chart-2: 45 80% 45%;
+    --chart-3: 45 70% 55%;
+    --chart-4: 45 60% 65%;
+    --chart-5: 45 50% 75%;
     
-    --sidebar-background: 0 0% 8%; /* #141414 - Surface-adjacent */
-    --sidebar-foreground: 0 0% 96%; /* #F5F5F5 */
-    --sidebar-primary: 192 100% 50%;
-    --sidebar-primary-foreground: 0 0% 5%;
-    --sidebar-accent: 0 0% 15%; /* Hover/active state background */
-    --sidebar-accent-foreground: 192 100% 50%; /* Icon/text color on hover/active */
+    --sidebar-background: 0 0% 7%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 45 100% 33%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 15%;
+    --sidebar-accent-foreground: 45 100% 33%;
     --sidebar-border: 0 0% 15%;
-    --sidebar-ring: 192 100% 50%;
+    --sidebar-ring: 45 100% 33%;
   }
 }
 
