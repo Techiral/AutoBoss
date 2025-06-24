@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Home, Bot, Settings, BookOpen, MessageSquare, Share2, Cog, LifeBuoy, Loader2, LogIn, LayoutGrid, Briefcase, MessageSquarePlus, Library, HelpCircleIcon } from 'lucide-react';
 import type { Agent, KnowledgeItem, AgentToneType, Client } from '@/lib/types';
-import { db } from '@/lib/firebase';
+import { db, storage } from '@/lib/firebase';
 import {
   collection,
   getDocs,
@@ -34,6 +34,7 @@ import {
   where,
   writeBatch
 } from 'firebase/firestore';
+import { ref, uploadString, getDownloadURL, deleteObject } from "firebase/storage";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from "@/lib/utils";
@@ -320,7 +321,32 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
     try {
       const agentRef = doc(db, AGENTS_COLLECTION, updatedAgent.id);
+      
       const { id, ...dataToUpdate } = updatedAgent;
+      
+      // Handle image upload if a new data URI is present
+      if (dataToUpdate.agentImageDataUri && dataToUpdate.agentImageDataUri.startsWith('data:image')) {
+        console.log("New agent image data URI found. Uploading to storage...");
+        const storageRef = ref(storage, `agent-images/${id}`);
+        await uploadString(storageRef, dataToUpdate.agentImageDataUri, 'data_url');
+        const downloadURL = await getDownloadURL(storageRef);
+        dataToUpdate.agentImageUrl = downloadURL;
+        console.log("Image uploaded. Public URL:", downloadURL);
+        // We can clear the data URI after upload to save space in Firestore
+        dataToUpdate.agentImageDataUri = ""; 
+      } else if (dataToUpdate.agentImageDataUri === undefined && dataToUpdate.agentImageUrl === undefined) {
+         // This means the user clicked "Remove Image"
+         const storageRef = ref(storage, `agent-images/${id}`);
+         try {
+           await deleteObject(storageRef);
+           console.log(`Removed image from storage for agent ${id}`);
+         } catch (error: any) {
+            if (error.code !== 'storage/object-not-found') {
+                console.error("Error removing image from storage:", error);
+            }
+         }
+      }
+
 
       const finalDataToUpdate: any = { ...dataToUpdate };
       if (typeof finalDataToUpdate.createdAt === 'string') {
@@ -345,11 +371,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       if ('flow' in finalDataToUpdate) delete finalDataToUpdate.flow;
 
       await setDoc(agentRef, finalDataToUpdate, { merge: true });
+
+      // Update local state with the final data (including new image URL)
+      const agentWithUrl = { ...updatedAgent, agentImageUrl: dataToUpdate.agentImageUrl, agentImageDataUri: dataToUpdate.agentImageDataUri };
       setAgents((prevAgents) =>
         prevAgents.map((agent) =>
-          agent.id === updatedAgent.id ? convertFirestoreTimestampToISO(updatedAgent, ['createdAt', 'sharedAt']) as Agent : agent
+          agent.id === updatedAgent.id ? convertFirestoreTimestampToISO(agentWithUrl, ['createdAt', 'sharedAt']) as Agent : agent
         )
       );
+
     } catch (error) {
       console.error("Error updating agent in Firestore:", error);
       toast({ title: "Error Updating Agent", description: "Could not save agent updates.", variant: "destructive" });

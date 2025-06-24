@@ -14,6 +14,7 @@ export const UserProfileSchema = z.object({
   twilioAccountSid: z.string().optional().nullable().describe("User's Twilio Account SID."),
   twilioAuthToken: z.string().optional().nullable().describe("User's Twilio Auth Token."),
   twilioPhoneNumber: z.string().optional().nullable().describe("User's default Twilio Phone Number for sending SMS/making calls."),
+  elevenLabsApiKey: z.string().optional().nullable().describe("User's ElevenLabs API Key for Text-to-Speech."),
 });
 export type UserProfile = z.infer<typeof UserProfileSchema>;
 
@@ -99,7 +100,9 @@ export const AgentSchema = z.object({
   createdAt: z.custom<Timestamp>(), // Will be converted to string in app state
   knowledgeItems: z.array(KnowledgeItemSchema).optional(),
   agentImageDataUri: z.string().optional().describe("Base64 Data URI for the agent's branding image. Keep very small for Firestore!"),
+  agentImageUrl: z.string().url().optional().nullable().describe("Public URL for the agent's branding image for social sharing."),
   ogDescription: z.string().max(300, "OG description should be 300 characters or less.").optional().describe("Custom description for social media sharing."),
+  elevenLabsVoiceId: z.string().optional().nullable().describe("The Voice ID from ElevenLabs to be used for this agent's speech."),
   isPubliclyShared: z.boolean().optional().default(false),
   sharedAt: z.custom<Timestamp>().optional().nullable(),
   showcaseMetrics: z.object({
@@ -141,4 +144,3 @@ export const OutboundTaskPayloadSchema = z.object({
   scheduledAt: z.string().datetime({ offset: true }).optional().describe("Optional ISO 8601 timestamp for scheduled sending."),
 });
 export type OutboundTaskPayload = z.infer<typeof OutboundTaskPayloadSchema>;
-

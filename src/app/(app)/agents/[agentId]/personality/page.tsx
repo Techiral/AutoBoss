@@ -16,7 +16,7 @@ import { useParams } from "next/navigation";
 import { useAppContext } from "../../../layout"; 
 import type { Agent, AgentToneType } from "@/lib/types"; 
 import { AgentToneSchema } from "@/lib/types"; 
-import { Loader2, Smile, Settings, HelpCircle, Image as ImageIcon, MessageCircle, AlertTriangle } from "lucide-react"; 
+import { Loader2, Smile, Settings, HelpCircle, Image as ImageIcon, MessageCircle, AlertTriangle, Mic } from "lucide-react"; 
 import { Logo } from "@/components/logo";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; 
@@ -35,6 +35,7 @@ const formSchema = z.object({
   personality: z.string().min(10, "Personality description must be at least 10 characters").max(1000, "Personality description too long (max 1000 chars)"),
   agentTone: AgentToneSchema.default("neutral"),
   ogDescription: z.string().max(300, "Social media description max 300 chars.").optional(),
+  elevenLabsVoiceId: z.string().optional().nullable(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -44,6 +45,7 @@ export default function PersonalityPage() {
   const [currentAgent, setCurrentAgent] = useState<Agent | null | undefined>(undefined); 
   const [generatedDetails, setGeneratedDetails] = useState<CreateAgentOutput | null>(null);
   const [selectedImageDataUri, setSelectedImageDataUri] = useState<string | null>(null);
+  const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { toast } = useToast();
@@ -59,6 +61,7 @@ export default function PersonalityPage() {
         personality: "",
         agentTone: "neutral",
         ogDescription: "",
+        elevenLabsVoiceId: "",
     }
   });
 
@@ -72,8 +75,9 @@ export default function PersonalityPage() {
         setValue("personality", agent.personality || '');
         setValue("agentTone", agent.agentTone || "neutral"); 
         setValue("ogDescription", agent.ogDescription || '');
-        if (agent.agentImageDataUri) {
-          setSelectedImageDataUri(agent.agentImageDataUri);
+        setValue("elevenLabsVoiceId", agent.elevenLabsVoiceId || '');
+        if (agent.agentImageUrl) {
+          setCurrentImageUrl(agent.agentImageUrl);
         }
         if (agent.generatedName && agent.generatedPersona && agent.generatedGreeting) {
             setGeneratedDetails({
@@ -104,6 +108,7 @@ export default function PersonalityPage() {
       const reader = new FileReader();
       reader.onloadend = () => {
         setSelectedImageDataUri(reader.result as string);
+        setCurrentImageUrl(reader.result as string); // For optimistic UI update
       };
       reader.readAsDataURL(file);
     }
@@ -111,10 +116,12 @@ export default function PersonalityPage() {
   
   const removeImage = async () => {
     if (!currentAgent) return;
-    setIsLoading(true); // Use general loading state
+    setIsLoading(true);
     try {
-      updateAgent({ ...currentAgent, agentImageDataUri: undefined });
+      // Set both to undefined to clear them
+      await updateAgent({ ...currentAgent, agentImageDataUri: undefined, agentImageUrl: undefined });
       setSelectedImageDataUri(null);
+      setCurrentImageUrl(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
       toast({ title: "Image Removed", description: "Agent image has been removed." });
     } catch (error: any) {
@@ -150,20 +157,26 @@ export default function PersonalityPage() {
         generatedName: result.agentName,
         generatedPersona: result.agentPersona,
         generatedGreeting: result.agentGreeting,
-        agentImageDataUri: selectedImageDataUri || undefined, // Save the selected Data URI
+        agentImageDataUri: selectedImageDataUri || currentAgent.agentImageDataUri, // Pass new Data URI to updateAgent
         ogDescription: data.ogDescription || undefined,
+        elevenLabsVoiceId: data.elevenLabsVoiceId || undefined,
       };
-      updateAgent({ ...currentAgent, ...updatedAgentData });
+
+      // updateAgent in AppContext now handles the image upload logic
+      await updateAgent({ ...currentAgent, ...updatedAgentData });
+      
+      // After successful update, clear the staged data URI
+      setSelectedImageDataUri(null); 
 
       toast({
         title: "Personality & Branding Updated!",
         description: `Agent "${result.agentName}" details have been successfully updated.`,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating personality:", error);
       toast({
         title: "Error",
-        description: "Failed to update personality. Please try again.",
+        description: error.message || "Failed to update personality. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -293,13 +306,13 @@ export default function PersonalityPage() {
                     <Tooltip>
                         <TooltipTrigger asChild><HelpCircle className="w-3.5 h-3.5 ml-1.5 text-muted-foreground cursor-help"/></TooltipTrigger>
                         <TooltipContent side="top">
-                            <p className="max-w-xs">Upload an image (e.g., logo). <span className="font-bold text-destructive">IMPORTANT:</span> Keep file size under {MAX_IMAGE_SIZE_MB_DISPLAY}MB (e.g. 100KB). Larger images may fail to save or cause issues.</p>
+                            <p className="max-w-xs">Upload an image (e.g., logo). This will be uploaded and stored to generate a public URL for reliable social sharing. Keep file size under {MAX_IMAGE_SIZE_MB_DISPLAY}MB.</p>
                         </TooltipContent>
                     </Tooltip>
                 </Label>
-                {selectedImageDataUri && (
+                {currentImageUrl && (
                   <div className="my-2 relative w-32 h-32 sm:w-40 sm:h-40 rounded-md overflow-hidden border">
-                    <Image src={selectedImageDataUri} alt="Agent image preview" layout="fill" objectFit="cover" />
+                    <Image src={currentImageUrl} alt="Agent image preview" layout="fill" objectFit="cover" />
                   </div>
                 )}
                 <Input 
@@ -310,17 +323,12 @@ export default function PersonalityPage() {
                     ref={fileInputRef}
                     className="text-xs"
                 />
-                {currentAgent.agentImageDataUri && !selectedImageDataUri && ( // Show remove if there's a saved image and no new one selected
+                {currentAgent.agentImageUrl && (
                      <Button type="button" variant="outline" size="sm" onClick={removeImage} disabled={isLoading} className="text-xs mt-1">
                         {isLoading ? <Loader2 className="mr-1.5 h-3 w-3 animate-spin"/> : null}
                         Remove Current Image
                     </Button>
                 )}
-                 {selectedImageDataUri && currentAgent.agentImageDataUri !== selectedImageDataUri && ( // Show remove if a new image is staged
-                     <Button type="button" variant="outline" size="sm" onClick={() => { setSelectedImageDataUri(currentAgent.agentImageDataUri || null); if(fileInputRef.current) fileInputRef.current.value = ""; }} disabled={isLoading} className="text-xs mt-1">
-                        Cancel Change
-                    </Button>
-                 )}
                  <Alert variant="destructive" className="mt-2 p-2 text-xs bg-destructive/10 border-destructive/20">
                     <AlertTriangle className="h-3.5 w-3.5"/>
                     <AlertTitle className="text-xs font-medium">Image Size Limit!</AlertTitle>
@@ -340,6 +348,26 @@ export default function PersonalityPage() {
                 <Textarea id="ogDescription" placeholder="Briefly describe what this agent does..." {...register("ogDescription")} rows={3} maxLength={300} />
                 {errors.ogDescription && <p className="text-xs text-destructive">{errors.ogDescription.message}</p>}
             </div>
+            
+            {(currentAgent.agentType === 'voice' || currentAgent.agentType === 'hybrid') && (
+              <>
+                <Separator />
+                <div className="space-y-1.5">
+                  <Label htmlFor="elevenLabsVoiceId" className="flex items-center">
+                      ElevenLabs Voice ID
+                      <Tooltip>
+                          <TooltipTrigger asChild><HelpCircle className="w-3.5 h-3.5 ml-1.5 text-muted-foreground cursor-help"/></TooltipTrigger>
+                          <TooltipContent side="top">
+                              <p className="max-w-xs">Enter a specific Voice ID from your ElevenLabs VoiceLab to give this agent a unique voice. If left blank, a default voice will be used. Ensure you have an ElevenLabs API key in your user settings.</p>
+                          </TooltipContent>
+                      </Tooltip>
+                  </Label>
+                  <Input id="elevenLabsVoiceId" placeholder="e.g., 21m00Tcm4TlvDq8ikWAM" {...register("elevenLabsVoiceId")} />
+                  {errors.elevenLabsVoiceId && <p className="text-xs text-destructive">{errors.elevenLabsVoiceId.message}</p>}
+                </div>
+              </>
+            )}
+
           </CardContent>
         </Card>
 

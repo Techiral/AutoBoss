@@ -21,7 +21,6 @@ const convertTimestampsToISOForChat = (agentData: any): Agent => {
       return item;
     });
   }
-  // If agentImageDataUri is used, ensure it's handled correctly or passed through
   return newAgent as Agent;
 };
 
@@ -57,10 +56,8 @@ export async function generateMetadata(
       const title = agent.generatedName || agent.name || "AI Chat Agent";
       const description = agent.ogDescription || agent.description || `Chat with ${title}.`;
       
-      // IMPORTANT: For og:image, Data URIs (agent.agentImageDataUri) are often NOT supported by social media crawlers.
-      // For reliable custom OG images, agent.agentImageDataUri should ideally be an HTTPS URL.
-      // If using Data URIs, it might not work as expected on all platforms.
-      const imageUrl = agent.agentImageDataUri || defaultOgImage; 
+      // Use the public agentImageUrl if available, otherwise fallback to default.
+      const imageUrl = agent.agentImageUrl || defaultOgImage; 
 
       return {
         title: `${title} - Powered by AutoBoss`,

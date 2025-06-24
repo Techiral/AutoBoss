@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Settings as SettingsIcon, Trash2, Moon, Sun, InfoIcon, Loader2, Mail, KeyRound, ShieldAlert, PhoneCall, MessageSquare, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Settings as SettingsIcon, Trash2, Moon, Sun, InfoIcon, Loader2, Mail, KeyRound, ShieldAlert, PhoneCall, MessageSquare, AlertCircle, CheckCircle2, Mic } from "lucide-react";
 import { useAppContext } from "../layout";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -38,6 +38,7 @@ const credentialsFormSchema = z.object({
   twilioPhoneNumber: z.string().optional().refine(val => !val || /^\+[1-9]\d{1,14}$/.test(val), {
     message: "Invalid Twilio phone number format (e.g., +12223334444)",
   }),
+  elevenLabsApiKey: z.string().optional(),
 });
 type CredentialsFormData = z.infer<typeof credentialsFormSchema>;
 
@@ -50,6 +51,7 @@ export default function SettingsPage() {
   const [isSavingCredentials, setIsSavingCredentials] = useState(false);
   const [hasSendGridKey, setHasSendGridKey] = useState(false);
   const [hasTwilioSid, setHasTwilioSid] = useState(false);
+  const [hasElevenLabsKey, setHasElevenLabsKey] = useState(false);
   const [isLoadingCredentials, setIsLoadingCredentials] = useState(true);
 
 
@@ -61,6 +63,7 @@ export default function SettingsPage() {
       twilioAccountSid: "",
       twilioAuthToken: "",
       twilioPhoneNumber: "",
+      elevenLabsApiKey: "",
     }
   });
 
@@ -74,9 +77,11 @@ export default function SettingsPage() {
           setValue("twilioPhoneNumber", creds.twilioPhoneNumber || "");
           setHasSendGridKey(!!creds.sendGridApiKey);
           setHasTwilioSid(!!creds.twilioAccountSid);
+          setHasElevenLabsKey(!!creds.elevenLabsApiKey);
         } else {
           setHasSendGridKey(false);
           setHasTwilioSid(false);
+          setHasElevenLabsKey(false);
         }
         setIsLoadingCredentials(false);
       };
@@ -101,15 +106,18 @@ export default function SettingsPage() {
       twilioAccountSid: data.twilioAccountSid,
       twilioAuthToken: data.twilioAuthToken,
       twilioPhoneNumber: data.twilioPhoneNumber,
+      elevenLabsApiKey: data.elevenLabsApiKey,
     });
     if (success) {
         if (data.sendGridApiKey) setHasSendGridKey(true);
         if (data.twilioAccountSid) setHasTwilioSid(true);
+        if (data.elevenLabsApiKey) setHasElevenLabsKey(true);
     }
     setIsSavingCredentials(false);
     setValue("sendGridApiKey", ""); 
     setValue("twilioAccountSid", ""); 
-    setValue("twilioAuthToken", ""); 
+    setValue("twilioAuthToken", "");
+    setValue("elevenLabsApiKey", "");
   };
   
   const isLoading = isAppContextLoading || authLoading || isLoadingCredentials;
@@ -155,11 +163,45 @@ export default function SettingsPage() {
                 <KeyRound className="w-4 h-4 sm:w-5 sm:w-5 text-primary" /> Your API Credentials
               </CardTitle>
               <CardDescription className="text-xs sm:text-sm">
-                Optionally, connect your own SendGrid (for emails) and Twilio (for SMS/Voice) accounts. This allows agents to send communications using your branding and account limits.
+                Connect your own API keys to enable agent abilities like sending emails or making calls. Keys are stored securely and associated with your user profile.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-3 sm:p-4 pt-2">
               <form onSubmit={handleSubmit(onCredentialsSubmit)} className="space-y-5 sm:space-y-6">
+                
+                <div className="space-y-3 p-3 border rounded-md bg-secondary">
+                    <h3 className="text-sm font-semibold flex items-center gap-1.5"><Mic className="w-4 h-4 text-primary"/>ElevenLabs (High-Quality Voice)</h3>
+                    {isLoadingCredentials && <div className="flex items-center text-xs text-muted-foreground"><Loader2 className="h-3 w-3 mr-1 animate-spin"/>Loading ElevenLabs status...</div>}
+                    {!isLoadingCredentials && hasElevenLabsKey && (
+                        <Alert variant="default" className="p-2 text-xs bg-primary/10 border-primary/20">
+                            <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+                            <AlertTitle className="text-primary text-xs font-medium">ElevenLabs Configured</AlertTitle>
+                            <AlertDescription className="text-muted-foreground text-[10px] sm:text-[11px]">
+                                Your ElevenLabs API Key is set. Voice agents will use this for high-quality speech.
+                            </AlertDescription>
+                        </Alert>
+                    )}
+                    {!isLoadingCredentials && !hasElevenLabsKey && (
+                        <Alert variant="destructive" className="p-2 text-xs bg-destructive/10 border-destructive/20">
+                            <AlertCircle className="h-3.5 w-3.5" />
+                            <AlertTitle className="text-xs font-medium">ElevenLabs Not Configured</AlertTitle>
+                            <AlertDescription className="text-[10px] sm:text-[11px]">
+                                Your voice agents will use the standard, lower-quality Twilio voice. To enable high-quality, realistic voices, add your ElevenLabs API key. The system's shared key (if any) has a very limited quota.
+                            </AlertDescription>
+                        </Alert>
+                    )}
+                    <div className="space-y-1">
+                        <Label htmlFor="elevenLabsApiKey" className="text-xs font-medium">Your ElevenLabs API Key</Label>
+                        <Tooltip>
+                            <TooltipTrigger asChild><Input id="elevenLabsApiKey" type="password" placeholder={hasElevenLabsKey ? "API Key is set (Enter new to change)" : "Paste your ElevenLabs API Key"} {...register("elevenLabsApiKey")} disabled={isLoading || isSavingCredentials}/></TooltipTrigger>
+                            <TooltipContent>
+                                <p className="max-w-xs">Get this from your ElevenLabs.io Profile page. This enables high-quality, realistic voices for your agents.</p>
+                            </TooltipContent>
+                        </Tooltip>
+                        {errors.elevenLabsApiKey && <p className="text-xs text-destructive">{errors.elevenLabsApiKey.message}</p>}
+                    </div>
+                </div>
+
                 <div className="space-y-3 p-3 border rounded-md bg-secondary">
                     <h3 className="text-sm font-semibold flex items-center gap-1.5"><Mail className="w-4 h-4 text-primary"/>SendGrid (Email)</h3>
                     {isLoadingCredentials && <div className="flex items-center text-xs text-muted-foreground"><Loader2 className="h-3 w-3 mr-1 animate-spin"/>Loading SendGrid status...</div>}
@@ -167,18 +209,12 @@ export default function SettingsPage() {
                         <Alert variant="default" className="p-2 text-xs bg-primary/10 border-primary/20">
                             <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
                             <AlertTitle className="text-primary text-xs font-medium">SendGrid Configured</AlertTitle>
-                            <AlertDescription className="text-muted-foreground text-[10px] sm:text-[11px]">
-                                Your SendGrid API Key is set. Agents can use this for emails.
-                            </AlertDescription>
                         </Alert>
                     )}
-                    {!isLoadingCredentials && !hasSendGridKey && (
+                     {!isLoadingCredentials && !hasSendGridKey && (
                         <Alert variant="destructive" className="p-2 text-xs bg-destructive/10 border-destructive/20">
                             <AlertCircle className="h-3.5 w-3.5" />
                             <AlertTitle className="text-xs font-medium">SendGrid Not Configured</AlertTitle>
-                            <AlertDescription className="text-[10px] sm:text-[11px]">
-                                Your agents cannot send emails using your account until you provide a SendGrid API Key. They may use system defaults (if any) or email features will be unavailable.
-                            </AlertDescription>
                         </Alert>
                     )}
                     <div className="space-y-1">
@@ -206,18 +242,12 @@ export default function SettingsPage() {
                         <Alert variant="default" className="p-2 text-xs bg-primary/10 border-primary/20">
                             <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
                             <AlertTitle className="text-primary text-xs font-medium">Twilio Configured</AlertTitle>
-                            <AlertDescription className="text-muted-foreground text-[10px] sm:text-[11px]">
-                                Your Twilio Account SID is set. Agents can use this for SMS/Voice.
-                            </AlertDescription>
                         </Alert>
                     )}
                      {!isLoadingCredentials && !hasTwilioSid && (
                         <Alert variant="destructive" className="p-2 text-xs bg-destructive/10 border-destructive/20">
                             <AlertCircle className="h-3.5 w-3.5" />
                             <AlertTitle className="text-xs font-medium">Twilio Not Configured</AlertTitle>
-                            <AlertDescription className="text-[10px] sm:text-[11px]">
-                                Your agents cannot send SMS or make/receive calls using your account until you provide Twilio credentials. They may use system defaults (if any) or related features will be unavailable.
-                            </AlertDescription>
                         </Alert>
                     )}
                     <div className="space-y-1">
@@ -250,7 +280,7 @@ export default function SettingsPage() {
                     <ShieldAlert className="h-3.5 w-3.5 text-primary" />
                     <AlertTitle className="text-primary text-xs font-medium">Security & Usage Note</AlertTitle>
                     <AlertDescription className="text-muted-foreground text-[10px] sm:text-[11px]">
-                     API keys and tokens are sensitive. They will be stored securely in your user profile in Firestore. If you don't provide credentials, the system may use global defaults if configured by the platform admin, or related features might be unavailable for your agents. Input fields for keys/tokens are password type for display; if a key is already set, re-entering a new value will overwrite it.
+                     API keys and tokens are sensitive. They will be stored securely. If you don't provide credentials, related agent features may be unavailable or use limited system defaults. Input fields are password type for display; if a key is already set, re-entering a new value will overwrite it.
                     </AlertDescription>
                 </Alert>
                 <Button type="submit" size="sm" className="text-xs sm:text-sm" disabled={isLoading || isSavingCredentials}>

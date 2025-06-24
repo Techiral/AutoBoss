@@ -1,10 +1,12 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import twilio from 'twilio';
-import { db } from '@/lib/firebase';
-import { doc, getDoc, Timestamp } from 'firebase/firestore';
-import type { Agent, AgentToneType } from '@/lib/types'; // Added AgentToneType
-import { generateVoiceResponse, VoiceResponseInput } from '@/ai/flows/voice-response-flow'; 
+import { db, storage } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import type { Agent, UserProfile, AgentToneType } from '@/lib/types';
+import { generateVoiceResponse, VoiceResponseInput } from '@/ai/flows/voice-response-flow';
+import { ElevenLabsClient } from 'elevenlabs-node';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const MAX_HISTORY_ITEMS_IN_URL = 2; // Number of recent exchanges (1 user + 1 agent) = 4 items total (u1,a1,u2,a2)
 
@@ -25,6 +27,64 @@ const convertAgentDataForVoice = (agentData: any): Agent => {
   return newAgent as Agent;
 };
 
+async function generateElevenLabsSpeech(text: string, userId: string, callSid: string, voiceId?: string | null): Promise<string | null> {
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}] [TTS Service] Generating speech for call ${callSid}`);
+  let apiKey: string | undefined | null;
+
+  try {
+    const userRef = doc(db, 'users', userId);
+    const userSnap = await getDoc(userRef);
+    if (userSnap.exists()) {
+        const userData = userSnap.data() as UserProfile;
+        apiKey = userData.elevenLabsApiKey;
+    }
+  } catch (error) {
+    console.error(`[${timestamp}] [TTS Service] Error fetching user profile for API key for call ${callSid}:`, error);
+  }
+
+  if (!apiKey) {
+    apiKey = process.env.ELEVENLABS_API_KEY;
+    if (apiKey) {
+      console.log(`[${timestamp}] [TTS Service] Using system default ElevenLabs API key for call ${callSid}.`);
+    }
+  } else {
+     console.log(`[${timestamp}] [TTS Service] Using user-specific ElevenLabs API key for call ${callSid}.`);
+  }
+
+  if (!apiKey) {
+    console.warn(`[${timestamp}] [TTS Service] No ElevenLabs API key found (user or system) for call ${callSid}. Cannot generate speech.`);
+    return null;
+  }
+
+  try {
+    const elevenlabs = new ElevenLabsClient({ apiKey });
+    const audio = await elevenlabs.generate({
+        voice: voiceId || 'Rachel', // Use specified voice or a default
+        text,
+        model_id: 'eleven_multilingual_v2',
+    });
+
+    const chunks: Buffer[] = [];
+    for await (const chunk of audio) {
+        chunks.push(chunk);
+    }
+    const content = Buffer.concat(chunks);
+    
+    console.log(`[${timestamp}] [TTS Service] Speech audio generated successfully for call ${callSid}. Uploading to storage.`);
+    const storageRef = ref(storage, `voice-responses/${callSid}-${Date.now()}.mp3`);
+    const uploadResult = await uploadBytes(storageRef, content, { contentType: 'audio/mpeg' });
+    const downloadURL = await getDownloadURL(uploadResult.ref);
+    
+    console.log(`[${timestamp}] [TTS Service] Audio uploaded for call ${callSid}. Public URL: ${downloadURL}`);
+    return downloadURL;
+
+  } catch (error) {
+    console.error(`[${timestamp}] [TTS Service] Error during ElevenLabs API call or storage upload for call ${callSid}:`, error);
+    return null;
+  }
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: { agentId: string } }
@@ -41,7 +101,6 @@ export async function POST(
     const searchParams = request.nextUrl.searchParams;
 
     console.log(`[${timestamp}] Twilio Request Data for ${agentId}:`, JSON.stringify(twilioData));
-    console.log(`[${timestamp}] URL Query Params for ${agentId}:`, JSON.stringify(Object.fromEntries(searchParams.entries())));
 
     const speechResult = twilioData.SpeechResult as string | undefined;
     const callSid = twilioData.CallSid as string;
@@ -60,7 +119,6 @@ export async function POST(
     let agentResponseText = agent.generatedGreeting || `Hello, you've reached ${agent.generatedName || agent.name}. How can I help?`;
     
     const shortHistoryFromUrl: string[] = [];
-    // Reconstruct history from u1, a1, u2, a2...
     for(let i = 1; i <= MAX_HISTORY_ITEMS_IN_URL; i++) {
         const userMsg = searchParams.get(`u${i}`);
         const agentMsg = searchParams.get(`a${i}`);
@@ -78,8 +136,8 @@ export async function POST(
         agentName: agent.generatedName,
         agentPersona: agent.generatedPersona,
         agentRole: agent.role,
-        agentTone: agent.agentTone || "neutral", // Pass agentTone
-        shortHistory: shortHistoryFromUrl, // Pass the reconstructed history
+        agentTone: agent.agentTone || "neutral",
+        shortHistory: shortHistoryFromUrl,
         knowledgeItems: agent.knowledgeItems && agent.primaryLogic === 'rag' ? agent.knowledgeItems : undefined,
       };
 
@@ -92,9 +150,8 @@ export async function POST(
         agentResponseText = "I'm having a little trouble understanding right now. Could you please repeat that?";
       }
       
-      // Prepare history for next turn's URL: Add current exchange and keep latest
       const currentTurnHistory = [...shortHistoryFromUrl, `User: ${speechResult}`, `Agent: ${agentResponseText}`];
-      const historyToPassOn = currentTurnHistory.slice(-MAX_HISTORY_ITEMS_IN_URL * 2); // Keep last N items (user+agent pairs)
+      const historyToPassOn = currentTurnHistory.slice(-MAX_HISTORY_ITEMS_IN_URL * 2); 
       
       let uIndex = 1, aIndex = 1;
       historyToPassOn.forEach(item => {
@@ -107,11 +164,9 @@ export async function POST(
 
     } else {
       console.log(`[${timestamp}] Initial interaction or empty/timeout speech for ${callSid}. Greeting with: "${agentResponseText}"`);
-      // If it's the very first interaction (no history in URL) or a gather timeout with no speech,
-      // the agentResponseText is the greeting. We need to pass existing history if any, or this greeting as a1.
       if (shortHistoryFromUrl.length > 0) {
         let uIndex = 1, aIndex = 1;
-        shortHistoryFromUrl.forEach(item => { // Pass existing history forward
+        shortHistoryFromUrl.forEach(item => {
             if (item.startsWith("User: ") && uIndex <= MAX_HISTORY_ITEMS_IN_URL) {
                 newHistoryForUrlParams[`u${uIndex++}`] = item.substring(6);
             } else if (item.startsWith("Agent: ") && aIndex <= MAX_HISTORY_ITEMS_IN_URL) {
@@ -119,32 +174,34 @@ export async function POST(
             }
         });
       } else {
-         // This is the very first response (the greeting), so set it as 'a1' for the next turn
          newHistoryForUrlParams['a1'] = agentResponseText;
       }
     }
     
-    twiml.say({ voice: 'alice', language: 'en-US' }, agentResponseText);
+    // Generate speech with ElevenLabs
+    const audioUrl = await generateElevenLabsSpeech(agentResponseText, agent.userId, callSid, agent.elevenLabsVoiceId);
+
+    if (audioUrl) {
+      twiml.play(audioUrl);
+    } else {
+      // Fallback to standard Twilio voice if ElevenLabs fails
+      console.warn(`[${timestamp}] Fallback to Twilio TTS for call ${callSid} as ElevenLabs failed.`);
+      twiml.say({ voice: 'alice', language: 'en-US' }, agentResponseText);
+    }
 
     const actionUrl = new URL(`/api/agents/${agentId}/voice-hook`, request.nextUrl.origin);
     Object.entries(newHistoryForUrlParams).forEach(([key, value]) => {
         actionUrl.searchParams.set(key, value);
     });
     
-    console.log(`[${timestamp}] Next Gather Action URL for ${callSid}: ${actionUrl.toString()}`);
-
     twiml.gather({
       input: 'speech',
       action: actionUrl.pathname + actionUrl.search, 
-      speechTimeout: 'auto', // Let Twilio decide, or set e.g., '3s'
-      timeout: 5, // Seconds to wait for speech after prompt
-      profanityFilter: true, // Basic filter
-      language: 'en-US', // Or make configurable per agent
-      // hints: "yes, no, support, sales, help", // Optional: provide hints
+      speechTimeout: 'auto',
+      timeout: 5,
+      profanityFilter: true,
+      language: 'en-US',
     });
-    
-    // If gather times out, Twilio re-POSTs to the action URL without SpeechResult.
-    // The logic above will replay the agentResponseText (which was the last thing said by agent or the greeting).
 
     return new NextResponse(twiml.toString(), {
       status: 200,
@@ -167,26 +224,7 @@ export async function GET(
   { params }: { params: { agentId: string } }
 ) {
   const { agentId } = params;
-  const timestamp = new Date().toISOString();
-  console.log(`[${timestamp}] Twilio Voice Hook GET for Agent ID: ${agentId}`);
-  
-  const accountSid = process.env.TWILIO_ACCOUNT_SID;
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
-  const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
-
   return NextResponse.json({ 
-    message: `AutoBoss Voice Hook for agent ${agentId} is active. This endpoint expects POST requests from Twilio for call interactions.`,
-    status: "Healthy",
-    configuration_notes: {
-      twilio_phone_number_to_configure: `Ensure your Twilio phone number's voice webhook (A call comes in -> Webhook) is set to POST to this URL: ${request.nextUrl.origin}/api/agents/${agentId}/voice-hook`,
-      required_env_vars_on_server: [
-        `TWILIO_ACCOUNT_SID: ${accountSid ? 'Set' : 'NOT SET - Required for SDK use and validation'}`,
-        `TWILIO_AUTH_TOKEN: ${authToken ? 'Set' : 'NOT SET - Required for SDK use and validation'}`,
-        `TWILIO_PHONE_NUMBER: ${twilioPhoneNumber || 'Not Set - For agent reference or outbound calls'}`,
-      ],
-      current_agent_id_in_path: agentId,
-      history_passing_method: "Prototype via URL query parameters (u1, a1, u2, a2... for User/Agent turns). Limited robustness."
-    },
+    message: `This is the AutoBoss Voice Hook for Agent ID: ${agentId}. It's ready to receive POST requests from Twilio.`,
   }, { status: 200 });
 }
-
