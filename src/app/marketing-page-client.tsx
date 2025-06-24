@@ -10,6 +10,7 @@ import { Logo } from "@/components/logo";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { BoltBadge } from '@/components/bolt-badge';
 
 const useIntersectionObserver = (options?: IntersectionObserverInit) => {
   const [node, setNode] = useState<HTMLElement | null>(null);
@@ -363,6 +364,7 @@ export default function MarketingPageClient() {
           </nav>
         </div>
       </footer>
+      <BoltBadge />
     </div>
     </TooltipProvider>
   );
