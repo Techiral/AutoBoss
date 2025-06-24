@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Settings as SettingsIcon, Trash2, Moon, Sun, InfoIcon, Loader2, Mail, KeyRound, ShieldAlert, PhoneCall, MessageSquare, AlertCircle, CheckCircle2, Mic } from "lucide-react";
+import { Settings as SettingsIcon, Trash2, Moon, Sun, Loader2, Mail, KeyRound, ShieldAlert, PhoneCall, CheckCircle2, Mic, Lightbulb, AlertCircle } from "lucide-react";
 import { useAppContext } from "../layout";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -27,7 +27,6 @@ import {
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertTitle, AlertDescription} from "@/components/ui/alert";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 
 const credentialsFormSchema = z.object({
@@ -123,227 +122,239 @@ export default function SettingsPage() {
   const isLoading = isAppContextLoading || authLoading || isLoadingCredentials;
 
   return (
-    <TooltipProvider>
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-6 sm:space-y-8">
       <Card>
         <CardHeader className="p-4 sm:p-6">
           <CardTitle className="font-headline text-xl sm:text-2xl flex items-center gap-2">
-            <SettingsIcon className="w-5 h-5 sm:w-6 sm:w-6" /> Application Settings
+            <SettingsIcon className="w-5 h-5 sm:w-6 sm:w-6" /> Platform Settings
           </CardTitle>
-          <CardDescription className="text-sm">Manage your application preferences, integrations, and data.</CardDescription>
+          <CardDescription className="text-sm">Manage your application preferences, data, and connect external services to power up your agents.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6 sm:space-y-8 p-4 sm:p-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 border rounded-lg bg-secondary gap-3 sm:gap-4">
-            <div className="space-y-0.5">
-              <Label htmlFor="theme-switch" className="text-sm sm:text-base font-medium">
-                Interface Theme
-              </Label>
-              <p className="text-xs sm:text-sm text-muted-foreground">
-                Switch between light and dark mode.
-              </p>
-            </div>
-            <div className="flex items-center gap-2 self-end sm:self-center">
-              <Sun className={cn('h-4 w-4 sm:h-5 sm:w-5', theme === 'light' ? 'text-foreground' : 'text-muted-foreground')} />
-              <Switch
-                id="theme-switch"
-                checked={theme === 'dark'}
-                onCheckedChange={toggleTheme}
-                aria-label="Toggle theme"
-                disabled={isLoading && !authLoading && !isAppContextLoading}
-              />
-              <Moon className={cn('h-4 w-4 sm:h-5 sm:w-5', theme === 'dark' ? 'text-foreground' : 'text-muted-foreground')} />
-            </div>
-          </div>
-
-          <Separator />
-
-          <Card className="bg-card">
-            <CardHeader className="p-3 sm:p-4 pb-2">
-              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                <KeyRound className="w-4 h-4 sm:w-5 sm:w-5" /> Your API Credentials
-              </CardTitle>
-              <CardDescription className="text-xs sm:text-sm">
+      </Card>
+      
+      <form onSubmit={handleSubmit(onCredentialsSubmit)} className="space-y-6 sm:space-y-8">
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-headline text-lg sm:text-xl flex items-center gap-2">
+                <KeyRound className="w-4 h-4 sm:w-5 sm:w-5" /> External API Keys
+            </CardTitle>
+            <CardDescription className="text-xs sm:text-sm">
                 Connect your own API keys to enable agent abilities like sending emails or making calls. Keys are stored securely and associated with your user profile.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-3 sm:p-4 pt-2">
-              <form onSubmit={handleSubmit(onCredentialsSubmit)} className="space-y-5 sm:space-y-6">
-                
-                <div className="space-y-3 p-3 border rounded-md bg-secondary">
-                    <h3 className="text-sm font-semibold flex items-center gap-1.5"><Mic className="w-4 h-4"/>ElevenLabs (High-Quality Voice)</h3>
-                    {isLoadingCredentials && <div className="flex items-center text-xs text-muted-foreground"><Loader2 className="h-3 w-3 mr-1 animate-spin"/>Loading ElevenLabs status...</div>}
-                    {!isLoadingCredentials && hasElevenLabsKey && (
-                        <Alert variant="default" className="p-2 text-xs bg-green-500/10 border-green-500/20 text-green-700 dark:text-green-400">
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                            <AlertTitle className="text-xs font-medium">ElevenLabs Configured</AlertTitle>
-                            <AlertDescription className="text-[10px] sm:text-[11px]">
-                                Your ElevenLabs API Key is set. Voice agents will use this for high-quality speech.
-                            </AlertDescription>
-                        </Alert>
-                    )}
-                    {!isLoadingCredentials && !hasElevenLabsKey && (
-                        <Alert variant="destructive" className="p-2 text-xs">
-                            <AlertCircle className="h-3.5 w-3.5" />
-                            <AlertTitle className="text-xs font-medium">ElevenLabs Not Configured</AlertTitle>
-                            <AlertDescription className="text-[10px] sm:text-[11px]">
-                                Your voice agents will use the standard, lower-quality Twilio voice. To enable high-quality, realistic voices, add your ElevenLabs API key. The system's shared key (if any) has a very limited quota.
-                            </AlertDescription>
-                        </Alert>
-                    )}
-                    <div className="space-y-1">
-                        <Label htmlFor="elevenLabsApiKey" className="text-xs font-medium">Your ElevenLabs API Key</Label>
-                        <Tooltip>
-                            <TooltipTrigger asChild><Input id="elevenLabsApiKey" type="password" placeholder={hasElevenLabsKey ? "API Key is set (Enter new to change)" : "Paste your ElevenLabs API Key"} {...register("elevenLabsApiKey")} disabled={isLoading || isSavingCredentials}/></TooltipTrigger>
-                            <TooltipContent>
-                                <p className="max-w-xs">Get this from your ElevenLabs.io Profile page. This enables high-quality, realistic voices for your agents.</p>
-                            </TooltipContent>
-                        </Tooltip>
-                        {errors.elevenLabsApiKey && <p className="text-xs text-destructive">{errors.elevenLabsApiKey.message}</p>}
-                    </div>
-                </div>
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 p-4 sm:p-6">
 
-                <div className="space-y-3 p-3 border rounded-md bg-secondary">
-                    <h3 className="text-sm font-semibold flex items-center gap-1.5"><Mail className="w-4 h-4"/>SendGrid (Email)</h3>
-                    {isLoadingCredentials && <div className="flex items-center text-xs text-muted-foreground"><Loader2 className="h-3 w-3 mr-1 animate-spin"/>Loading SendGrid status...</div>}
-                    {!isLoadingCredentials && hasSendGridKey && (
-                        <Alert variant="default" className="p-2 text-xs bg-green-500/10 border-green-500/20 text-green-700 dark:text-green-400">
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                            <AlertTitle className="text-xs font-medium">SendGrid Configured</AlertTitle>
-                        </Alert>
-                    )}
-                     {!isLoadingCredentials && !hasSendGridKey && (
-                        <Alert variant="destructive" className="p-2 text-xs">
-                            <AlertCircle className="h-3.5 w-3.5" />
-                            <AlertTitle className="text-xs font-medium">SendGrid Not Configured</AlertTitle>
-                        </Alert>
-                    )}
-                    <div className="space-y-1">
-                        <Label htmlFor="sendGridApiKey" className="text-xs font-medium">Your SendGrid API Key</Label>
-                        <Tooltip>
-                            <TooltipTrigger asChild><Input id="sendGridApiKey" type="password" placeholder={hasSendGridKey ? "API Key is set (Enter new to change)" : "Paste your SendGrid API Key"} {...register("sendGridApiKey")} disabled={isLoading || isSavingCredentials}/></TooltipTrigger>
-                            <TooltipContent><p>Your secret API key from SendGrid for sending emails.</p></TooltipContent>
-                        </Tooltip>
-                        {errors.sendGridApiKey && <p className="text-xs text-destructive">{errors.sendGridApiKey.message}</p>}
-                    </div>
-                    <div className="space-y-1">
-                        <Label htmlFor="userDefaultFromEmail" className="text-xs font-medium">Your Default "From" Email Address</Label>
-                         <Tooltip>
-                            <TooltipTrigger asChild><Input id="userDefaultFromEmail" type="email" placeholder="e.g., support@myagency.com" {...register("userDefaultFromEmail")} disabled={isLoading || isSavingCredentials}/></TooltipTrigger>
-                            <TooltipContent><p>The email address emails will appear to be sent from by default.</p></TooltipContent>
-                        </Tooltip>
-                        {errors.userDefaultFromEmail && <p className="text-xs text-destructive">{errors.userDefaultFromEmail.message}</p>}
-                    </div>
+            {/* ElevenLabs Card */}
+            <Card className="flex flex-col">
+              <CardHeader>
+                <CardTitle className="text-base sm:text-lg flex items-center gap-2"><Mic className="w-4 h-4"/>ElevenLabs</CardTitle>
+                <CardDescription className="text-xs">Enable high-quality, realistic voices for your agents.</CardDescription>
+                {isLoadingCredentials && <div className="flex items-center text-xs text-muted-foreground"><Loader2 className="h-3 w-3 mr-1 animate-spin"/>Loading Status...</div>}
+                {!isLoadingCredentials && hasElevenLabsKey && (
+                    <Alert variant="default" className="p-2 text-xs border-foreground/30">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        <AlertTitle className="text-xs font-medium">ElevenLabs Configured</AlertTitle>
+                    </Alert>
+                )}
+                 {!isLoadingCredentials && !hasElevenLabsKey && (
+                    <Alert variant="destructive" className="p-2 text-xs">
+                        <AlertCircle className="h-3.5 w-3.5" />
+                        <AlertTitle className="text-xs font-medium">Not Configured</AlertTitle>
+                    </Alert>
+                )}
+              </CardHeader>
+              <CardContent className="flex-grow space-y-3">
+                <div className="space-y-1">
+                    <Label htmlFor="elevenLabsApiKey" className="text-xs font-medium">API Key</Label>
+                    <Input id="elevenLabsApiKey" type="password" placeholder={hasElevenLabsKey ? "API Key is set (Enter new to change)" : "Paste your ElevenLabs API Key"} {...register("elevenLabsApiKey")} disabled={isLoading || isSavingCredentials}/>
+                    {errors.elevenLabsApiKey && <p className="text-xs text-destructive">{errors.elevenLabsApiKey.message}</p>}
                 </div>
+                <Alert variant="default" className="p-3 text-xs bg-card">
+                    <Lightbulb className="h-3.5 w-3.5" />
+                    <AlertTitle className="text-xs font-medium">How to get your key:</AlertTitle>
+                    <AlertDescription className="text-[11px] space-y-1 mt-1">
+                        <p>1. Login to your <a href="https://elevenlabs.io/" target="_blank" rel="noopener noreferrer" className="underline">ElevenLabs.io</a> account.</p>
+                        <p>2. Click your profile icon in the top right, then 'Profile'.</p>
+                        <p>3. Your API Key is the first value listed. Copy it here.</p>
+                    </AlertDescription>
+                </Alert>
+              </CardContent>
+            </Card>
 
-                <div className="space-y-3 p-3 border rounded-md bg-secondary">
-                    <h3 className="text-sm font-semibold flex items-center gap-1.5"><MessageSquare className="w-4 h-4"/>Twilio (SMS & Voice Calls)</h3>
-                    {isLoadingCredentials && <div className="flex items-center text-xs text-muted-foreground"><Loader2 className="h-3 w-3 mr-1 animate-spin"/>Loading Twilio status...</div>}
-                    {!isLoadingCredentials && hasTwilioSid && (
-                        <Alert variant="default" className="p-2 text-xs bg-green-500/10 border-green-500/20 text-green-700 dark:text-green-400">
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                            <AlertTitle className="text-xs font-medium">Twilio Configured</AlertTitle>
-                        </Alert>
-                    )}
-                     {!isLoadingCredentials && !hasTwilioSid && (
-                        <Alert variant="destructive" className="p-2 text-xs">
-                            <AlertCircle className="h-3.5 w-3.5" />
-                            <AlertTitle className="text-xs font-medium">Twilio Not Configured</AlertTitle>
-                        </Alert>
-                    )}
+            {/* SendGrid Card */}
+            <Card className="flex flex-col">
+              <CardHeader>
+                <CardTitle className="text-base sm:text-lg flex items-center gap-2"><Mail className="w-4 h-4"/>SendGrid</CardTitle>
+                <CardDescription className="text-xs">Allow your agents to send emails on your behalf.</CardDescription>
+                 {isLoadingCredentials && <div className="flex items-center text-xs text-muted-foreground"><Loader2 className="h-3 w-3 mr-1 animate-spin"/>Loading Status...</div>}
+                {!isLoadingCredentials && hasSendGridKey && (
+                    <Alert variant="default" className="p-2 text-xs border-foreground/30">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        <AlertTitle className="text-xs font-medium">SendGrid Configured</AlertTitle>
+                    </Alert>
+                )}
+                 {!isLoadingCredentials && !hasSendGridKey && (
+                    <Alert variant="destructive" className="p-2 text-xs">
+                        <AlertCircle className="h-3.5 w-3.5" />
+                        <AlertTitle className="text-xs font-medium">Not Configured</AlertTitle>
+                    </Alert>
+                )}
+              </CardHeader>
+              <CardContent className="flex-grow space-y-3">
+                <div className="space-y-1">
+                    <Label htmlFor="sendGridApiKey" className="text-xs font-medium">API Key</Label>
+                    <Input id="sendGridApiKey" type="password" placeholder={hasSendGridKey ? "API Key is set (Enter new to change)" : "Paste your SendGrid API Key"} {...register("sendGridApiKey")} disabled={isLoading || isSavingCredentials}/>
+                    {errors.sendGridApiKey && <p className="text-xs text-destructive">{errors.sendGridApiKey.message}</p>}
+                </div>
+                <div className="space-y-1">
+                    <Label htmlFor="userDefaultFromEmail" className="text-xs font-medium">Default "From" Email Address</Label>
+                    <Input id="userDefaultFromEmail" type="email" placeholder="e.g., support@myagency.com" {...register("userDefaultFromEmail")} disabled={isLoading || isSavingCredentials}/>
+                    {errors.userDefaultFromEmail && <p className="text-xs text-destructive">{errors.userDefaultFromEmail.message}</p>}
+                </div>
+                 <Alert variant="default" className="p-3 text-xs bg-card">
+                    <Lightbulb className="h-3.5 w-3.5" />
+                    <AlertTitle className="text-xs font-medium">How to get your key:</AlertTitle>
+                    <AlertDescription className="text-[11px] space-y-1 mt-1">
+                        <p>1. Login to <a href="https://sendgrid.com/" target="_blank" rel="noopener noreferrer" className="underline">SendGrid</a>.</p>
+                        <p>2. Go to 'Settings' &rarr; 'API Keys' and create a new key.</p>
+                        <p>3. Paste it here. You must also add a verified "From" address.</p>
+                    </AlertDescription>
+                </Alert>
+              </CardContent>
+            </Card>
+
+            {/* Twilio Card */}
+            <Card className="flex flex-col md:col-span-2">
+              <CardHeader>
+                <CardTitle className="text-base sm:text-lg flex items-center gap-2"><PhoneCall className="w-4 h-4"/>Twilio</CardTitle>
+                <CardDescription className="text-xs">Enable your agents to make and receive voice calls.</CardDescription>
+                {isLoadingCredentials && <div className="flex items-center text-xs text-muted-foreground"><Loader2 className="h-3 w-3 mr-1 animate-spin"/>Loading Status...</div>}
+                {!isLoadingCredentials && hasTwilioSid && (
+                    <Alert variant="default" className="p-2 text-xs border-foreground/30">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        <AlertTitle className="text-xs font-medium">Twilio Configured</AlertTitle>
+                    </Alert>
+                )}
+                 {!isLoadingCredentials && !hasTwilioSid && (
+                    <Alert variant="destructive" className="p-2 text-xs">
+                        <AlertCircle className="h-3.5 w-3.5" />
+                        <AlertTitle className="text-xs font-medium">Not Configured</AlertTitle>
+                    </Alert>
+                )}
+              </CardHeader>
+              <CardContent className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <div className="space-y-3">
                     <div className="space-y-1">
-                        <Label htmlFor="twilioAccountSid" className="text-xs font-medium">Your Twilio Account SID</Label>
-                        <Tooltip>
-                            <TooltipTrigger asChild><Input id="twilioAccountSid" type="password" placeholder={hasTwilioSid ? "Account SID is set (Enter new to change)" : "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"} {...register("twilioAccountSid")} disabled={isLoading || isSavingCredentials}/></TooltipTrigger>
-                             <TooltipContent><p>Your Twilio Account SID from the Twilio console.</p></TooltipContent>
-                        </Tooltip>
+                        <Label htmlFor="twilioAccountSid" className="text-xs font-medium">Account SID</Label>
+                        <Input id="twilioAccountSid" type="password" placeholder={hasTwilioSid ? "Account SID is set (Enter new to change)" : "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"} {...register("twilioAccountSid")} disabled={isLoading || isSavingCredentials}/>
                         {errors.twilioAccountSid && <p className="text-xs text-destructive">{errors.twilioAccountSid.message}</p>}
                     </div>
                     <div className="space-y-1">
-                        <Label htmlFor="twilioAuthToken" className="text-xs font-medium">Your Twilio Auth Token</Label>
-                        <Tooltip>
-                            <TooltipTrigger asChild><Input id="twilioAuthToken" type="password" placeholder={hasTwilioSid ? "Auth Token is set (Enter new to change SID first)" : "Your Twilio Auth Token"} {...register("twilioAuthToken")} disabled={isLoading || isSavingCredentials}/></TooltipTrigger>
-                             <TooltipContent><p>Your Twilio Auth Token from the Twilio console.</p></TooltipContent>
-                        </Tooltip>
+                        <Label htmlFor="twilioAuthToken" className="text-xs font-medium">Auth Token</Label>
+                        <Input id="twilioAuthToken" type="password" placeholder={hasTwilioSid ? "Auth Token is set (Enter new SID first)" : "Your Twilio Auth Token"} {...register("twilioAuthToken")} disabled={isLoading || isSavingCredentials}/>
                          {errors.twilioAuthToken && <p className="text-xs text-destructive">{errors.twilioAuthToken.message}</p>}
                     </div>
-                    <div className="space-y-1">
-                        <Label htmlFor="twilioPhoneNumber" className="text-xs font-medium">Your Default Twilio Phone Number</Label>
-                        <Tooltip>
-                            <TooltipTrigger asChild><Input id="twilioPhoneNumber" type="tel" placeholder="+1234567890 (E.164 format)" {...register("twilioPhoneNumber")} disabled={isLoading || isSavingCredentials}/></TooltipTrigger>
-                            <TooltipContent><p>A Twilio phone number you own, in E.164 format (e.g., +12223334444).</p></TooltipContent>
-                        </Tooltip>
+                     <div className="space-y-1">
+                        <Label htmlFor="twilioPhoneNumber" className="text-xs font-medium">Default Twilio Phone Number</Label>
+                        <Input id="twilioPhoneNumber" type="tel" placeholder="+1234567890 (E.164 format)" {...register("twilioPhoneNumber")} disabled={isLoading || isSavingCredentials}/>
                         {errors.twilioPhoneNumber && <p className="text-xs text-destructive">{errors.twilioPhoneNumber.message}</p>}
                     </div>
-                </div>
-                
-                 <Alert variant="default" className="p-2 text-xs bg-secondary">
-                    <ShieldAlert className="h-3.5 w-3.5" />
-                    <AlertTitle className="text-xs font-medium">Security & Usage Note</AlertTitle>
-                    <AlertDescription className="text-muted-foreground text-[10px] sm:text-[11px]">
-                     API keys and tokens are sensitive. They will be stored securely. If you don't provide credentials, related agent features may be unavailable or use limited system defaults. Input fields are password type for display; if a key is already set, re-entering a new value will overwrite it.
+                 </div>
+                 <Alert variant="default" className="p-3 text-xs bg-card my-auto">
+                    <Lightbulb className="h-3.5 w-3.5" />
+                    <AlertTitle className="text-xs font-medium">How to get your credentials:</AlertTitle>
+                    <AlertDescription className="text-[11px] space-y-1 mt-1">
+                        <p>1. Login to your <a href="https://www.twilio.com/console" target="_blank" rel="noopener noreferrer" className="underline">Twilio Console</a>.</p>
+                        <p>2. Your Account SID and Auth Token are on the dashboard.</p>
+                        <p>3. Buy or manage your numbers under 'Phone Numbers'.</p>
+                        <p>4. Remember to copy the number in E.164 format (e.g., +15551234567).</p>
                     </AlertDescription>
                 </Alert>
-                <Button type="submit" size="sm" className="text-xs sm:text-sm" disabled={isLoading || isSavingCredentials}>
-                  {isSavingCredentials ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <KeyRound className="mr-2 h-3.5 w-3.5" />}
-                  {isSavingCredentials ? "Saving Credentials..." : "Save API Credentials"}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          <Separator />
-          
-          <div className="p-3 sm:p-4 border rounded-lg bg-secondary">
-             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
-                <div className="space-y-0.5">
-                    <Label className="text-sm sm:text-base font-medium">
-                        Manage Your Data
-                    </Label>
-                    <p className="text-xs sm:text-sm text-muted-foreground">
-                        Clear all your agents and associated data from AutoBoss.
-                    </p>
-                </div>
-                <AlertDialog open={isClearDataDialogOpen} onOpenChange={setIsClearDataDialogOpen}>
-                    <AlertDialogTrigger asChild>
-                        <Button variant="destructive" size="sm" disabled={isLoading || isClearingData} className="w-full sm:w-auto text-xs sm:text-sm">
-                          {isClearingData || (isLoading && !authLoading && !isAppContextLoading) ? <Loader2 className="mr-2 h-3 w-3 sm:h-4 sm:w-4 animate-spin" /> : <Trash2 className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />} 
-                          {isClearingData ? "Clearing..." : ((isLoading && !authLoading && !isAppContextLoading) && !isClearingData ? "Loading..." : "Clear All My Agent Data")}
-                        </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete all agent configurations,
-                            knowledge bases, and other data associated with your account from Firestore.
-                        </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                        <AlertDialogCancel disabled={isClearingData}>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleClearData} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground" disabled={isClearingData}>
-                            {isClearingData ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Yes, delete all my data" }
-                        </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
-             </div>
-          </div>
-          
-          <div className="p-3 sm:p-4 border rounded-lg bg-secondary">
-            <Label className="text-sm sm:text-base font-medium block mb-1">Application Information</Label>
-             <div className="text-xs sm:text-sm text-muted-foreground space-y-1">
-                <p><InfoIcon className="inline h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" /><strong>Version:</strong> 1.3.0 (User API Credentials & Outbound Queuing)</p>
-                <p><InfoIcon className="inline h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" /><strong>Data Storage:</strong> Firebase Firestore</p>
-                <p><InfoIcon className="inline h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" /><strong>AI Provider:</strong> Google Gemini via Genkit</p>
-             </div>
-          </div>
+          </CardContent>
+           <CardFooter className="p-4 sm:p-6 border-t">
+              <Button type="submit" size="sm" className="text-xs sm:text-sm" disabled={isLoading || isSavingCredentials}>
+                {isSavingCredentials ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <KeyRound className="mr-2 h-3.5 w-3.5" />}
+                {isSavingCredentials ? "Saving Credentials..." : "Save All API Credentials"}
+              </Button>
+            </CardFooter>
+        </Card>
+      </form>
+      
+      <div className="space-y-6 sm:space-y-8">
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-headline text-lg sm:text-xl">Interface</CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 border rounded-lg gap-3 sm:gap-4">
+              <div className="space-y-0.5">
+                <Label htmlFor="theme-switch" className="text-sm sm:text-base font-medium">
+                  Theme
+                </Label>
+                <p className="text-xs sm:text-sm text-foreground/80">
+                  Switch between light and dark mode.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 self-end sm:self-center">
+                <Sun className={cn('h-4 w-4 sm:h-5 sm:w-5', theme === 'light' ? 'text-foreground' : 'text-foreground/60')} />
+                <Switch
+                  id="theme-switch"
+                  checked={theme === 'dark'}
+                  onCheckedChange={toggleTheme}
+                  aria-label="Toggle theme"
+                  disabled={isLoading && !authLoading && !isAppContextLoading}
+                />
+                <Moon className={cn('h-4 w-4 sm:h-5 sm:w-5', theme === 'dark' ? 'text-foreground' : 'text-foreground/60')} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-        </CardContent>
-        <CardFooter className="p-4 sm:p-6">
-            <p className="text-xs text-muted-foreground">Changes to settings are saved automatically where applicable (e.g., theme). API Credentials require clicking 'Save'.</p>
-        </CardFooter>
-      </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-headline text-lg sm:text-xl">Data Management</CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 border rounded-lg gap-3 sm:gap-4">
+              <div className="space-y-0.5">
+                  <Label className="text-sm sm:text-base font-medium text-destructive">
+                      Clear All Workspace Data
+                  </Label>
+                  <p className="text-xs sm:text-sm text-foreground/80">
+                      Permanently delete all your clients and agents. This action cannot be undone.
+                  </p>
+              </div>
+              <AlertDialog open={isClearDataDialogOpen} onOpenChange={setIsClearDataDialogOpen}>
+                  <AlertDialogTrigger asChild>
+                      <Button variant="outline" size="sm" disabled={isLoading || isClearingData} className="w-full sm:w-auto text-xs sm:text-sm border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground">
+                        {isClearingData || (isLoading && !authLoading && !isAppContextLoading) ? <Loader2 className="mr-2 h-3 w-3 sm:h-4 sm:w-4 animate-spin" /> : <Trash2 className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />} 
+                        {isClearingData ? "Clearing..." : "Clear All Data"}
+                      </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                      <AlertDialogHeader>
+                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                          This will permanently delete ALL clients and agents from your account. This action cannot be undone and your data will be lost forever.
+                      </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                      <AlertDialogCancel disabled={isClearingData}>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleClearData} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground" disabled={isClearingData}>
+                          {isClearingData ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Yes, delete everything" }
+                      </AlertDialogAction>
+                      </AlertDialogFooter>
+                  </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
     </div>
-    </TooltipProvider>
   );
 }
+
