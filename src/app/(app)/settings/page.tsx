@@ -143,7 +143,7 @@ export default function SettingsPage() {
               </p>
             </div>
             <div className="flex items-center gap-2 self-end sm:self-center">
-              <Sun className={theme === 'light' ? 'text-primary h-4 w-4 sm:h-5 sm:w-5' : 'text-muted-foreground h-4 w-4 sm:h-5 sm:h-5'} />
+              <Sun className={theme === 'light' ? 'text-primary h-4 w-4 sm:h-5 sm:w-5' : 'text-muted-foreground h-4 w-4 sm:h-5 sm:w-5'} />
               <Switch
                 id="theme-switch"
                 checked={theme === 'dark'}
