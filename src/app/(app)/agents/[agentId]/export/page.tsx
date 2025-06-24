@@ -59,7 +59,7 @@ export default function ExportAgentPage() {
       toast({ title: `${type} Copied!`, description: `${type} has been copied to your clipboard.` });
       setTimeout(() => setCopied(null), 2000);
     }).catch(err => {
-      toast({ title: "Copy Failed", description: "Could not copy to clipboard.", variant: "destructive" });
+      toast({ title: "Copy Failed", description: "Oops! Could not copy to clipboard. You may need to do it manually.", variant: "destructive" });
       console.error('Failed to copy: ', err);
     });
   };
@@ -190,14 +190,27 @@ export default function ExportAgentPage() {
       setIsPubliclyShared(checked);
       setAgent(prev => prev ? ({...prev, ...updatedAgentData, sharedAt: checked ? (Timestamp.now() as any) : null }) : null); 
       toast({
-        title: `Agent Showcase Status Updated`,
+        title: `Showcase Status Updated!`,
         description: `Agent is now ${checked ? 'publicly listed' : 'private'}.`,
       });
     } catch (error) {
       console.error("Error updating share setting:", error);
-      toast({ title: "Error", description: "Could not update share setting.", variant: "destructive" });
+      toast({ title: "Update Failed", description: "Oops! Could not update share setting.", variant: "destructive" });
     } finally {
       setIsSavingShareSetting(false);
+    }
+  };
+
+  const generateShareLink = (platform: 'twitter' | 'linkedin') => {
+    if (!agent) return;
+    const agentUrl = encodeURIComponent(`${baseUrl}/chat/${agent.id}`);
+    const agentName = encodeURIComponent(agent.generatedName || agent.name);
+    const text = encodeURIComponent(`Check out this AI Agent I built for ${agent.clientName || 'a client'} with AutoBoss: "${agentName}"!`);
+    
+    if (platform === 'twitter') {
+      router.push(`https://twitter.com/intent/tweet?url=${agentUrl}&text=${text}`);
+    } else if (platform === 'linkedin') {
+      router.push(`https://www.linkedin.com/sharing/share-offsite/?url=${agentUrl}`);
     }
   };
 
@@ -205,7 +218,7 @@ export default function ExportAgentPage() {
   if (!agent) {
     return (
       <Card>
-        <CardHeader className="p-4 sm:p-6"><CardTitle className="text-lg sm:text-xl">Loading Agent Export Details...</CardTitle></CardHeader>
+        <CardHeader className="p-4 sm:p-6"><CardTitle className="text-lg sm:text-xl">Loading Agent Details...</CardTitle></CardHeader>
         <CardContent className="p-4 sm:p-6"><Loader2 className="animate-spin mr-2 h-5 w-5 inline"/>Please wait...</CardContent>
       </Card>
     );
@@ -219,7 +232,7 @@ export default function ExportAgentPage() {
       <Card className="md:col-span-2">
         <CardHeader className="p-4 sm:p-6">
           <CardTitle className="font-headline text-2xl sm:text-3xl flex items-center gap-2"> <Share2 className="w-6 h-6 sm:w-7 sm:h-7"/>Deploy & Share: {agent.generatedName || agent.name}</CardTitle>
-          <CardDescription className="text-sm">Easily embed this AI agent or provide direct links for your client. Use the sections below to find the right deployment option.</CardDescription>
+          <CardDescription className="text-sm">Easily embed this AI agent on your client's website, connect it to a phone number, or share your success.</CardDescription>
         </CardHeader>
       </Card>
 
@@ -227,21 +240,21 @@ export default function ExportAgentPage() {
          <Card>
             <CardHeader>
               <CardTitle className="flex items-center text-lg"><Code className="w-5 h-5 mr-2" /> Embed on Website</CardTitle>
-              <CardDescription>Paste this script on any website to add a floating chat launcher.</CardDescription>
+              <CardDescription>Paste this one line of code on any website to add a chat launcher.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="relative">
                 <Textarea id="chatLauncherScript" value={chatLauncherScript.trim()} readOnly rows={8} className="font-code text-xs bg-muted/50 p-2"/>
-                <Button variant="outline" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={() => handleCopy(chatLauncherScript.trim(), "Chat Launcher Script")} aria-label="Copy Chat Launcher Script" disabled={!chatLauncherScript}>
-                  {copied === "Chat Launcher Script" ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                <Button variant="outline" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={() => handleCopy(chatLauncherScript.trim(), "Embed Script")} aria-label="Copy Chat Launcher Script" disabled={!chatLauncherScript}>
+                  {copied === "Embed Script" ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                 </Button>
               </div>
               <div>
                 <Label htmlFor="chatbotLink" className="text-sm font-semibold">Direct Chat Link</Label>
                 <div className="flex items-center gap-2 mt-1">
                   <Input id="chatbotLink" value={chatbotLink} readOnly className="text-sm"/>
-                  <Button variant="outline" size="icon" onClick={() => handleCopy(chatbotLink, "Chatbot Link")} aria-label="Copy Chatbot Link" disabled={!chatbotLink} className="h-9 w-9">
-                    {copied === "Chatbot Link" ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  <Button variant="outline" size="icon" onClick={() => handleCopy(chatbotLink, "Chat Link")} aria-label="Copy Chatbot Link" disabled={!chatbotLink} className="h-9 w-9">
+                    {copied === "Chat Link" ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                   </Button>
                 </div>
               </div>
@@ -252,24 +265,24 @@ export default function ExportAgentPage() {
       {showVoiceFeatures && (
          <Card>
             <CardHeader>
-              <CardTitle className="flex items-center text-lg"><PhoneCall className="w-5 h-5 mr-2" /> Voice Call Setup</CardTitle>
-              <CardDescription>Use this webhook URL in your Twilio phone number settings for voice calls.</CardDescription>
+              <CardTitle className="flex items-center text-lg"><PhoneCall className="w-5 h-5 mr-2" /> Connect to a Phone Number</CardTitle>
+              <CardDescription>Use this webhook URL in your Twilio phone number settings for incoming voice calls.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                <div className="space-y-1.5">
                   <Label htmlFor="apiEndpointVoice" className="text-sm font-semibold">Twilio Webhook URL</Label>
                    <div className="flex items-center gap-2 mt-1">
                       <Input id="apiEndpointVoice" value={apiEndpointVoice} readOnly className="text-xs"/>
-                      <Button variant="outline" size="icon" onClick={() => handleCopy(apiEndpointVoice, "Voice API Endpoint")} aria-label="Copy Voice API Endpoint" disabled={!apiEndpointVoice} className="h-9 w-9">
-                          {copied === "Voice API Endpoint" ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                      <Button variant="outline" size="icon" onClick={() => handleCopy(apiEndpointVoice, "Webhook URL")} aria-label="Copy Voice API Endpoint" disabled={!apiEndpointVoice} className="h-9 w-9">
+                          {copied === "Webhook URL" ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                       </Button>
                   </div>
               </div>
               <Alert variant="default" className="bg-secondary">
                   <Info className="h-4 w-4" />
-                  <AlertTitle>Important</AlertTitle>
+                  <AlertTitle>Important Setup Note</AlertTitle>
                   <AlertDescription className="text-xs">
-                    Remember to save your Twilio Account SID and Auth Token in your main <Button variant="link" asChild className="p-0 h-auto text-xs"><Link href="/settings">User Settings <ExternalLink className="w-2.5 h-2.5 ml-0.5"/></Link></Button> for this to work.
+                    For voice calls to work, you or your client's Twilio credentials must be added in the main <Button variant="link" asChild className="p-0 h-auto text-xs"><Link href="/settings">Settings <ExternalLink className="w-2.5 h-2.5 ml-0.5"/></Link></Button> page.
                   </AlertDescription>
               </Alert>
             </CardContent>
@@ -279,11 +292,11 @@ export default function ExportAgentPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center text-lg"><Server className="w-5 h-5 mr-2" /> Developer API</CardTitle>
-          <CardDescription>Use these POST endpoints for programmatic access to your agent.</CardDescription>
+          <CardDescription>Use this endpoint for custom programmatic integrations.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-1.5">
-              <Label htmlFor="apiEndpointChat" className="text-sm font-semibold">Chat API Endpoint</Label>
+              <Label htmlFor="apiEndpointChat" className="text-sm font-semibold">Chat API Endpoint (POST)</Label>
               <div className="flex items-center gap-2 mt-1">
                 <Input id="apiEndpointChat" value={apiEndpointChat} readOnly className="text-sm"/>
                 <Button variant="outline" size="icon" onClick={() => handleCopy(apiEndpointChat, "Chat API Endpoint")} aria-label="Copy Chat API Endpoint" disabled={!apiEndpointChat} className="h-9 w-9">
@@ -295,7 +308,7 @@ export default function ExportAgentPage() {
                <Info className="h-4 w-4" />
                <AlertTitle>API Usage</AlertTitle>
                <AlertDescription className="text-xs">
-                   Send a JSON body with a `message` (string) and optional `conversationHistory` (array of strings).
+                   Send a JSON body with a `message` (string) and optional `conversationHistory` (array of strings) to this endpoint.
                </AlertDescription>
            </Alert>
         </CardContent>
@@ -304,7 +317,7 @@ export default function ExportAgentPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center text-lg"><Eye className="w-5 h-5 mr-2" /> Public Showcase</CardTitle>
-          <CardDescription>Opt-in to list this agent in the public AutoBoss Showcase to demonstrate your work.</CardDescription>
+          <CardDescription>Opt-in to list this agent in the public AutoBoss Showcase to demonstrate your work and attract new clients.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
             <div className="flex items-center space-x-3 p-4 border rounded-lg bg-secondary">
@@ -320,14 +333,20 @@ export default function ExportAgentPage() {
                 {isSavingShareSetting && <Loader2 className="h-4 w-4 animate-spin" />}
             </div>
             {isPubliclyShared && (
+                <>
                 <Alert variant="default" className="bg-green-500/10 border-green-500/20 text-green-700 dark:text-green-400">
                     <CheckCircle className="h-4 w-4"/>
-                    <AlertTitle className="font-medium">Agent is Live in Showcase!</AlertTitle>
+                    <AlertTitle className="font-medium">Your Agent is Live!</AlertTitle>
                     <AlertDescription className="text-xs">
                         Other users can now discover and interact with this agent. 
-                        <Button variant="link" asChild className="p-0 h-auto text-xs ml-1"><Link href="/showcase" target="_blank">View Showcase</Link></Button>
+                        <Button variant="link" asChild className="p-0 h-auto text-xs ml-1"><Link href="/showcase" target="_blank">View Showcase <ExternalLink className="w-2.5 h-2.5 ml-0.5" /></Link></Button>
                     </AlertDescription>
                 </Alert>
+                <div className="flex items-center gap-2 pt-2">
+                    <Button onClick={() => generateShareLink('twitter')} size="sm" className="flex-1 text-xs">Share on X / Twitter</Button>
+                    <Button onClick={() => generateShareLink('linkedin')} size="sm" className="flex-1 text-xs">Share on LinkedIn</Button>
+                </div>
+                </>
             )}
         </CardContent>
       </Card>

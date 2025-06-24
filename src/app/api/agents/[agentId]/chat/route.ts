@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { autonomousReasoning, AutonomousReasoningInput } from '@/ai/flows/autonomous-reasoning';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, Timestamp } from 'firebase/firestore';
+import { doc, getDoc, Timestamp, updateDoc, increment } from 'firebase/firestore';
 import type { Agent, AgentLogicType, ChatMessage } from '@/lib/types';
 
 // Helper to convert Firestore Timestamps in agent data
@@ -82,6 +82,13 @@ export async function POST(
       return createErrorResponse(404, `Agent with ID '${agentId}' not found.`);
     }
     
+    // Increment query count for showcase metrics
+    if (agentSnap.data().isPubliclyShared) {
+        await updateDoc(agentRef, {
+            'showcaseMetrics.queriesHandled': increment(1)
+        });
+    }
+
     const agent = convertAgentForApi({ id: agentSnap.id, ...agentSnap.data() });
     const knowledgeItems = agent.knowledgeItems || [];
     // primaryLogic is now either 'prompt' or 'rag'. No more 'flow' or 'hybrid'.
@@ -119,7 +126,7 @@ export async function POST(
     if (error.message.includes("Agent not found")) { 
         return createErrorResponse(404, error.message);
     }
-    return createErrorResponse(500, 'An unexpected error occurred while processing your request.', { internalError: error.message });
+    return createErrorResponse(500, 'Oops! Something went wrong on our end while processing your request. Please try again in a moment.', { internalError: error.message });
   }
 }
     

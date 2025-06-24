@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Eye, Search, Info, Bot, AlertTriangle } from "lucide-react"; // Added AlertTriangle
+import { ArrowRight, Eye, Search, Info, Bot, AlertTriangle, MessageSquare, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Agent } from "@/lib/types";
 import { db } from '@/lib/firebase';
@@ -71,12 +71,12 @@ function AgentShowcaseCard({ agent, baseUrl }: AgentShowcaseCardProps) {
             <CardHeader className="p-0">
                 <div className="aspect-[16/9] relative bg-muted overflow-hidden">
                     <Image
-                        src={agent.agentImageDataUri || defaultAgentImage}
+                        src={agent.agentImageUrl || defaultAgentImage}
                         alt={agent.generatedName || agent.name || "Agent Image"}
                         layout="fill"
                         objectFit="cover"
-                        className={!agent.agentImageDataUri ? "opacity-50" : ""}
-                        data-ai-hint={!agent.agentImageDataUri ? "abstract placeholder" : "agent brand image"}
+                        className={!agent.agentImageUrl ? "opacity-50" : ""}
+                        data-ai-hint={!agent.agentImageUrl ? "abstract placeholder" : "agent brand image"}
                     />
                 </div>
             </CardHeader>
@@ -85,10 +85,16 @@ function AgentShowcaseCard({ agent, baseUrl }: AgentShowcaseCardProps) {
                 <CardDescription className="text-xs line-clamp-3 h-[3.3em]">
                     {agent.ogDescription || agent.description || "An AI agent ready to chat."}
                 </CardDescription>
-                 <div className="pt-1">
-                    <Badge variant="outline" className="text-xs capitalize">
-                        {agent.agentType || "Chat"}
+                 <div className="pt-2 flex items-center gap-4 text-xs text-muted-foreground">
+                     <Badge variant="outline" className="text-xs capitalize">
+                        <Bot className="w-3 h-3 mr-1"/>{agent.agentType || "Chat"}
                     </Badge>
+                     {agent.showcaseMetrics?.queriesHandled && (
+                         <div className="flex items-center gap-1" title="Queries Handled">
+                             <MessageSquare className="w-3 h-3"/>
+                             <span>{agent.showcaseMetrics.queriesHandled}</span>
+                         </div>
+                     )}
                 </div>
             </CardContent>
             <CardFooter className="p-4 pt-2 border-t">
@@ -109,8 +115,15 @@ function AgentShowcaseCard({ agent, baseUrl }: AgentShowcaseCardProps) {
 
 
 export default async function ShowcasePage() {
-  const agents = await getPublicAgents();
+  let agents = await getPublicAgents();
   const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || "http://localhost:3000";
+
+  // Sort by queries handled if the metric exists, otherwise keep default sort (by sharedAt date)
+  agents.sort((a, b) => {
+    const queriesA = a.showcaseMetrics?.queriesHandled ?? 0;
+    const queriesB = b.showcaseMetrics?.queriesHandled ?? 0;
+    return queriesB - queriesA;
+  });
 
   return (
     <div className="bg-background text-foreground min-h-screen">
@@ -140,7 +153,7 @@ export default async function ShowcasePage() {
               AI Agent Showcase
             </CardTitle>
             <CardDescription className="text-sm sm:text-base text-muted-foreground mt-2 max-w-xl mx-auto">
-              Discover innovative AI agents built by the AutoBoss community. Get inspired and see what's possible!
+              Discover innovative AI agents built by the AutoBoss community. See what's possible, get inspired, and try them out!
             </CardDescription>
           </CardHeader>
         </Card>
@@ -152,7 +165,7 @@ export default async function ShowcasePage() {
               <AlertTitle>Showcase Is Eagerly Awaiting Agents!</AlertTitle>
               <AlertDescription>
                 No agents have been publicly shared yet, or there might be a configuration step needed.
-                Be the first to showcase your creation! You can make your agent public from its 'Export' settings page in your dashboard.
+                Be the first to showcase your creation! You can make your agent public from its 'Deploy & Share' settings page in your dashboard.
               </AlertDescription>
             </Alert>
             <Alert variant="destructive" className="max-w-lg mx-auto bg-destructive/10 border-destructive/30">
@@ -179,7 +192,7 @@ export default async function ShowcasePage() {
             <Info className="h-4 w-4 text-primary" />
             <AlertTitle className="text-primary font-medium">Want to feature your agent?</AlertTitle>
             <AlertDescription className="text-muted-foreground text-xs">
-                Go to your agent's "Export" settings in your dashboard and enable the "List this agent in the Public Showcase" option.
+                Go to your agent's "Deploy & Share" settings in your dashboard and enable the "List this agent in the Public Showcase" option.
             </AlertDescription>
         </Alert>
 
