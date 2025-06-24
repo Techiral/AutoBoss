@@ -9,14 +9,12 @@ import { useAppContext } from "../../../layout";
 import type { Agent, ChatMessage as ChatMessageType } from "@/lib/types";
 import { Loader2, Mic, MicOff, Volume2, VolumeX, Settings2, AlertTriangle, PhoneOff, MessageSquare } from "lucide-react";
 import { Logo } from "@/components/logo";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Switch } from "@/components/ui/switch";
-
+import { generateSpeech } from "@/ai/flows/text-to-speech-flow";
 
 declare global {
   interface Window {
@@ -25,13 +23,11 @@ declare global {
   }
 }
 
-// Helper function to strip emojis from text
+// Helper function to strip emojis from text, as they can cause issues with TTS engines
 function stripEmojis(text: string): string {
   if (!text) return "";
-  // Comprehensive regex for emojis, including variations and skin tones
   return text.replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '').trim();
 }
-
 
 export default function TestAgentPage() {
   const params = useParams();
@@ -42,17 +38,14 @@ export default function TestAgentPage() {
 
   const chatInterfaceRef = useRef<ChatInterfaceHandles>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [autoSpeakEnabled, setAutoSpeakEnabled] = useState(false);
-  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
-  const [selectedVoiceURI, setSelectedVoiceURI] = useState<string | undefined>(undefined);
+  const [autoSpeakEnabled, setAutoSpeakEnabled] = useState(true); // Default to on for voice agents
   const [speechApiError, setSpeechApiError] = useState<string | null>(null);
   const [speechRecognitionSupported, setSpeechRecognitionSupported] = useState(true);
-  const [speechSynthesisSupported, setSpeechSynthesisSupported] = useState(true);
-
-
+  
   const agentId = Array.isArray(params.agentId) ? params.agentId[0] : params.agentId;
 
   useEffect(() => {
@@ -64,69 +57,53 @@ export default function TestAgentPage() {
     }
   }, [agentId, getAgent, isLoadingAgents]);
 
-  const populateVoiceList = useCallback(() => {
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
-      const voices = speechSynthesis.getVoices();
-      if (voices.length > 0) {
-        setAvailableVoices(voices);
-        const defaultUsVoice = voices.find(voice => voice.lang.startsWith('en-US') && voice.default && !voice.localService);
-        const defaultUkVoice = voices.find(voice => voice.lang.startsWith('en-GB') && voice.default && !voice.localService);
-        const anyDefaultVoice = voices.find(voice => voice.default);
-        const firstUsVoice = voices.find(voice => voice.lang.startsWith('en-US'));
-        const firstUkVoice = voices.find(voice => voice.lang.startsWith('en-GB'));
-        
-        if (defaultUsVoice) setSelectedVoiceURI(defaultUsVoice.voiceURI);
-        else if (defaultUkVoice) setSelectedVoiceURI(defaultUkVoice.voiceURI);
-        else if (anyDefaultVoice) setSelectedVoiceURI(anyDefaultVoice.voiceURI);
-        else if (firstUsVoice) setSelectedVoiceURI(firstUsVoice.voiceURI);
-        else if (firstUkVoice) setSelectedVoiceURI(firstUkVoice.voiceURI);
-        else if (voices[0]) setSelectedVoiceURI(voices[0].voiceURI);
-        setSpeechSynthesisSupported(true);
-      }
-    } else {
-      setSpeechSynthesisSupported(false);
-      setSpeechApiError(prev => prev ? prev + " Speech synthesis not supported." : "Speech synthesis not supported.");
-    }
-  }, []);
-
   useEffect(() => {
-    populateVoiceList();
-    if (typeof window !== 'undefined' && window.speechSynthesis && speechSynthesis.onvoiceschanged !== undefined) {
-      speechSynthesis.onvoiceschanged = populateVoiceList;
-    }
+    // Check for SpeechRecognition support
     if (typeof window !== 'undefined' && (!window.SpeechRecognition && !window.webkitSpeechRecognition)) {
       setSpeechRecognitionSupported(false);
-      setSpeechApiError(prev => prev ? prev + " Speech recognition not supported." : "Speech recognition not supported.");
+      setSpeechApiError("Speech recognition not supported by your browser.");
     }
-  }, [populateVoiceList]);
+    // Setup audio element for playback
+    if (!audioRef.current) {
+        audioRef.current = new Audio();
+        audioRef.current.onplay = () => setIsSpeaking(true);
+        audioRef.current.onended = () => setIsSpeaking(false);
+        audioRef.current.onerror = () => {
+            setIsSpeaking(false);
+            toast({ title: "Audio Error", description: "Could not play agent's voice.", variant: "destructive" });
+        };
+    }
+    // Cleanup on unmount
+    return () => {
+      recognitionRef.current?.abort();
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = "";
+      }
+    };
+  }, [toast]);
 
 
-  const speakText = useCallback((text: string) => {
-    if (!text || !speechSynthesisSupported || !autoSpeakEnabled) return;
-    
-    if (speechSynthesis.speaking) {
-      speechSynthesis.cancel(); 
-    }
+  const speakText = useCallback(async (text: string) => {
+    if (!text || !autoSpeakEnabled || !agentId) return;
 
     const cleanedText = stripEmojis(text);
-    if (!cleanedText) return; 
+    if (!cleanedText) return;
 
-    const utterance = new SpeechSynthesisUtterance(cleanedText);
-    if (selectedVoiceURI) {
-      const voice = availableVoices.find(v => v.voiceURI === selectedVoiceURI);
-      if (voice) utterance.voice = voice;
-    }
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = (event) => {
-      console.error("Speech synthesis error:", event.error);
-      if (event.error !== 'interrupted') {
-        toast({ title: "Speech Error", description: `Could not speak: ${event.error}`, variant: "destructive" });
+    setIsSpeaking(true);
+    try {
+      const result = await generateSpeech({ text: cleanedText, agentId });
+      if (audioRef.current) {
+        audioRef.current.src = result.audioUrl;
+        await audioRef.current.play();
       }
+    } catch (error: any) {
+      console.error("Error generating or playing speech:", error);
+      toast({ title: "Speech Generation Failed", description: error.message || "Could not generate voice.", variant: "destructive" });
       setIsSpeaking(false);
-    };
-    speechSynthesis.speak(utterance);
-  }, [availableVoices, selectedVoiceURI, toast, speechSynthesisSupported, autoSpeakEnabled]);
+    }
+  }, [agentId, toast, autoSpeakEnabled]);
+
 
   const handleNewAgentMessage = useCallback((message: ChatMessageType) => {
     if (message.sender === 'agent' && message.text && autoSpeakEnabled) {
@@ -141,21 +118,12 @@ export default function TestAgentPage() {
     }
     if (isListening) {
       recognitionRef.current?.stop();
-      setIsListening(false);
     } else {
-      if (speechSynthesisSupported && speechSynthesis.speaking) {
-        speechSynthesis.cancel();
-        setIsSpeaking(false);
+      if (audioRef.current?.played) {
+        audioRef.current.pause();
       }
 
       const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SpeechRecognitionAPI) {
-        setSpeechApiError("Speech recognition not supported by this browser.");
-        toast({ title: "Not Supported", description: "Speech recognition is not supported by your browser.", variant: "destructive"});
-        setSpeechRecognitionSupported(false);
-        return;
-      }
-      
       recognitionRef.current = new SpeechRecognitionAPI();
       recognitionRef.current.continuous = false;
       recognitionRef.current.interimResults = false; 
@@ -171,7 +139,6 @@ export default function TestAgentPage() {
         if (event.error === 'not-allowed') errorMsg = "Microphone access was denied.";
         
         toast({ title: "Speech Error", description: errorMsg, variant: "destructive" });
-        setIsListening(false);
       };
       recognitionRef.current.onresult = (event) => {
         const transcript = event.results[0][0].transcript;
@@ -185,18 +152,6 @@ export default function TestAgentPage() {
       recognitionRef.current.start();
     }
   };
-  
-  useEffect(() => {
-    return () => { 
-      if (recognitionRef.current) {
-        recognitionRef.current.abort();
-      }
-      if (speechSynthesisSupported && speechSynthesis.speaking) {
-        speechSynthesis.cancel();
-      }
-    };
-  }, [speechSynthesisSupported]);
-
 
   if (isLoadingAgents || (agent === undefined && agentId)) {
     return (
@@ -247,15 +202,15 @@ export default function TestAgentPage() {
               <Settings2 className="w-5 h-5 sm:w-6 sm:w-6 text-primary" /> Voice Interaction Controls
             </CardTitle>
             <CardDescription className="text-sm">
-              Enable voice input/output to test your agent's conversational abilities. Requires browser permission.
+              Enable voice input/output to test your agent's conversational abilities. This uses the agent's configured voice.
             </CardDescription>
           </CardHeader>
           <CardContent className="p-4 sm:p-6 space-y-4">
             {speechApiError && (
               <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Speech API Not Fully Supported</AlertTitle>
-                <AlertDescription>{speechApiError} Some voice features might not work correctly in your browser.</AlertDescription>
+                <AlertTitle>Browser Support Notice</AlertTitle>
+                <AlertDescription>{speechApiError}</AlertDescription>
               </Alert>
             )}
             <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
@@ -275,42 +230,23 @@ export default function TestAgentPage() {
                   id="auto-speak-switch"
                   checked={autoSpeakEnabled}
                   onCheckedChange={setAutoSpeakEnabled}
-                  disabled={!speechSynthesisSupported || isSpeaking}
+                  disabled={isSpeaking}
                 />
                 <Label htmlFor="auto-speak-switch" className="text-sm flex items-center gap-1 cursor-pointer">
                   {autoSpeakEnabled ? <Volume2 size={18} className="text-primary"/> : <VolumeX size={18} className="text-muted-foreground"/>}
-                   Auto-Speak Agent
+                   Auto-Speak Agent Voice
                 </Label>
               </div>
             </div>
-             <div className="space-y-1.5">
-                <Label htmlFor="voice-select" className="text-xs">Agent's Voice (TTS)</Label>
-                <Select
-                  value={selectedVoiceURI}
-                  onValueChange={setSelectedVoiceURI}
-                  disabled={!speechSynthesisSupported || availableVoices.length === 0 || isSpeaking || !autoSpeakEnabled}
-                >
-                  <SelectTrigger id="voice-select" className="h-10 text-sm">
-                    <SelectValue placeholder={speechSynthesisSupported && availableVoices.length > 0 ? "Select a voice..." : (speechSynthesisSupported ? "Loading voices..." : "TTS Not Supported")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableVoices.map((voice) => (
-                      <SelectItem key={voice.voiceURI} value={voice.voiceURI} className="text-sm">
-                        {voice.name} ({voice.lang}) {voice.default && "- Default"}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              {isListening && <p className="text-sm text-primary text-center animate-pulse">Listening for your input...</p>}
-              {isSpeaking && autoSpeakEnabled && <p className="text-sm text-primary text-center animate-pulse">Agent is speaking...</p>}
+             {isListening && <p className="text-sm text-primary text-center animate-pulse">Listening for your input...</p>}
+             {isSpeaking && autoSpeakEnabled && <p className="text-sm text-primary text-center animate-pulse">Agent is speaking...</p>}
           </CardContent>
           <CardFooter className="p-4 sm:p-6 text-xs text-muted-foreground">
               <Alert variant="default" className="bg-secondary">
                   <PhoneOff className="h-4 w-4 text-primary" />
                   <AlertTitle className="text-primary text-sm">Voice Test Simulation</AlertTitle>
                   <AlertDescription className="text-muted-foreground text-xs">
-                    This page simulates voice interaction using your browser's capabilities. Voice quality depends on your system. For actual phone call integration, configure Twilio via the 'Export' page.
+                    This page now simulates calls using your agent's actual configured voice (e.g., ElevenLabs). The real-world call via Twilio will use the same voice generation service.
                   </AlertDescription>
               </Alert>
           </CardFooter>
