@@ -115,7 +115,7 @@ export default function AppTemplatesPage() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
             <LayoutGrid className="w-7 h-7 sm:w-8 sm:w-8 text-primary" />
             <div>
-                <CardTitle className={cn("font-headline text-xl sm:text-2xl", "text-gradient-dynamic")}>
+                <CardTitle className="font-headline text-xl sm:text-2xl text-primary">
                     AI Agent Templates Gallery
                 </CardTitle>
                 <CardDescription className="text-sm mt-1">
@@ -150,12 +150,12 @@ export default function AppTemplatesPage() {
                 </div>
               )}
                <div className="mt-2 space-y-0.5 text-xs">
-                  {template.defaultValues.agentType && <Badge variant="outline" className="mr-1 border-accent/50 text-accent text-[10px]"><MessageSquare className="w-2.5 h-2.5 mr-1"/>{template.defaultValues.agentType}</Badge>}
-                  {template.defaultValues.primaryLogic && <Badge variant="outline" className="border-secondary text-secondary-foreground text-[10px]"><Brain className="w-2.5 h-2.5 mr-1"/>{template.defaultValues.primaryLogic === 'rag' ? 'Knowledge-Based' : 'Persona-Driven'}</Badge>}
+                  {template.defaultValues.agentType && <Badge variant="outline" className="mr-1"><MessageSquare className="w-2.5 h-2.5 mr-1"/>{template.defaultValues.agentType}</Badge>}
+                  {template.defaultValues.primaryLogic && <Badge variant="outline"><Brain className="w-2.5 h-2.5 mr-1"/>{template.defaultValues.primaryLogic === 'rag' ? 'Knowledge-Based' : 'Persona-Driven'}</Badge>}
                </div>
             </CardContent>
             <CardFooter className="p-4 sm:p-5 pt-2">
-              <Button asChild size="sm" className={cn("w-full text-xs sm:text-sm", "btn-gradient-primary")}>
+              <Button asChild size="sm" className="w-full text-xs sm:text-sm">
                 {/* This link will now go to agent creation, which will handle client selection if needed */}
                 <Link href={`/agents/create?templateId=${template.id}`}>
                   Use This Template <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
@@ -165,9 +165,9 @@ export default function AppTemplatesPage() {
           </Card>
         ))}
       </div>
-       <Alert className="mt-6 sm:mt-8 bg-accent/10 dark:bg-accent/20 border-accent/30">
-          <Lightbulb className="h-4 w-4 text-accent" />
-          <AlertDescription className="text-accent/80 dark:text-accent/90 text-xs sm:text-sm">
+       <Alert className="mt-6 sm:mt-8 bg-secondary">
+          <Lightbulb className="h-4 w-4 text-primary" />
+          <AlertDescription className="text-muted-foreground text-xs sm:text-sm">
             <strong>Using a Template:</strong> Clicking "Use This Template" will take you to the agent creation form.
             If you haven't selected a client yet for this new agent, you'll be prompted to choose or create one on that page.
           </AlertDescription>

@@ -74,7 +74,7 @@ export function AgentCard({ agent, onDelete }: AgentCardProps) {
       <CardHeader className="p-4 sm:p-5">
         <div className="flex items-start justify-between mb-1.5 sm:mb-2">
           <div className="flex items-center gap-2 sm:gap-3">
-            <Bot className="w-7 h-7 sm:w-8 sm:w-8 text-purple shrink-0" />
+            <Bot className="w-7 h-7 sm:w-8 sm:w-8 text-primary shrink-0" />
             <CardTitle className="font-headline text-lg sm:text-xl break-all">{agent.generatedName || agent.name}</CardTitle>
           </div>
           <div className="flex flex-col items-end gap-1">
@@ -85,7 +85,7 @@ export function AgentCard({ agent, onDelete }: AgentCardProps) {
               </Badge>
             )}
             {directionLabel && (
-              <Badge variant="outline" className="text-xs capitalize h-fit px-1.5 py-0.5 sm:px-2 bg-accent/10 text-accent-foreground border-accent/30">
+              <Badge variant="secondary" className="text-xs capitalize h-fit px-1.5 py-0.5 sm:px-2">
                 {directionIcon} {directionLabel}
               </Badge>
             )}
@@ -111,7 +111,7 @@ export function AgentCard({ agent, onDelete }: AgentCardProps) {
         <Button variant="ghost" size="sm" onClick={() => onDelete(agent.id)} aria-label="Delete agent" className="text-xs px-2 py-1 h-auto text-destructive hover:text-destructive">
           <Trash2 className="w-3.5 h-3.5 mr-1 sm:mr-1.5" /> Delete
         </Button>
-        <Button asChild size="sm" className={cn("text-xs px-2 py-1 h-auto", "btn-gradient-primary")}>
+        <Button asChild size="sm" className="text-xs px-2 py-1 h-auto">
           <Link href={`/agents/${agent.id}/${defaultNavigationPage}`}>
             Configure Agent
             <ArrowRight className="ml-1 sm:ml-1.5 w-3.5 h-3.5" />

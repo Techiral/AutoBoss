@@ -67,19 +67,19 @@ export default function PublicSupportPage() {
           <Link href="/" className="mr-6 flex items-center space-x-2">
             <Logo className="h-7 w-auto" />
           </Link>
-          <Button asChild variant="outline" size="sm" className="btn-outline-themed transition-colors btn-interactive text-xs">
+          <Button asChild variant="outline" size="sm" className="text-xs">
             <Link href="/dashboard">Go to Dashboard <ArrowRight className="ml-1.5 h-3.5 w-3.5" /></Link>
           </Button>
         </div>
       </header>
 
       <main className="container mx-auto py-8 sm:py-12 px-4 md:px-6 max-w-3xl">
-        <Card className="mb-8 sm:mb-12 shadow-lg border-transparent bg-gradient-to-br from-card via-card to-muted/30">
+        <Card className="mb-8 sm:mb-12 shadow-lg border-transparent bg-secondary">
           <CardHeader className="p-6 text-center">
             <div className="inline-block p-3 bg-primary/10 rounded-full mb-3">
                 <LifeBuoy className="w-8 h-8 text-primary" />
             </div>
-            <CardTitle className={cn("font-headline text-2xl sm:text-3xl md:text-4xl", "text-gradient-dynamic")}>
+            <CardTitle className="font-headline text-2xl sm:text-3xl md:text-4xl text-primary">
                 AutoBoss Help & FAQ: Your Questions Answered
             </CardTitle>
             <CardDescription className="text-sm sm:text-base text-muted-foreground mt-2 max-w-xl mx-auto">
@@ -88,22 +88,22 @@ export default function PublicSupportPage() {
           </CardHeader>
         </Card>
         
-        <Alert className="mb-6 sm:mb-8 bg-accent/10 dark:bg-accent/20 border-accent/30">
-            <AlertTriangle className="h-4 w-4 text-accent" />
-            <AlertTitle className="text-accent text-sm font-semibold">Your Quick-Start Guide!</AlertTitle>
-            <AlertDescription className="text-accent/90 text-xs sm:text-sm">
+        <Alert className="mb-6 sm:mb-8 bg-secondary">
+            <AlertTriangle className="h-4 w-4 text-primary" />
+            <AlertTitle className="text-primary text-sm font-semibold">Your Quick-Start Guide!</AlertTitle>
+            <AlertDescription className="text-muted-foreground text-xs sm:text-sm">
               AutoBoss makes starting an AI agency simple. These FAQs are designed to get you building for clients ASAP.
             </AlertDescription>
         </Alert>
           
         <section>
-            <h2 className={cn("text-lg sm:text-xl font-semibold mb-3 sm:mb-4 flex items-center gap-2", "text-gradient-dynamic")}><MessageCircleQuestion className="w-4 h-4 sm:w-5 sm:w-5 text-primary"/>Frequently Asked Questions</h2>
+            <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 flex items-center gap-2 text-primary"><MessageCircleQuestion className="w-4 h-4 sm:w-5 sm:w-5 text-primary"/>Frequently Asked Questions</h2>
             <Accordion type="single" collapsible className="w-full space-y-3">
               {faqs.map((faq, index) => (
                 <Card key={index} className="overflow-hidden shadow-md hover:shadow-lg transition-shadow">
                     <AccordionItem value={`item-${index + 1}`} className="border-b-0">
                     <AccordionTrigger className="p-4 text-left hover:no-underline text-sm sm:text-base font-medium group bg-card hover:bg-muted/50 transition-colors">
-                        {faq.icon && <faq.icon className="mr-2 sm:mr-3 h-4 w-4 sm:h-5 sm:w-5 text-primary group-hover:text-accent transition-colors shrink-0" />}
+                        {faq.icon && <faq.icon className="mr-2 sm:mr-3 h-4 w-4 sm:h-5 sm:w-5 text-primary group-hover:text-primary transition-colors shrink-0" />}
                         <span className="flex-1">{faq.question}</span>
                     </AccordionTrigger>
                     <AccordionContent className="text-muted-foreground leading-relaxed text-xs sm:text-sm p-4 pt-0 bg-card border-t border-border/50">
@@ -117,12 +117,12 @@ export default function PublicSupportPage() {
             </Accordion>
         </section>
 
-        <Card className="mt-8 sm:mt-12 p-6 text-center bg-muted/30 border-dashed">
-            <h2 className={cn("text-lg sm:text-xl font-semibold mb-2 flex items-center justify-center gap-2", "text-gradient-dynamic")}><Mail className="w-4 h-4 sm:w-5 sm:w-5 text-primary"/>Still Stuck? We're Here to Help!</h2>
+        <Card className="mt-8 sm:mt-12 p-6 text-center bg-secondary border-dashed">
+            <h2 className="text-lg sm:text-xl font-semibold mb-2 flex items-center justify-center gap-2 text-primary"><Mail className="w-4 h-4 sm:w-5 sm:w-5 text-primary"/>Still Stuck? We're Here to Help!</h2>
             <p className="text-xs sm:text-sm text-muted-foreground mb-4">
               Your success is our goal. If you have more questions or ideas, please reach out.
             </p>
-            <Button variant="outline" className="text-xs sm:text-sm btn-interactive" asChild>
+            <Button variant="outline" className="text-xs sm:text-sm" asChild>
                 <Link href="mailto:support@YOUR_AUTOBOSS_DOMAIN.com?subject=AutoBoss%20AI%20Agency%20Help">Email Our Support Team</Link>
             </Button>
         </Card>
@@ -143,4 +143,3 @@ export default function PublicSupportPage() {
     </div>
   );
 }
-

@@ -117,19 +117,19 @@ export default function PublicTemplatesPage() {
           <Link href="/" className="mr-6 flex items-center space-x-2">
             <Logo className="h-7 w-auto" />
           </Link>
-          <Button asChild variant="outline" size="sm" className="btn-outline-themed transition-colors btn-interactive text-xs">
+          <Button asChild variant="outline" size="sm" className="text-xs">
             <Link href="/dashboard">Go to Dashboard <ArrowRight className="ml-1.5 h-3.5 w-3.5" /></Link>
           </Button>
         </div>
       </header>
 
       <main className="container mx-auto py-8 sm:py-12 px-4 md:px-6">
-        <Card className="mb-8 sm:mb-12 shadow-lg border-transparent bg-gradient-to-br from-card via-card to-muted/30">
+        <Card className="mb-8 sm:mb-12 shadow-lg border-transparent bg-secondary">
           <CardHeader className="p-6 text-center">
             <div className="inline-block p-3 bg-primary/10 rounded-full mb-3">
               <LayoutGrid className="w-8 h-8 text-primary" />
             </div>
-            <CardTitle className={cn("font-headline text-2xl sm:text-3xl md:text-4xl", "text-gradient-dynamic")}>
+            <CardTitle className="font-headline text-2xl sm:text-3xl md:text-4xl text-primary">
               Kickstart Your Client Projects: AI Agent Templates
             </CardTitle>
             <CardDescription className="text-sm sm:text-base text-muted-foreground mt-2 max-w-xl mx-auto">
@@ -162,12 +162,12 @@ export default function PublicTemplatesPage() {
                   </div>
                 )}
                  <div className="mt-2 space-y-0.5 text-xs">
-                    {template.defaultValues.agentType && <Badge variant="outline" className="mr-1 border-accent/50 text-accent text-[10px]"><MessageSquare className="w-2.5 h-2.5 mr-1"/>{template.defaultValues.agentType}</Badge>}
-                    {template.defaultValues.primaryLogic && <Badge variant="outline" className="border-secondary text-secondary-foreground text-[10px]"><Brain className="w-2.5 h-2.5 mr-1"/>{template.defaultValues.primaryLogic === 'rag' ? 'Knowledge-Based' : 'Persona-Driven'}</Badge>}
+                    {template.defaultValues.agentType && <Badge variant="outline" className="mr-1"><MessageSquare className="w-2.5 h-2.5 mr-1"/>{template.defaultValues.agentType}</Badge>}
+                    {template.defaultValues.primaryLogic && <Badge variant="outline"><Brain className="w-2.5 h-2.5 mr-1"/>{template.defaultValues.primaryLogic === 'rag' ? 'Knowledge-Based' : 'Persona-Driven'}</Badge>}
                  </div>
               </CardContent>
               <CardFooter className="p-4 sm:p-5 pt-2">
-                <Button asChild size="sm" className={cn("w-full text-xs sm:text-sm", "btn-gradient-primary")}>
+                <Button asChild size="sm" className="w-full text-xs sm:text-sm">
                   <Link href={`/dashboard?templateId=${template.id}&info=selectClientFirst`}>
                     Use This Template (Go to Dashboard) <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
                   </Link>
@@ -176,10 +176,10 @@ export default function PublicTemplatesPage() {
             </Card>
           ))}
         </div>
-         <Alert className="mt-6 sm:mt-8 bg-accent/10 dark:bg-accent/20 border-accent/30">
-            <Info className="h-4 w-4 text-accent" />
-            <AlertDescription className="text-accent/80 dark:text-accent/90 text-xs sm:text-sm">
-              <strong className="font-semibold text-accent">Quick Start with Templates:</strong>
+         <Alert className="mt-6 sm:mt-8 bg-secondary">
+            <Info className="h-4 w-4 text-primary" />
+            <AlertDescription className="text-muted-foreground text-xs sm:text-sm">
+              <strong className="font-semibold text-foreground">Quick Start with Templates:</strong>
               <ol className="list-decimal list-inside pl-3 mt-1">
                   <li>Click "Use This Template". This takes you to your AutoBoss Dashboard.</li>
                   <li>If you're not logged in, you'll be prompted to log in or sign up.</li>
@@ -205,4 +205,3 @@ export default function PublicTemplatesPage() {
     </div>
   );
 }
-

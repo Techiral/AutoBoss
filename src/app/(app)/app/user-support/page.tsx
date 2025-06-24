@@ -7,7 +7,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { LifeBuoy, MessageCircleQuestion, AlertTriangle, Mail, HelpCircle, Bot, DatabaseZap, Palette, Share2, TestTubeDiagonal, DollarSign, FilePlus, Lightbulb, Brain } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function AppSupportPage() {
   const faqs = [
@@ -65,7 +65,7 @@ export default function AppSupportPage() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
             <LifeBuoy className="w-7 h-7 sm:w-8 sm:w-8 text-primary" />
             <div>
-                <CardTitle className={cn("font-headline text-xl sm:text-2xl", "text-gradient-dynamic")}>
+                <CardTitle className="font-headline text-xl sm:text-2xl text-primary">
                     Help Center & FAQ
                 </CardTitle>
                 <CardDescription className="text-sm mt-1">
@@ -76,21 +76,21 @@ export default function AppSupportPage() {
         </CardHeader>
       </Card>
       
-      <Alert className="bg-accent/10 dark:bg-accent/20 border-accent/30">
-          <Lightbulb className="h-4 w-4 text-accent" />
-          <AlertDescription className="text-accent/90 text-xs sm:text-sm">
+      <Alert className="bg-secondary">
+          <Lightbulb className="h-4 w-4 text-primary" />
+          <AlertDescription className="text-muted-foreground text-xs sm:text-sm">
             <strong>Welcome to the Help Center!</strong> If you can't find your answer here, use the "Send Feedback" link in the sidebar.
           </AlertDescription>
       </Alert>
         
       <section>
-          <h2 className={cn("text-lg sm:text-xl font-semibold mb-3 sm:mb-4 flex items-center gap-2", "text-gradient-dynamic")}><MessageCircleQuestion className="w-4 h-4 sm:w-5 sm:w-5 text-primary"/>Frequently Asked Questions</h2>
+          <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 flex items-center gap-2 text-primary"><MessageCircleQuestion className="w-4 h-4 sm:w-5 sm:w-5 text-primary"/>Frequently Asked Questions</h2>
           <Accordion type="single" collapsible className="w-full space-y-3">
             {faqs.map((faq, index) => (
               <Card key={index} className="overflow-hidden shadow-md hover:shadow-lg transition-shadow">
                   <AccordionItem value={`item-${index + 1}`} className="border-b-0">
                   <AccordionTrigger className="p-4 text-left hover:no-underline text-sm sm:text-base font-medium group bg-card hover:bg-muted/50 transition-colors">
-                      {faq.icon && <faq.icon className="mr-2 sm:mr-3 h-4 w-4 sm:h-5 sm:w-5 text-primary group-hover:text-accent transition-colors shrink-0" />}
+                      {faq.icon && <faq.icon className="mr-2 sm:mr-3 h-4 w-4 sm:h-5 sm:w-5 text-primary group-hover:text-primary transition-colors shrink-0" />}
                       <span className="flex-1">{faq.question}</span>
                   </AccordionTrigger>
                   <AccordionContent className="text-muted-foreground leading-relaxed text-xs sm:text-sm p-4 pt-0 bg-card border-t border-border/50">
@@ -105,11 +105,11 @@ export default function AppSupportPage() {
       </section>
 
       <Card className="mt-8 sm:mt-12 p-4 sm:p-6 text-center bg-muted/30 border-dashed">
-          <h2 className={cn("text-base sm:text-lg font-semibold mb-2 flex items-center justify-center gap-2", "text-gradient-dynamic")}><Mail className="w-4 h-4 text-primary"/>Still Need Help?</h2>
+          <h2 className="text-base sm:text-lg font-semibold mb-2 flex items-center justify-center gap-2 text-primary"><Mail className="w-4 h-4 text-primary"/>Still Need Help?</h2>
           <p className="text-xs sm:text-sm text-muted-foreground mb-3">
             If your question isn't answered above, please reach out to our support team.
           </p>
-          <Button variant="outline" className="text-xs sm:text-sm btn-interactive" asChild>
+          <Button variant="outline" className="text-xs sm:text-sm" asChild>
               <Link href="mailto:support@YOUR_AUTOBOSS_DOMAIN.com?subject=AutoBoss%20App%20Support">Email Support</Link>
           </Button>
       </Card>

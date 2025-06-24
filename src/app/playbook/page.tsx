@@ -30,10 +30,10 @@ export default function PlaybookPage() {
             <li>"About how many customer questions do you answer each day that are pretty much the same?"</li>
             <li>"Ever worry you're missing out on business because you can't reply to every website visitor right away?"</li>
           </ul>
-          <Alert variant="default" className="bg-accent/10 dark:bg-accent/20 border-accent/30">
-            <Lightbulb className="h-4 w-4 text-accent" />
-            <AlertTitle className="text-accent text-sm font-medium">Your Action Idea: The 30-Minute Client Finder</AlertTitle>
-            <AlertDescription className="text-accent/80 dark:text-accent/90 text-xs">
+          <Alert variant="default" className="bg-secondary">
+            <Lightbulb className="h-4 w-4 text-primary" />
+            <AlertTitle className="text-primary text-sm font-medium">Your Action Idea: The 30-Minute Client Finder</AlertTitle>
+            <AlertDescription className="text-muted-foreground text-xs">
               List 3 local businesses you know. What one simple AI task from AutoBoss (like an FAQ bot) could truly help *them*? You might be surprised by what you find.
             </AlertDescription>
           </Alert>
@@ -55,10 +55,10 @@ export default function PlaybookPage() {
           </ul>
           <p className="font-semibold">Pricing That Gets a 'Yes' (for your first 1-3 clients):</p>
           <p>A one-time setup fee (maybe $299 - $599) feels safer to them than a monthly bill at first. Show it as something that saves them X hours or gets Y more leads. Once they see it work, then you can talk about monthly support.</p>
-           <Alert variant="default" className="bg-accent/10 dark:bg-accent/20 border-accent/30">
-            <Sparkles className="h-4 w-4 text-accent" />
-            <AlertTitle className="text-accent text-sm font-medium">The "Aha!" Moment is Key</AlertTitle>
-            <AlertDescription className="text-accent/80 dark:text-accent/90 text-xs">
+           <Alert variant="default" className="bg-secondary">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <AlertTitle className="text-primary text-sm font-medium">The "Aha!" Moment is Key</AlertTitle>
+            <AlertDescription className="text-muted-foreground text-xs">
               You're not just selling tech. You're selling relief from a headache (too many questions, lost leads). Make *that* the focus.
             </AlertDescription>
           </Alert>
@@ -84,10 +84,10 @@ export default function PlaybookPage() {
             <p>Best,</p>
             <p>[Your Name]</p>
           </Card>
-          <Alert variant="default" className="bg-accent/10 dark:bg-accent/20 border-accent/30">
-            <Lightbulb className="h-4 w-4 text-accent" />
-            <AlertTitle className="text-accent text-sm font-medium">Your Goal: Spark Curiosity, Not a Sale (Yet!)</AlertTitle>
-            <AlertDescription className="text-accent/80 dark:text-accent/90 text-xs">
+          <Alert variant="default" className="bg-secondary">
+            <Lightbulb className="h-4 w-4 text-primary" />
+            <AlertTitle className="text-primary text-sm font-medium">Your Goal: Spark Curiosity, Not a Sale (Yet!)</AlertTitle>
+            <AlertDescription className="text-muted-foreground text-xs">
               Send this (make it personal!) to 3 businesses from your "Easy Wins" list. The aim is just to get them curious enough for a quick chat.
             </AlertDescription>
           </Alert>
@@ -112,10 +112,10 @@ export default function PlaybookPage() {
             <li>Share your screen: Show them the AutoBoss test chat. Let *them* ask *their AI* questions about *their business*.</li>
           </ul>
           <p>Seeing their own business info used by an AI they didn't know existed 10 minutes ago? That's a game-changer.</p>
-          <Alert variant="default" className="bg-accent/10 dark:bg-accent/20 border-accent/30">
-            <Sparkles className="h-4 w-4 text-accent" />
-            <AlertTitle className="text-accent text-sm font-medium">The "Personalized Proof" Magic</AlertTitle>
-            <AlertDescription className="text-accent/80 dark:text-accent/90 text-xs">
+          <Alert variant="default" className="bg-secondary">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <AlertTitle className="text-primary text-sm font-medium">The "Personalized Proof" Magic</AlertTitle>
+            <AlertDescription className="text-muted-foreground text-xs">
               A live demo, even a basic one, using *their* business info, beats any generic presentation. AutoBoss helps you do this fast.
             </AlertDescription>
           </Alert>
@@ -144,10 +144,10 @@ export default function PlaybookPage() {
             <li>What kind of 'voice' they want for the bot (friendly, formal, etc.).</li>
           </ul>
           <p>With this, AutoBoss lets you deliver value quickly. Your first client is closer than you think!</p>
-          <Alert variant="default" className="bg-green-500/10 dark:bg-green-500/20 border-green-500/30">
-            <CheckCircle className="h-4 w-4 text-green-700 dark:text-green-400" />
-            <AlertTitle className="text-green-700 dark:text-green-400 text-sm font-medium">Your AI Agency Journey Starts Now!</AlertTitle>
-            <AlertDescription className="text-green-600/80 dark:text-green-300/80 text-xs">
+          <Alert variant="default" className="bg-primary/10 border-primary/20">
+            <CheckCircle className="h-4 w-4 text-primary" />
+            <AlertTitle className="text-primary text-sm font-medium">Your AI Agency Journey Starts Now!</AlertTitle>
+            <AlertDescription className="text-muted-foreground text-xs">
               Each client builds your confidence and your business. AutoBoss is here to make AI easy and profitable for you.
             </AlertDescription>
           </Alert>
@@ -164,7 +164,7 @@ export default function PlaybookPage() {
           <Link href="/" className="mr-6 flex items-center space-x-2">
             <Logo className="h-7 w-auto" />
           </Link>
-          <Button asChild variant="outline" size="sm" className="btn-outline-themed transition-colors btn-interactive text-xs">
+          <Button asChild variant="outline" size="sm" className="text-xs">
             <Link href="/dashboard">Go to Your Dashboard <ArrowRight className="ml-1.5 h-3.5 w-3.5" /></Link>
           </Button>
         </div>
@@ -172,12 +172,12 @@ export default function PlaybookPage() {
 
       {/* Main Content */}
       <main className="container mx-auto py-8 sm:py-12 px-4 md:px-6 max-w-3xl">
-        <Card className="mb-8 sm:mb-12 shadow-lg border-transparent bg-gradient-to-br from-card via-card to-muted/30">
+        <Card className="mb-8 sm:mb-12 shadow-lg border-transparent bg-secondary">
           <CardHeader className="p-6 text-center">
             <div className="inline-block p-3 bg-primary/10 rounded-full mb-3">
               <BookOpen className="w-8 h-8 text-primary" />
             </div>
-            <CardTitle className={cn("font-headline text-2xl sm:text-3xl md:text-4xl", "text-gradient-dynamic")}>
+            <CardTitle className="font-headline text-2xl sm:text-3xl md:text-4xl text-primary">
               Your Simple Guide to AI Agency Clients (No Tech Skills Needed!)
             </CardTitle>
             <CardDescription className="text-sm sm:text-base text-muted-foreground mt-2 max-w-xl mx-auto">
@@ -204,12 +204,12 @@ export default function PlaybookPage() {
           ))}
         </Accordion>
 
-        <Card className="mt-8 sm:mt-12 text-center p-6 bg-muted/30 border-dashed">
+        <Card className="mt-8 sm:mt-12 text-center p-6 bg-secondary border-dashed">
             <CardTitle className="text-lg sm:text-xl font-semibold mb-2">Ready to Turn This Plan into Profit?</CardTitle>
             <CardDescription className="text-sm text-muted-foreground mb-4">
                 Use these ideas with the AutoBoss platform to start building real AI solutions for businesses today.
             </CardDescription>
-            <Button asChild className={cn("btn-gradient-primary font-semibold shadow-md hover:opacity-90 transition-opacity btn-interactive text-sm")}>
+            <Button asChild className="font-semibold shadow-md hover:opacity-90 transition-opacity text-sm">
                 <Link href="/dashboard">Open Your AutoBoss Toolkit <ArrowRight className="ml-2 h-4 w-4"/></Link>
             </Button>
         </Card>
@@ -232,4 +232,3 @@ export default function PlaybookPage() {
     </div>
   );
 }
-

@@ -43,7 +43,7 @@ export function UserNav() {
             <LogIn className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" /> Login
           </Link>
         </Button>
-        <Button size="sm" asChild className={cn("text-xs px-2 py-1 sm:px-3 sm:py-1.5 h-auto", "btn-gradient-primary")}>
+        <Button size="sm" asChild className="text-xs px-2 py-1 sm:px-3 sm:py-1.5 h-auto">
           <Link href="/signup">
            <UserPlus className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" /> Sign Up
           </Link>
@@ -84,13 +84,13 @@ export function UserNav() {
         <DropdownMenuGroup>
           <DropdownMenuItem asChild>
             <Link href="/profile"> 
-              <User className="mr-2 h-4 w-4 text-cyan" />
+              <User className="mr-2 h-4 w-4 text-primary" />
               <span>Profile</span>
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href="/settings">
-              <Settings className="mr-2 h-4 w-4 text-cyan" />
+              <Settings className="mr-2 h-4 w-4 text-primary" />
               <span>Settings</span>
             </Link>
           </DropdownMenuItem>
@@ -98,13 +98,13 @@ export function UserNav() {
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
           <Link href="/support">
-            <LifeBuoy className="mr-2 h-4 w-4 text-cyan" />
+            <LifeBuoy className="mr-2 h-4 w-4 text-primary" />
             <span>Support</span>
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
-          <LogOut className="mr-2 h-4 w-4 text-cyan" />
+          <LogOut className="mr-2 h-4 w-4 text-primary" />
           <span>Log out</span>
         </DropdownMenuItem>
       </DropdownMenuContent>

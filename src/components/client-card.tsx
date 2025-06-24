@@ -56,7 +56,7 @@ export function ClientCard({ client, onDelete }: ClientCardProps) {
         <Button variant="ghost" size="sm" onClick={() => onDelete(client.id)} aria-label="Delete client" className="text-xs px-2 py-1 h-auto text-destructive hover:text-destructive">
           <Trash2 className="w-3.5 h-3.5 mr-1 sm:mr-1.5" /> Delete
         </Button>
-        <Button asChild size="sm" className={cn("text-xs px-2 py-1 h-auto", "btn-gradient-primary")}>
+        <Button asChild size="sm" className="text-xs px-2 py-1 h-auto">
           <Link href={`/clients/${client.id}/dashboard`}>
             Manage Agents
             <ArrowRight className="ml-1 sm:ml-1.5 w-3.5 h-3.5" />

@@ -327,7 +327,7 @@ export default function KnowledgePage() {
     return (
       <Card>
         <CardHeader className="p-4 sm:p-6">
-          <CardTitle className={cn("font-headline text-lg sm:text-xl", "text-gradient-dynamic")}>Train Agent</CardTitle>
+          <CardTitle className="font-headline text-lg sm:text-xl text-primary">Train Agent</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col items-center justify-center min-h-[calc(100vh-300px)]">
           <Logo className="mb-3 h-8" />
@@ -354,15 +354,15 @@ export default function KnowledgePage() {
     <div className="grid gap-4 md:gap-6 grid-cols-1 lg:grid-cols-3">
       <Card className="lg:col-span-1">
         <CardHeader className="p-4 sm:p-6">
-          <CardTitle className={cn("font-headline text-lg sm:text-2xl", "text-gradient-dynamic")}>Train Your Agent with Business Data</CardTitle>
+          <CardTitle className="font-headline text-lg sm:text-2xl text-primary">Train Your Agent with Business Data</CardTitle>
           <CardDescription className="text-sm">Make your agent an expert! Upload documents, add website pages, or paste text specific to the business it will serve for <span className="font-semibold">{currentAgent.generatedName || currentAgent.name}</span>.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
             
-            <Alert variant="default" className="p-3 text-xs bg-amber-500/10 dark:bg-amber-500/20 border-amber-500/40">
-                <FileWarning className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
-                <AlertTitle className="text-amber-700 dark:text-amber-300 text-xs font-medium">Training Large Documents (e.g., Books)</AlertTitle>
-                <AlertDescription className="text-amber-600/90 dark:text-amber-200/90 text-[11px]">
+            <Alert variant="default" className="p-3 text-xs bg-destructive/10 border-destructive/20 text-destructive-foreground">
+                <FileWarning className="h-3.5 w-3.5" />
+                <AlertTitle className="text-xs font-medium">Training Large Documents (e.g., Books)</AlertTitle>
+                <AlertDescription className="text-[11px]">
                   For very large documents like entire books, processing can take longer and may sometimes fail if the AI model is temporarily busy.
                   If you encounter issues, try uploading smaller sections or chapters individually. This can also lead to more focused knowledge for your agent.
                 </AlertDescription>
@@ -373,15 +373,15 @@ export default function KnowledgePage() {
                 <Input id="document" type="file" onChange={handleFileChange} accept=".txt,.pdf,.md,.docx,.json,.csv,.html,.htm,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/csv,text/markdown,application/json,text/html" disabled={isAnyLoading}/>
                 {selectedFile && <p className="text-xs sm:text-sm text-muted-foreground">Selected: {selectedFile.name}</p>}
             </div>
-            <Button onClick={handleSubmitFile} disabled={isAnyLoading || !selectedFile} className={cn("w-full", "btn-gradient-primary")}>
+            <Button onClick={handleSubmitFile} disabled={isAnyLoading || !selectedFile} className="w-full">
                 {isLoadingFile ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
                 {isLoadingFile ? "Processing File..." : "Upload & Train File"}
             </Button>
 
-            <Alert variant="default" className="p-3 text-xs bg-accent/10 dark:bg-accent/20 border-accent/30">
-                <Info className="h-3.5 w-3.5 text-accent" />
-                <AlertTitle className="text-accent text-xs font-medium">Supported File Types</AlertTitle>
-                <AlertDescription className="text-accent/80 dark:text-accent/90 text-[11px]">
+            <Alert variant="default" className="p-3 text-xs bg-secondary">
+                <Info className="h-3.5 w-3.5 text-primary" />
+                <AlertTitle className="text-xs font-medium">Supported File Types</AlertTitle>
+                <AlertDescription className="text-muted-foreground text-[11px]">
                   TXT, MD, PDF (text-based), DOCX, CSV, JSON, HTML. For PDF/DOCX, ensure selectable text. Scanned images may not work well. CSVs become detailed text descriptions.
                 </AlertDescription>
             </Alert>
@@ -400,14 +400,14 @@ export default function KnowledgePage() {
                 <Label htmlFor="url">Train from Website URL</Label>
                 <Input id="url" type="url" placeholder="e.g., https://example.com/services" value={urlInput} onChange={handleUrlInputChange} disabled={isAnyLoading}/>
             </div>
-             <Alert variant="default" className="p-3 text-xs bg-accent/10 dark:bg-accent/20 border-accent/30 mb-2">
-                <Info className="h-3.5 w-3.5 text-accent" />
-                <AlertTitle className="text-accent text-xs font-medium">Website Training Tip</AlertTitle>
-                <AlertDescription className="text-accent/80 dark:text-accent/90 text-[11px]">
+             <Alert variant="default" className="p-3 text-xs bg-secondary mb-2">
+                <Info className="h-3.5 w-3.5 text-primary" />
+                <AlertTitle className="text-xs font-medium">Website Training Tip</AlertTitle>
+                <AlertDescription className="text-muted-foreground text-[11px]">
                   Best for pages with clear text content. Complex sites or those needing logins may not process well.
                 </AlertDescription>
             </Alert>
-            <Button onClick={handleProcessUrl} disabled={isAnyLoading || !urlInput.trim()} className={cn("w-full", "btn-gradient-primary")}>
+            <Button onClick={handleProcessUrl} disabled={isAnyLoading || !urlInput.trim()} className="w-full">
                 {isProcessingUrl ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LinkIcon className="mr-2 h-4 w-4" />}
                 {isProcessingUrl ? "Fetching Website..." : "Fetch & Train URL"}
             </Button>
@@ -434,17 +434,17 @@ export default function KnowledgePage() {
                   disabled={isAnyLoading}
                 />
             </div>
-            <Button onClick={handleSubmitPastedText} disabled={isAnyLoading || !pastedTextInput.trim()} className={cn("w-full", "btn-gradient-primary")}>
+            <Button onClick={handleSubmitPastedText} disabled={isAnyLoading || !pastedTextInput.trim()} className="w-full">
                 {isProcessingPastedText ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <TextQuote className="mr-2 h-4 w-4" />}
                 {isProcessingPastedText ? "Processing Text..." : "Train from Pasted Text"}
             </Button>
 
 
             {isVoiceAgent && (
-                <Alert variant="default" className="mt-4 p-3 text-xs bg-secondary/20 dark:bg-secondary/30 border-secondary/50">
-                    <Mic className="h-3.5 w-3.5 text-secondary-foreground" />
-                    <AlertTitle className="text-secondary-foreground text-xs font-medium">Training Voice Agents?</AlertTitle>
-                    <AlertDescription className="text-secondary-foreground/80 dark:text-secondary-foreground/90 text-[11px]">
+                <Alert variant="default" className="mt-4 p-3 text-xs bg-secondary">
+                    <Mic className="h-3.5 w-3.5 text-primary" />
+                    <AlertTitle className="text-primary text-xs font-medium">Training Voice Agents?</AlertTitle>
+                    <AlertDescription className="text-muted-foreground text-[11px]">
                     For voice, upload sales scripts, product details, common objections, and how to handle them. This helps the AI sound natural and effective.
                     </AlertDescription>
                 </Alert>
@@ -455,7 +455,7 @@ export default function KnowledgePage() {
       {knowledgeItems.length > 0 && (
         <Card className="lg:col-span-2">
           <CardHeader className="p-4 sm:p-6">
-            <CardTitle className={cn("font-headline text-lg sm:text-xl flex items-center gap-2", "text-gradient-dynamic")}>
+            <CardTitle className="font-headline text-lg sm:text-xl flex items-center gap-2 text-primary">
                 <Brain className="w-5 h-5 sm:w-6 sm:w-6 text-primary"/> Trained Knowledge for: {currentAgent.generatedName || currentAgent.name}
             </CardTitle>
              <CardDescription className="text-sm">This is the custom business data your agent uses to answer questions. For CSVs, this is the full structured text.</CardDescription>
@@ -506,7 +506,7 @@ export default function KnowledgePage() {
        {knowledgeItems.length === 0 && (
          <Card className="lg:col-span-2">
           <CardHeader className="p-4 sm:p-6">
-            <CardTitle className={cn("font-headline text-lg sm:text-xl flex items-center gap-2", "text-gradient-dynamic")}>
+            <CardTitle className="font-headline text-lg sm:text-xl flex items-center gap-2 text-primary">
                  <Brain className="w-5 h-5 sm:w-6 sm:w-6 text-primary"/>Agent Knowledge Base is Empty
             </CardTitle>
           </CardHeader>
@@ -520,5 +520,3 @@ export default function KnowledgePage() {
     </div>
   );
 }
-
-    

@@ -1,111 +1,82 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    /* Light Theme - A clean, professional default */
-    --background: 0 0% 100%;
-    --foreground: 222 47% 11%;
-
-    --card: 0 0% 98%;
-    --card-foreground: 222 47% 11%;
-
+    /* Light Theme */
+    --background: 0 0% 98%; /* #FAFAFA */
+    --foreground: 0 0% 10%; /* #1A1A1A */
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-
-    --primary: 111 100% 53%; /* Neon Green */
-    --primary-foreground: 228 14% 12%; /* Dark Gray for text on green */
-
-    --secondary: 217 91% 60%; /* Blue */
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215 20% 65%;
-
-    --accent: 187 85% 53%; /* Cyan */
-    --accent-foreground: 222 47% 11%;
-
+    --popover-foreground: 0 0% 10%;
+    --primary: 216 100% 50%; /* #0066FF */
+    --primary-foreground: 0 0% 100%; /* White */
+    --secondary: 0 0% 95%; /* Light Gray for secondary elements */
+    --secondary-foreground: 0 0% 10%;
+    --muted: 0 0% 95%;
+    --muted-foreground: 0 0% 40%; /* #888888 toned down */
+    --accent: 216 100% 50%; /* #0066FF */
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 216 100% 50%;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 111 100% 53%; /* Neon Green for rings */
-
-    /* Custom Colors */
-    --purple: 256 92% 76%;
-    --pink: 336 83% 70%;
-    --neon-green: 111 100% 53%;
-    --cyan: 187 85% 53%;
-
-    --chart-1: hsl(var(--primary));
-    --chart-2: hsl(var(--accent));
-    --chart-3: hsl(var(--secondary));
-    --chart-4: hsl(var(--pink));
-    --chart-5: hsl(var(--purple));
-
+    --chart-1: 216 100% 50%;
+    --chart-2: 216 80% 65%;
+    --chart-3: 216 70% 75%;
+    --chart-4: 216 60% 85%;
+    --chart-5: 216 50% 95%;
+    
     --sidebar-background: 0 0% 99%;
-    --sidebar-foreground: 222 47% 11%;
-    --sidebar-primary: hsl(var(--primary));
-    --sidebar-primary-foreground: hsl(var(--primary-foreground));
-    --sidebar-accent: 210 40% 96.1%;
-    --sidebar-accent-foreground: hsl(var(--accent));
-    --sidebar-border: 214 32% 91%;
-    --sidebar-ring: hsl(var(--accent));
+    --sidebar-foreground: 0 0% 10%;
+    --sidebar-primary: 216 100% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 95%;
+    --sidebar-accent-foreground: 216 100% 50%;
+    --sidebar-border: 0 0% 90%;
+    --sidebar-ring: 216 100% 50%;
   }
 
   .dark {
-    /* Dark Theme - The new vibrant theme */
-    --background: 222 47% 11%; /* Black/Dark Gray */
-    --foreground: 210 40% 98%;
+    /* Dark Theme */
+    --background: 0 0% 7%; /* #121212 */
+    --foreground: 0 0% 88%; /* #E0E0E0 */
+    --card: 0 0% 10%; 
+    --card-foreground: 0 0% 88%;
+    --popover: 0 0% 7%;
+    --popover-foreground: 0 0% 88%;
+    --primary: 165 100% 40%; /* #00CC99 */
+    --primary-foreground: 0 0% 7%; /* Dark text on mint green */
+    --secondary: 0 0% 15%; /* Lighter gray for secondary elements */
+    --secondary-foreground: 0 0% 88%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 45%; /* #555555 toned down */
+    --accent: 165 100% 40%; /* #00CC99 */
+    --accent-foreground: 0 0% 7%;
+    --destructive: 0 72% 51%; /* Red */
+    --destructive-foreground: 0 0% 88%;
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: 165 100% 40%;
 
-    --card: 215 28% 17%; /* Dark Gray */
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222 47% 11%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 111 100% 53%; /* Neon Green */
-    --primary-foreground: 228 14% 12%; /* Dark Gray for text on green */
-
-    --secondary: 217 91% 60%; /* Blue */
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217 33% 22%;
-    --muted-foreground: 215 20% 65%;
-
-    --accent: 187 85% 53%; /* Cyan */
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 336 83% 70%; /* Pink for destructive */
-    --destructive-foreground: 228 14% 12%;
-
-    --border: 217 33% 25%;
-    --input: 217 33% 25%;
-    --ring: 187 85% 53%; /* Cyan for rings */
-
-    /* Custom Colors */
-    --purple: 256 92% 76%;
-    --pink: 336 83% 70%;
-    --neon-green: 111 100% 53%;
-    --cyan: 187 85% 53%;
-
-    --chart-1: hsl(var(--primary));
-    --chart-2: hsl(var(--accent));
-    --chart-3: hsl(var(--secondary));
-    --chart-4: hsl(var(--pink));
-    --chart-5: hsl(var(--purple));
+    --chart-1: 165 100% 40%;
+    --chart-2: 165 80% 55%;
+    --chart-3: 165 70% 65%;
+    --chart-4: 165 60% 75%;
+    --chart-5: 165 50% 85%;
     
-    --sidebar-background: 222 47% 10%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: hsl(var(--primary));
-    --sidebar-primary-foreground: hsl(var(--primary-foreground));
-    --sidebar-accent: 222 47% 14%;
-    --sidebar-accent-foreground: hsl(var(--accent));
-    --sidebar-border: 217 33% 15%;
-    --sidebar-ring: hsl(var(--accent));
+    --sidebar-background: 0 0% 8%;
+    --sidebar-foreground: 0 0% 88%;
+    --sidebar-primary: 165 100% 40%;
+    --sidebar-primary-foreground: 0 0% 7%;
+    --sidebar-accent: 0 0% 12%;
+    --sidebar-accent-foreground: 165 100% 40%;
+    --sidebar-border: 0 0% 15%;
+    --sidebar-ring: 165 100% 40%;
   }
 }
 
@@ -119,207 +90,4 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
-
-  .marketing-h1 {
-    @apply text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight leading-tight text-center;
-    letter-spacing: -0.03em;
-  }
-  .marketing-h2 {
-     @apply text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-center mb-2 md:mb-3;
-     letter-spacing: -0.02em;
-  }
-  h3 { @apply text-lg sm:text-xl font-semibold font-headline; }
-
-  .section-description {
-      @apply text-muted-foreground text-xs sm:text-sm md:text-base max-w-md mx-auto mb-4 md:mb-6 text-center;
-  }
-
-
-  .scroll-reveal {
-    opacity: 0;
-    transform: translateY(20px);
-    transition-property: opacity, transform;
-    transition-duration: 0.6s;
-    transition-timing-function: cubic-bezier(0.645, 0.045, 0.355, 1);
-  }
-  .scroll-reveal.visible {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Section specific alternating background styles */
-.section-dark {
-  @apply bg-background text-foreground;
-}
-.section-light-accent {
-  @apply bg-card/30 dark:bg-card/50 text-card-foreground;
-}
-.section-cta-final {
-  @apply bg-card text-card-foreground;
-}
-
-/* Sticky Header */
-.sticky-header {
-    @apply sticky top-0 z-50 transition-all duration-300 ease-in-out;
-}
-.sticky-header-scrolled {
-    @apply bg-background/95 backdrop-blur-sm shadow-lg;
-}
-
-/* Titles should be purple */
-.text-gradient-dynamic {
-  @apply text-purple;
-}
-
-/* Primary buttons should be neon green */
-.btn-gradient-primary {
-  @apply bg-primary text-primary-foreground shadow-md hover:bg-primary/90 transition-colors;
-}
-
-
-/* Styles for simple benefit card presentation */
-.simple-benefit-card { 
-    @apply bg-background p-4 sm:p-5 rounded-lg shadow-lg text-left transform hover:scale-105 transition-transform duration-300;
-}
-.simple-benefit-card-icon {
-    @apply p-2 rounded-lg bg-cyan/10 text-cyan mb-2 inline-block;
-}
-.simple-benefit-card-title {
-    @apply font-headline text-base sm:text-lg font-semibold text-foreground mb-1;
-}
-.simple-benefit-card-description {
-    @apply text-xs text-muted-foreground leading-relaxed;
-}
-
-
-/* Mobile Menu Styling */
-#mobile-menu {
-    transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
-    opacity: 0;
-    pointer-events: none;
-    @apply bg-card shadow-xl;
-}
-#mobile-menu.translate-x-0 {
-    opacity: 1;
-    pointer-events: auto;
-}
-
-
-/* Helper to ensure video placeholder text is visible */
-.video-placeholder-text {
-  @apply absolute inset-0 flex flex-col items-center justify-center text-center text-foreground/80 bg-black/50 p-4;
-}
-.video-placeholder-text svg {
- @apply w-8 h-8 sm:w-10 sm:w-10 opacity-70 mb-1 text-primary;
-}
-
-/* Ensure placeholder images show their data-ai-hint clearly but are not obtrusive */
-div[data-ai-hint] {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.6rem;
-    color: hsl(var(--muted-foreground) / 0.4);
-    background-color: hsl(var(--muted) / 0.1);
-    border: 1px dashed hsl(var(--border) / 0.1);
-    min-height: 2rem;
-    text-align: center;
-    padding: 0.15rem;
-    border-radius: calc(var(--radius) - 3px);
-}
-
-/* Enhanced button active states & general transitions */
-.button-active-feedback, .btn-interactive {
-  transition-property: background-color, border-color, color, transform, box-shadow, opacity;
-  @apply active:scale-95 active:brightness-90 duration-150 ease-out;
-}
-
-/* Outline button hover should use cyan accent */
-.btn-outline-themed {
-    @apply border-cyan/60 text-cyan;
-}
-.btn-outline-themed:hover {
-    @apply bg-accent/20 text-accent-foreground border-accent;
-}
-
-
-/* Make sure all buttons have transition for smooth hover/active states */
-.button, [type="button"], [type="reset"], [type="submit"], button, .btn {
-    @apply transition-all duration-200 ease-in-out;
-}
-
-
-/* Dashed line for "How It Works" section */
-.dashed-connector::before, .dashed-connector::after {
-    content: '';
-    @apply absolute top-1/2 border-t-2 border-dashed border-purple/20 -translate-y-1/2 z-0;
-}
-.dashed-connector.left::before { @apply left-0 w-1/2; }
-.dashed-connector.right::after { @apply right-0 w-1/2; }
-
-/* Hide connectors on mobile where steps stack */
-@media (max-width: 767px) { /* md breakpoint */
-  .step-card-container .dashed-connector::before,
-  .step-card-container .dashed-connector::after {
-    @apply content-none;
-  }
-}
-.step-card-container > :nth-child(1) .dashed-connector::before { @apply content-none; }
-.step-card-container > :nth-child(3) .dashed-connector::after { @apply content-none; }
-
-
-/* Roadmap List Item Styles - Product Hunt Inspired */
-.roadmap-item-card {
-  @apply bg-card border border-border rounded-lg p-3 sm:p-4 flex gap-3 sm:gap-4 items-start hover:shadow-md transition-shadow duration-200;
-}
-
-.roadmap-vote-button-ph {
-  @apply flex flex-col items-center justify-center p-1.5 sm:p-2 border border-border rounded-md hover:border-primary transition-colors min-w-[45px] sm:min-w-[55px] cursor-pointer text-center bg-background hover:bg-muted/50;
-}
-.roadmap-vote-button-ph.voted {
-  @apply border-primary bg-primary/10 text-primary;
-}
-.roadmap-vote-button-ph svg { /* ChevronUp or Loader */
-  @apply w-4 h-4 sm:w-5 sm:w-5 text-primary;
-}
-.roadmap-vote-button-ph:not(.voted):hover svg {
-  @apply text-accent;
-}
-.roadmap-vote-button-ph .vote-count-ph {
-  @apply text-xs sm:text-sm font-semibold text-foreground mt-0.5;
-}
-.roadmap-vote-button-ph.voted .vote-count-ph {
-  @apply text-primary;
-}
-
-
-.roadmap-feature-main {
-  @apply flex-1 space-y-1;
-}
-.roadmap-feature-header {
-  @apply flex items-center gap-2;
-}
-.roadmap-feature-icon-ph {
-  @apply p-1.5 bg-muted rounded-md text-primary;
-}
-.roadmap-feature-icon-ph svg {
-  @apply w-4 h-4 sm:w-5 sm:w-5;
-}
-.roadmap-feature-title-ph {
-  @apply text-sm sm:text-base font-semibold text-foreground;
-}
-.roadmap-feature-description-ph {
-  @apply text-xs text-muted-foreground leading-relaxed mt-0.5;
-}
-.roadmap-feature-tags-ph {
-  @apply mt-2 flex flex-wrap items-center gap-1.5;
-}
-
-/* Public Page Header/Footer minimal styling */
-.public-page-header {
-    @apply sticky top-0 z-50 w-full border-b border-border/60 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80;
-}
-.public-page-footer {
-    @apply py-6 text-center border-t border-border/60;
 }

@@ -321,22 +321,22 @@ export default function CreateAgentPage() {
     <div className="max-w-2xl mx-auto">
       <Card>
         <CardHeader className="p-4 sm:p-6">
-          <CardTitle className="font-headline text-purple text-xl sm:text-2xl flex items-center gap-2">
+          <CardTitle className="font-headline text-primary text-xl sm:text-2xl flex items-center gap-2">
              <Bot className="w-6 h-6 sm:w-7 sm:h-7"/>{pageTitle}
           </CardTitle>
           <CardDescription className="text-sm">
             {selectedTemplate ? `Starting with the "${selectedTemplate.id.replace(/_/g, ' ')}" template. ` : ""}
             Tell us about the agent you want to build. This information will help our AI craft a baseline personality and greeting.
-            {!selectedTemplate && <Link href="/app/templates-gallery" className="underline hover:text-cyan">Browse templates</Link>}
+            {!selectedTemplate && <Link href="/app/templates-gallery" className="underline hover:text-primary">Browse templates</Link>}
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
           <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
 
             {requiresClientSelection && !isLoadingClients && (
-                <div className="space-y-1.5 p-3 rounded-md border border-warning bg-warning/10">
-                    <Label htmlFor="selectedClientId" className="flex items-center text-warning-foreground font-semibold">
-                        <AlertTriangle className="w-4 h-4 mr-2"/> Select Client for this Template
+                <div className="space-y-1.5 p-3 rounded-md border border-destructive/50 bg-destructive/10">
+                    <Label htmlFor="selectedClientId" className="flex items-center text-foreground font-semibold">
+                        <AlertTriangle className="w-4 h-4 mr-2 text-destructive"/> Select Client for this Template
                     </Label>
                     {clients.length === 0 ? (
                         <Alert variant="destructive">
@@ -477,11 +477,11 @@ export default function CreateAgentPage() {
               </div>
             </div>
             {(currentAgentType === 'voice' || currentAgentType === 'hybrid') && (
-                <Alert variant="default" className="p-3 text-xs bg-cyan/10 dark:bg-cyan/20 border-cyan/30">
-                    <Mic className="h-4 w-4 text-cyan"/>
-                    <AlertTitle className="text-cyan text-xs sm:text-sm font-medium">Voice Agent Tip</AlertTitle>
-                    <AlertDescription className="text-cyan/80 dark:text-cyan/90 text-[11px] sm:text-xs">
-                        For voice agents to use your own Twilio account for calls, ensure your Twilio credentials are set up in <Link href="/settings" className="underline hover:text-cyan-foreground">User Profile Settings <ExternalLink className="inline w-2.5 h-2.5 ml-0.5"/></Link>.
+                <Alert variant="default" className="p-3 text-xs bg-secondary">
+                    <Mic className="h-4 w-4 text-primary"/>
+                    <AlertTitle className="text-sm font-medium">Voice Agent Tip</AlertTitle>
+                    <AlertDescription className="text-xs">
+                        For voice agents to use your own Twilio account for calls, ensure your Twilio credentials are set up in <Link href="/settings" className="underline hover:text-primary">User Profile Settings <ExternalLink className="inline w-2.5 h-2.5 ml-0.5"/></Link>.
                     </AlertDescription>
                 </Alert>
             )}
@@ -564,7 +564,7 @@ export default function CreateAgentPage() {
             <Button 
               type="submit" 
               disabled={isLoading || (requiresClientSelection && !formSelectedClientId && clients.length > 0) || (requiresClientSelection && clients.length === 0)} 
-              className="w-full btn-gradient-primary"
+              className="w-full"
             >
               {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               {isLoading ? "Creating Agent..." : `Create Agent for ${activeClient?.name || queryClientName || "Selected Client"}`}
@@ -576,7 +576,7 @@ export default function CreateAgentPage() {
       {generatedAgentDetails && (
         <Card className="mt-6 sm:mt-8">
           <CardHeader className="p-4 sm:p-6">
-            <CardTitle className="font-headline text-purple text-lg sm:text-xl">AI Generated Details (Suggestions)</CardTitle>
+            <CardTitle className="font-headline text-primary text-lg sm:text-xl">AI Generated Details (Suggestions)</CardTitle>
             <CardDescription className="text-xs italic">You can refine these details in the 'Personality' section for this agent after creation.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6">

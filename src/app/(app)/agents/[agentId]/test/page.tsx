@@ -202,7 +202,7 @@ export default function TestAgentPage() {
     return (
       <Card>
         <CardHeader className="p-4 sm:p-6">
-          <CardTitle className={cn("font-headline text-xl sm:text-2xl", "text-gradient-dynamic")}>Test Your Client's Agent</CardTitle>
+          <CardTitle className="font-headline text-xl sm:text-2xl text-primary">Test Your Client's Agent</CardTitle>
           <CardDescription className="text-sm">Loading agent emulator...</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center justify-center min-h-[calc(100vh-300px)] p-4 sm:p-6">
@@ -230,7 +230,7 @@ export default function TestAgentPage() {
     <div className="space-y-4 md:space-y-6">
       <Card className="h-[55vh] flex flex-col">
         <CardHeader className="p-4 sm:p-6">
-          <CardTitle className={cn("font-headline text-xl sm:text-2xl", "text-gradient-dynamic")}>Test Agent: {agent.generatedName || agent.name}</CardTitle>
+          <CardTitle className="font-headline text-xl sm:text-2xl text-primary">Test Agent: {agent.generatedName || agent.name}</CardTitle>
           <CardDescription className="text-sm">Preview and interact with this agent. Test all conversation paths before deploying.</CardDescription>
         </CardHeader>
         <CardContent className="flex-1 p-2 sm:p-4 md:p-6 min-h-0">
@@ -243,7 +243,7 @@ export default function TestAgentPage() {
       {showVoiceControls ? (
         <Card>
           <CardHeader className="p-4 sm:p-6">
-            <CardTitle className={cn("font-headline text-lg sm:text-xl flex items-center gap-2", "text-gradient-dynamic")}>
+            <CardTitle className="font-headline text-lg sm:text-xl flex items-center gap-2 text-primary">
               <Settings2 className="w-5 h-5 sm:w-6 sm:w-6 text-primary" /> Voice Interaction Controls
             </CardTitle>
             <CardDescription className="text-sm">
@@ -263,7 +263,7 @@ export default function TestAgentPage() {
                 onClick={toggleListen}
                 disabled={!speechRecognitionSupported || isSpeaking}
                 variant={isListening ? "destructive" : "outline"}
-                className="w-full sm:w-auto btn-interactive"
+                className="w-full sm:w-auto"
                 size="lg"
                 title={isListening ? "Stop voice input" : "Start voice input"}
               >
@@ -303,20 +303,20 @@ export default function TestAgentPage() {
                 </Select>
               </div>
               {isListening && <p className="text-sm text-primary text-center animate-pulse">Listening for your input...</p>}
-              {isSpeaking && autoSpeakEnabled && <p className="text-sm text-accent text-center animate-pulse">Agent is speaking...</p>}
+              {isSpeaking && autoSpeakEnabled && <p className="text-sm text-primary text-center animate-pulse">Agent is speaking...</p>}
           </CardContent>
           <CardFooter className="p-4 sm:p-6 text-xs text-muted-foreground">
-              <Alert variant="default" className="bg-accent/10 dark:bg-accent/20 border-accent/30">
-                  <PhoneOff className="h-4 w-4 text-accent" />
-                  <AlertTitle className="text-accent text-sm">Voice Test Simulation</AlertTitle>
-                  <AlertDescription className="text-accent/80 dark:text-accent/90 text-xs">
+              <Alert variant="default" className="bg-secondary">
+                  <PhoneOff className="h-4 w-4 text-primary" />
+                  <AlertTitle className="text-primary text-sm">Voice Test Simulation</AlertTitle>
+                  <AlertDescription className="text-muted-foreground text-xs">
                     This page simulates voice interaction using your browser's capabilities. Voice quality depends on your system. For actual phone call integration, configure Twilio via the 'Export' page.
                   </AlertDescription>
               </Alert>
           </CardFooter>
         </Card>
       ) : (
-        <Alert variant="default" className="mt-4 bg-muted/50">
+        <Alert variant="default" className="mt-4 bg-secondary">
           <MessageSquare className="h-4 w-4 text-muted-foreground" />
           <AlertTitle>Chat-Only Agent</AlertTitle>
           <AlertDescription className="text-sm text-muted-foreground">
@@ -327,4 +327,3 @@ export default function TestAgentPage() {
     </div>
   );
 }
-    

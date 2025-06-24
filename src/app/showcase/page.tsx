@@ -76,7 +76,7 @@ function AgentShowcaseCard({ agent, baseUrl }: AgentShowcaseCardProps) {
                         layout="fill"
                         objectFit="cover"
                         className={!agent.agentImageDataUri ? "opacity-50" : ""}
-                        data-ai-hint={!agent.agentImageDataUri ? "abstract gradient placeholder" : "agent brand image"}
+                        data-ai-hint={!agent.agentImageDataUri ? "abstract placeholder" : "agent brand image"}
                     />
                 </div>
             </CardHeader>
@@ -93,7 +93,7 @@ function AgentShowcaseCard({ agent, baseUrl }: AgentShowcaseCardProps) {
             </CardContent>
             <CardFooter className="p-4 pt-2 border-t">
                 <div className="w-full space-y-2">
-                    <Button asChild size="sm" className={cn("w-full text-xs", "btn-gradient-primary")}>
+                    <Button asChild size="sm" className="w-full text-xs">
                         <Link href={agentChatUrl} target="_blank">
                             Chat with this Agent <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
                         </Link>
@@ -120,10 +120,10 @@ export default async function ShowcasePage() {
             <Logo className="h-7 w-auto" />
           </Link>
           <div className="flex items-center gap-2">
-            <Button asChild variant="outline" size="sm" className="btn-outline-themed transition-colors btn-interactive text-xs">
+            <Button asChild variant="outline" size="sm" className="text-xs">
               <Link href="/templates">View All Templates</Link>
             </Button>
-            <Button asChild size="sm" className={cn("text-xs", "btn-gradient-primary")}>
+            <Button asChild size="sm" className="text-xs">
               <Link href="/dashboard">Go to Your Dashboard <ArrowRight className="ml-1.5 h-3.5 w-3.5" /></Link>
             </Button>
           </div>
@@ -131,12 +131,12 @@ export default async function ShowcasePage() {
       </header>
 
       <main className="container mx-auto py-8 sm:py-12 px-4 md:px-6">
-        <Card className="mb-8 sm:mb-12 shadow-lg border-transparent bg-gradient-to-br from-card via-card to-muted/30">
+        <Card className="mb-8 sm:mb-12 shadow-lg border-transparent bg-secondary">
           <CardHeader className="p-6 text-center">
             <div className="inline-block p-3 bg-primary/10 rounded-full mb-3">
               <Eye className="w-8 h-8 text-primary" />
             </div>
-            <CardTitle className={cn("font-headline text-2xl sm:text-3xl md:text-4xl", "text-gradient-dynamic")}>
+            <CardTitle className="font-headline text-2xl sm:text-3xl md:text-4xl text-primary">
               AI Agent Showcase
             </CardTitle>
             <CardDescription className="text-sm sm:text-base text-muted-foreground mt-2 max-w-xl mx-auto">
@@ -156,9 +156,9 @@ export default async function ShowcasePage() {
               </AlertDescription>
             </Alert>
             <Alert variant="destructive" className="max-w-lg mx-auto bg-destructive/10 border-destructive/30">
-                <AlertTriangle className="h-4 w-4 text-destructive" />
-                <AlertTitle className="text-destructive font-semibold">Important for Admins/Developers</AlertTitle>
-                <AlertDescription className="text-destructive/90 text-xs">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle className="font-semibold">Important for Admins/Developers</AlertTitle>
+                <AlertDescription className="text-xs">
                     If this showcase remains empty after agents have been marked public, please ensure a <strong>composite index</strong> is created in Firestore for the 'agents' collection.
                     It should include `isPubliclyShared` (Ascending/Descending) and `sharedAt` (Descending).
                     Firestore often provides a link to create this index in the server logs or console if the query fails.
@@ -175,10 +175,10 @@ export default async function ShowcasePage() {
           </div>
         )}
         
-        <Alert variant="default" className="mt-8 sm:mt-12 max-w-2xl mx-auto bg-accent/10 dark:bg-accent/20 border-accent/30">
-            <Info className="h-4 w-4 text-accent" />
-            <AlertTitle className="text-accent font-medium">Want to feature your agent?</AlertTitle>
-            <AlertDescription className="text-accent/90 text-xs">
+        <Alert variant="default" className="mt-8 sm:mt-12 max-w-2xl mx-auto bg-secondary">
+            <Info className="h-4 w-4 text-primary" />
+            <AlertTitle className="text-primary font-medium">Want to feature your agent?</AlertTitle>
+            <AlertDescription className="text-muted-foreground text-xs">
                 Go to your agent's "Export" settings in your dashboard and enable the "List this agent in the Public Showcase" option.
             </AlertDescription>
         </Alert>

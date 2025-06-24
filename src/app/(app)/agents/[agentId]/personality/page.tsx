@@ -193,7 +193,7 @@ export default function PersonalityPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
         <Card className="md:col-span-2">
           <CardHeader className="p-4 sm:p-6">
-            <CardTitle className="font-headline text-purple text-xl sm:text-2xl flex items-center gap-2">
+            <CardTitle className="font-headline text-primary text-xl sm:text-2xl flex items-center gap-2">
                 <Settings className="w-6 h-6"/> Edit Agent Personality & Core Details
             </CardTitle>
             <CardDescription className="text-sm">
@@ -259,7 +259,7 @@ export default function PersonalityPage() {
 
              {(generatedDetails || (currentAgent.generatedName && currentAgent.generatedPersona)) && (
               <div className="space-y-3 sm:space-y-4 pt-3 sm:pt-4 border-t">
-                  <h3 className="font-headline text-purple text-md sm:text-lg">Current AI Generated Details</h3>
+                  <h3 className="font-headline text-primary text-md sm:text-lg">Current AI Generated Details</h3>
                   <div>
                       <Label className="text-xs font-semibold">Generated Name (User-Facing)</Label>
                       <p className="text-sm p-2 bg-muted rounded-md mt-1">{generatedDetails?.agentName || currentAgent.generatedName}</p>
@@ -279,7 +279,7 @@ export default function PersonalityPage() {
         
         <Card className="md:col-span-1">
            <CardHeader className="p-4 sm:p-6">
-             <CardTitle className="font-headline text-purple text-xl sm:text-2xl flex items-center gap-2">
+             <CardTitle className="font-headline text-primary text-xl sm:text-2xl flex items-center gap-2">
                 <ImageIcon className="w-6 h-6"/> Social Sharing & Branding
             </CardTitle>
              <CardDescription className="text-sm">
@@ -321,10 +321,10 @@ export default function PersonalityPage() {
                         Cancel Change
                     </Button>
                  )}
-                 <Alert variant="default" className="mt-2 p-2 text-xs bg-amber-500/10 dark:bg-amber-500/20 border-amber-500/40">
-                    <AlertTriangle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400"/>
-                    <AlertTitle className="text-amber-700 dark:text-amber-300 text-xs font-medium">Image Size Limit!</AlertTitle>
-                    <AlertDescription className="text-amber-600/90 dark:text-amber-200/90 text-[10px]">
+                 <Alert variant="destructive" className="mt-2 p-2 text-xs bg-destructive/10 border-destructive/20">
+                    <AlertTriangle className="h-3.5 w-3.5"/>
+                    <AlertTitle className="text-xs font-medium">Image Size Limit!</AlertTitle>
+                    <AlertDescription className="text-[10px]">
                         Use small images (e.g. &lt; {MAX_IMAGE_SIZE_MB_DISPLAY}MB, like 100KB). Large images will fail to save or cause performance issues.
                     </AlertDescription>
                 </Alert>
@@ -344,7 +344,7 @@ export default function PersonalityPage() {
         </Card>
 
         <div className="md:col-span-3 mt-2 sm:mt-0">
-          <Button type="submit" disabled={isLoading} className="w-full sm:w-auto btn-gradient-primary">
+          <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
             {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             {isLoading ? "Saving Changes..." : "Save All Changes & Regenerate Details"}
           </Button>

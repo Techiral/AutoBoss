@@ -128,7 +128,7 @@ export default function ProfilePage() {
           <div className="flex items-center gap-2 sm:gap-3">
             <UserCircle className="w-8 h-8 sm:w-10 sm:h-10 text-primary" />
             <div>
-              <CardTitle className={cn("font-headline text-xl sm:text-2xl", "text-gradient-dynamic")}>Your Profile</CardTitle>
+              <CardTitle className="font-headline text-xl sm:text-2xl text-primary">Your Profile</CardTitle>
               <CardDescription className="text-sm">Manage your account settings.</CardDescription>
             </div>
           </div>
@@ -138,7 +138,7 @@ export default function ProfilePage() {
             <Label htmlFor="email" className="flex items-center text-xs sm:text-sm font-medium text-muted-foreground">
               <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2 text-primary" /> Email Address
             </Label>
-            <Input id="email" type="email" value={currentUser.email || "Not available"} readOnly disabled className="mt-1 bg-muted/50 text-sm"/>
+            <Input id="email" type="email" value={currentUser.email || "Not available"} readOnly disabled className="mt-1 bg-muted/50"/>
           </div>
 
           <Separator />
@@ -147,10 +147,10 @@ export default function ProfilePage() {
             <div>
               <Label htmlFor="displayName" className="text-sm sm:text-base font-semibold">Display Name</Label>
               <p className="text-xs text-muted-foreground mb-1">This name is displayed in the application.</p>
-              <Input id="displayName" placeholder="Enter your display name" {...registerDisplayName("displayName")} className="text-sm"/>
+              <Input id="displayName" placeholder="Enter your display name" {...registerDisplayName("displayName")}/>
               {displayNameErrors.displayName && <p className="text-xs text-destructive mt-1">{displayNameErrors.displayName.message}</p>}
             </div>
-            <Button type="submit" disabled={isUpdatingName} className={cn("w-full sm:w-auto text-sm py-2", "btn-gradient-primary")}>
+            <Button type="submit" disabled={isUpdatingName} className="w-full sm:w-auto">
               {isUpdatingName ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               {isUpdatingName ? "Saving..." : "Save Display Name"}
             </Button>
@@ -170,11 +170,10 @@ export default function ProfilePage() {
                 placeholder="e.g., +11234567890"
                 {...registerPhone("phoneNumber")}
                 defaultValue={currentPhoneNumber || ""}
-                className="text-sm"
               />
               {phoneErrors.phoneNumber && <p className="text-xs text-destructive mt-1">{phoneErrors.phoneNumber.message}</p>}
             </div>
-            <Button type="submit" disabled={isUpdatingPhone} className={cn("w-full sm:w-auto text-sm py-2", "btn-gradient-primary")}>
+            <Button type="submit" disabled={isUpdatingPhone} className="w-full sm:w-auto">
               {isUpdatingPhone ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               {isUpdatingPhone ? "Saving..." : "Save Phone Number"}
             </Button>
@@ -184,10 +183,10 @@ export default function ProfilePage() {
 
           <div>
             <h3 className="text-sm sm:text-base font-semibold flex items-center">
-              <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary"/> Security
+              <ShieldCheck className="w-4 h-4 sm:w-5 sm:w-5 mr-2 text-primary"/> Security
             </h3>
             <p className="text-xs text-muted-foreground mb-2">Manage your account security settings.</p>
-            <Button variant="outline" onClick={handleSendPasswordReset} disabled={isSendingResetEmail} className="w-full sm:w-auto text-sm py-2">
+            <Button variant="outline" onClick={handleSendPasswordReset} disabled={isSendingResetEmail} className="w-full sm:w-auto">
               {isSendingResetEmail ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               {isSendingResetEmail ? "Sending..." : "Send Password Reset Email"}
             </Button>

@@ -89,12 +89,12 @@ export default function ClientDashboardPage() {
   return (
     <div className="space-y-6 sm:space-y-8">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
-        <h1 className="font-headline text-purple text-2xl sm:text-3xl font-bold flex items-center gap-2">
+        <h1 className="font-headline text-primary text-2xl sm:text-3xl font-bold flex items-center gap-2">
           <Briefcase className="w-7 h-7 sm:w-8 sm:w-8" /> Your Client Workspace
         </h1>
         <Dialog open={isAddClientDialogOpen} onOpenChange={setIsAddClientDialogOpen}>
           <DialogTrigger asChild>
-            <Button size="sm" className="w-full sm:w-auto btn-gradient-primary">
+            <Button size="sm" className="w-full sm:w-auto">
               <PlusCircle className="mr-2 h-4 w-4 sm:h-5 sm:w-5" /> Add New Client
             </Button>
           </DialogTrigger>
