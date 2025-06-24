@@ -4,26 +4,26 @@
 
 @layer base {
   :root {
-    /* Light Theme Palette */
+    /* Light Theme Palette - Based on user feedback */
     --background: 0 0% 100%; /* #FFFFFF */
     --foreground: 0 0% 20%; /* #333333 */
-    --card: 0 0% 98%; /* #FAFAFA */
-    --card-foreground: 0 0% 20%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 20%;
-    --primary: 192 100% 50%; /* #00D1FF */
-    --primary-foreground: 0 0% 5%; /* #0D0D0D - For high contrast on the cyan button */
-    --secondary: 0 0% 98%; /* #FAFAFA */
-    --secondary-foreground: 0 0% 20%;
-    --muted: 0 0% 98%;
+    --card: 0 0% 98%; /* #FAFAFA - Surface */
+    --card-foreground: 0 0% 20%; /* #333333 */
+    --popover: 0 0% 100%; /* #FFFFFF */
+    --popover-foreground: 0 0% 20%; /* #333333 */
+    --primary: 192 100% 50%; /* #00D1FF - Accent */
+    --primary-foreground: 0 0% 5%; /* #0D0D0D - For high contrast on the accent button */
+    --secondary: 0 0% 98%; /* #FAFAFA - Surface */
+    --secondary-foreground: 0 0% 20%; /* #333333 */
+    --muted: 0 0% 98%; /* #FAFAFA - Surface */
     --muted-foreground: 0 0% 53%; /* #888888 */
-    --accent: 192 100% 50%;
-    --accent-foreground: 0 0% 5%;
+    --accent: 192 100% 50%; /* #00D1FF - Accent */
+    --accent-foreground: 0 0% 5%; /* #0D0D0D */
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
     --border: 0 0% 93%; /* Lighter border for light mode */
     --input: 0 0% 93%;
-    --ring: 192 100% 50%;
+    --ring: 192 100% 50%; /* #00D1FF - Accent */
 
     --chart-1: 192 100% 50%;
     --chart-2: 192 80% 65%;
@@ -31,37 +31,37 @@
     --chart-4: 192 60% 85%;
     --chart-5: 192 50% 95%;
     
-    --sidebar-background: 0 0% 99%;
-    --sidebar-foreground: 0 0% 20%;
+    --sidebar-background: 0 0% 99%; /* Surface-adjacent */
+    --sidebar-foreground: 0 0% 20%; /* #333333 */
     --sidebar-primary: 192 100% 50%;
     --sidebar-primary-foreground: 0 0% 5%;
-    --sidebar-accent: 0 0% 95%;
-    --sidebar-accent-foreground: 192 100% 50%;
+    --sidebar-accent: 0 0% 95%; /* Hover/active state background */
+    --sidebar-accent-foreground: 192 100% 50%; /* Icon/text color on hover/active */
     --sidebar-border: 0 0% 90%;
     --sidebar-ring: 192 100% 50%;
   }
 
   .dark {
-    /* Dark Theme Palette */
+    /* Dark Theme Palette - Based on user feedback */
     --background: 0 0% 5%; /* #0D0D0D */
     --foreground: 0 0% 96%; /* #F5F5F5 */
-    --card: 0 0% 12%; /* #1F1F1F */
-    --card-foreground: 0 0% 96%;
-    --popover: 0 0% 12%;
-    --popover-foreground: 0 0% 96%;
-    --primary: 192 100% 50%; /* #00D1FF */
-    --primary-foreground: 0 0% 5%; /* #0D0D0D - For high contrast on the cyan button */
-    --secondary: 0 0% 12%; /* #1F1F1F */
-    --secondary-foreground: 0 0% 96%;
-    --muted: 0 0% 12%;
-    --muted-foreground: 0 0% 63%; /* Lighter grey for dark mode readability */
-    --accent: 192 100% 50%;
-    --accent-foreground: 0 0% 5%;
+    --card: 0 0% 12%; /* #1F1F1F - Surface */
+    --card-foreground: 0 0% 96%; /* #F5F5F5 */
+    --popover: 0 0% 12%; /* #1F1F1F - Surface */
+    --popover-foreground: 0 0% 96%; /* #F5F5F5 */
+    --primary: 192 100% 50%; /* #00D1FF - Accent */
+    --primary-foreground: 0 0% 5%; /* #0D0D0D - For high contrast on the accent button */
+    --secondary: 0 0% 12%; /* #1F1F1F - Surface */
+    --secondary-foreground: 0 0% 96%; /* #F5F5F5 */
+    --muted: 0 0% 12%; /* #1F1F1F - Surface */
+    --muted-foreground: 0 0% 63%; /* #A1A1A1 */
+    --accent: 192 100% 50%; /* #00D1FF - Accent */
+    --accent-foreground: 0 0% 5%; /* #0D0D0D */
     --destructive: 0 72% 51%; /* Red */
     --destructive-foreground: 0 0% 96%;
     --border: 0 0% 18%; /* Border for dark mode */
     --input: 0 0% 18%;
-    --ring: 192 100% 50%;
+    --ring: 192 100% 50%; /* #00D1FF - Accent */
 
     --chart-1: 192 100% 50%;
     --chart-2: 192 80% 55%;
@@ -69,12 +69,12 @@
     --chart-4: 192 60% 75%;
     --chart-5: 192 50% 85%;
     
-    --sidebar-background: 0 0% 8%; /* Slightly different from card for depth */
-    --sidebar-foreground: 0 0% 96%;
+    --sidebar-background: 0 0% 8%; /* #141414 - Surface-adjacent */
+    --sidebar-foreground: 0 0% 96%; /* #F5F5F5 */
     --sidebar-primary: 192 100% 50%;
     --sidebar-primary-foreground: 0 0% 5%;
-    --sidebar-accent: 0 0% 15%;
-    --sidebar-accent-foreground: 192 100% 50%;
+    --sidebar-accent: 0 0% 15%; /* Hover/active state background */
+    --sidebar-accent-foreground: 192 100% 50%; /* Icon/text color on hover/active */
     --sidebar-border: 0 0% 15%;
     --sidebar-ring: 192 100% 50%;
   }

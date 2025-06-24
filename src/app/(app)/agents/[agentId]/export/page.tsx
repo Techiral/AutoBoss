@@ -238,7 +238,7 @@ export default function ExportAgentPage() {
                       <Code className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary" /> Embed Chatbot on Any Website (Recommended)
                     </Label>
                     <Alert variant="default" className="mb-2 p-3 sm:p-4 bg-secondary">
-                        <Info className="h-4 w-4 text-primary" />
+                        <Info className="h-4 w-4" />
                         <AlertTitle className="text-sm sm:text-base">How to Use This Script</AlertTitle>
                         <AlertDescription className="text-xs text-muted-foreground">
                           To add this chatbot to your client's website, copy the script below and paste it just before the closing &lt;/body&gt; tag on any page of their site. It will add a floating chat launcher button.
@@ -266,7 +266,7 @@ export default function ExportAgentPage() {
                     <p className="text-xs text-muted-foreground mt-1">Share this link for direct access. Useful for quick previews or when embedding isn't an option.</p>
                      {!baseUrl && <p className="text-xs text-destructive mt-1">Base URL not yet available. Refresh page if needed.</p>}
                      <Alert variant="default" className="mt-2 p-3 sm:p-4 bg-secondary">
-                        <MessageSquare className="h-4 w-4 text-primary" />
+                        <MessageSquare className="h-4 w-4" />
                         <AlertTitle>Embedding Note</AlertTitle>
                         <AlertDescription className="text-muted-foreground text-xs">
                         The chat pages (like the direct link above) are designed to be embedded in iframes from any website, which is how the launcher script works.
@@ -290,7 +290,7 @@ export default function ExportAgentPage() {
                     <Mic className="w-5 h-5 sm:w-6 sm:w-6 text-primary" /> Enable Voice Calls with Twilio
                   </h3>
                   <Alert variant="default" className="p-3 sm:p-4 bg-secondary">
-                      <PhoneCall className="h-4 w-4 text-muted-foreground" />
+                      <PhoneCall className="h-4 w-4" />
                       <AlertTitle className="text-sm sm:text-base">Voice Agent Integration</AlertTitle>
                       <AlertDescription className="text-xs text-muted-foreground">
                         To enable your AI agent to make and receive phone calls *using your Twilio account*, first save your Twilio credentials in your main <Button variant="link" asChild className="p-0 h-auto text-xs"><Link href="/settings">User Profile Settings <ExternalLink className="w-2.5 h-2.5 ml-0.5"/></Link></Button>.
@@ -313,7 +313,7 @@ export default function ExportAgentPage() {
                   </div>
                    <div className="space-y-1.5">
                       <Label htmlFor="apiEndpointVoice" className="flex items-center mb-1 text-xs font-semibold">
-                          <Server className="w-3 h-3 mr-1.5 text-primary" /> Voice API Endpoint (for Twilio Webhook)
+                          <Server className="w-3 h-3 mr-1.5" /> Voice API Endpoint (for Twilio Webhook)
                       </Label>
                        <div className="flex items-center gap-2">
                           <Input id="apiEndpointVoice" value={apiEndpointVoice} readOnly className="text-[10px] sm:text-xs"/>
@@ -344,7 +344,7 @@ export default function ExportAgentPage() {
                 <Server className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary" /> For Developers: API Endpoints
               </Label>
                <Alert variant="default" className="p-3 sm:p-4 bg-secondary">
-                  <Info className="h-4 w-4 text-muted-foreground" />
+                  <Info className="h-4 w-4" />
                   <AlertTitle className="text-sm sm:text-base">Technical API Details</AlertTitle>
                   <AlertDescription className="text-xs text-muted-foreground">
                     These POST endpoints allow programmatic interaction with the agent.
@@ -416,7 +416,7 @@ export default function ExportAgentPage() {
                     </div>
               </div>
                <Alert variant="default" className="mt-3 sm:mt-4 p-3 sm:p-4 bg-secondary">
-                   <ShieldCheck className="h-4 w-4 text-primary" />
+                   <ShieldCheck className="h-4 w-4" />
                    <AlertTitle className="text-sm sm:text-base">API Production Notes</AlertTitle>
                    <AlertDescription className="text-xs">
                        If using APIs directly in a production client application, consider API versioning, robust authentication mechanisms, rate limiting, and comprehensive logging & monitoring. The embed script handles most of this complexity for typical website chat use.
@@ -446,7 +446,7 @@ export default function ExportAgentPage() {
                     {isSavingShareSetting && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
                 </div>
                 {isPubliclyShared && (
-                    <Alert variant="default" className="bg-primary/10 border-primary/20 text-primary">
+                    <Alert variant="default" className="bg-primary/10 border-primary/20">
                         <CheckCircle className="h-4 w-4 text-primary"/>
                         <AlertTitle className="font-medium">Agent is Live in Showcase!</AlertTitle>
                         <AlertDescription className="text-xs">
@@ -456,7 +456,7 @@ export default function ExportAgentPage() {
                     </Alert>
                 )}
                  <Alert variant="default" className="mt-3 bg-secondary">
-                   <Info className="h-4 w-4 text-primary"/>
+                   <Info className="h-4 w-4" />
                    <AlertTitle>Important Considerations</AlertTitle>
                    <AlertDescription className="text-xs">
                      By making this agent public, its name, description, image, and a link to its chat interface will be visible to anyone visiting the showcase. Ensure your agent's personality and branding are client-appropriate if you built this for someone else.

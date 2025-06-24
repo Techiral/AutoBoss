@@ -140,7 +140,7 @@ export default function SignupPage() {
               </div>
               {errors.confirmPassword && <p className="text-xs text-destructive">{errors.confirmPassword.message}</p>}
             </div>
-            <Button type="submit" disabled={isSubmitting} className="w-full py-2.5 btn-gradient-primary">
+            <Button type="submit" disabled={isSubmitting} className="w-full py-2.5">
               {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
               {isSubmitting ? "Creating Account..." : "Sign Up with Email"}
             </Button>
