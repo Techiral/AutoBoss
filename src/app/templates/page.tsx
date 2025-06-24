@@ -112,7 +112,7 @@ const agentTemplates: AgentTemplate[] = [
 export default function PublicTemplatesPage() {
   return (
     <div className="bg-background text-foreground min-h-screen">
-      <header className="public-page-header">
+      <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="container mx-auto flex h-14 max-w-screen-2xl items-center justify-between px-4 md:px-6">
           <Link href="/" className="mr-6 flex items-center space-x-2">
             <Logo className="h-7 w-auto" />
@@ -124,15 +124,15 @@ export default function PublicTemplatesPage() {
       </header>
 
       <main className="container mx-auto py-8 sm:py-12 px-4 md:px-6">
-        <Card className="mb-8 sm:mb-12 shadow-lg border-transparent bg-secondary">
+        <Card className="mb-8 sm:mb-12 border-border/50">
           <CardHeader className="p-6 text-center">
-            <div className="inline-block p-3 bg-primary/10 rounded-full mb-3">
-              <LayoutGrid className="w-8 h-8 text-primary" />
+            <div className="inline-block p-3 bg-foreground/5 rounded-full mb-3">
+              <LayoutGrid className="w-8 h-8 text-foreground" />
             </div>
-            <CardTitle className="font-headline text-2xl sm:text-3xl md:text-4xl text-primary">
+            <CardTitle className="font-headline text-2xl sm:text-3xl md:text-4xl text-foreground">
               Kickstart Your Client Projects: AI Agent Templates
             </CardTitle>
-            <CardDescription className="text-sm sm:text-base text-muted-foreground mt-2 max-w-xl mx-auto">
+            <CardDescription className="text-sm sm:text-base text-foreground/80 mt-2 max-w-xl mx-auto">
               Why start from scratch? Use these pre-built AI agent templates to deliver value to your clients faster. Select, customize, and deploy!
             </CardDescription>
           </CardHeader>
@@ -140,11 +140,11 @@ export default function PublicTemplatesPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {agentTemplates.map((template) => (
-            <Card key={template.id} className="flex flex-col hover:shadow-xl transition-shadow duration-300">
+            <Card key={template.id} className="flex flex-col">
               <CardHeader className="p-4 sm:p-5">
                 <div className="flex items-start gap-3">
-                  <div className="p-2 bg-primary/10 rounded-md">
-                      <template.icon className="w-5 h-5 sm:w-6 sm:w-6 text-primary" />
+                  <div className="p-2 bg-foreground/10 rounded-md">
+                      <template.icon className="w-5 h-5 sm:w-6 sm:w-6 text-foreground" />
                   </div>
                   <div>
                       <CardTitle className="font-headline text-base sm:text-lg">{template.name}</CardTitle>
@@ -153,7 +153,7 @@ export default function PublicTemplatesPage() {
                 </div>
               </CardHeader>
               <CardContent className="flex-grow p-4 sm:p-5 pt-0">
-                <p className="text-xs sm:text-sm text-muted-foreground line-clamp-3 mb-2">{template.description}</p>
+                <p className="text-xs sm:text-sm text-foreground/80 line-clamp-3 mb-2">{template.description}</p>
                 {template.tags && (
                   <div className="flex flex-wrap gap-1.5">
                       {template.tags.map(tag => (
@@ -168,37 +168,36 @@ export default function PublicTemplatesPage() {
               </CardContent>
               <CardFooter className="p-4 sm:p-5 pt-2">
                 <Button asChild size="sm" className="w-full text-xs sm:text-sm">
-                  <Link href={`/dashboard?templateId=${template.id}&info=selectClientFirst`}>
-                    Use This Template (Go to Dashboard) <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                  <Link href={`/agents/create?templateId=${template.id}`}>
+                    Use This Template <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
                   </Link>
                 </Button>
               </CardFooter>
             </Card>
           ))}
         </div>
-         <Alert className="mt-6 sm:mt-8 bg-secondary">
-            <Info className="h-4 w-4 text-primary" />
-            <AlertDescription className="text-muted-foreground text-xs sm:text-sm">
-              <strong className="font-semibold text-foreground">Quick Start with Templates:</strong>
+         <Alert className="mt-6 sm:mt-8 bg-card border-border">
+            <Info className="h-4 w-4" />
+            <AlertTitle className="text-foreground font-semibold">Quick Start with Templates:</AlertTitle>
+            <AlertDescription className="text-foreground/80 text-xs sm:text-sm">
               <ol className="list-decimal list-inside pl-3 mt-1">
-                  <li>Click "Use This Template". This takes you to your AutoBoss Dashboard.</li>
-                  <li>If you're not logged in, you'll be prompted to log in or sign up.</li>
-                  <li>In your Dashboard, simply select an existing client or create a new one for this agent.</li>
+                  <li>Click "Use This Template".</li>
+                  <li>In your Dashboard, select an existing client or create a new one for this agent.</li>
                   <li>The agent creation form will auto-fill with the template's settings. Customize as needed and launch!</li>
               </ol>
             </AlertDescription>
         </Alert>
       </main>
 
-      <footer className="public-page-footer">
-        <div className="container mx-auto px-4 md:px-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
+      <footer className="py-6 text-center border-t border-border">
+        <div className="container mx-auto px-4 md:px-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-foreground/80">
           <Link href="/" className="flex items-center gap-1.5">
             <Logo className="h-5 w-auto" collapsed={true} />
             <span>&copy; {new Date().getFullYear()} AutoBoss</span>
           </Link>
           <nav className="flex gap-3">
-            <Link href="/playbook" className="hover:text-primary">Client Playbook</Link>
-            <Link href="/support" className="hover:text-primary">Help Center</Link>
+            <Link href="/playbook" className="hover:text-foreground">Client Playbook</Link>
+            <Link href="/support" className="hover:text-foreground">Help Center</Link>
           </nav>
         </div>
       </footer>

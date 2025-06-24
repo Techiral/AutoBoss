@@ -7,7 +7,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { LifeBuoy, MessageCircleQuestion, AlertTriangle, Mail, Cog, BookOpen, Share2, Bot, Palette, Brain, Mic, Users, Briefcase, DatabaseZap, Edit3, TestTubeDiagonal, Settings2, FilePlus, DollarSign, HelpCircle, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // Added AlertTitle
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Logo } from "@/components/logo";
 
 
@@ -62,7 +62,7 @@ export default function PublicSupportPage() {
 
   return (
     <div className="bg-background text-foreground min-h-screen">
-       <header className="public-page-header">
+       <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="container mx-auto flex h-14 max-w-screen-2xl items-center justify-between px-4 md:px-6">
           <Link href="/" className="mr-6 flex items-center space-x-2">
             <Logo className="h-7 w-auto" />
@@ -74,39 +74,39 @@ export default function PublicSupportPage() {
       </header>
 
       <main className="container mx-auto py-8 sm:py-12 px-4 md:px-6 max-w-3xl">
-        <Card className="mb-8 sm:mb-12 shadow-lg border-transparent bg-secondary">
+        <Card className="mb-8 sm:mb-12 border-border/50">
           <CardHeader className="p-6 text-center">
-            <div className="inline-block p-3 bg-primary/10 rounded-full mb-3">
-                <LifeBuoy className="w-8 h-8 text-primary" />
+            <div className="inline-block p-3 bg-foreground/5 rounded-full mb-3">
+                <LifeBuoy className="w-8 h-8 text-foreground" />
             </div>
-            <CardTitle className="font-headline text-2xl sm:text-3xl md:text-4xl text-primary">
-                AutoBoss Help & FAQ: Your Questions Answered
+            <CardTitle className="font-headline text-2xl sm:text-3xl md:text-4xl text-foreground">
+                AutoBoss Help & FAQ
             </CardTitle>
-            <CardDescription className="text-sm sm:text-base text-muted-foreground mt-2 max-w-xl mx-auto">
+            <CardDescription className="text-sm sm:text-base text-foreground/80 mt-2 max-w-xl mx-auto">
                 New to AI or AutoBoss? Find simple answers here to get you started on your AI agency journey, fast.
             </CardDescription>
           </CardHeader>
         </Card>
         
-        <Alert className="mb-6 sm:mb-8 bg-secondary">
-            <AlertTriangle className="h-4 w-4 text-primary" />
-            <AlertTitle className="text-primary text-sm font-semibold">Your Quick-Start Guide!</AlertTitle>
-            <AlertDescription className="text-muted-foreground text-xs sm:text-sm">
+        <Alert className="mb-6 sm:mb-8 border-border">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle className="text-foreground text-sm font-semibold">Your Quick-Start Guide!</AlertTitle>
+            <AlertDescription className="text-foreground/80 text-xs sm:text-sm">
               AutoBoss makes starting an AI agency simple. These FAQs are designed to get you building for clients ASAP.
             </AlertDescription>
         </Alert>
           
         <section>
-            <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 flex items-center gap-2 text-primary"><MessageCircleQuestion className="w-4 h-4 sm:w-5 sm:w-5 text-primary"/>Frequently Asked Questions</h2>
+            <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 flex items-center gap-2 text-foreground"><MessageCircleQuestion className="w-4 h-4 sm:w-5 sm:w-5"/>Frequently Asked Questions</h2>
             <Accordion type="single" collapsible className="w-full space-y-3">
               {faqs.map((faq, index) => (
-                <Card key={index} className="overflow-hidden shadow-md hover:shadow-lg transition-shadow">
+                <Card key={index} className="overflow-hidden">
                     <AccordionItem value={`item-${index + 1}`} className="border-b-0">
-                    <AccordionTrigger className="p-4 text-left hover:no-underline text-sm sm:text-base font-medium group bg-card hover:bg-muted/50 transition-colors">
-                        {faq.icon && <faq.icon className="mr-2 sm:mr-3 h-4 w-4 sm:h-5 sm:w-5 text-primary group-hover:text-primary transition-colors shrink-0" />}
+                    <AccordionTrigger className="p-4 text-left hover:no-underline text-sm sm:text-base font-medium group bg-card hover:bg-foreground/5 transition-colors">
+                        {faq.icon && <faq.icon className="mr-2 sm:mr-3 h-4 w-4 sm:h-5 sm:w-5 text-foreground/70 group-hover:text-foreground transition-colors shrink-0" />}
                         <span className="flex-1">{faq.question}</span>
                     </AccordionTrigger>
-                    <AccordionContent className="text-muted-foreground leading-relaxed text-xs sm:text-sm p-4 pt-0 bg-card border-t border-border/50">
+                    <AccordionContent className="text-foreground/80 leading-relaxed text-xs sm:text-sm p-4 pt-0 bg-card border-t border-border">
                         <div className="pl-6 sm:pl-7">
                             {faq.answer.split('\n').map((paragraph, pIndex) => <p key={pIndex} className={pIndex > 0 ? 'mt-2' : ''}>{paragraph}</p>)}
                         </div>
@@ -117,9 +117,9 @@ export default function PublicSupportPage() {
             </Accordion>
         </section>
 
-        <Card className="mt-8 sm:mt-12 p-6 text-center bg-secondary border-dashed">
-            <h2 className="text-lg sm:text-xl font-semibold mb-2 flex items-center justify-center gap-2 text-primary"><Mail className="w-4 h-4 sm:w-5 sm:w-5 text-primary"/>Still Stuck? We're Here to Help!</h2>
-            <p className="text-xs sm:text-sm text-muted-foreground mb-4">
+        <Card className="mt-8 sm:mt-12 p-6 text-center bg-card border-dashed border-border">
+            <h2 className="text-lg sm:text-xl font-semibold mb-2 flex items-center justify-center gap-2"><Mail className="w-4 h-4 sm:w-5 sm:w-5"/>Still Stuck? We're Here to Help!</h2>
+            <p className="text-xs sm:text-sm text-foreground/80 mb-4">
               Your success is our goal. If you have more questions or ideas, please reach out.
             </p>
             <Button variant="outline" className="text-xs sm:text-sm" asChild>
@@ -128,15 +128,15 @@ export default function PublicSupportPage() {
         </Card>
       </main>
 
-      <footer className="public-page-footer">
-        <div className="container mx-auto px-4 md:px-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
+      <footer className="py-6 text-center border-t border-border">
+        <div className="container mx-auto px-4 md:px-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-foreground/80">
           <Link href="/" className="flex items-center gap-1.5">
             <Logo className="h-5 w-auto" collapsed={true} />
             <span>&copy; {new Date().getFullYear()} AutoBoss</span>
           </Link>
           <nav className="flex gap-3">
-            <Link href="/playbook" className="hover:text-primary">Client Playbook</Link>
-            <Link href="/templates" className="hover:text-primary">AI Templates</Link>
+            <Link href="/playbook" className="hover:text-foreground">Client Playbook</Link>
+            <Link href="/templates" className="hover:text-foreground">AI Templates</Link>
           </nav>
         </div>
       </footer>

@@ -47,13 +47,13 @@ type AddClientFormData = z.infer<typeof addClientFormSchema>;
 function WelcomeDashboard() {
     return (
         <div className="space-y-8">
-            <Card className="border-foreground/20">
+            <Card className="border-border">
                 <CardHeader>
                     <CardTitle className="font-headline text-3xl">Welcome to Your AI Agency HQ</CardTitle>
                     <CardDescription className="text-foreground/80">This is your starting point. Follow these steps to launch your first AI agent for a client.</CardDescription>
                 </CardHeader>
                 <CardContent className="grid md:grid-cols-2 gap-6">
-                    <div className="space-y-4 rounded-lg border border-foreground/20 p-6">
+                    <div className="space-y-4 rounded-lg border border-border p-6">
                         <div className="flex items-center gap-3">
                             <span className="flex items-center justify-center h-8 w-8 rounded-full border-2 border-foreground text-lg font-bold">1</span>
                             <h3 className="font-headline text-xl">Add Your First Client</h3>
@@ -68,7 +68,7 @@ function WelcomeDashboard() {
                             <AddClientDialogContent />
                         </Dialog>
                     </div>
-                    <div className="space-y-4 rounded-lg border border-foreground/20 p-6">
+                    <div className="space-y-4 rounded-lg border border-border p-6">
                         <div className="flex items-center gap-3">
                             <span className="flex items-center justify-center h-8 w-8 rounded-full border-2 border-foreground text-lg font-bold">2</span>
                             <h3 className="font-headline text-xl">Build an AI Agent</h3>
@@ -83,7 +83,7 @@ function WelcomeDashboard() {
                 </CardContent>
             </Card>
 
-            <Card className="border-foreground/20">
+            <Card className="border-border">
                 <CardHeader>
                     <CardTitle className="font-headline text-2xl">Resources & Guidance</CardTitle>
                     <CardDescription className="text-foreground/80">Everything you need to succeed is right here. No need to get lost.</CardDescription>
@@ -116,7 +116,7 @@ function WelcomeDashboard() {
 function ResourceCard({ href, icon, title, description }: { href: string, icon: React.ReactNode, title: string, description: string }) {
     return (
         <Link href={href} className="block group">
-            <div className="p-4 rounded-lg border border-foreground/20 h-full flex flex-col items-start transition-colors group-hover:bg-foreground/5">
+            <div className="p-4 rounded-lg border border-border h-full flex flex-col items-start transition-colors group-hover:bg-foreground/5">
                 <div className="p-2 bg-foreground/10 rounded-md mb-3 text-foreground">
                     {icon}
                 </div>
