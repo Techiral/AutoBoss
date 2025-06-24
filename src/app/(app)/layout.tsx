@@ -548,56 +548,16 @@ function AppSidebar() {
   const { state: sidebarState, isMobile, setOpenMobile } = useSidebar();
   const collapsed = !isMobile && sidebarState === 'collapsed';
   const { currentUser, loading: authLoading } = useAuth();
-  const { getAgent, isLoadingAgents: isAppContextLoading, getClientById, isLoadingClients } = useAppContext();
-
+  
   const handleMobileLinkClick = () => {
     if (isMobile) {
       setOpenMobile(false);
     }
   };
 
-  const agentIdMatch = pathname.match(/^\/agents\/([a-zA-Z0-9_-]+)/);
-  const currentAgentId = agentIdMatch ? agentIdMatch[1] : null;
-  const clientIdMatch = pathname.match(/^\/clients\/([a-zA-Z0-9_-]+)/);
-  const currentClientId = clientIdMatch ? clientIdMatch[1] : null;
-
-
-  const [currentAgent, setCurrentAgent] = useState<Agent | undefined>(undefined);
-  const [currentClient, setCurrentClient] = useState<Client | undefined>(undefined);
-
-
-  useEffect(() => {
-    if (currentAgentId && !isAppContextLoading) {
-      setCurrentAgent(getAgent(currentAgentId));
-    } else if (!currentAgentId) {
-      setCurrentAgent(undefined);
-    }
-  }, [currentAgentId, getAgent, isAppContextLoading]);
-
-  useEffect(() => {
-    if (currentClientId && !isLoadingClients) {
-      setCurrentClient(getClientById(currentClientId));
-    } else if (!currentClientId) {
-      setCurrentClient(undefined);
-    }
-  }, [currentClientId, getClientById, isLoadingClients]);
-
-
-  let agentNavItems: { href: string; label: string; icon: React.ElementType }[] = [];
-  if (currentAgentId && currentAgent) {
-    agentNavItems = [
-      { href: `/agents/${currentAgentId}/personality`, label: 'Personality', icon: Bot },
-      { href: `/agents/${currentAgentId}/knowledge`, label: 'Knowledge', icon: BookOpen },
-      { href: `/agents/${currentAgentId}/test`, label: 'Test Agent', icon: MessageSquare },
-      { href: `/agents/${currentAgentId}/export`, label: 'Export', icon: Share2 },
-    ];
-  }
-
   if (!currentUser && !(pathname.startsWith('/chat/') || pathname === '/playbook' || pathname === '/templates' || pathname === '/support')) {
     return <Sidebar><SidebarHeader className="p-3 sm:p-4"><Link href="/" aria-label="AutoBoss Homepage" className="hover:opacity-80 transition-opacity"><Logo collapsed={collapsed} className="h-6 sm:h-7 px-1 sm:px-2 py-1"/></Link></SidebarHeader></Sidebar>;
   }
-
-  const isDataLoading = authLoading || (currentAgentId && isAppContextLoading) || (currentClientId && isLoadingClients);
 
   return (
     <Sidebar>
@@ -610,8 +570,8 @@ function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <Link href="/dashboard" onClick={handleMobileLinkClick}>
-              <SidebarMenuButton isActive={pathname === '/dashboard'} tooltip={collapsed ? 'Client Dashboard' : undefined}>
-                <Home />
+              <SidebarMenuButton isActive={pathname.startsWith('/dashboard') || pathname.startsWith('/clients/')} tooltip={collapsed ? 'Client Dashboard' : undefined}>
+                <Briefcase />
                 <span>Client Dashboard</span>
               </SidebarMenuButton>
             </Link>
@@ -632,66 +592,6 @@ function AppSidebar() {
               </SidebarMenuButton>
             </Link>
           </SidebarMenuItem>
-
-
-          {isDataLoading && currentClientId && (
-            <>
-              <SidebarMenuItem className="mt-3 sm:mt-4 mb-1 px-2 sm:px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                <span className={collapsed ? 'hidden' : ''}>Client Menu</span>
-              </SidebarMenuItem>
-               <SidebarMenuItem className="px-2">
-                  <div className="h-8 w-full bg-muted/50 animate-pulse rounded-md my-0.5"></div>
-              </SidebarMenuItem>
-            </>
-          )}
-
-          {!isDataLoading && currentClient && (
-             <>
-              <SidebarMenuItem className="mt-3 sm:mt-4 mb-1 px-2 sm:px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                <span className={collapsed ? 'hidden' : ''}>{currentClient.name}</span>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <Link href={`/clients/${currentClient.id}/dashboard`} onClick={handleMobileLinkClick}>
-                  <SidebarMenuButton isActive={pathname === `/clients/${currentClient.id}/dashboard`} tooltip={collapsed ? 'Client Agents' : undefined}>
-                    <Briefcase />
-                    <span>Agents for Client</span>
-                  </SidebarMenuButton>
-                </Link>
-              </SidebarMenuItem>
-            </>
-          )}
-
-
-          {isDataLoading && currentAgentId && (
-             <>
-              <SidebarMenuItem className="mt-3 sm:mt-4 mb-1 px-2 sm:px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                <span className={collapsed ? 'hidden' : ''}>Agent Menu</span>
-              </SidebarMenuItem>
-              {[...Array(3)].map((_, i) => (
-                <SidebarMenuItem key={`skeleton-agent-${i}`} className="px-2">
-                    <div className="h-8 w-full bg-muted/50 animate-pulse rounded-md my-0.5"></div>
-                </SidebarMenuItem>
-              ))}
-            </>
-          )}
-
-          {!isDataLoading && currentAgentId && agentNavItems.length > 0 && (
-            <>
-              <SidebarMenuItem className="mt-3 sm:mt-4 mb-1 px-2 sm:px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                <span className={collapsed ? 'hidden' : ''}>Configure Agent</span>
-              </SidebarMenuItem>
-              {agentNavItems.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <Link href={item.href} onClick={handleMobileLinkClick}>
-                    <SidebarMenuButton isActive={pathname.startsWith(item.href)} tooltip={collapsed ? item.label : undefined}>
-                      <item.icon />
-                      <span>{item.label}</span>
-                    </SidebarMenuButton>
-                  </Link>
-                </SidebarMenuItem>
-              ))}
-            </>
-          )}
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="p-3 sm:p-4 space-y-1 sm:space-y-2">

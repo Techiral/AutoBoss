@@ -5,91 +5,70 @@
 
 @layer base {
   :root {
-    /* Light Theme: Black on White */
-    --background: 0 0% 100%; /* #FFFFFF */
-    --foreground: 0 0% 0%;   /* #000000 */
-    
-    --card: 0 0% 100%; /* Card has same bg as page */
-    --card-foreground: 0 0% 0%;
-    
+    /* Light Theme */
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 0%;
-
-    /* This is for the button hover fill */
-    --primary: 0 0% 0%;   /* black */
-    --primary-foreground: 0 0% 100%; /* white */
-
-    /* For ShadCN compatibility, these must exist. Set to neutral values. */
-    --secondary: 0 0% 98%;
-    --secondary-foreground: 0 0% 9%;
-
-    --muted: 0 0% 98%; /* A very light gray for muted backgrounds like agent chat bubbles */
-    --muted-foreground: 0 0% 45%; /* for placeholders */
-
-    /* Accent is for hover states. */
-    --accent: 0 0% 95%; /* Subtle hover for non-button elements */
-    --accent-foreground: 0 0% 9%;
-
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 210 100% 50%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 210 100% 50%;
+    --radius: 0.5rem;
     
-    --border: 0 0% 83%;   /* A light gray border */
-    --input: 0 0% 83%;
-    --ring: 0 0% 0%;     /* black for focus rings */
-    
-    /* Sidebar specific */
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 0 0% 0%;
-    --sidebar-primary: 0 0% 0%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 95%;
-    --sidebar-accent-foreground: 0 0% 9%;
-    --sidebar-border: 0 0% 90%;
-    --sidebar-ring: 0 0% 0%;
+    /* Sidebar specific for light theme */
+    --sidebar-background: 240 4.8% 95.9%;
+    --sidebar-foreground: 240 5.9% 10%;
+    --sidebar-primary: 210 100% 50%;
+    --sidebar-primary-foreground: 210 40% 98%;
+    --sidebar-accent: 0 0% 100%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 240 5.9% 90%;
+    --sidebar-ring: 210 100% 50%;
   }
 
   .dark {
-    /* Dark Theme: White on Black */
-    --background: 0 0% 0%; /* #000000 */
-    --foreground: 0 0% 100%; /* #FFFFFF */
-    
-    --card: 0 0% 0%;
-    --card-foreground: 0 0% 100%;
-    
-    --popover: 0 0% 0%;
-    --popover-foreground: 0 0% 100%;
-
-    /* The hover fill color */
-    --primary: 0 0% 100%; /* white */
-    --primary-foreground: 0 0% 0%; /* black */
-    
-    /* For ShadCN compatibility, these must exist. Set to neutral values. */
-    --secondary: 0 0% 8%;
+    /* Dark Theme */
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 10%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 210 100% 50%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 240 3.7% 15.9%;
     --secondary-foreground: 0 0% 98%;
-
-    --muted: 0 0% 8%; /* A very dark gray for muted backgrounds */
-    --muted-foreground: 0 0% 63%; /* for placeholders */
-    
-    /* Accent is for hover states. */
-    --accent: 0 0% 12%; /* Subtle hover for non-button elements */
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
     --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 210 100% 50%;
     
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-    
-    --border: 0 0% 20%; /* A dark gray border */
-    --input: 0 0% 20%;
-    --ring: 0 0% 100%;   /* white for focus rings */
-
-    /* Sidebar specific */
-    --sidebar-background: 0 0% 0%;
-    --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 0 0% 100%;
-    --sidebar-primary-foreground: 0 0% 0%;
-    --sidebar-accent: 0 0% 12%;
+    /* Sidebar specific for dark theme */
+    --sidebar-background: 240 10% 7%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 210 100% 50%;
+    --sidebar-primary-foreground: 210 40% 98%;
+    --sidebar-accent: 240 10% 15%;
     --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 0 0% 20%;
-    --sidebar-ring: 0 0% 100%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 210 100% 50%;
   }
 }
 

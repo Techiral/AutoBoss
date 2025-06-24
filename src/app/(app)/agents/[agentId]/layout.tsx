@@ -2,18 +2,22 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, usePathname } from 'next/navigation';
 import { useAppContext } from '../../layout';
 import type { Agent } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Loader2 } from 'lucide-react';
+import { AlertTriangle, Loader2, Bot, BookOpen, MessageSquare, Share2, Settings } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { cn } from '@/lib/utils';
+import { Card, CardContent } from '@/components/ui/card';
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import Link from 'next/link';
 
 export default function AgentDetailLayout({ children }: { children: React.ReactNode }) {
   const params = useParams();
   const router = useRouter();
+  const pathname = usePathname();
   const { getAgent, isLoadingAgents, getClientById, isLoadingClients } = useAppContext();
   const [agent, setAgent] = useState<Agent | null | undefined>(undefined);
   const [clientName, setClientName] = useState<string | null>(null);
@@ -27,19 +31,24 @@ export default function AgentDetailLayout({ children }: { children: React.ReactN
       if (foundAgent && foundAgent.clientId && !isLoadingClients) {
         const client = getClientById(foundAgent.clientId);
         setClientName(client?.name || null);
-      } else if (foundAgent && foundAgent.clientName) { // Fallback to denormalized name
+      } else if (foundAgent && foundAgent.clientName) {
         setClientName(foundAgent.clientName);
       } else if (foundAgent && !foundAgent.clientId && !isLoadingClients) {
-        setClientName(null); // Agent might not have a client ID
+        setClientName(null);
       }
-    } else if (!isLoadingAgents && !agentId) { // No agentId in params
+    } else if (!isLoadingAgents && !agentId) {
       setAgent(null); 
     }
   }, [agentId, getAgent, isLoadingAgents, getClientById, isLoadingClients]);
 
-  // Refined loading condition: loading if app context is loading, or if agentId exists but agent details (or its client's name if applicable) haven't been fetched yet.
   const isPageLoading = isLoadingAgents || isLoadingClients || (agentId && (agent === undefined || (agent?.clientId && clientName === undefined && agent?.clientName === undefined)));
 
+  const navItems = agentId ? [
+      { href: `/agents/${agentId}/personality`, label: 'Personality', icon: Settings },
+      { href: `/agents/${agentId}/knowledge`, label: 'Knowledge', icon: BookOpen },
+      { href: `/agents/${agentId}/test`, label: 'Test Agent', icon: MessageSquare },
+      { href: `/agents/${agentId}/export`, label: 'Deploy & Share', icon: Share2 },
+    ] : [];
 
   if (isPageLoading) {
     return (
@@ -51,7 +60,7 @@ export default function AgentDetailLayout({ children }: { children: React.ReactN
     );
   }
 
-  if (!agent) { // Agent not found or no agentId was provided
+  if (!agent) {
     return (
        <Alert variant="destructive">
         <AlertTriangle className="h-4 w-4" />
@@ -66,13 +75,29 @@ export default function AgentDetailLayout({ children }: { children: React.ReactN
   return (
     <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="font-headline text-primary text-2xl sm:text-3xl font-bold break-words">
+        <h1 className="font-headline text-foreground text-2xl sm:text-3xl font-bold break-words">
           {agent.generatedName || agent.name}
           {clientName && <span className="text-muted-foreground text-lg sm:text-xl font-normal"> (for {clientName})</span>}
         </h1>
         <p className="text-sm sm:text-base text-muted-foreground break-words">{agent.description}</p>
       </div>
-      {children}
+      
+      <Tabs value={pathname} className="w-full">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
+            {navItems.map(item => (
+                <TabsTrigger key={item.href} value={item.href} asChild>
+                    <Link href={item.href}>
+                        <item.icon className="w-4 h-4 mr-2" />
+                        {item.label}
+                    </Link>
+                </TabsTrigger>
+            ))}
+        </TabsList>
+      </Tabs>
+      
+      <div className="mt-4">
+        {children}
+      </div>
     </div>
   );
 }

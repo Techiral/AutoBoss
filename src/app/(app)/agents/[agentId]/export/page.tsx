@@ -68,8 +68,8 @@ export default function ExportAgentPage() {
   const apiEndpointChat = agent && baseUrl ? `${baseUrl}/api/agents/${agent.id}/chat` : "";
   const apiEndpointVoice = agent && baseUrl ? `${baseUrl}/api/agents/${agent.id}/voice-hook` : "";
 
-  const primaryHslRef = useRef("192 100% 50%"); 
-  const primaryFgHslRef = useRef("0 0% 5%");
+  const primaryHslRef = useRef("210 100% 50%"); 
+  const primaryFgHslRef = useRef("210 40% 98%");
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -191,7 +191,7 @@ export default function ExportAgentPage() {
       setAgent(prev => prev ? ({...prev, ...updatedAgentData, sharedAt: checked ? (Timestamp.now() as any) : null }) : null); 
       toast({
         title: `Agent Showcase Status Updated`,
-        description: `Agent is now ${checked ? 'publicly shared' : 'private'}.`,
+        description: `Agent is now ${checked ? 'publicly listed' : 'private'}.`,
       });
     } catch (error) {
       console.error("Error updating share setting:", error);
@@ -215,259 +215,123 @@ export default function ExportAgentPage() {
   const showVoiceFeatures = agent.agentType === 'voice' || agent.agentType === 'hybrid';
 
   return (
-    <div className="space-y-4 md:space-y-6">
-      <Card>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+      <Card className="md:col-span-2">
         <CardHeader className="p-4 sm:p-6">
           <CardTitle className="font-headline text-primary text-xl sm:text-2xl flex items-center gap-2"> <Share2 className="w-6 h-6 sm:w-7 sm:h-7"/>Deploy & Share: {agent.generatedName || agent.name}</CardTitle>
-          <CardDescription className="text-sm">Easily embed this AI agent or provide direct links for your client. Use the tabs below to navigate different deployment options.</CardDescription>
+          <CardDescription className="text-sm">Easily embed this AI agent or provide direct links for your client. Use the sections below to find the right deployment option.</CardDescription>
         </CardHeader>
-        <CardContent className="p-4 sm:p-6">
-          <Tabs defaultValue="embed" className="w-full">
-            <TabsList className="grid w-full grid-cols-1 sm:grid-cols-4 mb-4 sm:mb-6 h-auto sm:h-10">
-              <TabsTrigger value="embed" className="text-xs sm:text-sm py-1.5 sm:py-2">Embed & Share Links</TabsTrigger>
-              <TabsTrigger value="voice" className="text-xs sm:text-sm py-1.5 sm:py-2" disabled={!showVoiceFeatures}>Voice (Twilio Setup)</TabsTrigger>
-              <TabsTrigger value="api" className="text-xs sm:text-sm py-1.5 sm:py-2">Developer API</TabsTrigger>
-              <TabsTrigger value="showcase" className="text-xs sm:text-sm py-1.5 sm:py-2">Public Showcase</TabsTrigger>
-            </TabsList>
+      </Card>
 
-            <TabsContent value="embed" className="space-y-6 sm:space-y-8">
-              {showChatFeatures ? (
-                <>
-                  <div>
-                    <Label htmlFor="chatLauncherScript" className="flex items-center mb-1 text-sm sm:text-base font-semibold">
-                      <Code className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary" /> Embed Chatbot on Any Website (Recommended)
-                    </Label>
-                    <Alert variant="default" className="mb-2 p-3 sm:p-4 bg-secondary">
-                        <Info className="h-4 w-4" />
-                        <AlertTitle className="text-sm sm:text-base">How to Use This Script</AlertTitle>
-                        <AlertDescription className="text-xs text-muted-foreground">
-                          To add this chatbot to your client's website, copy the script below and paste it just before the closing &lt;/body&gt; tag on any page of their site. It will add a floating chat launcher button.
-                        </AlertDescription>
-                    </Alert>
-                    <div className="relative">
-                      <Textarea id="chatLauncherScript" value={chatLauncherScript.trim()} readOnly rows={10} className="font-code text-[10px] sm:text-xs bg-muted/50 p-2"/>
-                      <Button variant="outline" size="icon" className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 h-6 w-6 sm:h-7 sm:w-7" onClick={() => handleCopy(chatLauncherScript.trim(), "Chat Launcher Script")} aria-label="Copy Chat Launcher Script" disabled={!chatLauncherScript}>
-                        {copied === "Chat Launcher Script" ? <Check className="w-3 h-3 sm:w-4 sm:w-4 text-primary" /> : <Copy className="w-3 h-3 sm:w-4 sm:w-4" />}
-                      </Button>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">This script creates a floating button that opens the chatbot in a popup. It's the easiest way to integrate. Test this script on a simple HTML page before deploying to a live client site.</p>
-                  </div>
-
-                  <div className="border-t pt-6 sm:pt-8">
-                    <Label htmlFor="chatbotLink" className="flex items-center mb-1 text-sm sm:text-base font-semibold">
-                      <Globe className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary" /> Direct Chatbot Link (For Sharing or Testing)
-                    </Label>
-                    <div className="flex items-center gap-2">
-                      <Input id="chatbotLink" value={chatbotLink} readOnly className="text-sm"/>
-                      <Button variant="outline" size="icon" onClick={() => handleCopy(chatbotLink, "Chatbot Link")} aria-label="Copy Chatbot Link" disabled={!chatbotLink} className="h-9 w-9 sm:h-10 sm:w-10">
-                        {copied === "Chatbot Link" ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
-                      </Button>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">Share this link for direct access. Useful for quick previews or when embedding isn't an option.</p>
-                     {!baseUrl && <p className="text-xs text-destructive mt-1">Base URL not yet available. Refresh page if needed.</p>}
-                     <Alert variant="default" className="mt-2 p-3 sm:p-4 bg-secondary">
-                        <MessageSquare className="h-4 w-4" />
-                        <AlertTitle>Embedding Note</AlertTitle>
-                        <AlertDescription className="text-muted-foreground text-xs">
-                        The chat pages (like the direct link above) are designed to be embedded in iframes from any website, which is how the launcher script works.
-                        </AlertDescription>
-                    </Alert>
-                  </div>
-                </>
-              ) : (
-                <Alert variant="default">
-                  <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                  <AlertTitle>Chat Features Not Applicable</AlertTitle>
-                  <AlertDescription>Chat embed script and direct chat links are available for 'Chat' or 'Hybrid' agent types. This agent is 'Voice'-only.</AlertDescription>
-                </Alert>
-              )}
-            </TabsContent>
-
-            <TabsContent value="voice" className="space-y-4">
-              {showVoiceFeatures ? (
-                <div className="space-y-4">
-                  <h3 className="text-lg sm:text-xl font-semibold flex items-center gap-2">
-                    <Mic className="w-5 h-5 sm:w-6 sm:w-6 text-primary" /> Enable Voice Calls with Twilio
-                  </h3>
-                  <Alert variant="default" className="p-3 sm:p-4 bg-secondary">
-                      <PhoneCall className="h-4 w-4" />
-                      <AlertTitle className="text-sm sm:text-base">Voice Agent Integration</AlertTitle>
-                      <AlertDescription className="text-xs text-muted-foreground">
-                        To enable your AI agent to make and receive phone calls *using your Twilio account*, first save your Twilio credentials in your main <Button variant="link" asChild className="p-0 h-auto text-xs"><Link href="/settings">User Profile Settings <ExternalLink className="w-2.5 h-2.5 ml-0.5"/></Link></Button>.
-                        The fields below are for your reference and to help you configure your Twilio phone number's webhook.
-                      </AlertDescription>
-                  </Alert>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                          <Label htmlFor="twilioSid">Twilio Account SID (Reference)</Label>
-                          <Input id="twilioSid" value={twilioAccountSid} onChange={(e) => setTwilioAccountSid(e.target.value)} placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" />
-                      </div>
-                      <div className="space-y-1.5">
-                          <Label htmlFor="twilioToken">Twilio Auth Token (Reference)</Label>
-                          <Input id="twilioToken" type="password" value={twilioAuthToken} onChange={(e) => setTwilioAuthToken(e.target.value)} placeholder="Your Auth Token" />
-                      </div>
-                  </div>
-                  <div className="space-y-1.5">
-                      <Label htmlFor="twilioPhone">Your Twilio Phone Number (Reference)</Label>
-                      <Input id="twilioPhone" type="tel" value={twilioPhoneNumber} onChange={(e) => setTwilioPhoneNumber(e.target.value)} placeholder="+12345678901" />
-                  </div>
-                   <div className="space-y-1.5">
-                      <Label htmlFor="apiEndpointVoice" className="flex items-center mb-1 text-xs font-semibold">
-                          <Server className="w-3 h-3 mr-1.5" /> Voice API Endpoint (for Twilio Webhook)
-                      </Label>
-                       <div className="flex items-center gap-2">
-                          <Input id="apiEndpointVoice" value={apiEndpointVoice} readOnly className="text-[10px] sm:text-xs"/>
-                          <Button variant="outline" size="icon" onClick={() => handleCopy(apiEndpointVoice, "Voice API Endpoint")} aria-label="Copy Voice API Endpoint" disabled={!apiEndpointVoice} className="h-8 w-8 sm:h-9 sm:w-9">
-                              {copied === "Voice API Endpoint" ? <Check className="w-3 h-3 sm:w-4 sm:w-4 text-primary" /> : <Copy className="w-3 h-3 sm:w-4 sm:w-4" />}
-                          </Button>
-                      </div>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">Configure this URL in your Twilio phone number's settings for incoming calls (Voice & Fax &gt; A call comes in &gt; Webhook).</p>
-                  </div>
-                  <Button asChild className="w-full sm:w-auto">
-                    <Link href="/settings">
-                      <Info className="mr-2 h-4 w-4" />
-                      Important: Save Credentials in User Settings or Server Environment
-                    </Link>
+      {showChatFeatures && (
+         <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center text-lg"><Code className="w-5 h-5 mr-2 text-primary" /> Embed on Website</CardTitle>
+              <CardDescription>Paste this script on any website to add a floating chat launcher.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="relative">
+                <Textarea id="chatLauncherScript" value={chatLauncherScript.trim()} readOnly rows={8} className="font-code text-xs bg-muted/50 p-2"/>
+                <Button variant="outline" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={() => handleCopy(chatLauncherScript.trim(), "Chat Launcher Script")} aria-label="Copy Chat Launcher Script" disabled={!chatLauncherScript}>
+                  {copied === "Chat Launcher Script" ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
+                </Button>
+              </div>
+              <div>
+                <Label htmlFor="chatbotLink" className="text-sm font-semibold">Direct Chat Link</Label>
+                <div className="flex items-center gap-2 mt-1">
+                  <Input id="chatbotLink" value={chatbotLink} readOnly className="text-sm"/>
+                  <Button variant="outline" size="icon" onClick={() => handleCopy(chatbotLink, "Chatbot Link")} aria-label="Copy Chatbot Link" disabled={!chatbotLink} className="h-9 w-9">
+                    {copied === "Chatbot Link" ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
                   </Button>
                 </div>
-              ) : (
-                 <Alert variant="default">
-                    <Mic className="h-4 w-4 text-muted-foreground" />
-                    <AlertTitle>Voice Features Not Applicable</AlertTitle>
-                    <AlertDescription>Twilio configuration for voice calls is available for 'Voice' or 'Hybrid' agent types. This agent is 'Chat'-only.</AlertDescription>
-                </Alert>
-              )}
-            </TabsContent>
+              </div>
+            </CardContent>
+         </Card>
+      )}
 
-            <TabsContent value="api" className="space-y-3">
-              <Label className="flex items-center text-sm sm:text-base font-semibold">
-                <Server className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary" /> For Developers: API Endpoints
-              </Label>
-               <Alert variant="default" className="p-3 sm:p-4 bg-secondary">
+      {showVoiceFeatures && (
+         <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center text-lg"><PhoneCall className="w-5 h-5 mr-2 text-primary" /> Voice Call Setup</CardTitle>
+              <CardDescription>Use this webhook URL in your Twilio phone number settings for voice calls.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+               <div className="space-y-1.5">
+                  <Label htmlFor="apiEndpointVoice" className="text-sm font-semibold">Twilio Webhook URL</Label>
+                   <div className="flex items-center gap-2 mt-1">
+                      <Input id="apiEndpointVoice" value={apiEndpointVoice} readOnly className="text-xs"/>
+                      <Button variant="outline" size="icon" onClick={() => handleCopy(apiEndpointVoice, "Voice API Endpoint")} aria-label="Copy Voice API Endpoint" disabled={!apiEndpointVoice} className="h-9 w-9">
+                          {copied === "Voice API Endpoint" ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
+                      </Button>
+                  </div>
+              </div>
+              <Alert variant="default" className="bg-secondary">
                   <Info className="h-4 w-4" />
-                  <AlertTitle className="text-sm sm:text-base">Technical API Details</AlertTitle>
-                  <AlertDescription className="text-xs text-muted-foreground">
-                    These POST endpoints allow programmatic interaction with the agent.
-                    <ul className="list-disc list-inside pl-3 mt-1 text-[11px] sm:text-xs">
-                      <li><strong>message (string, required for chat):</strong> User's input.</li>
-                      <li><strong>conversationHistory (array of strings, optional):</strong> Past messages in "Sender: Message" format.</li>
-                    </ul>
+                  <AlertTitle>Important</AlertTitle>
+                  <AlertDescription className="text-xs">
+                    Remember to save your Twilio Account SID and Auth Token in your main <Button variant="link" asChild className="p-0 h-auto text-xs"><Link href="/settings">User Settings <ExternalLink className="w-2.5 h-2.5 ml-0.5"/></Link></Button> for this to work.
                   </AlertDescription>
               </Alert>
-              <div className="space-y-2">
-                  <div>
-                      <Label htmlFor="apiEndpointChat" className="text-xs font-semibold">Chat API Endpoint</Label>
-                      <div className="flex items-center gap-2">
-                        <Input id="apiEndpointChat" value={apiEndpointChat} readOnly className="text-sm"/>
-                        <Button variant="outline" size="icon" onClick={() => handleCopy(apiEndpointChat, "Chat API Endpoint")} aria-label="Copy Chat API Endpoint" disabled={!apiEndpointChat} className="h-9 w-9 sm:h-10 sm:w-10">
-                          {copied === "Chat API Endpoint" ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
-                        </Button>
-                      </div>
-                  </div>
-                  {showVoiceFeatures && (
-                      <div>
-                          <Label htmlFor="apiEndpointVoiceDev" className="text-xs font-semibold">Voice API Endpoint (Webhook)</Label>
-                          <div className="flex items-center gap-2">
-                              <Input id="apiEndpointVoiceDev" value={apiEndpointVoice} readOnly className="text-sm"/>
-                              <Button variant="outline" size="icon" onClick={() => handleCopy(apiEndpointVoice, "Voice API Endpoint Dev")} aria-label="Copy Voice API Endpoint" disabled={!apiEndpointVoice} className="h-9 w-9 sm:h-10 sm:w-10">
-                                  {copied === "Voice API Endpoint Dev" ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
-                              </Button>
-                          </div>
-                           <p className="text-[10px] text-muted-foreground mt-0.5">Use this for Twilio webhook configuration if building a voice agent.</p>
-                      </div>
-                  )}
-              </div>
-               {!baseUrl && <p className="text-xs text-destructive mt-1">Base URL not yet available.</p>}
+            </CardContent>
+         </Card>
+      )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mt-3 sm:mt-4">
-                  <div>
-                      <Label htmlFor="apiRequestExampleMinimal" className="flex items-center mb-1 text-xs sm:text-sm">
-                      Example Chat API Request (Simple):
-                      </Label>
-                      <div className="relative">
-                          <Textarea id="apiRequestExampleMinimal" value={`{\n  "message": "Hello, what can you do?"\n}`} readOnly rows={3} className="font-code text-xs bg-muted/50 p-2"/>
-                          <Button variant="outline" size="icon" className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 h-6 w-6 sm:h-7 sm:w-7" onClick={() => handleCopy(`{\n  "message": "Hello, what can you do?"\n}`, "API Request Minimal")} aria-label="Copy API Request Minimal" >
-                              {copied === "API Request Minimal" ? <Check className="w-3 h-3 sm:w-4 sm:w-4 text-primary" /> : <Copy className="w-3 h-3 sm:w-4 sm:w-4" />}
-                          </Button>
-                      </div>
-                  </div>
-                   <div>
-                      <Label htmlFor="apiRequestExampleWithFlow" className="flex items-center mb-1 text-xs sm:text-sm">
-                      Example Chat API Request (With History):
-                      </Label>
-                      <div className="relative">
-                          <Textarea id="apiRequestExampleWithFlow" value={`{\n  "message": "My order ID is 12345",\n  "conversationHistory": ["User: I want to check my order status", "Agent: Sure, what is your order ID?"]\n}`} readOnly rows={6} className="font-code text-xs bg-muted/50 p-2"/>
-                          <Button variant="outline" size="icon" className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 h-6 w-6 sm:h-7 sm:w-7" onClick={() => handleCopy(`{\n  "message": "My order ID is 12345",\n  "conversationHistory": ["User: I want to check my order status", "Agent: Sure, what is your order ID?"]\n}`, "API Request With Flow")} aria-label="Copy API Request With Flow">
-                              {copied === "API Request With Flow" ? <Check className="w-3 h-3 sm:w-4 sm:w-4 text-primary" /> : <Copy className="w-3 h-3 sm:w-4 sm:w-4" />}
-                          </Button>
-                      </div>
-                  </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center text-lg"><Server className="w-5 h-5 mr-2 text-primary" /> Developer API</CardTitle>
+          <CardDescription>Use these POST endpoints for programmatic access to your agent.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-1.5">
+              <Label htmlFor="apiEndpointChat" className="text-sm font-semibold">Chat API Endpoint</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <Input id="apiEndpointChat" value={apiEndpointChat} readOnly className="text-sm"/>
+                <Button variant="outline" size="icon" onClick={() => handleCopy(apiEndpointChat, "Chat API Endpoint")} aria-label="Copy Chat API Endpoint" disabled={!apiEndpointChat} className="h-9 w-9">
+                  {copied === "Chat API Endpoint" ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
+                </Button>
               </div>
-              <div className="space-y-2 mt-3 sm:mt-4">
-                  <Label className="flex items-center mb-1 text-xs sm:text-sm">Example Chat API Response:</Label>
-                    <div>
-                        <Label htmlFor="apiAutonomousResponseExample" className="text-[11px] sm:text-xs font-medium">Typical Chat Response:</Label>
-                         <div className="relative">
-                            <Textarea id="apiAutonomousResponseExample" value={`{\n  "reply": "As an AI assistant, I can answer your questions based on my knowledge.",\n  "reasoning": "...",\n  "relevantKnowledgeIds": []\n}`} readOnly rows={5} className="font-code text-xs bg-muted/50 p-2"/>
-                            <Button variant="outline" size="icon" className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 h-6 w-6 sm:h-7 sm:w-7" onClick={() => handleCopy(`{\n  "reply": "As an AI assistant, I can answer your questions based on my knowledge.",\n  "reasoning": "...",\n  "relevantKnowledgeIds": []\n}`, "API Autonomous Response")} aria-label="Copy API Autonomous Response">
-                                {copied === "API Autonomous Response" ? <Check className="w-3 h-3 sm:w-4 sm:w-4 text-primary" /> : <Copy className="w-3 h-3 sm:w-4 sm:w-4" />}
-                            </Button>
-                        </div>
-                    </div>
-              </div>
-               <Alert variant="default" className="mt-3 sm:mt-4 p-3 sm:p-4 bg-secondary">
-                   <ShieldCheck className="h-4 w-4" />
-                   <AlertTitle className="text-sm sm:text-base">API Production Notes</AlertTitle>
-                   <AlertDescription className="text-xs">
-                       If using APIs directly in a production client application, consider API versioning, robust authentication mechanisms, rate limiting, and comprehensive logging & monitoring. The embed script handles most of this complexity for typical website chat use.
-                   </AlertDescription>
-               </Alert>
-            </TabsContent>
-
-            <TabsContent value="showcase" className="space-y-4">
-                <div className="space-y-2">
-                    <h3 className="text-lg sm:text-xl font-semibold flex items-center gap-2">
-                        <Eye className="w-5 h-5 sm:w-6 sm:w-6 text-primary" /> Public Agent Showcase
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                        Opt-in to list this agent in the public AutoBoss Showcase. This can help attract users and demonstrate your work.
-                    </p>
-                </div>
-                <div className="flex items-center space-x-3 p-4 border rounded-lg bg-secondary">
-                    <Switch
-                        id="showcase-switch"
-                        checked={isPubliclyShared}
-                        onCheckedChange={handleShareToggle}
-                        disabled={isSavingShareSetting}
-                    />
-                    <Label htmlFor="showcase-switch" className="text-sm font-medium flex-1 cursor-pointer">
-                        {isPubliclyShared ? "This agent IS publicly listed in the Showcase" : "List this agent in the Public Showcase"}
-                    </Label>
-                    {isSavingShareSetting && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
-                </div>
-                {isPubliclyShared && (
-                    <Alert variant="default" className="bg-primary/10 border-primary/20">
-                        <CheckCircle className="h-4 w-4 text-primary"/>
-                        <AlertTitle className="font-medium">Agent is Live in Showcase!</AlertTitle>
-                        <AlertDescription className="text-xs">
-                            Other users can now discover this agent. 
-                            <Link href="/showcase" className="underline ml-1 hover:text-foreground" target="_blank">View Showcase</Link>
-                        </AlertDescription>
-                    </Alert>
-                )}
-                 <Alert variant="default" className="mt-3 bg-secondary">
-                   <Info className="h-4 w-4" />
-                   <AlertTitle>Important Considerations</AlertTitle>
-                   <AlertDescription className="text-xs">
-                     By making this agent public, its name, description, image, and a link to its chat interface will be visible to anyone visiting the showcase. Ensure your agent's personality and branding are client-appropriate if you built this for someone else.
-                     You can toggle this off at any time.
-                   </AlertDescription>
-               </Alert>
-            </TabsContent>
-
-          </Tabs>
+          </div>
+          <Alert variant="default" className="bg-secondary">
+               <Info className="h-4 w-4" />
+               <AlertTitle>API Usage</AlertTitle>
+               <AlertDescription className="text-xs">
+                   Send a JSON body with a `message` (string) and optional `conversationHistory` (array of strings).
+               </AlertDescription>
+           </Alert>
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center text-lg"><Eye className="w-5 h-5 mr-2 text-primary" /> Public Showcase</CardTitle>
+          <CardDescription>Opt-in to list this agent in the public AutoBoss Showcase to demonstrate your work.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+            <div className="flex items-center space-x-3 p-4 border rounded-lg bg-secondary">
+                <Switch
+                    id="showcase-switch"
+                    checked={isPubliclyShared}
+                    onCheckedChange={handleShareToggle}
+                    disabled={isSavingShareSetting}
+                />
+                <Label htmlFor="showcase-switch" className="text-sm font-medium flex-1 cursor-pointer">
+                    {isPubliclyShared ? "This agent IS publicly listed" : "List this agent publicly"}
+                </Label>
+                {isSavingShareSetting && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
+            </div>
+            {isPubliclyShared && (
+                <Alert variant="default" className="bg-primary/10 border-primary/20">
+                    <CheckCircle className="h-4 w-4 text-primary"/>
+                    <AlertTitle className="font-medium text-primary">Agent is Live in Showcase!</AlertTitle>
+                    <AlertDescription className="text-xs text-foreground">
+                        Other users can now discover and interact with this agent. 
+                        <Button variant="link" asChild className="p-0 h-auto text-xs ml-1"><Link href="/showcase" target="_blank">View Showcase</Link></Button>
+                    </AlertDescription>
+                </Alert>
+            )}
+        </CardContent>
+      </Card>
+
     </div>
   );
 }
