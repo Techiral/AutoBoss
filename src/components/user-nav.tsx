@@ -84,13 +84,13 @@ export function UserNav() {
         <DropdownMenuGroup>
           <DropdownMenuItem asChild>
             <Link href="/profile"> 
-              <User className="mr-2 h-4 w-4 text-primary" />
+              <User className="mr-2 h-4 w-4 text-cyan" />
               <span>Profile</span>
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href="/settings">
-              <Settings className="mr-2 h-4 w-4 text-primary" />
+              <Settings className="mr-2 h-4 w-4 text-cyan" />
               <span>Settings</span>
             </Link>
           </DropdownMenuItem>
@@ -98,13 +98,13 @@ export function UserNav() {
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
           <Link href="/support">
-            <LifeBuoy className="mr-2 h-4 w-4 text-primary" />
+            <LifeBuoy className="mr-2 h-4 w-4 text-cyan" />
             <span>Support</span>
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
-          <LogOut className="mr-2 h-4 w-4 text-primary" />
+          <LogOut className="mr-2 h-4 w-4 text-cyan" />
           <span>Log out</span>
         </DropdownMenuItem>
       </DropdownMenuContent>

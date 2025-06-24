@@ -46,7 +46,7 @@ const SimpleBenefitCard: React.FC<SimpleBenefitCardProps> = ({ icon, title, desc
       ref={ref}
       className={cn("scroll-reveal bg-background p-4 sm:p-5 rounded-lg shadow-lg text-left transform hover:scale-105 transition-transform duration-300", animationDelay, isVisible && "visible")}
     >
-      <div className="p-2 rounded-lg bg-primary/10 text-primary mb-2 inline-block">
+      <div className="p-2 rounded-lg bg-cyan/10 text-cyan mb-2 inline-block">
         {icon}
       </div>
       <h3 className="simple-benefit-card-title">{title}</h3>
@@ -113,7 +113,7 @@ export default function MarketingPageClient() {
           </Link>
           <nav className="hidden md:flex gap-1 sm:gap-2 items-center">
             {navLinks.map(link => (
-               <Link key={link.href} href={link.href} className="text-xs font-medium text-muted-foreground hover:text-primary transition-colors px-2 py-1" prefetch={false}>{link.label}</Link>
+               <Link key={link.href} href={link.href} className="text-xs font-medium text-muted-foreground hover:text-cyan transition-colors px-2 py-1" prefetch={false}>{link.label}</Link>
             ))}
             <Button variant="outline" size="sm" asChild className="btn-outline-themed transition-colors btn-interactive text-xs ml-2">
               <Link href="/login" className="flex items-center gap-1">Login</Link>
@@ -140,9 +140,9 @@ export default function MarketingPageClient() {
         )}
       >
           {navLinks.map(link => (
-            <Link key={link.href} href={link.href} className="block py-1.5 text-sm text-card-foreground hover:text-primary" onClick={toggleMobileMenu}>{link.label}</Link>
+            <Link key={link.href} href={link.href} className="block py-1.5 text-sm text-card-foreground hover:text-cyan" onClick={toggleMobileMenu}>{link.label}</Link>
           ))}
-          <Link href="/login" className="block py-1.5 text-sm text-card-foreground hover:text-primary" onClick={toggleMobileMenu}>Login</Link>
+          <Link href="/login" className="block py-1.5 text-sm text-card-foreground hover:text-cyan" onClick={toggleMobileMenu}>Login</Link>
           <Button asChild className="w-full btn-gradient-primary font-semibold shadow-md hover:opacity-90 transition-opacity btn-interactive text-sm mt-2">
             <Link href="/dashboard" onClick={toggleMobileMenu} className="flex items-center justify-center gap-1">
               Start Building (Free Access)
@@ -160,7 +160,7 @@ export default function MarketingPageClient() {
           </div>
           <div className="container mx-auto px-4 md:px-6 relative z-10 max-w-screen-xl">
             <div className="max-w-2xl mx-auto space-y-3 md:space-y-4">
-              <h1 className="marketing-h1 text-gradient-dynamic text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-center">
+              <h1 className="marketing-h1 text-purple text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-center">
                 Start Your AI Agency: Easy, No-Code, No PhD Needed!
               </h1>
               <p className="text-muted-foreground text-sm sm:text-base md:text-lg max-w-md mx-auto !mb-5 md:!mb-6 pt-1 sm:pt-2">
@@ -173,7 +173,7 @@ export default function MarketingPageClient() {
                     <Rocket className="h-4 w-4 sm:h-5 sm:h-5 group-hover:animate-bounce" />
                   </Link>
                 </Button>
-                 <Button size="lg" variant="outline" asChild className="btn-outline-themed transition-all duration-300 hover:scale-105 px-6 py-2.5 text-sm border-muted-foreground/40 text-primary hover:text-accent-foreground hover:bg-accent hover:border-accent bg-background/10 backdrop-blur-sm btn-interactive w-full sm:w-auto">
+                 <Button size="lg" variant="outline" asChild className="btn-outline-themed transition-all duration-300 hover:scale-105 px-6 py-2.5 text-sm border-muted-foreground/40 text-cyan hover:text-accent-foreground hover:bg-accent/20 hover:border-accent bg-background/10 backdrop-blur-sm btn-interactive w-full sm:w-auto">
                   <Link href="#how-it-works" className="flex items-center gap-1.5">
                     How It Works <Eye className="h-4 w-4 sm:h-5 sm:h-5" />
                   </Link>
@@ -185,7 +185,7 @@ export default function MarketingPageClient() {
 
         <section ref={valueRef} id="value" className={cn("scroll-reveal section-light-accent w-full py-12 md:py-16 lg:py-20 border-b border-border/50", valueVisible && "visible")}>
             <div className="container mx-auto px-4 md:px-6 text-center max-w-screen-xl">
-                <h2 className="marketing-h2 text-card-foreground">Why New AI Agency Owners Pick AutoBoss:</h2>
+                <h2 className="marketing-h2 text-purple">Why New AI Agency Owners Pick AutoBoss:</h2>
                  <p className="section-description !mb-6 md:!mb-8">
                   Tech got you stuck? AutoBoss helps you give clients real AI solutions they'll gladly pay for.
                 </p>
@@ -199,7 +199,7 @@ export default function MarketingPageClient() {
 
         <section ref={toolkitRef} id="toolkit" className={cn("scroll-reveal section-dark w-full py-12 md:py-16 lg:py-20", toolkitVisible && "visible")}>
           <div className="container mx-auto px-4 md:px-6 text-center max-w-screen-xl">
-            <h2 className="marketing-h2">Everything You Need for Your AI Agency:</h2>
+            <h2 className="marketing-h2 text-purple">Everything You Need for Your AI Agency:</h2>
             <p className="section-description">
               Key tools to manage client projects and build effective AI agents that solve real business problems.
             </p>
@@ -214,21 +214,21 @@ export default function MarketingPageClient() {
 
         <section ref={howItWorksRef} id="how-it-works" className={cn("scroll-reveal section-light-accent w-full py-12 md:py-16 lg:py-20", howItWorksVisible && "visible")}>
           <div className="container mx-auto px-4 md:px-6 text-center max-w-screen-xl">
-            <h2 className="marketing-h2 text-card-foreground">The 3-Step Plan to Your First AI Client:</h2>
+            <h2 className="marketing-h2 text-purple">The 3-Step Plan to Your First AI Client:</h2>
             <p className="section-description">
               Your simple path from zero to giving clients valuable AI tools with AutoBoss.
             </p>
             <div className="relative mx-auto max-w-5xl grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-5 items-stretch step-card-container">
                 {[
-                    { number: "1", title: "Set Up Your Client", description: "Create a space in AutoBoss for your client. Get their basic business info and what they need help with.", icon: <Users2 className="w-5 h-5 text-electric-teal"/>, animationDelay:"delay-100", hint: "client setup icon" },
-                    { number: "2", title: "Build & Teach Their AI", description: "Pick an agent type (chat/voice), say what it's for using our simple tools, and feed it their specific info.", icon: <Edit3 className="w-5 h-5 text-neon-lime"/>, animationDelay:"delay-150", hint: "ai agent building icon" },
-                    { number: "3", title: "Launch & Get Paid!", description: "Put the AI agent to work for your client. Offer support, show them the good results, and grow your agency.", icon: <CheckCircle className="w-5 h-5 text-primary"/>, animationDelay:"delay-200", hint: "launch success checkmark" },
+                    { number: "1", title: "Set Up Your Client", description: "Create a space in AutoBoss for your client. Get their basic business info and what they need help with.", icon: <Users2 className="w-5 h-5 text-cyan"/>, animationDelay:"delay-100", hint: "client setup icon" },
+                    { number: "2", title: "Build & Teach Their AI", description: "Pick an agent type (chat/voice), say what it's for using our simple tools, and feed it their specific info.", icon: <Edit3 className="w-5 h-5 text-cyan"/>, animationDelay:"delay-150", hint: "ai agent building icon" },
+                    { number: "3", title: "Launch & Get Paid!", description: "Put the AI agent to work for your client. Offer support, show them the good results, and grow your agency.", icon: <CheckCircle className="w-5 h-5 text-cyan"/>, animationDelay:"delay-200", hint: "launch success checkmark" },
                 ].map((step, index, arr) => {
                   const [stepRef, stepIsVisible] = useIntersectionObserver({ threshold: 0.3 });
                   return (
                     <div key={step.title} ref={stepRef} className={cn("relative scroll-reveal", step.animationDelay, (index === 0 || index === 1) ? "md:dashed-connector md:right" : "", stepIsVisible && "visible")}>
                       <article className={cn("relative flex flex-col items-center gap-2 p-4 sm:p-5 rounded-lg bg-background shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 text-foreground z-10 h-full")}>
-                          <div className="absolute -top-3 bg-primary text-primary-foreground text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center border-2 border-card shadow-md">{step.number}</div>
+                          <div className="absolute -top-3 bg-purple text-primary-foreground text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center border-2 border-card shadow-md">{step.number}</div>
                           <div className="mt-5 mb-1" data-ai-hint={step.hint}>{step.icon}</div>
                           <h3 className="font-headline text-md sm:text-lg font-semibold text-center">{step.title}</h3>
                           <p className="text-xs text-muted-foreground text-center leading-relaxed">{step.description}</p>
@@ -237,7 +237,7 @@ export default function MarketingPageClient() {
                   );
                 })}
             </div>
-            <Button variant="link" asChild className="mt-6 md:mt-8 text-sm">
+            <Button variant="link" asChild className="mt-6 md:mt-8 text-sm hover:text-cyan">
                 <Link href="/playbook">Read the Full Client Getting Playbook <ArrowRight className="ml-1 h-4 w-4" /></Link>
             </Button>
           </div>
@@ -245,12 +245,12 @@ export default function MarketingPageClient() {
 
         <section ref={videoDemoRef} id="video-demo-placeholder" className={cn("scroll-reveal section-dark w-full py-12 md:py-16 lg:py-20 text-center", videoDemoVisible && "visible")}>
           <div className="container mx-auto px-4 md:px-6 max-w-screen-xl">
-            <h2 className="marketing-h2">See How Easy It Is (Quick Video)</h2>
+            <h2 className="marketing-h2 text-purple">See How Easy It Is (Quick Video)</h2>
             <p className="section-description mt-1 mb-6">Watch how fast you can build and teach an AI agent for a client using AutoBoss. No tech skills? No problem!</p>
             <div className="max-w-2xl mx-auto aspect-video bg-muted/20 rounded-lg shadow-xl flex items-center justify-center text-muted-foreground border border-border/50 relative overflow-hidden cursor-pointer group" data-ai-hint="clean video player interface dark theme">
                 <Image src="https://placehold.co/1280x720/0A0D13/0A0D13.png" alt="AutoBoss Platform Demo Video Thumbnail" layout="fill" objectFit="cover" className="opacity-20 group-hover:opacity-10 transition-opacity" data-ai-hint="dark theme agency software thumbnail" loading="lazy"/>
                 <div className="video-placeholder-text z-10">
-                     <PlayCircle size={40} className="sm:size-50 text-primary cursor-pointer group-hover:scale-110 group-hover:text-neon-lime transition-all duration-300"/>
+                     <PlayCircle size={40} className="sm:size-50 text-primary cursor-pointer group-hover:scale-110 group-hover:text-primary-dark transition-all duration-300"/>
                      <p className="mt-2 text-xs font-semibold">Watch: Your First AI Agent in Under 5 Mins (Demo Coming Soon)</p>
                 </div>
             </div>
@@ -259,7 +259,7 @@ export default function MarketingPageClient() {
 
         <section ref={socialProofRef} id="proof" className={cn("scroll-reveal section-light-accent w-full py-12 md:py-16 lg:py-20", socialProofVisible && "visible")}>
             <div className="container mx-auto px-4 md:px-6 text-center max-w-screen-xl">
-                <h2 className="marketing-h2 text-card-foreground">People Are Already Building With AutoBoss:</h2>
+                <h2 className="marketing-h2 text-purple">People Are Already Building With AutoBoss:</h2>
                  <p className="section-description">Proof that even folks new to tech are launching their AI agency services.</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 max-w-5xl mx-auto text-left">
                     {socialProofItems.map((item, index) => {
@@ -267,8 +267,8 @@ export default function MarketingPageClient() {
                       return (
                        <article ref={cardRef} key={index} className={cn("scroll-reveal transform hover:scale-103 transition-transform duration-300",
                          item.delay, cardIsVisible && "visible",
-                         item.type === 'testimonial' ? "bg-background p-4 sm:p-5 rounded-lg shadow-lg text-foreground" :
-                         "bg-primary p-4 sm:p-5 rounded-lg shadow-lg text-primary-foreground flex flex-col items-center justify-center text-center")}
+                         item.type === 'testimonial' ? "bg-pink/10 border border-pink/20 p-4 sm:p-5 rounded-lg shadow-lg text-foreground" :
+                         "bg-secondary p-4 sm:p-5 rounded-lg shadow-lg text-secondary-foreground flex flex-col items-center justify-center text-center")}
                          data-ai-hint={item.aiHint || (item.type === 'testimonial' ? 'user review card design' : 'feature metrics card design')}
                          >
                         {item.type === 'testimonial' ? (
@@ -280,7 +280,7 @@ export default function MarketingPageClient() {
                                     </div>
                                 </div>
                                 <div className="mb-2 flex">
-                                    {[...Array(5)].map((_, i) => <Star key={i} className="w-3 h-3 text-neon-lime fill-neon-lime mr-0.5"/>)}
+                                    {[...Array(5)].map((_, i) => <Star key={i} className="w-3 h-3 text-primary fill-primary mr-0.5"/>)}
                                 </div>
                                 <p className="text-xs italic text-muted-foreground leading-relaxed">{item.quote}</p>
                             </>
@@ -302,10 +302,10 @@ export default function MarketingPageClient() {
 
         <section ref={earlyAccessRef} id="early-access" className={cn("scroll-reveal section-dark w-full py-12 md:py-16 lg:py-20", earlyAccessRef && "visible")}>
           <div className="container mx-auto px-4 md:px-6 text-center max-w-screen-xl">
-            <h2 className="marketing-h2">Be a Founding Member: Free Early Access (For Now!)</h2>
+            <h2 className="marketing-h2 text-purple">Be a Founding Member: Free Early Access (For Now!)</h2>
             <div className="max-w-xl mx-auto bg-card/90 dark:bg-card/80 border-border/70 p-4 my-4 sm:my-6 text-left rounded-lg">
               <p className="text-sm text-card-foreground/90">
-                 AutoBoss is currently free to use. We're looking for founding users to help make it the best AI agency kit out there. Your feedback is gold as we build this together. Future access will be paid. <span className="font-semibold">This is your chance to get in early and build your agency with zero platform costs.</span>
+                 AutoBoss is currently free to use. We're looking for founding users to help make it the best AI agency kit out there. Your feedback is gold as we build this together. Future access will be paid. <span className="font-semibold text-primary">This is your chance to get in early and build your agency with zero platform costs.</span>
               </p>
             </div>
             <aside className={cn(
@@ -325,7 +325,7 @@ export default function MarketingPageClient() {
         <section ref={finalCtaRef} className={cn("scroll-reveal section-cta-final w-full py-12 md:py-16 lg:py-20", finalCtaRef && "visible")}>
           <div className="container mx-auto px-4 md:px-6 text-center max-w-screen-xl">
             <div className="mx-auto max-w-md space-y-3 bg-card/80 dark:bg-background/70 backdrop-blur-md p-5 sm:p-6 md:p-8 rounded-xl shadow-2xl">
-              <h2 className="marketing-h2 !text-2xl sm:!text-3xl text-gradient-dynamic">
+              <h2 className="marketing-h2 !text-2xl sm:!text-3xl text-purple">
                 Ready to Start Your No-Code AI Agency?
               </h2>
               <p className="text-muted-foreground text-xs md:text-sm !mb-5">
@@ -354,12 +354,12 @@ export default function MarketingPageClient() {
             <p className="text-[10px] text-muted-foreground">&copy; {new Date().getFullYear()} AutoBoss.</p>
           </div>
           <nav className="flex flex-wrap justify-center gap-1 sm:gap-2 mt-1 sm:mt-0">
-            <Link href="/showcase" className="text-[10px] text-muted-foreground hover:text-primary transition-colors" prefetch={false}>Agent Showcase</Link>
-            <Link href="/playbook" className="text-[10px] text-muted-foreground hover:text-primary transition-colors" prefetch={false}>Client Playbook</Link>
-            <Link href="/templates" className="text-[10px] text-muted-foreground hover:text-primary transition-colors" prefetch={false}>AI Templates</Link>
-            <Link href="/support" className="text-[10px] text-muted-foreground hover:text-primary transition-colors" prefetch={false}>Help Center</Link>
-            <Link href="#" className="text-[10px] text-muted-foreground hover:text-primary transition-colors" prefetch={false}>Terms</Link> {/* Placeholder */}
-            <Link href="#" className="text-[10px] text-muted-foreground hover:text-primary transition-colors" prefetch={false}>Privacy</Link> {/* Placeholder */}
+            <Link href="/showcase" className="text-[10px] text-muted-foreground hover:text-cyan transition-colors" prefetch={false}>Agent Showcase</Link>
+            <Link href="/playbook" className="text-[10px] text-muted-foreground hover:text-cyan transition-colors" prefetch={false}>Client Playbook</Link>
+            <Link href="/templates" className="text-[10px] text-muted-foreground hover:text-cyan transition-colors" prefetch={false}>AI Templates</Link>
+            <Link href="/support" className="text-[10px] text-muted-foreground hover:text-cyan transition-colors" prefetch={false}>Help Center</Link>
+            <Link href="#" className="text-[10px] text-muted-foreground hover:text-cyan transition-colors" prefetch={false}>Terms</Link> {/* Placeholder */}
+            <Link href="#" className="text-[10px] text-muted-foreground hover:text-cyan transition-colors" prefetch={false}>Privacy</Link> {/* Placeholder */}
           </nav>
         </div>
       </footer>

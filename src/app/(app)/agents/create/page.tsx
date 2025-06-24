@@ -321,13 +321,13 @@ export default function CreateAgentPage() {
     <div className="max-w-2xl mx-auto">
       <Card>
         <CardHeader className="p-4 sm:p-6">
-          <CardTitle className="font-headline text-primary text-xl sm:text-2xl flex items-center gap-2">
+          <CardTitle className="font-headline text-purple text-xl sm:text-2xl flex items-center gap-2">
              <Bot className="w-6 h-6 sm:w-7 sm:h-7"/>{pageTitle}
           </CardTitle>
           <CardDescription className="text-sm">
             {selectedTemplate ? `Starting with the "${selectedTemplate.id.replace(/_/g, ' ')}" template. ` : ""}
             Tell us about the agent you want to build. This information will help our AI craft a baseline personality and greeting.
-            {!selectedTemplate && <Link href="/app/templates-gallery" className="underline hover:text-primary">Browse templates</Link>}
+            {!selectedTemplate && <Link href="/app/templates-gallery" className="underline hover:text-cyan">Browse templates</Link>}
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
@@ -477,11 +477,11 @@ export default function CreateAgentPage() {
               </div>
             </div>
             {(currentAgentType === 'voice' || currentAgentType === 'hybrid') && (
-                <Alert variant="default" className="p-3 text-xs bg-accent/10 dark:bg-accent/20 border-accent/30">
-                    <Mic className="h-4 w-4 text-accent"/>
-                    <AlertTitle className="text-accent text-xs sm:text-sm font-medium">Voice Agent Tip</AlertTitle>
-                    <AlertDescription className="text-accent/80 dark:text-accent/90 text-[11px] sm:text-xs">
-                        For voice agents to use your own Twilio account for calls, ensure your Twilio credentials are set up in <Link href="/settings" className="underline hover:text-accent-foreground">User Profile Settings <ExternalLink className="inline w-2.5 h-2.5 ml-0.5"/></Link>.
+                <Alert variant="default" className="p-3 text-xs bg-cyan/10 dark:bg-cyan/20 border-cyan/30">
+                    <Mic className="h-4 w-4 text-cyan"/>
+                    <AlertTitle className="text-cyan text-xs sm:text-sm font-medium">Voice Agent Tip</AlertTitle>
+                    <AlertDescription className="text-cyan/80 dark:text-cyan/90 text-[11px] sm:text-xs">
+                        For voice agents to use your own Twilio account for calls, ensure your Twilio credentials are set up in <Link href="/settings" className="underline hover:text-cyan-foreground">User Profile Settings <ExternalLink className="inline w-2.5 h-2.5 ml-0.5"/></Link>.
                     </AlertDescription>
                 </Alert>
             )}
@@ -576,7 +576,7 @@ export default function CreateAgentPage() {
       {generatedAgentDetails && (
         <Card className="mt-6 sm:mt-8">
           <CardHeader className="p-4 sm:p-6">
-            <CardTitle className="font-headline text-primary text-lg sm:text-xl">AI Generated Details (Suggestions)</CardTitle>
+            <CardTitle className="font-headline text-purple text-lg sm:text-xl">AI Generated Details (Suggestions)</CardTitle>
             <CardDescription className="text-xs italic">You can refine these details in the 'Personality' section for this agent after creation.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6">

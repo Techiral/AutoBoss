@@ -94,7 +94,7 @@ export default function ClientAgentsDashboardPage() {
     <div className="space-y-6 sm:space-y-8">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-            <h1 className="font-headline text-primary text-2xl sm:text-3xl font-bold flex items-center gap-2">
+            <h1 className="font-headline text-purple text-2xl sm:text-3xl font-bold flex items-center gap-2">
                 <Bot className="w-7 h-7 sm:w-8 sm:w-8"/> Agents for: {client.name}
             </h1>
             {client.description && <p className="text-sm text-muted-foreground mt-1">{client.description}</p>}

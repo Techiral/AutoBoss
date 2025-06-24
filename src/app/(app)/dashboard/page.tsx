@@ -89,7 +89,7 @@ export default function ClientDashboardPage() {
   return (
     <div className="space-y-6 sm:space-y-8">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
-        <h1 className="font-headline text-primary text-2xl sm:text-3xl font-bold flex items-center gap-2">
+        <h1 className="font-headline text-purple text-2xl sm:text-3xl font-bold flex items-center gap-2">
           <Briefcase className="w-7 h-7 sm:w-8 sm:w-8" /> Your Client Workspace
         </h1>
         <Dialog open={isAddClientDialogOpen} onOpenChange={setIsAddClientDialogOpen}>

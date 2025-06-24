@@ -68,8 +68,8 @@ export default function ExportAgentPage() {
   const apiEndpointChat = agent && baseUrl ? `${baseUrl}/api/agents/${agent.id}/chat` : "";
   const apiEndpointVoice = agent && baseUrl ? `${baseUrl}/api/agents/${agent.id}/voice-hook` : "";
 
-  const primaryHslRef = useRef("217 91% 58%"); 
-  const primaryFgHslRef = useRef("210 100% 98%");
+  const primaryHslRef = useRef("111 100% 53%"); 
+  const primaryFgHslRef = useRef("228 14% 12%");
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -218,7 +218,7 @@ export default function ExportAgentPage() {
     <div className="space-y-4 md:space-y-6">
       <Card>
         <CardHeader className="p-4 sm:p-6">
-          <CardTitle className="font-headline text-primary text-xl sm:text-2xl flex items-center gap-2"> <Share2 className="w-6 h-6 sm:w-7 sm:h-7"/>Deploy & Share: {agent.generatedName || agent.name}</CardTitle>
+          <CardTitle className="font-headline text-purple text-xl sm:text-2xl flex items-center gap-2"> <Share2 className="w-6 h-6 sm:w-7 sm:h-7"/>Deploy & Share: {agent.generatedName || agent.name}</CardTitle>
           <CardDescription className="text-sm">Easily embed this AI agent or provide direct links for your client. Use the tabs below to navigate different deployment options.</CardDescription>
         </CardHeader>
         <CardContent className="p-4 sm:p-6">
@@ -235,12 +235,12 @@ export default function ExportAgentPage() {
                 <>
                   <div>
                     <Label htmlFor="chatLauncherScript" className="flex items-center mb-1 text-sm sm:text-base font-semibold">
-                      <Code className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary" /> Embed Chatbot on Any Website (Recommended)
+                      <Code className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-cyan" /> Embed Chatbot on Any Website (Recommended)
                     </Label>
                     <Alert variant="default" className="mb-2 p-3 sm:p-4">
-                        <Info className="h-4 w-4 text-accent" />
-                        <AlertTitle className="text-sm sm:text-base text-accent">How to Use This Script</AlertTitle>
-                        <AlertDescription className="text-xs text-accent/90">
+                        <Info className="h-4 w-4 text-cyan" />
+                        <AlertTitle className="text-sm sm:text-base text-cyan">How to Use This Script</AlertTitle>
+                        <AlertDescription className="text-xs text-cyan/90">
                           To add this chatbot to your client's website, copy the script below and paste it just before the closing &lt;/body&gt; tag on any page of their site. It will add a floating chat launcher button.
                         </AlertDescription>
                     </Alert>
@@ -255,7 +255,7 @@ export default function ExportAgentPage() {
 
                   <div className="border-t pt-6 sm:pt-8">
                     <Label htmlFor="chatbotLink" className="flex items-center mb-1 text-sm sm:text-base font-semibold">
-                      <Globe className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary" /> Direct Chatbot Link (For Sharing or Testing)
+                      <Globe className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-cyan" /> Direct Chatbot Link (For Sharing or Testing)
                     </Label>
                     <div className="flex items-center gap-2">
                       <Input id="chatbotLink" value={chatbotLink} readOnly className="text-sm"/>
@@ -265,10 +265,10 @@ export default function ExportAgentPage() {
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">Share this link for direct access. Useful for quick previews or when embedding isn't an option.</p>
                      {!baseUrl && <p className="text-xs text-destructive mt-1">Base URL not yet available. Refresh page if needed.</p>}
-                     <Alert variant="default" className="mt-2 p-3 sm:p-4 bg-accent/10 dark:bg-accent/20 border-accent/30">
-                        <MessageSquare className="h-4 w-4 text-accent" />
-                        <AlertTitle className="text-accent text-sm sm:text-base">Embedding Note</AlertTitle>
-                        <AlertDescription className="text-accent/80 dark:text-accent/90 text-xs">
+                     <Alert variant="default" className="mt-2 p-3 sm:p-4 bg-cyan/10 dark:bg-cyan/20 border-cyan/30">
+                        <MessageSquare className="h-4 w-4 text-cyan" />
+                        <AlertTitle className="text-cyan text-sm sm:text-base">Embedding Note</AlertTitle>
+                        <AlertDescription className="text-cyan/80 dark:text-cyan/90 text-xs">
                         The chat pages (like the direct link above) are designed to be embedded in iframes from any website, which is how the launcher script works.
                         </AlertDescription>
                     </Alert>
@@ -287,7 +287,7 @@ export default function ExportAgentPage() {
               {showVoiceFeatures ? (
                 <div className="space-y-4">
                   <h3 className="text-lg sm:text-xl font-semibold flex items-center gap-2">
-                    <Mic className="w-5 h-5 sm:w-6 sm:w-6 text-primary" /> Enable Voice Calls with Twilio
+                    <Mic className="w-5 h-5 sm:w-6 sm:w-6 text-purple" /> Enable Voice Calls with Twilio
                   </h3>
                   <Alert variant="default" className="p-3 sm:p-4 bg-muted/50 dark:bg-card/90 border-border/70">
                       <PhoneCall className="h-4 w-4 text-muted-foreground" />
@@ -313,7 +313,7 @@ export default function ExportAgentPage() {
                   </div>
                    <div className="space-y-1.5">
                       <Label htmlFor="apiEndpointVoice" className="flex items-center mb-1 text-xs font-semibold">
-                          <Server className="w-3 h-3 mr-1.5 text-primary" /> Voice API Endpoint (for Twilio Webhook)
+                          <Server className="w-3 h-3 mr-1.5 text-cyan" /> Voice API Endpoint (for Twilio Webhook)
                       </Label>
                        <div className="flex items-center gap-2">
                           <Input id="apiEndpointVoice" value={apiEndpointVoice} readOnly className="text-[10px] sm:text-xs"/>
@@ -341,7 +341,7 @@ export default function ExportAgentPage() {
 
             <TabsContent value="api" className="space-y-3">
               <Label className="flex items-center text-sm sm:text-base font-semibold">
-                <Server className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary" /> For Developers: API Endpoints
+                <Server className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-purple" /> For Developers: API Endpoints
               </Label>
                <Alert variant="default" className="p-3 sm:p-4 bg-muted/30 dark:bg-card/80 border-border/50">
                   <Info className="h-4 w-4 text-muted-foreground" />
@@ -416,7 +416,7 @@ export default function ExportAgentPage() {
                     </div>
               </div>
                <Alert variant="default" className="mt-3 sm:mt-4 p-3 sm:p-4">
-                   <ShieldCheck className="h-4 w-4 text-primary" />
+                   <ShieldCheck className="h-4 w-4 text-cyan" />
                    <AlertTitle className="text-sm sm:text-base">API Production Notes</AlertTitle>
                    <AlertDescription className="text-xs">
                        If using APIs directly in a production client application, consider API versioning, robust authentication mechanisms, rate limiting, and comprehensive logging & monitoring. The embed script handles most of this complexity for typical website chat use.
@@ -427,7 +427,7 @@ export default function ExportAgentPage() {
             <TabsContent value="showcase" className="space-y-4">
                 <div className="space-y-2">
                     <h3 className="text-lg sm:text-xl font-semibold flex items-center gap-2">
-                        <Eye className="w-5 h-5 sm:w-6 sm:w-6 text-primary" /> Public Agent Showcase
+                        <Eye className="w-5 h-5 sm:w-6 sm:w-6 text-purple" /> Public Agent Showcase
                     </h3>
                     <p className="text-sm text-muted-foreground">
                         Opt-in to list this agent in the public AutoBoss Showcase. This can help attract users and demonstrate your work.

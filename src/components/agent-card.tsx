@@ -74,7 +74,7 @@ export function AgentCard({ agent, onDelete }: AgentCardProps) {
       <CardHeader className="p-4 sm:p-5">
         <div className="flex items-start justify-between mb-1.5 sm:mb-2">
           <div className="flex items-center gap-2 sm:gap-3">
-            <Bot className="w-7 h-7 sm:w-8 sm:h-8 text-primary shrink-0" />
+            <Bot className="w-7 h-7 sm:w-8 sm:w-8 text-purple shrink-0" />
             <CardTitle className="font-headline text-lg sm:text-xl break-all">{agent.generatedName || agent.name}</CardTitle>
           </div>
           <div className="flex flex-col items-end gap-1">
@@ -121,4 +121,3 @@ export function AgentCard({ agent, onDelete }: AgentCardProps) {
     </Card>
   );
 }
-    

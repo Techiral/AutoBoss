@@ -15,16 +15,16 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    --primary: 217 91% 59%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 111 100% 53%; /* Neon Green */
+    --primary-foreground: 228 14% 12%; /* Dark Gray for text on green */
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222 47% 11%;
+    --secondary: 217 91% 60%; /* Blue */
+    --secondary-foreground: 210 40% 98%;
 
     --muted: 210 40% 96.1%;
     --muted-foreground: 215 20% 65%;
 
-    --accent: 210 40% 96.1%;
+    --accent: 187 85% 53%; /* Cyan */
     --accent-foreground: 222 47% 11%;
 
     --destructive: 0 84% 60%;
@@ -32,70 +32,80 @@
 
     --border: 214 32% 91%;
     --input: 214 32% 91%;
-    --ring: 217 91% 59%;
+    --ring: 111 100% 53%; /* Neon Green for rings */
 
-    --radius: 0.5rem;
+    /* Custom Colors */
+    --purple: 256 92% 76%;
+    --pink: 336 83% 70%;
+    --neon-green: 111 100% 53%;
+    --cyan: 187 85% 53%;
 
     --chart-1: hsl(var(--primary));
-    --chart-2: 173 58% 39%;
-    --chart-3: 210 40% 80%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 291 44% 51%;
+    --chart-2: hsl(var(--accent));
+    --chart-3: hsl(var(--secondary));
+    --chart-4: hsl(var(--pink));
+    --chart-5: hsl(var(--purple));
 
     --sidebar-background: 0 0% 99%;
     --sidebar-foreground: 222 47% 11%;
-    --sidebar-primary: 217 91% 59%;
-    --sidebar-primary-foreground: 210 40% 98%;
+    --sidebar-primary: hsl(var(--primary));
+    --sidebar-primary-foreground: hsl(var(--primary-foreground));
     --sidebar-accent: 210 40% 96.1%;
-    --sidebar-accent-foreground: 222 47% 11%;
+    --sidebar-accent-foreground: hsl(var(--accent));
     --sidebar-border: 214 32% 91%;
-    --sidebar-ring: 217 91% 59%;
+    --sidebar-ring: hsl(var(--accent));
   }
 
   .dark {
-    /* Dark Theme - A modern, tech-focused blue on a near-black background */
-    --background: 222 47% 11%;
+    /* Dark Theme - The new vibrant theme */
+    --background: 222 47% 11%; /* Black/Dark Gray */
     --foreground: 210 40% 98%;
 
-    --card: 222 47% 13%;
+    --card: 215 28% 17%; /* Dark Gray */
     --card-foreground: 210 40% 98%;
 
     --popover: 222 47% 11%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 217 91% 59%; /* Classic, vibrant blue */
-    --primary-foreground: 210 40% 98%; /* White text on blue buttons */
+    --primary: 111 100% 53%; /* Neon Green */
+    --primary-foreground: 228 14% 12%; /* Dark Gray for text on green */
 
-    --secondary: 217 33% 17%;
+    --secondary: 217 91% 60%; /* Blue */
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 217 33% 17%;
+    --muted: 217 33% 22%;
     --muted-foreground: 215 20% 65%;
 
-    --accent: 217 33% 17%;
+    --accent: 187 85% 53%; /* Cyan */
     --accent-foreground: 210 40% 98%;
 
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 336 83% 70%; /* Pink for destructive */
+    --destructive-foreground: 228 14% 12%;
 
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 217 91% 59%;
-    
+    --border: 217 33% 25%;
+    --input: 217 33% 25%;
+    --ring: 187 85% 53%; /* Cyan for rings */
+
+    /* Custom Colors */
+    --purple: 256 92% 76%;
+    --pink: 336 83% 70%;
+    --neon-green: 111 100% 53%;
+    --cyan: 187 85% 53%;
+
     --chart-1: hsl(var(--primary));
-    --chart-2: 173 58% 39%;
-    --chart-3: 210 40% 80%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 291 44% 51%;
+    --chart-2: hsl(var(--accent));
+    --chart-3: hsl(var(--secondary));
+    --chart-4: hsl(var(--pink));
+    --chart-5: hsl(var(--purple));
     
     --sidebar-background: 222 47% 10%;
     --sidebar-foreground: 210 40% 98%;
     --sidebar-primary: hsl(var(--primary));
-    --sidebar-primary-foreground: 210 40% 98%;
+    --sidebar-primary-foreground: hsl(var(--primary-foreground));
     --sidebar-accent: 222 47% 14%;
-    --sidebar-accent-foreground: hsl(var(--primary));
+    --sidebar-accent-foreground: hsl(var(--accent));
     --sidebar-border: 217 33% 15%;
-    --sidebar-ring: hsl(var(--primary));
+    --sidebar-ring: hsl(var(--accent));
   }
 }
 
@@ -157,11 +167,12 @@
     @apply bg-background/95 backdrop-blur-sm shadow-lg;
 }
 
-/* Solid Color Text & Button Helpers (Replaces Gradients) */
+/* Titles should be purple */
 .text-gradient-dynamic {
-  @apply text-primary;
+  @apply text-purple;
 }
 
+/* Primary buttons should be neon green */
 .btn-gradient-primary {
   @apply bg-primary text-primary-foreground shadow-md hover:bg-primary/90 transition-colors;
 }
@@ -172,7 +183,7 @@
     @apply bg-background p-4 sm:p-5 rounded-lg shadow-lg text-left transform hover:scale-105 transition-transform duration-300;
 }
 .simple-benefit-card-icon {
-    @apply p-2 rounded-lg bg-primary/10 text-primary mb-2 inline-block;
+    @apply p-2 rounded-lg bg-cyan/10 text-cyan mb-2 inline-block;
 }
 .simple-benefit-card-title {
     @apply font-headline text-base sm:text-lg font-semibold text-foreground mb-1;
@@ -200,7 +211,7 @@
   @apply absolute inset-0 flex flex-col items-center justify-center text-center text-foreground/80 bg-black/50 p-4;
 }
 .video-placeholder-text svg {
- @apply w-8 h-8 sm:w-10 sm:h-10 opacity-70 mb-1 text-primary;
+ @apply w-8 h-8 sm:w-10 sm:w-10 opacity-70 mb-1 text-primary;
 }
 
 /* Ensure placeholder images show their data-ai-hint clearly but are not obtrusive */
@@ -224,12 +235,12 @@ div[data-ai-hint] {
   @apply active:scale-95 active:brightness-90 duration-150 ease-out;
 }
 
-/* Ensure outline button hover text has good contrast */
+/* Outline button hover should use cyan accent */
 .btn-outline-themed {
-    @apply border-primary/60 text-primary;
+    @apply border-cyan/60 text-cyan;
 }
 .btn-outline-themed:hover {
-    @apply bg-accent text-accent-foreground border-accent;
+    @apply bg-accent/20 text-accent-foreground border-accent;
 }
 
 
@@ -242,7 +253,7 @@ div[data-ai-hint] {
 /* Dashed line for "How It Works" section */
 .dashed-connector::before, .dashed-connector::after {
     content: '';
-    @apply absolute top-1/2 border-t-2 border-dashed border-primary/20 -translate-y-1/2 z-0;
+    @apply absolute top-1/2 border-t-2 border-dashed border-purple/20 -translate-y-1/2 z-0;
 }
 .dashed-connector.left::before { @apply left-0 w-1/2; }
 .dashed-connector.right::after { @apply right-0 w-1/2; }
@@ -312,5 +323,3 @@ div[data-ai-hint] {
 .public-page-footer {
     @apply py-6 text-center border-t border-border/60;
 }
-
-    

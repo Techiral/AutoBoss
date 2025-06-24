@@ -66,7 +66,7 @@ export default function AgentDetailLayout({ children }: { children: React.ReactN
   return (
     <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="font-headline text-primary text-2xl sm:text-3xl font-bold break-words">
+        <h1 className="font-headline text-purple text-2xl sm:text-3xl font-bold break-words">
           {agent.generatedName || agent.name}
           {clientName && <span className="text-muted-foreground text-lg sm:text-xl font-normal"> (for {clientName})</span>}
         </h1>
