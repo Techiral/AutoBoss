@@ -5,103 +5,97 @@
 
 @layer base {
   :root {
-    /* Light Theme (Secondary, for users who prefer it) */
-    --background: 0 0% 100%; /* White */
-    --foreground: 220 17% 12%; /* Very Dark Gray/Almost Black Text */
+    /* Light Theme - A clean, professional default */
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
 
-    --card: 0 0% 97%; /* Very Light Gray */
-    --card-foreground: 220 17% 12%; /* Very Dark Gray/Almost Black Text */
+    --card: 0 0% 98%;
+    --card-foreground: 222 47% 11%;
 
-    --popover: 0 0% 97%;
-    --popover-foreground: 220 17% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
 
-    --primary: 217 91% 58%; /* Vibrant Blue */
-    --primary-foreground: 210 100% 98%; /* White */
+    --primary: 217 91% 59%;
+    --primary-foreground: 210 40% 98%;
 
-    --secondary: 220 15% 90%; /* Light Gray */
-    --secondary-foreground: 220 15% 30%; /* Darker Gray Text */
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222 47% 11%;
 
-    --muted: 220 15% 94%; /* Very Light Muted Gray */
-    --muted-foreground: 220 10% 45%; /* Medium Gray Text */
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215 20% 65%;
 
-    --electric-teal: 175 80% 45%;
-    --neon-lime: 90 85% 55%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222 47% 11%;
 
-    --accent: var(--electric-teal); /* Default accent to teal for single color use */
-    --accent-foreground: 0 0% 100%; /* White */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
 
-    --destructive: 0 72% 51%; /* Red */
-    --destructive-foreground: 0 0% 100%; /* White */
-
-    --border: 220 10% 88%; /* Light Gray Border */
-    --input: 220 10% 88%; /* Light Gray Input Background */
-    --ring: 217 91% 58%; /* Vibrant Blue for focus rings */
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 217 91% 59%;
 
     --radius: 0.5rem;
 
-    --chart-1: 217 91% 58%;
-    --chart-2: 175 80% 45%; /* Teal */
-    --chart-3: 220 10% 60%;
-    --chart-4: 90 85% 55%;  /* Lime */
-    --chart-5: 300 70% 60%;
+    --chart-1: hsl(var(--primary));
+    --chart-2: 173 58% 39%;
+    --chart-3: 210 40% 80%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 291 44% 51%;
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 220 17% 15%;
-    --sidebar-primary: 217 91% 58%;
-    --sidebar-primary-foreground: 210 100% 98%;
-    --sidebar-accent: 220 15% 90%;
-    --sidebar-accent-foreground: 217 91% 50%;
-    --sidebar-border: 220 10% 85%;
-    --sidebar-ring: 217 91% 58%;
+    --sidebar-background: 0 0% 99%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-primary: 217 91% 59%;
+    --sidebar-primary-foreground: 210 40% 98%;
+    --sidebar-accent: 210 40% 96.1%;
+    --sidebar-accent-foreground: 222 47% 11%;
+    --sidebar-border: 214 32% 91%;
+    --sidebar-ring: 217 91% 59%;
   }
 
   .dark {
-    /* Dark Theme (Primary) - Based on Screenshot */
-    --background: 224 24% 10%; /* Dark Navy Blue */
-    --foreground: 210 25% 96%; /* Off-white/Light Gray for text */
+    /* Dark Theme - A modern, tech-focused blue on a near-black background */
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
 
-    --card: 223 20% 14%; /* Very Dark Gray for card backgrounds */
-    --card-foreground: 210 25% 96%; /* Off-white for card text */
+    --card: 222 47% 13%;
+    --card-foreground: 210 40% 98%;
 
-    --popover: 223 20% 14%;
-    --popover-foreground: 210 25% 96%;
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
 
-    --primary: 175 80% 50%; /* Teal for primary actions */
-    --primary-foreground: 220 17% 8%; /* Dark text for teal buttons */
+    --primary: 217 91% 59%; /* Classic, vibrant blue */
+    --primary-foreground: 210 40% 98%; /* White text on blue buttons */
 
-    --secondary: 220 15% 22%; /* Darker muted gray */
-    --secondary-foreground: 210 20% 85%; /* Lighter gray for secondary text */
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
 
-    --muted: 220 15% 18%; /* Very dark muted gray */
-    --muted-foreground: 210 15% 60%; /* Medium gray for muted text */
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 217 33% 17%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 217 91% 59%;
     
-    --electric-teal: 175 80% 50%; /* Teal from style guide */
-    --neon-lime: 90 85% 60%; /* Neon Lime for secondary accents */
-
-    --accent: var(--electric-teal); /* Main accent: Teal */
-    --accent-foreground: 220 17% 8%; /* Dark text on Teal accent */
-
-    --destructive: 0 62% 50%; /* Red for destructive actions */
-    --destructive-foreground: 0 0% 98%; /* Light text on red */
-
-    --border: 220 15% 25%; /* Darker border */
-    --input: 220 15% 20%; /* Dark input background */
-    --ring: var(--electric-teal); /* Teal for focus rings */
-
-    --chart-1: hsl(var(--electric-teal));
-    --chart-2: hsl(var(--neon-lime));
-    --chart-3: 210 15% 70%;
-    --chart-4: 217 91% 65%; /* Original primary blue as a chart color */
-    --chart-5: 300 70% 65%;
-
-    --sidebar-background: 224 24% 11%;
-    --sidebar-foreground: 210 20% 92%;
-    --sidebar-primary: hsl(var(--electric-teal));
-    --sidebar-primary-foreground: 220 17% 8%;
-    --sidebar-accent: 220 16% 18%;
-    --sidebar-accent-foreground: hsl(var(--neon-lime));
-    --sidebar-border: 220 15% 20%;
-    --sidebar-ring: hsl(var(--electric-teal));
+    --chart-1: hsl(var(--primary));
+    --chart-2: 173 58% 39%;
+    --chart-3: 210 40% 80%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 291 44% 51%;
+    
+    --sidebar-background: 222 47% 10%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: hsl(var(--primary));
+    --sidebar-primary-foreground: 210 40% 98%;
+    --sidebar-accent: 222 47% 14%;
+    --sidebar-accent-foreground: hsl(var(--primary));
+    --sidebar-border: 217 33% 15%;
+    --sidebar-ring: hsl(var(--primary));
   }
 }
 
@@ -318,3 +312,5 @@ div[data-ai-hint] {
 .public-page-footer {
     @apply py-6 text-center border-t border-border/60;
 }
+
+    
