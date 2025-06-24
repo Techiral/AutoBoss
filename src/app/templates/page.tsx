@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, ShoppingCart, HomeIcon as RealEstateIcon, CalendarCheck, BotIcon, Lightbulb, Users, Briefcase, LayoutGrid, Users2, Info, MessageSquare, Phone, Brain, DatabaseZap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AgentPurposeType, AgentType, AgentDirection, AgentLogicType } from "@/lib/types"; 
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Logo } from "@/components/logo";
 import { Badge } from "@/components/ui/badge"; 
 
