@@ -322,7 +322,7 @@ export default function CreateAgentPage() {
       <Card>
         <CardHeader className="p-4 sm:p-6">
           <CardTitle className="font-headline text-2xl sm:text-3xl flex items-center gap-2">
-             <Bot className="w-6 h-6 sm:w-7 sm:h-7"/>{pageTitle}
+             <Bot className="w-6 h-6 sm:w-7 sm:w-7"/>{pageTitle}
           </CardTitle>
           <CardDescription className="text-sm">
             {selectedTemplate ? `Starting with the "${selectedTemplate.id.replace(/_/g, ' ')}" template. ` : ""}
