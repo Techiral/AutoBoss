@@ -4,79 +4,79 @@
 
 @layer base {
   :root {
-    /* Light Theme */
-    --background: 0 0% 98%; /* #FAFAFA */
-    --foreground: 0 0% 10%; /* #1A1A1A */
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 10%;
+    /* Light Theme Palette */
+    --background: 0 0% 100%; /* #FFFFFF */
+    --foreground: 0 0% 20%; /* #333333 */
+    --card: 0 0% 98%; /* #FAFAFA */
+    --card-foreground: 0 0% 20%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 10%;
-    --primary: 216 100% 50%; /* #0066FF */
-    --primary-foreground: 0 0% 100%; /* White */
-    --secondary: 0 0% 95%; /* Light Gray for secondary elements */
-    --secondary-foreground: 0 0% 10%;
-    --muted: 0 0% 95%;
-    --muted-foreground: 0 0% 40%; /* #888888 toned down */
-    --accent: 216 100% 50%; /* #0066FF */
-    --accent-foreground: 0 0% 100%;
+    --popover-foreground: 0 0% 20%;
+    --primary: 192 100% 50%; /* #00D1FF */
+    --primary-foreground: 0 0% 5%; /* #0D0D0D - For high contrast on the cyan button */
+    --secondary: 0 0% 98%; /* #FAFAFA */
+    --secondary-foreground: 0 0% 20%;
+    --muted: 0 0% 98%;
+    --muted-foreground: 0 0% 53%; /* #888888 */
+    --accent: 192 100% 50%;
+    --accent-foreground: 0 0% 5%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
-    --ring: 216 100% 50%;
+    --border: 0 0% 93%; /* Lighter border for light mode */
+    --input: 0 0% 93%;
+    --ring: 192 100% 50%;
 
-    --chart-1: 216 100% 50%;
-    --chart-2: 216 80% 65%;
-    --chart-3: 216 70% 75%;
-    --chart-4: 216 60% 85%;
-    --chart-5: 216 50% 95%;
+    --chart-1: 192 100% 50%;
+    --chart-2: 192 80% 65%;
+    --chart-3: 192 70% 75%;
+    --chart-4: 192 60% 85%;
+    --chart-5: 192 50% 95%;
     
     --sidebar-background: 0 0% 99%;
-    --sidebar-foreground: 0 0% 10%;
-    --sidebar-primary: 216 100% 50%;
-    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-foreground: 0 0% 20%;
+    --sidebar-primary: 192 100% 50%;
+    --sidebar-primary-foreground: 0 0% 5%;
     --sidebar-accent: 0 0% 95%;
-    --sidebar-accent-foreground: 216 100% 50%;
+    --sidebar-accent-foreground: 192 100% 50%;
     --sidebar-border: 0 0% 90%;
-    --sidebar-ring: 216 100% 50%;
+    --sidebar-ring: 192 100% 50%;
   }
 
   .dark {
-    /* Dark Theme */
-    --background: 0 0% 7%; /* #121212 */
-    --foreground: 0 0% 88%; /* #E0E0E0 */
-    --card: 0 0% 10%; 
-    --card-foreground: 0 0% 88%;
-    --popover: 0 0% 7%;
-    --popover-foreground: 0 0% 88%;
-    --primary: 165 100% 40%; /* #00CC99 */
-    --primary-foreground: 0 0% 7%; /* Dark text on mint green */
-    --secondary: 0 0% 15%; /* Lighter gray for secondary elements */
-    --secondary-foreground: 0 0% 88%;
-    --muted: 0 0% 15%;
-    --muted-foreground: 0 0% 45%; /* #555555 toned down */
-    --accent: 165 100% 40%; /* #00CC99 */
-    --accent-foreground: 0 0% 7%;
+    /* Dark Theme Palette */
+    --background: 0 0% 5%; /* #0D0D0D */
+    --foreground: 0 0% 96%; /* #F5F5F5 */
+    --card: 0 0% 12%; /* #1F1F1F */
+    --card-foreground: 0 0% 96%;
+    --popover: 0 0% 12%;
+    --popover-foreground: 0 0% 96%;
+    --primary: 192 100% 50%; /* #00D1FF */
+    --primary-foreground: 0 0% 5%; /* #0D0D0D - For high contrast on the cyan button */
+    --secondary: 0 0% 12%; /* #1F1F1F */
+    --secondary-foreground: 0 0% 96%;
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 63%; /* Lighter grey for dark mode readability */
+    --accent: 192 100% 50%;
+    --accent-foreground: 0 0% 5%;
     --destructive: 0 72% 51%; /* Red */
-    --destructive-foreground: 0 0% 88%;
-    --border: 0 0% 20%;
-    --input: 0 0% 20%;
-    --ring: 165 100% 40%;
+    --destructive-foreground: 0 0% 96%;
+    --border: 0 0% 18%; /* Border for dark mode */
+    --input: 0 0% 18%;
+    --ring: 192 100% 50%;
 
-    --chart-1: 165 100% 40%;
-    --chart-2: 165 80% 55%;
-    --chart-3: 165 70% 65%;
-    --chart-4: 165 60% 75%;
-    --chart-5: 165 50% 85%;
+    --chart-1: 192 100% 50%;
+    --chart-2: 192 80% 55%;
+    --chart-3: 192 70% 65%;
+    --chart-4: 192 60% 75%;
+    --chart-5: 192 50% 85%;
     
-    --sidebar-background: 0 0% 8%;
-    --sidebar-foreground: 0 0% 88%;
-    --sidebar-primary: 165 100% 40%;
-    --sidebar-primary-foreground: 0 0% 7%;
-    --sidebar-accent: 0 0% 12%;
-    --sidebar-accent-foreground: 165 100% 40%;
+    --sidebar-background: 0 0% 8%; /* Slightly different from card for depth */
+    --sidebar-foreground: 0 0% 96%;
+    --sidebar-primary: 192 100% 50%;
+    --sidebar-primary-foreground: 0 0% 5%;
+    --sidebar-accent: 0 0% 15%;
+    --sidebar-accent-foreground: 192 100% 50%;
     --sidebar-border: 0 0% 15%;
-    --sidebar-ring: 165 100% 40%;
+    --sidebar-ring: 192 100% 50%;
   }
 }
 

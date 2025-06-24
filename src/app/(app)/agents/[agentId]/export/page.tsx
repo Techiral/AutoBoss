@@ -68,8 +68,8 @@ export default function ExportAgentPage() {
   const apiEndpointChat = agent && baseUrl ? `${baseUrl}/api/agents/${agent.id}/chat` : "";
   const apiEndpointVoice = agent && baseUrl ? `${baseUrl}/api/agents/${agent.id}/voice-hook` : "";
 
-  const primaryHslRef = useRef("165 100% 40%"); 
-  const primaryFgHslRef = useRef("0 0% 7%");
+  const primaryHslRef = useRef("192 100% 50%"); 
+  const primaryFgHslRef = useRef("0 0% 5%");
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -247,7 +247,7 @@ export default function ExportAgentPage() {
                     <div className="relative">
                       <Textarea id="chatLauncherScript" value={chatLauncherScript.trim()} readOnly rows={10} className="font-code text-[10px] sm:text-xs bg-muted/50 p-2"/>
                       <Button variant="outline" size="icon" className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 h-6 w-6 sm:h-7 sm:w-7" onClick={() => handleCopy(chatLauncherScript.trim(), "Chat Launcher Script")} aria-label="Copy Chat Launcher Script" disabled={!chatLauncherScript}>
-                        {copied === "Chat Launcher Script" ? <Check className="w-3 h-3 sm:w-4 sm:w-4 text-green-500" /> : <Copy className="w-3 h-3 sm:w-4 sm:w-4" />}
+                        {copied === "Chat Launcher Script" ? <Check className="w-3 h-3 sm:w-4 sm:w-4 text-primary" /> : <Copy className="w-3 h-3 sm:w-4 sm:w-4" />}
                       </Button>
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">This script creates a floating button that opens the chatbot in a popup. It's the easiest way to integrate. Test this script on a simple HTML page before deploying to a live client site.</p>
@@ -260,7 +260,7 @@ export default function ExportAgentPage() {
                     <div className="flex items-center gap-2">
                       <Input id="chatbotLink" value={chatbotLink} readOnly className="text-sm"/>
                       <Button variant="outline" size="icon" onClick={() => handleCopy(chatbotLink, "Chatbot Link")} aria-label="Copy Chatbot Link" disabled={!chatbotLink} className="h-9 w-9 sm:h-10 sm:w-10">
-                        {copied === "Chatbot Link" ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                        {copied === "Chatbot Link" ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
                       </Button>
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">Share this link for direct access. Useful for quick previews or when embedding isn't an option.</p>
@@ -318,7 +318,7 @@ export default function ExportAgentPage() {
                        <div className="flex items-center gap-2">
                           <Input id="apiEndpointVoice" value={apiEndpointVoice} readOnly className="text-[10px] sm:text-xs"/>
                           <Button variant="outline" size="icon" onClick={() => handleCopy(apiEndpointVoice, "Voice API Endpoint")} aria-label="Copy Voice API Endpoint" disabled={!apiEndpointVoice} className="h-8 w-8 sm:h-9 sm:w-9">
-                              {copied === "Voice API Endpoint" ? <Check className="w-3 h-3 sm:w-4 sm:w-4 text-green-500" /> : <Copy className="w-3 h-3 sm:w-4 sm:w-4" />}
+                              {copied === "Voice API Endpoint" ? <Check className="w-3 h-3 sm:w-4 sm:w-4 text-primary" /> : <Copy className="w-3 h-3 sm:w-4 sm:w-4" />}
                           </Button>
                       </div>
                       <p className="text-[10px] text-muted-foreground mt-0.5">Configure this URL in your Twilio phone number's settings for incoming calls (Voice & Fax &gt; A call comes in &gt; Webhook).</p>
@@ -360,7 +360,7 @@ export default function ExportAgentPage() {
                       <div className="flex items-center gap-2">
                         <Input id="apiEndpointChat" value={apiEndpointChat} readOnly className="text-sm"/>
                         <Button variant="outline" size="icon" onClick={() => handleCopy(apiEndpointChat, "Chat API Endpoint")} aria-label="Copy Chat API Endpoint" disabled={!apiEndpointChat} className="h-9 w-9 sm:h-10 sm:w-10">
-                          {copied === "Chat API Endpoint" ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                          {copied === "Chat API Endpoint" ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
                         </Button>
                       </div>
                   </div>
@@ -370,7 +370,7 @@ export default function ExportAgentPage() {
                           <div className="flex items-center gap-2">
                               <Input id="apiEndpointVoiceDev" value={apiEndpointVoice} readOnly className="text-sm"/>
                               <Button variant="outline" size="icon" onClick={() => handleCopy(apiEndpointVoice, "Voice API Endpoint Dev")} aria-label="Copy Voice API Endpoint" disabled={!apiEndpointVoice} className="h-9 w-9 sm:h-10 sm:w-10">
-                                  {copied === "Voice API Endpoint Dev" ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                                  {copied === "Voice API Endpoint Dev" ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
                               </Button>
                           </div>
                            <p className="text-[10px] text-muted-foreground mt-0.5">Use this for Twilio webhook configuration if building a voice agent.</p>
@@ -387,7 +387,7 @@ export default function ExportAgentPage() {
                       <div className="relative">
                           <Textarea id="apiRequestExampleMinimal" value={`{\n  "message": "Hello, what can you do?"\n}`} readOnly rows={3} className="font-code text-xs bg-muted/50 p-2"/>
                           <Button variant="outline" size="icon" className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 h-6 w-6 sm:h-7 sm:w-7" onClick={() => handleCopy(`{\n  "message": "Hello, what can you do?"\n}`, "API Request Minimal")} aria-label="Copy API Request Minimal" >
-                              {copied === "API Request Minimal" ? <Check className="w-3 h-3 sm:w-4 sm:w-4 text-green-500" /> : <Copy className="w-3 h-3 sm:w-4 sm:w-4" />}
+                              {copied === "API Request Minimal" ? <Check className="w-3 h-3 sm:w-4 sm:w-4 text-primary" /> : <Copy className="w-3 h-3 sm:w-4 sm:w-4" />}
                           </Button>
                       </div>
                   </div>
@@ -398,7 +398,7 @@ export default function ExportAgentPage() {
                       <div className="relative">
                           <Textarea id="apiRequestExampleWithFlow" value={`{\n  "message": "My order ID is 12345",\n  "conversationHistory": ["User: I want to check my order status", "Agent: Sure, what is your order ID?"]\n}`} readOnly rows={6} className="font-code text-xs bg-muted/50 p-2"/>
                           <Button variant="outline" size="icon" className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 h-6 w-6 sm:h-7 sm:w-7" onClick={() => handleCopy(`{\n  "message": "My order ID is 12345",\n  "conversationHistory": ["User: I want to check my order status", "Agent: Sure, what is your order ID?"]\n}`, "API Request With Flow")} aria-label="Copy API Request With Flow">
-                              {copied === "API Request With Flow" ? <Check className="w-3 h-3 sm:w-4 sm:w-4 text-green-500" /> : <Copy className="w-3 h-3 sm:w-4 sm:w-4" />}
+                              {copied === "API Request With Flow" ? <Check className="w-3 h-3 sm:w-4 sm:w-4 text-primary" /> : <Copy className="w-3 h-3 sm:w-4 sm:w-4" />}
                           </Button>
                       </div>
                   </div>
@@ -410,7 +410,7 @@ export default function ExportAgentPage() {
                          <div className="relative">
                             <Textarea id="apiAutonomousResponseExample" value={`{\n  "reply": "As an AI assistant, I can answer your questions based on my knowledge.",\n  "reasoning": "...",\n  "relevantKnowledgeIds": []\n}`} readOnly rows={5} className="font-code text-xs bg-muted/50 p-2"/>
                             <Button variant="outline" size="icon" className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 h-6 w-6 sm:h-7 sm:w-7" onClick={() => handleCopy(`{\n  "reply": "As an AI assistant, I can answer your questions based on my knowledge.",\n  "reasoning": "...",\n  "relevantKnowledgeIds": []\n}`, "API Autonomous Response")} aria-label="Copy API Autonomous Response">
-                                {copied === "API Autonomous Response" ? <Check className="w-3 h-3 sm:w-4 sm:w-4 text-green-500" /> : <Copy className="w-3 h-3 sm:w-4 sm:w-4" />}
+                                {copied === "API Autonomous Response" ? <Check className="w-3 h-3 sm:w-4 sm:w-4 text-primary" /> : <Copy className="w-3 h-3 sm:w-4 sm:w-4" />}
                             </Button>
                         </div>
                     </div>

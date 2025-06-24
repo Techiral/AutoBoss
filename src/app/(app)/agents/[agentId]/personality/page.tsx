@@ -246,10 +246,10 @@ export default function PersonalityPage() {
                       <SelectValue placeholder="Select agent's tone" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="neutral"><div className="flex items-center gap-2"><Smile className="w-4 h-4 opacity-60"/>Neutral / Default</div></SelectItem>
-                      <SelectItem value="friendly"><div className="flex items-center gap-2"><Smile className="w-4 h-4 text-green-500"/>Friendly & Warm</div></SelectItem>
-                      <SelectItem value="professional"><div className="flex items-center gap-2"><Smile className="w-4 h-4 text-blue-500"/>Professional & Precise</div></SelectItem>
-                      <SelectItem value="witty"><div className="flex items-center gap-2"><Smile className="w-4 h-4 text-purple-500"/>Witty & Playful</div></SelectItem>
+                      <SelectItem value="neutral"><div className="flex items-center gap-2"><Smile className="w-4 h-4"/>Neutral / Default</div></SelectItem>
+                      <SelectItem value="friendly"><div className="flex items-center gap-2"><Smile className="w-4 h-4"/>Friendly & Warm</div></SelectItem>
+                      <SelectItem value="professional"><div className="flex items-center gap-2"><Smile className="w-4 h-4"/>Professional & Precise</div></SelectItem>
+                      <SelectItem value="witty"><div className="flex items-center gap-2"><Smile className="w-4 h-4"/>Witty & Playful</div></SelectItem>
                     </SelectContent>
                   </Select>
                 )}
