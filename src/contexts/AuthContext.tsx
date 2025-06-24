@@ -38,7 +38,7 @@ interface AuthContextType {
   updateUserPhoneNumberInFirestore: (phoneNumber: string) => Promise<boolean>;
   getUserPhoneNumberFromFirestore: () => Promise<string | null>;
   updateUserCredentials: (credentials: UserCredentials) => Promise<boolean>;
-  getUserCredentials: () => Promise<UserCredentials | null>;
+  getUserCredentials: () => Promise<UserProfile | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -75,6 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           twilioAuthToken: "",
           twilioPhoneNumber: "",
           elevenLabsApiKey: "",
+          elevenLabsCreditsUsed: 0,
         };
         await setDoc(userRef, userData);
         console.log("AuthContext: User document created in Firestore for UID:", user.uid);
@@ -102,6 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (existingData.twilioAuthToken === undefined) updates.twilioAuthToken = "";
         if (existingData.twilioPhoneNumber === undefined) updates.twilioPhoneNumber = "";
         if (existingData.elevenLabsApiKey === undefined) updates.elevenLabsApiKey = "";
+        if (existingData.elevenLabsCreditsUsed === undefined) updates.elevenLabsCreditsUsed = 0;
 
 
         if (Object.keys(updates).length > 0) {
@@ -284,12 +286,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const userRef = doc(db, "users", currentUser.uid);
       const updateData: Partial<UserProfile> = {};
       
-      if (credentials.sendGridApiKey !== undefined) updateData.sendGridApiKey = credentials.sendGridApiKey;
+      if (credentials.sendGridApiKey !== undefined && credentials.sendGridApiKey !== null) updateData.sendGridApiKey = credentials.sendGridApiKey;
       if (credentials.userDefaultFromEmail !== undefined) updateData.userDefaultFromEmail = credentials.userDefaultFromEmail;
-      if (credentials.twilioAccountSid !== undefined) updateData.twilioAccountSid = credentials.twilioAccountSid;
-      if (credentials.twilioAuthToken !== undefined) updateData.twilioAuthToken = credentials.twilioAuthToken;
+      if (credentials.twilioAccountSid !== undefined && credentials.twilioAccountSid !== null) updateData.twilioAccountSid = credentials.twilioAccountSid;
+      if (credentials.twilioAuthToken !== undefined && credentials.twilioAuthToken !== null) updateData.twilioAuthToken = credentials.twilioAuthToken;
       if (credentials.twilioPhoneNumber !== undefined) updateData.twilioPhoneNumber = credentials.twilioPhoneNumber;
-      if (credentials.elevenLabsApiKey !== undefined) updateData.elevenLabsApiKey = credentials.elevenLabsApiKey;
+      if (credentials.elevenLabsApiKey !== undefined && credentials.elevenLabsApiKey !== null) updateData.elevenLabsApiKey = credentials.elevenLabsApiKey;
       
       await setDoc(userRef, updateData, { merge: true });
       toast({ title: "API Credentials Updated", description: "Your API settings have been saved." });
@@ -301,7 +303,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const getUserCredentials = async (): Promise<UserCredentials | null> => {
+  const getUserCredentials = async (): Promise<UserProfile | null> => {
      if (!currentUser) {
       console.log("AuthContext: Cannot get API credentials, no current user.");
       return null;
@@ -311,18 +313,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const userRef = doc(db, "users", currentUser.uid);
       const docSnap = await getDoc(userRef);
       if (docSnap.exists()) {
-        const userData = docSnap.data() as UserProfile;
-        return {
-          sendGridApiKey: userData.sendGridApiKey || null,
-          userDefaultFromEmail: userData.userDefaultFromEmail || null,
-          twilioAccountSid: userData.twilioAccountSid || null,
-          twilioAuthToken: userData.twilioAuthToken || null,
-          twilioPhoneNumber: userData.twilioPhoneNumber || null,
-          elevenLabsApiKey: userData.elevenLabsApiKey || null,
-        };
+        return docSnap.data() as UserProfile;
       }
       console.log("AuthContext: No user document found for API credentials.");
-      return { sendGridApiKey: null, userDefaultFromEmail: null, twilioAccountSid: null, twilioAuthToken: null, twilioPhoneNumber: null, elevenLabsApiKey: null };
+      return null;
     } catch (error: any) {
       console.error("AuthContext: Error fetching API credentials from Firestore:", error);
       return null;

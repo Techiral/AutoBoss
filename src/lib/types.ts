@@ -14,7 +14,8 @@ export const UserProfileSchema = z.object({
   twilioAccountSid: z.string().optional().nullable().describe("User's Twilio Account SID."),
   twilioAuthToken: z.string().optional().nullable().describe("User's Twilio Auth Token."),
   twilioPhoneNumber: z.string().optional().nullable().describe("User's default Twilio Phone Number for sending SMS/making calls."),
-  elevenLabsApiKey: z.string().optional().nullable().describe("User's ElevenLabs API Key for Text-to-Speech."),
+  elevenLabsApiKey: z.string().optional().nullable().describe("User's own ElevenLabs API Key for Text-to-Speech."),
+  elevenLabsCreditsUsed: z.number().optional().describe("Counter for free tier usage of the system's ElevenLabs key."),
 });
 export type UserProfile = z.infer<typeof UserProfileSchema>;
 

@@ -358,7 +358,7 @@ export default function PersonalityPage() {
                       <Tooltip>
                           <TooltipTrigger asChild><HelpCircle className="w-3.5 h-3.5 ml-1.5 text-muted-foreground cursor-help"/></TooltipTrigger>
                           <TooltipContent side="top">
-                              <p className="max-w-xs">Enter a specific Voice ID from your ElevenLabs VoiceLab to give this agent a unique voice. If left blank, a default voice will be used. Ensure you have an ElevenLabs API key in your user settings.</p>
+                              <p className="max-w-xs">Enter a specific Voice ID from your ElevenLabs VoiceLab to give this agent a unique voice. If left blank, a default voice will be used. This requires an ElevenLabs API key (either yours or the system's) to be configured.</p>
                           </TooltipContent>
                       </Tooltip>
                   </Label>

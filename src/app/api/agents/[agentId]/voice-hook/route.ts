@@ -1,12 +1,11 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import twilio from 'twilio';
-import { db, storage } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import type { Agent, UserProfile, AgentToneType } from '@/lib/types';
+import type { Agent } from '@/lib/types';
 import { generateVoiceResponse, VoiceResponseInput } from '@/ai/flows/voice-response-flow';
-import { ElevenLabsClient } from 'elevenlabs-node';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { generateSpeech } from '@/ai/flows/text-to-speech-flow';
 
 const MAX_HISTORY_ITEMS_IN_URL = 2; // Number of recent exchanges (1 user + 1 agent) = 4 items total (u1,a1,u2,a2)
 
@@ -27,63 +26,6 @@ const convertAgentDataForVoice = (agentData: any): Agent => {
   return newAgent as Agent;
 };
 
-async function generateElevenLabsSpeech(text: string, userId: string, callSid: string, voiceId?: string | null): Promise<string | null> {
-  const timestamp = new Date().toISOString();
-  console.log(`[${timestamp}] [TTS Service] Generating speech for call ${callSid}`);
-  let apiKey: string | undefined | null;
-
-  try {
-    const userRef = doc(db, 'users', userId);
-    const userSnap = await getDoc(userRef);
-    if (userSnap.exists()) {
-        const userData = userSnap.data() as UserProfile;
-        apiKey = userData.elevenLabsApiKey;
-    }
-  } catch (error) {
-    console.error(`[${timestamp}] [TTS Service] Error fetching user profile for API key for call ${callSid}:`, error);
-  }
-
-  if (!apiKey) {
-    apiKey = process.env.ELEVENLABS_API_KEY;
-    if (apiKey) {
-      console.log(`[${timestamp}] [TTS Service] Using system default ElevenLabs API key for call ${callSid}.`);
-    }
-  } else {
-     console.log(`[${timestamp}] [TTS Service] Using user-specific ElevenLabs API key for call ${callSid}.`);
-  }
-
-  if (!apiKey) {
-    console.warn(`[${timestamp}] [TTS Service] No ElevenLabs API key found (user or system) for call ${callSid}. Cannot generate speech.`);
-    return null;
-  }
-
-  try {
-    const elevenlabs = new ElevenLabsClient({ apiKey });
-    const audio = await elevenlabs.generate({
-        voice: voiceId || 'Rachel', // Use specified voice or a default
-        text,
-        model_id: 'eleven_multilingual_v2',
-    });
-
-    const chunks: Buffer[] = [];
-    for await (const chunk of audio) {
-        chunks.push(chunk);
-    }
-    const content = Buffer.concat(chunks);
-    
-    console.log(`[${timestamp}] [TTS Service] Speech audio generated successfully for call ${callSid}. Uploading to storage.`);
-    const storageRef = ref(storage, `voice-responses/${callSid}-${Date.now()}.mp3`);
-    const uploadResult = await uploadBytes(storageRef, content, { contentType: 'audio/mpeg' });
-    const downloadURL = await getDownloadURL(uploadResult.ref);
-    
-    console.log(`[${timestamp}] [TTS Service] Audio uploaded for call ${callSid}. Public URL: ${downloadURL}`);
-    return downloadURL;
-
-  } catch (error) {
-    console.error(`[${timestamp}] [TTS Service] Error during ElevenLabs API call or storage upload for call ${callSid}:`, error);
-    return null;
-  }
-}
 
 export async function POST(
   request: NextRequest,
@@ -178,16 +120,17 @@ export async function POST(
       }
     }
     
-    // Generate speech with ElevenLabs
-    const audioUrl = await generateElevenLabsSpeech(agentResponseText, agent.userId, callSid, agent.elevenLabsVoiceId);
-
-    if (audioUrl) {
+    try {
+      // Use the centralized generateSpeech flow which includes credit checks and API key logic
+      const { audioUrl } = await generateSpeech({ text: agentResponseText, agentId });
       twiml.play(audioUrl);
-    } else {
-      // Fallback to standard Twilio voice if ElevenLabs fails
-      console.warn(`[${timestamp}] Fallback to Twilio TTS for call ${callSid} as ElevenLabs failed.`);
-      twiml.say({ voice: 'alice', language: 'en-US' }, agentResponseText);
+    } catch (speechError: any) {
+       console.warn(`[${timestamp}] Fallback to Twilio TTS for call ${callSid} as custom TTS failed:`, speechError.message);
+       // Let the user know there's an issue with the voice service before falling back
+       twiml.say({ voice: 'alice' }, "There is an issue with my primary voice service.");
+       twiml.say({ voice: 'alice', language: 'en-US' }, agentResponseText);
     }
+
 
     const actionUrl = new URL(`/api/agents/${agentId}/voice-hook`, request.nextUrl.origin);
     Object.entries(newHistoryForUrlParams).forEach(([key, value]) => {

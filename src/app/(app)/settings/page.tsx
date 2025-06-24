@@ -52,7 +52,9 @@ export default function SettingsPage() {
   const [hasTwilioSid, setHasTwilioSid] = useState(false);
   const [hasElevenLabsKey, setHasElevenLabsKey] = useState(false);
   const [isLoadingCredentials, setIsLoadingCredentials] = useState(true);
+  const [elevenLabsCreditsUsed, setElevenLabsCreditsUsed] = useState(0);
 
+  const FREE_TIER_CREDIT_LIMIT = parseInt(process.env.NEXT_PUBLIC_ELEVENLABS_FREE_TIER_CREDIT_LIMIT || '50');
 
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<CredentialsFormData>({
     resolver: zodResolver(credentialsFormSchema),
@@ -77,10 +79,12 @@ export default function SettingsPage() {
           setHasSendGridKey(!!creds.sendGridApiKey);
           setHasTwilioSid(!!creds.twilioAccountSid);
           setHasElevenLabsKey(!!creds.elevenLabsApiKey);
+          setElevenLabsCreditsUsed(creds.elevenLabsCreditsUsed || 0);
         } else {
           setHasSendGridKey(false);
           setHasTwilioSid(false);
           setHasElevenLabsKey(false);
+          setElevenLabsCreditsUsed(0);
         }
         setIsLoadingCredentials(false);
       };
@@ -100,12 +104,12 @@ export default function SettingsPage() {
   const onCredentialsSubmit: SubmitHandler<CredentialsFormData> = async (data) => {
     setIsSavingCredentials(true);
     const success = await updateUserCredentials({ 
-      sendGridApiKey: data.sendGridApiKey,
-      userDefaultFromEmail: data.userDefaultFromEmail,
-      twilioAccountSid: data.twilioAccountSid,
-      twilioAuthToken: data.twilioAuthToken,
-      twilioPhoneNumber: data.twilioPhoneNumber,
-      elevenLabsApiKey: data.elevenLabsApiKey,
+      sendGridApiKey: data.sendGridApiKey || undefined,
+      userDefaultFromEmail: data.userDefaultFromEmail || undefined,
+      twilioAccountSid: data.twilioAccountSid || undefined,
+      twilioAuthToken: data.twilioAuthToken || undefined,
+      twilioPhoneNumber: data.twilioPhoneNumber || undefined,
+      elevenLabsApiKey: data.elevenLabsApiKey || undefined,
     });
     if (success) {
         if (data.sendGridApiKey) setHasSendGridKey(true);
@@ -120,6 +124,7 @@ export default function SettingsPage() {
   };
   
   const isLoading = isAppContextLoading || authLoading || isLoadingCredentials;
+  const creditsRemaining = FREE_TIER_CREDIT_LIMIT - elevenLabsCreditsUsed;
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -140,6 +145,7 @@ export default function SettingsPage() {
             </CardTitle>
             <CardDescription className="text-xs sm:text-sm">
                 Connect your own API keys to enable agent abilities like sending emails or making calls. Keys are stored securely and associated with your user profile.
+                 <strong className="block mt-1">IMPORTANT: To enable built-in free tier usage for your users, you must set the `ELEVENLABS_API_KEY` in your project's .env file.</strong>
             </CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 p-4 sm:p-6">
@@ -153,20 +159,22 @@ export default function SettingsPage() {
                 {!isLoadingCredentials && hasElevenLabsKey && (
                     <Alert variant="default" className="p-2 text-xs border-foreground/30">
                         <CheckCircle2 className="h-3.5 w-3.5" />
-                        <AlertTitle className="text-xs font-medium">ElevenLabs Configured</AlertTitle>
+                        <AlertTitle className="text-xs font-medium">Your API Key is Active</AlertTitle>
+                        <AlertDescription className="text-[11px]">Unlimited voice generation enabled.</AlertDescription>
                     </Alert>
                 )}
                  {!isLoadingCredentials && !hasElevenLabsKey && (
-                    <Alert variant="destructive" className="p-2 text-xs">
+                    <Alert variant="default" className="p-2 text-xs">
                         <AlertCircle className="h-3.5 w-3.5" />
-                        <AlertTitle className="text-xs font-medium">Not Configured</AlertTitle>
+                        <AlertTitle className="text-xs font-medium">Using Built-in Free Tier</AlertTitle>
+                        <AlertDescription className="text-[11px]">{creditsRemaining > 0 ? `${creditsRemaining} generations remaining.` : `Limit reached.`} Add your key for unlimited use.</AlertDescription>
                     </Alert>
                 )}
               </CardHeader>
               <CardContent className="flex-grow space-y-3">
                 <div className="space-y-1">
-                    <Label htmlFor="elevenLabsApiKey" className="text-xs font-medium">API Key</Label>
-                    <Input id="elevenLabsApiKey" type="password" placeholder={hasElevenLabsKey ? "API Key is set (Enter new to change)" : "Paste your ElevenLabs API Key"} {...register("elevenLabsApiKey")} disabled={isLoading || isSavingCredentials}/>
+                    <Label htmlFor="elevenLabsApiKey" className="text-xs font-medium">Your ElevenLabs API Key</Label>
+                    <Input id="elevenLabsApiKey" type="password" placeholder={hasElevenLabsKey ? "API Key is set (Enter new to change)" : "Paste your API Key for unlimited usage"} {...register("elevenLabsApiKey")} disabled={isLoading || isSavingCredentials}/>
                     {errors.elevenLabsApiKey && <p className="text-xs text-destructive">{errors.elevenLabsApiKey.message}</p>}
                 </div>
                 <Alert variant="default" className="p-3 text-xs bg-card">
@@ -357,4 +365,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
