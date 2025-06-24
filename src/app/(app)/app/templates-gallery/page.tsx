@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, ShoppingCart, HomeIcon as RealEstateIcon, CalendarCheck, BotIcon, Lightbulb, LayoutGrid, MessageSquare, Phone, Brain, DatabaseZap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AgentPurposeType, AgentType, AgentDirection, AgentLogicType } from "@/lib/types";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 
 // Re-defining AgentTemplate interface locally if not imported from public page
@@ -110,12 +110,12 @@ const agentTemplates: AgentTemplate[] = [
 export default function AppTemplatesPage() {
   return (
     <div className="space-y-6 sm:space-y-8">
-      <Card className="bg-card/80 backdrop-blur-sm">
+      <Card>
         <CardHeader className="p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
-            <LayoutGrid className="w-7 h-7 sm:w-8 sm:w-8 text-primary" />
+            <LayoutGrid className="w-7 h-7 sm:w-8 sm:w-8" />
             <div>
-                <CardTitle className="font-headline text-xl sm:text-2xl text-primary">
+                <CardTitle className="font-headline text-xl sm:text-2xl">
                     AI Agent Templates Gallery
                 </CardTitle>
                 <CardDescription className="text-sm mt-1">
@@ -128,11 +128,11 @@ export default function AppTemplatesPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {agentTemplates.map((template) => (
-          <Card key={template.id} className="flex flex-col hover:shadow-lg transition-shadow duration-300">
+          <Card key={template.id} className="flex flex-col">
             <CardHeader className="p-4 sm:p-5">
               <div className="flex items-start gap-3">
-                <div className="p-2 bg-primary/10 rounded-md">
-                    <template.icon className="w-5 h-5 sm:w-6 sm:w-6 text-primary" />
+                <div className="p-2 bg-secondary rounded-md">
+                    <template.icon className="w-5 h-5 sm:w-6 sm:w-6" />
                 </div>
                 <div>
                     <CardTitle className="font-headline text-base sm:text-lg">{template.name}</CardTitle>
@@ -166,9 +166,10 @@ export default function AppTemplatesPage() {
         ))}
       </div>
        <Alert className="mt-6 sm:mt-8 bg-secondary">
-          <Lightbulb className="h-4 w-4 text-primary" />
+          <Lightbulb className="h-4 w-4" />
+          <AlertTitle>Using a Template:</AlertTitle>
           <AlertDescription className="text-muted-foreground text-xs sm:text-sm">
-            <strong>Using a Template:</strong> Clicking "Use This Template" will take you to the agent creation form.
+            Clicking "Use This Template" will take you to the agent creation form.
             If you haven't selected a client yet for this new agent, you'll be prompted to choose or create one on that page.
           </AlertDescription>
       </Alert>

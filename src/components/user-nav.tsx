@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, User, Settings, LifeBuoy, LogIn, UserPlus, BookOpen, Library } from "lucide-react";
+import { LogOut, User, Settings, LifeBuoy, LogIn, UserPlus, BookOpen, Library, HelpCircleIcon } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext"; 
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -38,7 +38,7 @@ export function UserNav() {
   if (!currentUser) {
     return (
       <div className="flex items-center gap-1.5 sm:gap-2">
-        <Button variant="outline" size="sm" asChild className="text-xs px-2 py-1 sm:px-3 sm:py-1.5 h-auto">
+        <Button variant="ghost" size="sm" asChild className="text-xs px-2 py-1 sm:px-3 sm:py-1.5 h-auto">
           <Link href="/login">
             <LogIn className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" /> Login
           </Link>

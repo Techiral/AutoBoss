@@ -61,12 +61,12 @@ export default function AppSupportPage() {
 
   return (
     <div className="space-y-6 sm:space-y-8">
-      <Card className="bg-card/80 backdrop-blur-sm">
+      <Card>
         <CardHeader className="p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
             <LifeBuoy className="w-7 h-7 sm:w-8 sm:w-8" />
             <div>
-                <CardTitle className="font-headline text-xl sm:text-2xl text-foreground">
+                <CardTitle className="font-headline text-xl sm:text-2xl">
                     Help Center & FAQ
                 </CardTitle>
                 <CardDescription className="text-sm mt-1">
@@ -79,19 +79,20 @@ export default function AppSupportPage() {
       
       <Alert className="bg-secondary">
           <Lightbulb className="h-4 w-4" />
+          <AlertTitle>Welcome to the Help Center!</AlertTitle>
           <AlertDescription className="text-foreground/80 text-xs sm:text-sm">
-            <strong>Welcome to the Help Center!</strong> If you can't find your answer here, use the "Send Feedback" link in the sidebar.
+            If you can't find your answer here, use the "Send Feedback" link in the sidebar.
           </AlertDescription>
       </Alert>
         
       <section>
-          <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 flex items-center gap-2 text-foreground"><MessageCircleQuestion className="w-4 h-4 sm:w-5 sm:w-5"/>Frequently Asked Questions</h2>
+          <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 flex items-center gap-2"><MessageCircleQuestion className="w-4 h-4 sm:w-5 sm:w-5"/>Frequently Asked Questions</h2>
           <Accordion type="single" collapsible className="w-full space-y-3">
             {faqs.map((faq, index) => (
               <Card key={index} className="overflow-hidden">
                   <AccordionItem value={`item-${index + 1}`} className="border-b-0">
-                  <AccordionTrigger className="p-4 text-left hover:no-underline text-sm sm:text-base font-medium group bg-card hover:bg-foreground/5 transition-colors">
-                      {faq.icon && <faq.icon className="mr-2 sm:mr-3 h-4 w-4 sm:h-5 sm:w-5 text-foreground/70 group-hover:text-foreground transition-colors shrink-0" />}
+                  <AccordionTrigger className="p-4 text-left hover:no-underline text-sm sm:text-base font-medium group bg-card hover:bg-secondary transition-colors">
+                      {faq.icon && <faq.icon className="mr-2 sm:mr-3 h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />}
                       <span className="flex-1">{faq.question}</span>
                   </AccordionTrigger>
                   <AccordionContent className="text-foreground/80 leading-relaxed text-xs sm:text-sm p-4 pt-0 bg-card border-t border-border">

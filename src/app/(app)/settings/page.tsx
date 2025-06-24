@@ -127,7 +127,7 @@ export default function SettingsPage() {
     <div className="space-y-4 sm:space-y-6">
       <Card>
         <CardHeader className="p-4 sm:p-6">
-          <CardTitle className="font-headline text-xl sm:text-2xl flex items-center gap-2 text-primary">
+          <CardTitle className="font-headline text-xl sm:text-2xl flex items-center gap-2">
             <SettingsIcon className="w-5 h-5 sm:w-6 sm:w-6" /> Application Settings
           </CardTitle>
           <CardDescription className="text-sm">Manage your application preferences, integrations, and data.</CardDescription>
@@ -143,7 +143,7 @@ export default function SettingsPage() {
               </p>
             </div>
             <div className="flex items-center gap-2 self-end sm:self-center">
-              <Sun className={theme === 'light' ? 'text-primary h-4 w-4 sm:h-5 sm:w-5' : 'text-muted-foreground h-4 w-4 sm:h-5 sm:w-5'} />
+              <Sun className={cn('h-4 w-4 sm:h-5 sm:w-5', theme === 'light' ? 'text-foreground' : 'text-muted-foreground')} />
               <Switch
                 id="theme-switch"
                 checked={theme === 'dark'}
@@ -151,7 +151,7 @@ export default function SettingsPage() {
                 aria-label="Toggle theme"
                 disabled={isLoading && !authLoading && !isAppContextLoading}
               />
-              <Moon className={theme === 'dark' ? 'text-primary h-4 w-4 sm:h-5 sm:w-5' : 'text-muted-foreground h-4 w-4 sm:h-5 sm:w-5'} />
+              <Moon className={cn('h-4 w-4 sm:h-5 sm:w-5', theme === 'dark' ? 'text-foreground' : 'text-muted-foreground')} />
             </div>
           </div>
 
@@ -160,7 +160,7 @@ export default function SettingsPage() {
           <Card className="bg-card">
             <CardHeader className="p-3 sm:p-4 pb-2">
               <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                <KeyRound className="w-4 h-4 sm:w-5 sm:w-5 text-primary" /> Your API Credentials
+                <KeyRound className="w-4 h-4 sm:w-5 sm:w-5" /> Your API Credentials
               </CardTitle>
               <CardDescription className="text-xs sm:text-sm">
                 Connect your own API keys to enable agent abilities like sending emails or making calls. Keys are stored securely and associated with your user profile.
@@ -170,19 +170,19 @@ export default function SettingsPage() {
               <form onSubmit={handleSubmit(onCredentialsSubmit)} className="space-y-5 sm:space-y-6">
                 
                 <div className="space-y-3 p-3 border rounded-md bg-secondary">
-                    <h3 className="text-sm font-semibold flex items-center gap-1.5"><Mic className="w-4 h-4 text-primary"/>ElevenLabs (High-Quality Voice)</h3>
+                    <h3 className="text-sm font-semibold flex items-center gap-1.5"><Mic className="w-4 h-4"/>ElevenLabs (High-Quality Voice)</h3>
                     {isLoadingCredentials && <div className="flex items-center text-xs text-muted-foreground"><Loader2 className="h-3 w-3 mr-1 animate-spin"/>Loading ElevenLabs status...</div>}
                     {!isLoadingCredentials && hasElevenLabsKey && (
-                        <Alert variant="default" className="p-2 text-xs bg-primary/10 border-primary/20">
-                            <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
-                            <AlertTitle className="text-primary text-xs font-medium">ElevenLabs Configured</AlertTitle>
-                            <AlertDescription className="text-muted-foreground text-[10px] sm:text-[11px]">
+                        <Alert variant="default" className="p-2 text-xs bg-green-500/10 border-green-500/20 text-green-700 dark:text-green-400">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            <AlertTitle className="text-xs font-medium">ElevenLabs Configured</AlertTitle>
+                            <AlertDescription className="text-[10px] sm:text-[11px]">
                                 Your ElevenLabs API Key is set. Voice agents will use this for high-quality speech.
                             </AlertDescription>
                         </Alert>
                     )}
                     {!isLoadingCredentials && !hasElevenLabsKey && (
-                        <Alert variant="destructive" className="p-2 text-xs bg-destructive/10 border-destructive/20">
+                        <Alert variant="destructive" className="p-2 text-xs">
                             <AlertCircle className="h-3.5 w-3.5" />
                             <AlertTitle className="text-xs font-medium">ElevenLabs Not Configured</AlertTitle>
                             <AlertDescription className="text-[10px] sm:text-[11px]">
@@ -203,16 +203,16 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="space-y-3 p-3 border rounded-md bg-secondary">
-                    <h3 className="text-sm font-semibold flex items-center gap-1.5"><Mail className="w-4 h-4 text-primary"/>SendGrid (Email)</h3>
+                    <h3 className="text-sm font-semibold flex items-center gap-1.5"><Mail className="w-4 h-4"/>SendGrid (Email)</h3>
                     {isLoadingCredentials && <div className="flex items-center text-xs text-muted-foreground"><Loader2 className="h-3 w-3 mr-1 animate-spin"/>Loading SendGrid status...</div>}
                     {!isLoadingCredentials && hasSendGridKey && (
-                        <Alert variant="default" className="p-2 text-xs bg-primary/10 border-primary/20">
-                            <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
-                            <AlertTitle className="text-primary text-xs font-medium">SendGrid Configured</AlertTitle>
+                        <Alert variant="default" className="p-2 text-xs bg-green-500/10 border-green-500/20 text-green-700 dark:text-green-400">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            <AlertTitle className="text-xs font-medium">SendGrid Configured</AlertTitle>
                         </Alert>
                     )}
                      {!isLoadingCredentials && !hasSendGridKey && (
-                        <Alert variant="destructive" className="p-2 text-xs bg-destructive/10 border-destructive/20">
+                        <Alert variant="destructive" className="p-2 text-xs">
                             <AlertCircle className="h-3.5 w-3.5" />
                             <AlertTitle className="text-xs font-medium">SendGrid Not Configured</AlertTitle>
                         </Alert>
@@ -236,16 +236,16 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="space-y-3 p-3 border rounded-md bg-secondary">
-                    <h3 className="text-sm font-semibold flex items-center gap-1.5"><MessageSquare className="w-4 h-4 text-primary"/>Twilio (SMS & Voice Calls)</h3>
+                    <h3 className="text-sm font-semibold flex items-center gap-1.5"><MessageSquare className="w-4 h-4"/>Twilio (SMS & Voice Calls)</h3>
                     {isLoadingCredentials && <div className="flex items-center text-xs text-muted-foreground"><Loader2 className="h-3 w-3 mr-1 animate-spin"/>Loading Twilio status...</div>}
                     {!isLoadingCredentials && hasTwilioSid && (
-                        <Alert variant="default" className="p-2 text-xs bg-primary/10 border-primary/20">
-                            <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
-                            <AlertTitle className="text-primary text-xs font-medium">Twilio Configured</AlertTitle>
+                        <Alert variant="default" className="p-2 text-xs bg-green-500/10 border-green-500/20 text-green-700 dark:text-green-400">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            <AlertTitle className="text-xs font-medium">Twilio Configured</AlertTitle>
                         </Alert>
                     )}
                      {!isLoadingCredentials && !hasTwilioSid && (
-                        <Alert variant="destructive" className="p-2 text-xs bg-destructive/10 border-destructive/20">
+                        <Alert variant="destructive" className="p-2 text-xs">
                             <AlertCircle className="h-3.5 w-3.5" />
                             <AlertTitle className="text-xs font-medium">Twilio Not Configured</AlertTitle>
                         </Alert>
@@ -277,8 +277,8 @@ export default function SettingsPage() {
                 </div>
                 
                  <Alert variant="default" className="p-2 text-xs bg-secondary">
-                    <ShieldAlert className="h-3.5 w-3.5 text-primary" />
-                    <AlertTitle className="text-primary text-xs font-medium">Security & Usage Note</AlertTitle>
+                    <ShieldAlert className="h-3.5 w-3.5" />
+                    <AlertTitle className="text-xs font-medium">Security & Usage Note</AlertTitle>
                     <AlertDescription className="text-muted-foreground text-[10px] sm:text-[11px]">
                      API keys and tokens are sensitive. They will be stored securely. If you don't provide credentials, related agent features may be unavailable or use limited system defaults. Input fields are password type for display; if a key is already set, re-entering a new value will overwrite it.
                     </AlertDescription>
@@ -332,9 +332,9 @@ export default function SettingsPage() {
           <div className="p-3 sm:p-4 border rounded-lg bg-secondary">
             <Label className="text-sm sm:text-base font-medium block mb-1">Application Information</Label>
              <div className="text-xs sm:text-sm text-muted-foreground space-y-1">
-                <p><InfoIcon className="inline h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 text-primary" /><strong>Version:</strong> 1.3.0 (User API Credentials & Outbound Queuing)</p>
-                <p><InfoIcon className="inline h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 text-primary" /><strong>Data Storage:</strong> Firebase Firestore</p>
-                <p><InfoIcon className="inline h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 text-primary" /><strong>AI Provider:</strong> Google Gemini via Genkit</p>
+                <p><InfoIcon className="inline h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" /><strong>Version:</strong> 1.3.0 (User API Credentials & Outbound Queuing)</p>
+                <p><InfoIcon className="inline h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" /><strong>Data Storage:</strong> Firebase Firestore</p>
+                <p><InfoIcon className="inline h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" /><strong>AI Provider:</strong> Google Gemini via Genkit</p>
              </div>
           </div>
 

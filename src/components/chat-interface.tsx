@@ -262,7 +262,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
     <div className="flex flex-col h-full border rounded-lg bg-card">
       <div className="p-2 border-b flex flex-col sm:flex-row justify-between items-center gap-2 text-xs">
         <Button
-          variant="outline"
+          variant="ghost"
           size="sm"
           onClick={handleRestartConversation}
           disabled={isInitializing || isLoading} 
@@ -273,7 +273,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
           {isInitializing ? "Initializing..." : "Restart"}
         </Button>
         <div className="flex items-center gap-1 w-full sm:w-auto justify-end sm:justify-center">
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs text-foreground/80">
                 {agentRef.current.primaryLogic === 'rag' ? "Using knowledge base..." : "Ready for your questions"}
             </span>
         </div>

@@ -6,17 +6,17 @@
 @layer base {
   :root {
     /* Light Theme - Black & White Minimalist */
-    --background: 255 100% 100%; /* #FFFFFF */
+    --background: 0 0% 100%; /* #FFFFFF */
     --foreground: 0 0% 0%;       /* #000000 */
 
-    --card: 255 100% 100%;       /* #FFFFFF */
+    --card: 0 0% 100%;       /* #FFFFFF */
     --card-foreground: 0 0% 0%;  /* #000000 */
 
-    --popover: 255 100% 100%;
+    --popover: 0 0% 100%;
     --popover-foreground: 0 0% 0%;
 
     --primary: 0 0% 0%;          /* Black for text on buttons */
-    --primary-foreground: 255 100% 100%; /* White for background of buttons */
+    --primary-foreground: 0 0% 100%; /* White for background of buttons */
 
     --secondary: 0 0% 96.1%;    /* #F5F5F5 - for subtle backgrounds */
     --secondary-foreground: 0 0% 9%; /* #171717 */
@@ -30,35 +30,35 @@
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 0 0% 89.8%; /* #E5E5E5 */
-    --input: 0 0% 89.8%;
+    --border: 0 0% 0%; /* #000000 - for card borders etc. */
+    --input: 0 0% 0%;
     --ring: 0 0% 0%;
 
     --radius: 0.5rem;
 
     /* Sidebar specific for light theme */
-    --sidebar-background: 255 100% 100%;
+    --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 0 0% 0%;
     --sidebar-primary: 0 0% 0%;
-    --sidebar-primary-foreground: 255 100% 100%;
+    --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 0 0% 96.1%;
     --sidebar-accent-foreground: 0 0% 9%;
-    --sidebar-border: 0 0% 89.8%;
+    --sidebar-border: 0 0% 0%;
     --sidebar-ring: 0 0% 0%;
   }
 
   .dark {
     /* Dark Theme - Black & White Minimalist */
     --background: 0 0% 0%;       /* #000000 */
-    --foreground: 255 100% 100%; /* #FFFFFF */
+    --foreground: 0 0% 100%; /* #FFFFFF */
     
     --card: 0 0% 0%;             /* #000000 */
-    --card-foreground: 255 100% 100%; /* #FFFFFF */
+    --card-foreground: 0 0% 100%; /* #FFFFFF */
     
     --popover: 0 0% 0%;
-    --popover-foreground: 255 100% 100%;
+    --popover-foreground: 0 0% 100%;
     
-    --primary: 255 100% 100%;   /* White for text on buttons */
+    --primary: 0 0% 100%;   /* White for text on buttons */
     --primary-foreground: 0 0% 0%; /* Black for background of buttons */
     
     --secondary: 0 0% 14.9%;    /* #262626 - for subtle backgrounds */
@@ -70,22 +70,19 @@
     --accent: 0 0% 14.9%;
     --accent-foreground: 0 0% 98%;
     
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    
-    --border: 255 100% 100%; /* #FFFFFF */
-    --input: 255 100% 100%;
-    --ring: 255 100% 100%;
+    --border: 0 0% 100%; /* #FFFFFF - for card borders etc. */
+    --input: 0 0% 100%;
+    --ring: 0 0% 100%;
     
     /* Sidebar specific for dark theme */
     --sidebar-background: 0 0% 0%;
-    --sidebar-foreground: 255 100% 100%;
-    --sidebar-primary: 255 100% 100%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 0 0% 100%;
     --sidebar-primary-foreground: 0 0% 0%;
     --sidebar-accent: 0 0% 14.9%;
     --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 255 100% 100%;
-    --sidebar-ring: 255 100% 100%;
+    --sidebar-border: 0 0% 100%;
+    --sidebar-ring: 0 0% 100%;
   }
 }
 

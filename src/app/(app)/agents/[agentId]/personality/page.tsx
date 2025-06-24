@@ -190,7 +190,7 @@ export default function PersonalityPage() {
         <CardHeader className="p-4 sm:p-6"><CardTitle className="text-lg sm:text-xl">Loading Agent Personality...</CardTitle></CardHeader>
         <CardContent className="flex flex-col items-center justify-center min-h-[calc(100vh-300px)] p-4 sm:p-6">
             <Logo className="mb-3 h-8" />
-            <Loader2 className="h-8 w-8 sm:h-10 sm:h-10 animate-spin text-primary" />
+            <Loader2 className="h-8 w-8 sm:h-10 sm:h-10 animate-spin" />
             <p className="text-xs text-muted-foreground mt-2">Fetching personality details...</p>
         </CardContent>
       </Card>
@@ -206,7 +206,7 @@ export default function PersonalityPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
         <Card className="md:col-span-2">
           <CardHeader className="p-4 sm:p-6">
-            <CardTitle className="font-headline text-primary text-xl sm:text-2xl flex items-center gap-2">
+            <CardTitle className="font-headline text-xl sm:text-2xl flex items-center gap-2">
                 <Settings className="w-6 h-6"/> Edit Agent Personality & Core Details
             </CardTitle>
             <CardDescription className="text-sm">
@@ -272,7 +272,7 @@ export default function PersonalityPage() {
 
              {(generatedDetails || (currentAgent.generatedName && currentAgent.generatedPersona)) && (
               <div className="space-y-3 sm:space-y-4 pt-3 sm:pt-4 border-t">
-                  <h3 className="font-headline text-primary text-md sm:text-lg">Current AI Generated Details</h3>
+                  <h3 className="font-headline text-md sm:text-lg">Current AI Generated Details</h3>
                   <div>
                       <Label className="text-xs font-semibold">Generated Name (User-Facing)</Label>
                       <p className="text-sm p-2 bg-muted rounded-md mt-1">{generatedDetails?.agentName || currentAgent.generatedName}</p>
@@ -292,7 +292,7 @@ export default function PersonalityPage() {
         
         <Card className="md:col-span-1">
            <CardHeader className="p-4 sm:p-6">
-             <CardTitle className="font-headline text-primary text-xl sm:text-2xl flex items-center gap-2">
+             <CardTitle className="font-headline text-xl sm:text-2xl flex items-center gap-2">
                 <ImageIcon className="w-6 h-6"/> Social Sharing & Branding
             </CardTitle>
              <CardDescription className="text-sm">

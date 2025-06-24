@@ -68,8 +68,8 @@ export default function ExportAgentPage() {
   const apiEndpointChat = agent && baseUrl ? `${baseUrl}/api/agents/${agent.id}/chat` : "";
   const apiEndpointVoice = agent && baseUrl ? `${baseUrl}/api/agents/${agent.id}/voice-hook` : "";
 
-  const primaryHslRef = useRef("210 100% 50%"); 
-  const primaryFgHslRef = useRef("210 40% 98%");
+  const primaryHslRef = useRef("0 0% 100%"); 
+  const primaryFgHslRef = useRef("0 0% 0%");
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -218,7 +218,7 @@ export default function ExportAgentPage() {
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
       <Card className="md:col-span-2">
         <CardHeader className="p-4 sm:p-6">
-          <CardTitle className="font-headline text-primary text-xl sm:text-2xl flex items-center gap-2"> <Share2 className="w-6 h-6 sm:w-7 sm:h-7"/>Deploy & Share: {agent.generatedName || agent.name}</CardTitle>
+          <CardTitle className="font-headline text-2xl sm:text-3xl flex items-center gap-2"> <Share2 className="w-6 h-6 sm:w-7 sm:h-7"/>Deploy & Share: {agent.generatedName || agent.name}</CardTitle>
           <CardDescription className="text-sm">Easily embed this AI agent or provide direct links for your client. Use the sections below to find the right deployment option.</CardDescription>
         </CardHeader>
       </Card>
@@ -226,14 +226,14 @@ export default function ExportAgentPage() {
       {showChatFeatures && (
          <Card>
             <CardHeader>
-              <CardTitle className="flex items-center text-lg"><Code className="w-5 h-5 mr-2 text-primary" /> Embed on Website</CardTitle>
+              <CardTitle className="flex items-center text-lg"><Code className="w-5 h-5 mr-2" /> Embed on Website</CardTitle>
               <CardDescription>Paste this script on any website to add a floating chat launcher.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="relative">
                 <Textarea id="chatLauncherScript" value={chatLauncherScript.trim()} readOnly rows={8} className="font-code text-xs bg-muted/50 p-2"/>
                 <Button variant="outline" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={() => handleCopy(chatLauncherScript.trim(), "Chat Launcher Script")} aria-label="Copy Chat Launcher Script" disabled={!chatLauncherScript}>
-                  {copied === "Chat Launcher Script" ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
+                  {copied === "Chat Launcher Script" ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                 </Button>
               </div>
               <div>
@@ -241,7 +241,7 @@ export default function ExportAgentPage() {
                 <div className="flex items-center gap-2 mt-1">
                   <Input id="chatbotLink" value={chatbotLink} readOnly className="text-sm"/>
                   <Button variant="outline" size="icon" onClick={() => handleCopy(chatbotLink, "Chatbot Link")} aria-label="Copy Chatbot Link" disabled={!chatbotLink} className="h-9 w-9">
-                    {copied === "Chatbot Link" ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
+                    {copied === "Chatbot Link" ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                   </Button>
                 </div>
               </div>
@@ -252,7 +252,7 @@ export default function ExportAgentPage() {
       {showVoiceFeatures && (
          <Card>
             <CardHeader>
-              <CardTitle className="flex items-center text-lg"><PhoneCall className="w-5 h-5 mr-2 text-primary" /> Voice Call Setup</CardTitle>
+              <CardTitle className="flex items-center text-lg"><PhoneCall className="w-5 h-5 mr-2" /> Voice Call Setup</CardTitle>
               <CardDescription>Use this webhook URL in your Twilio phone number settings for voice calls.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -261,7 +261,7 @@ export default function ExportAgentPage() {
                    <div className="flex items-center gap-2 mt-1">
                       <Input id="apiEndpointVoice" value={apiEndpointVoice} readOnly className="text-xs"/>
                       <Button variant="outline" size="icon" onClick={() => handleCopy(apiEndpointVoice, "Voice API Endpoint")} aria-label="Copy Voice API Endpoint" disabled={!apiEndpointVoice} className="h-9 w-9">
-                          {copied === "Voice API Endpoint" ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
+                          {copied === "Voice API Endpoint" ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                       </Button>
                   </div>
               </div>
@@ -278,7 +278,7 @@ export default function ExportAgentPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center text-lg"><Server className="w-5 h-5 mr-2 text-primary" /> Developer API</CardTitle>
+          <CardTitle className="flex items-center text-lg"><Server className="w-5 h-5 mr-2" /> Developer API</CardTitle>
           <CardDescription>Use these POST endpoints for programmatic access to your agent.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -287,7 +287,7 @@ export default function ExportAgentPage() {
               <div className="flex items-center gap-2 mt-1">
                 <Input id="apiEndpointChat" value={apiEndpointChat} readOnly className="text-sm"/>
                 <Button variant="outline" size="icon" onClick={() => handleCopy(apiEndpointChat, "Chat API Endpoint")} aria-label="Copy Chat API Endpoint" disabled={!apiEndpointChat} className="h-9 w-9">
-                  {copied === "Chat API Endpoint" ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
+                  {copied === "Chat API Endpoint" ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                 </Button>
               </div>
           </div>
@@ -303,7 +303,7 @@ export default function ExportAgentPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center text-lg"><Eye className="w-5 h-5 mr-2 text-primary" /> Public Showcase</CardTitle>
+          <CardTitle className="flex items-center text-lg"><Eye className="w-5 h-5 mr-2" /> Public Showcase</CardTitle>
           <CardDescription>Opt-in to list this agent in the public AutoBoss Showcase to demonstrate your work.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -317,13 +317,13 @@ export default function ExportAgentPage() {
                 <Label htmlFor="showcase-switch" className="text-sm font-medium flex-1 cursor-pointer">
                     {isPubliclyShared ? "This agent IS publicly listed" : "List this agent publicly"}
                 </Label>
-                {isSavingShareSetting && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
+                {isSavingShareSetting && <Loader2 className="h-4 w-4 animate-spin" />}
             </div>
             {isPubliclyShared && (
-                <Alert variant="default" className="bg-primary/10 border-primary/20">
-                    <CheckCircle className="h-4 w-4 text-primary"/>
-                    <AlertTitle className="font-medium text-primary">Agent is Live in Showcase!</AlertTitle>
-                    <AlertDescription className="text-xs text-foreground">
+                <Alert variant="default" className="bg-green-500/10 border-green-500/20 text-green-700 dark:text-green-400">
+                    <CheckCircle className="h-4 w-4"/>
+                    <AlertTitle className="font-medium">Agent is Live in Showcase!</AlertTitle>
+                    <AlertDescription className="text-xs">
                         Other users can now discover and interact with this agent. 
                         <Button variant="link" asChild className="p-0 h-auto text-xs ml-1"><Link href="/showcase" target="_blank">View Showcase</Link></Button>
                     </AlertDescription>

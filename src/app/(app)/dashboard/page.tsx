@@ -35,7 +35,7 @@ import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/ui/card";
 
 const addClientFormSchema = z.object({
   name: z.string().min(2, "Client name must be at least 2 characters.").max(100, "Client name too long."),
@@ -47,13 +47,13 @@ type AddClientFormData = z.infer<typeof addClientFormSchema>;
 function WelcomeDashboard() {
     return (
         <div className="space-y-8">
-            <Card className="border-border">
+            <Card>
                 <CardHeader>
                     <CardTitle className="font-headline text-3xl">Welcome to Your AI Agency HQ</CardTitle>
                     <CardDescription className="text-foreground/80">This is your starting point. Follow these steps to launch your first AI agent for a client.</CardDescription>
                 </CardHeader>
                 <CardContent className="grid md:grid-cols-2 gap-6">
-                    <div className="space-y-4 rounded-lg border border-border p-6">
+                    <div className="space-y-4 rounded-lg border p-6">
                         <div className="flex items-center gap-3">
                             <span className="flex items-center justify-center h-8 w-8 rounded-full border-2 border-foreground text-lg font-bold">1</span>
                             <h3 className="font-headline text-xl">Add Your First Client</h3>
@@ -68,7 +68,7 @@ function WelcomeDashboard() {
                             <AddClientDialogContent />
                         </Dialog>
                     </div>
-                    <div className="space-y-4 rounded-lg border border-border p-6">
+                    <div className="space-y-4 rounded-lg border p-6">
                         <div className="flex items-center gap-3">
                             <span className="flex items-center justify-center h-8 w-8 rounded-full border-2 border-foreground text-lg font-bold">2</span>
                             <h3 className="font-headline text-xl">Build an AI Agent</h3>
@@ -83,7 +83,7 @@ function WelcomeDashboard() {
                 </CardContent>
             </Card>
 
-            <Card className="border-border">
+            <Card>
                 <CardHeader>
                     <CardTitle className="font-headline text-2xl">Resources & Guidance</CardTitle>
                     <CardDescription className="text-foreground/80">Everything you need to succeed is right here. No need to get lost.</CardDescription>
@@ -116,8 +116,8 @@ function WelcomeDashboard() {
 function ResourceCard({ href, icon, title, description }: { href: string, icon: React.ReactNode, title: string, description: string }) {
     return (
         <Link href={href} className="block group">
-            <div className="p-4 rounded-lg border border-border h-full flex flex-col items-start transition-colors group-hover:bg-foreground/5">
-                <div className="p-2 bg-foreground/10 rounded-md mb-3 text-foreground">
+            <div className="p-4 rounded-lg border h-full flex flex-col items-start transition-colors group-hover:bg-secondary">
+                <div className="p-2 bg-secondary rounded-md mb-3 text-foreground">
                     {icon}
                 </div>
                 <h4 className="font-semibold text-foreground">{title}</h4>
@@ -215,7 +215,7 @@ export default function ClientDashboardPage() {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center py-10">
-          <Loader2 className="h-10 w-10 animate-spin text-foreground"/>
+          <Loader2 className="h-10 w-10 animate-spin"/>
       </div>
     );
   }
@@ -227,7 +227,7 @@ export default function ClientDashboardPage() {
   return (
     <div className="space-y-6 sm:space-y-8">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
-        <h1 className="font-headline text-foreground text-2xl sm:text-3xl font-bold flex items-center gap-2">
+        <h1 className="font-headline text-2xl sm:text-3xl font-bold flex items-center gap-2">
           <Briefcase className="w-7 h-7 sm:w-8 sm:w-8" /> Your Client Workspace
         </h1>
         <Dialog>
