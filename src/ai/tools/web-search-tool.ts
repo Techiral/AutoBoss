@@ -1,2 +1,4 @@
-// This file is intentionally left blank and can be deleted.
-// The web search tool functionality has been removed.
+
+// This file is deprecated and no longer used.
+// The web search tool feature has been removed from the application.
+// This file can be safely deleted.

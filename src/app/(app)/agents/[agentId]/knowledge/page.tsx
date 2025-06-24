@@ -11,8 +11,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { extractKnowledge } from "@/ai/flows/knowledge-extraction";
 import { processUrl } from "@/ai/flows/url-processor";
-// Removed: import { fetchYouTubeTranscript } from "@/ai/flows/youtube-transcript-flow";
-import { Upload, Loader2, FileText, Tag, AlertTriangle, Link as LinkIcon, Brain, Info, Mic, CheckCircle2, TextQuote, FileWarning } from "lucide-react"; // Removed Youtube
+import { Upload, Loader2, FileText, Tag, AlertTriangle, Link as LinkIcon, Brain, Info, Mic, CheckCircle2, TextQuote, FileWarning } from "lucide-react";
 import type { KnowledgeItem, Agent, ProcessedUrlOutput } from "@/lib/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAppContext } from "../../../layout";
@@ -74,11 +73,9 @@ export default function KnowledgePage() {
   const [isLoadingFile, setIsLoadingFile] = useState(false);
   const [isProcessingUrl, setIsProcessingUrl] = useState(false);
   const [isProcessingPastedText, setIsProcessingPastedText] = useState(false);
-  // Removed: const [isProcessingYouTubeUrl, setIsProcessingYouTubeUrl] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [urlInput, setUrlInput] = useState("");
   const [pastedTextInput, setPastedTextInput] = useState("");
-  // Removed: const [youtubeUrlInput, setYoutubeUrlInput] = useState("");
 
   const { toast } = useToast();
   const params = useParams();
@@ -97,7 +94,7 @@ export default function KnowledgePage() {
 
   const knowledgeItems = currentAgent?.knowledgeItems || [];
 
-  const clearOtherInputs = (except: 'file' | 'url' | 'paste') => { // Removed 'youtube'
+  const clearOtherInputs = (except: 'file' | 'url' | 'paste') => {
     if (except !== 'file') {
         setSelectedFile(null);
         const fileInput = document.getElementById('document') as HTMLInputElement;
@@ -105,7 +102,6 @@ export default function KnowledgePage() {
     }
     if (except !== 'url') setUrlInput("");
     if (except !== 'paste') setPastedTextInput("");
-    // Removed: if (except !== 'youtube') setYoutubeUrlInput("");
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -126,8 +122,6 @@ export default function KnowledgePage() {
     setPastedTextInput(event.target.value);
     if (event.target.value) clearOtherInputs('paste');
   };
-  
-  // Removed: handleYoutubeUrlInputChange
 
   const addKnowledgeToAgent = (fileName: string, summary: string, keywords: string[]) => {
      if (!agentId) {
@@ -320,8 +314,6 @@ export default function KnowledgePage() {
       setIsProcessingPastedText(false);
     }
   };
-  
-  // Removed: handleProcessYouTubeUrl
 
   if (isLoadingAgents || currentAgent === undefined) {
     return (
@@ -348,7 +340,7 @@ export default function KnowledgePage() {
   }
 
   const isVoiceAgent = currentAgent.agentType === 'voice' || currentAgent.agentType === 'hybrid';
-  const isAnyLoading = isLoadingFile || isProcessingUrl || isProcessingPastedText; // Removed isProcessingYouTubeUrl
+  const isAnyLoading = isLoadingFile || isProcessingUrl || isProcessingPastedText;
 
   return (
     <div className="grid gap-4 md:gap-6 grid-cols-1 lg:grid-cols-3">
@@ -412,7 +404,6 @@ export default function KnowledgePage() {
                 {isProcessingUrl ? "Fetching Website..." : "Fetch & Train URL"}
             </Button>
             
-            {/* Removed YouTube URL Input and Button */}
 
             <div className="relative my-3 sm:my-4">
               <div className="absolute inset-0 flex items-center">

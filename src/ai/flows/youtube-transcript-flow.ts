@@ -1,4 +1,4 @@
 
-// This file is being removed as the YouTube transcript feature is being deprecated.
-// It can be safely deleted from the project.
-    
+// This file is deprecated and no longer used.
+// The feature to train agents from YouTube transcripts has been removed.
+// This file can be safely deleted.
