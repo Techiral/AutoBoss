@@ -160,7 +160,7 @@ export default function MarketingPageClient() {
           </div>
           <div className="container mx-auto px-4 md:px-6 relative z-10 max-w-screen-xl">
             <div className="max-w-2xl mx-auto space-y-3 md:space-y-4">
-              <h1 className="marketing-h1 gradient-text-on-dark text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-center">
+              <h1 className="marketing-h1 text-gradient-dynamic text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-center">
                 Start Your AI Agency: Easy, No-Code, No PhD Needed!
               </h1>
               <p className="text-muted-foreground text-sm sm:text-base md:text-lg max-w-md mx-auto !mb-5 md:!mb-6 pt-1 sm:pt-2">
@@ -367,4 +367,3 @@ export default function MarketingPageClient() {
     </TooltipProvider>
   );
 }
-

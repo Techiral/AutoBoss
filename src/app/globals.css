@@ -56,7 +56,7 @@
   }
 
   .dark {
-    /* Dark Theme (Primary) */
+    /* Dark Theme (Primary) - Based on Screenshot */
     --background: 224 24% 10%; /* Dark Navy Blue */
     --foreground: 210 25% 96%; /* Off-white/Light Gray for text */
 
@@ -164,7 +164,6 @@
 }
 
 /* Solid Color Text & Button Helpers (Replaces Gradients) */
-.gradient-text-on-dark,
 .text-gradient-dynamic {
   @apply text-primary;
 }
@@ -319,5 +318,3 @@ div[data-ai-hint] {
 .public-page-footer {
     @apply py-6 text-center border-t border-border/60;
 }
-
-    
