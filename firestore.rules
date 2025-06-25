@@ -11,12 +11,8 @@ service cloud.firestore {
     // --- Clients ---
     match /clients/{clientId} {
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      // Owners can read, update, delete their own clients. 'read' includes 'get' and 'list' (when filtered by userId).
       allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
-    // Authenticated users can list clients.
-    // Their app-side queries MUST filter by `where("userId", "==", request.auth.uid)`.
-    // The document-level `read` rule above will then grant access to the individual documents.
     match /clients {
       allow list: if request.auth != null;
     }
@@ -25,66 +21,47 @@ service cloud.firestore {
     match /agents/{agentId} {
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
       
-      // Allow owners to update anything.
-      // Allow the public API to update ONLY the 'analytics' field for conversation tracking.
+      // Allow owners to update everything.
+      // Allow the public API to update *only* the analytics field.
       allow update: if (request.auth != null && resource.data.userId == request.auth.uid) ||
-                       (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['analytics']));
-      
+                      (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['analytics']));
+                      
       allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
 
-      // An agent document can be 'get'-ted (read directly by ID) IF:
-      // 1. The requester is the authenticated owner.
-      // OR
-      // 2. The agent is marked as publicly shared.
-      // This rule is critical for allowing public chat pages and items in the showcase to be read.
       allow get: if (request.auth != null && resource.data.userId == request.auth.uid) ||
                      (resource.data.isPubliclyShared == true);
 
-      // Owners can also list their own agents (this is implicitly covered by the collection-level list and the 'get' rule).
-      // For clarity, an explicit owner read rule (which includes list filtered by userId) can be helpful.
       allow read: if request.auth != null && resource.data.userId == request.auth.uid;
     }
 
     match /agents {
-      // Listing agents from the collection is allowed IF:
-      // 1. For authenticated users (App Context): Their query MUST filter by `where("userId", "==", request.auth.uid)`.
-      //    The document-level `get` or `read` rule for `/agents/{agentId}` will then permit access to their own agents.
-      // 2. For public showcase (Unauthenticated): The query in `src/app/showcase/page.tsx`
-      //    MUST filter by `where("isPubliclyShared", "==", true)`.
-      //    The document-level `get` rule for `/agents/{agentId}` will then permit access only to those specific public agents.
-      allow list: if true; // This allows the query to proceed; security is enforced by document-level 'get' rules.
+      allow list: if true;
     }
 
-    // --- Conversations & Analytics ---
-    // Rules to support the conversation history and analytics feature.
+    // --- Conversations (NEW) ---
     match /conversations/{conversationId} {
-      // Anyone can create and update a conversation through the public chat widget API.
-      // This is necessary because the end-user chatting with the agent is not authenticated.
-      // The API endpoint itself handles constructing the document with the correct agentId and owner userId.
-      allow create, update: if true;
-
-      // CRITICAL: Only the authenticated owner of the agent can read or delete the conversation history.
-      // This protects the privacy of the chat logs.
-      allow read, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      // Allow creation for public chat widgets.
+      allow create: if true;
+      
+      // Allow updates from the public chat API.
+      allow update: if true;
+      
+      // The agent's owner can read their conversation data for analytics.
+      allow read: if request.auth != null && get(/databases/$(database)/documents/agents/$(resource.data.agentId)).data.userId == request.auth.uid;
     }
-
-    // Authenticated users (agent owners) can list conversations.
-    // The application MUST filter queries by an agentId they own.
-    // The document-level `read` rule above will then enforce that they only get data for their agents.
+    
+    // Allow authenticated users to list conversations for the analytics page.
+    // The document-level `read` rule above enforces security.
     match /conversations {
-        allow list: if request.auth != null;
+      allow list: if request.auth != null;
     }
 
     // --- OutboundQueue ---
-    // Authenticated users can create new tasks in the queue.
     match /outboundQueue/{taskId} {
       allow create: if request.auth != null;
-      // Consider admin/backend worker rules for read, update, delete if needed.
     }
 
     // --- RoadmapFeatures ---
-    // Anyone can read roadmap features.
-    // Authenticated users can update votes by exactly +1.
     match /roadmapFeatures/{featureDocId} {
       allow read: if true;
       allow update: if request.auth != null &&
@@ -93,9 +70,6 @@ service cloud.firestore {
     }
 
     // --- UserVotes ---
-    // Documents are named like "{userId}_{featureId}".
-    // Users can read their own vote documents.
-    // Users can create their own vote document.
     match /userVotes/{voteId} {
       allow read: if request.auth != null && resource.data.userId == request.auth.uid;
       allow create: if request.auth != null &&
