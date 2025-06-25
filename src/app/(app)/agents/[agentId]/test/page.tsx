@@ -85,14 +85,18 @@ export default function TestAgentPage() {
 
 
   const speakText = useCallback(async (text: string) => {
-    if (!text || !autoSpeakEnabled || !agentId) return;
+    if (!text || !autoSpeakEnabled || !agentId || !agent) return;
 
     const cleanedText = stripEmojis(text);
     if (!cleanedText) return;
 
     setIsSpeaking(true);
     try {
-      const result = await generateSpeech({ text: cleanedText, agentId });
+      const result = await generateSpeech({
+        text: cleanedText,
+        agentId,
+        voiceId: agent.elevenLabsVoiceId || undefined,
+      });
       if (audioRef.current) {
         audioRef.current.src = result.audioUrl;
         await audioRef.current.play();
@@ -102,7 +106,7 @@ export default function TestAgentPage() {
       toast({ title: "Speech Generation Failed", description: error.message || "Could not generate voice.", variant: "destructive" });
       setIsSpeaking(false);
     }
-  }, [agentId, toast, autoSpeakEnabled]);
+  }, [agentId, agent, toast, autoSpeakEnabled]);
 
 
   const handleNewAgentMessage = useCallback((message: ChatMessageType) => {

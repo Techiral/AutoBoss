@@ -166,7 +166,8 @@ export type OutboundTaskPayload = z.infer<typeof OutboundTaskPayloadSchema>;
 // For Text-to-Speech Flow
 export const GenerateSpeechInputSchema = z.object({
   text: z.string().min(1, 'Text to speak cannot be empty.'),
-  agentId: z.string().min(1, 'Agent ID is required to determine the voice and user context.'),
+  agentId: z.string().min(1, 'Agent ID is required for logging and storage paths.'),
+  voiceId: z.string().optional().describe("The ElevenLabs Voice ID to use. Falls back to a default if not provided."),
 });
 export type GenerateSpeechInput = z.infer<typeof GenerateSpeechInputSchema>;
 

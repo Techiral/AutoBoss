@@ -121,8 +121,12 @@ export async function POST(
     }
     
     try {
-      // Use the centralized generateSpeech flow which includes credit checks and API key logic
-      const { audioUrl } = await generateSpeech({ text: agentResponseText, agentId });
+      // Use the centralized generateSpeech flow
+      const { audioUrl } = await generateSpeech({
+        text: agentResponseText,
+        agentId,
+        voiceId: agent.elevenLabsVoiceId || undefined,
+      });
       twiml.play(audioUrl);
     } catch (speechError: any) {
        console.warn(`[${timestamp}] Fallback to Twilio TTS for call ${callSid} as custom TTS failed:`, speechError.message);
