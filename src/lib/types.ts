@@ -172,6 +172,6 @@ export const GenerateSpeechInputSchema = z.object({
 export type GenerateSpeechInput = z.infer<typeof GenerateSpeechInputSchema>;
 
 export const GenerateSpeechOutputSchema = z.object({
-  audioUrl: z.string().url().describe('A public URL to the generated MP3 audio file.'),
+  audioUrl: z.string().describe('A public URL or Data URI to the generated audio file.'),
 });
 export type GenerateSpeechOutput = z.infer<typeof GenerateSpeechOutputSchema>;
