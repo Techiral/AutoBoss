@@ -24,7 +24,7 @@ export async function generateSpeech(input: GenerateSpeechInput): Promise<Genera
     throw new Error("Text-to-speech service is not configured by the administrator.");
   }
   
-  const effectiveVoiceId = voiceId || 'Rachel'; // Default voice
+  const effectiveVoiceId = voiceId || '21m00Tcm4TlvDq8ikWAM'; // Default voice ID for 'Rachel'
   const ttsUrl = `https://api.elevenlabs.io/v1/text-to-speech/${effectiveVoiceId}`;
   
   console.log(`[${timestamp}] [TTS Flow] Generating speech with voice: ${effectiveVoiceId}`);
