@@ -4,54 +4,23 @@
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bot, ArrowRight, Trash2, MessageSquare, Phone, Info, Brain, DatabaseZap, ArrowDownCircle, ArrowUpCircle } from "lucide-react"; 
-import type { Agent, AgentLogicType, AgentType, AgentDirection } from "@/lib/types";
+import { Bot, ArrowRight, Trash2, MessageSquare, Phone, Info, Brain, DatabaseZap, ArrowDownCircle, ArrowUpCircle, Handshake, PhoneCall, PhoneForwarded, Settings2 } from "lucide-react"; 
+import type { Agent, JobId } from "@/lib/types";
 import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { cn } from "@/lib/utils";
+
+const jobDisplayInfo: Record<JobId, { label: string; icon: React.ElementType }> = {
+  website_support: { label: 'Website Support', icon: MessageSquare },
+  website_lead_gen: { label: 'Website Lead Gen', icon: Handshake },
+  inbound_call_answering: { label: 'Phone Answering', icon: PhoneCall },
+  outbound_sales_calls: { label: 'Outbound Calling', icon: PhoneForwarded },
+  custom: { label: 'Custom Agent', icon: Settings2 },
+};
 
 interface AgentCardProps {
   agent: Agent;
   onDelete: (agentId: string) => void;
 }
-
-function getAgentTypeIcon(agentType?: AgentType) {
-  switch (agentType) {
-    case 'chat':
-      return <MessageSquare className="w-3 h-3" />;
-    case 'voice':
-      return <Phone className="w-3 h-3" />;
-    case 'hybrid':
-      return <Bot className="w-3 h-3" />;
-    default:
-      return <Info className="w-3 h-3" />;
-  }
-}
-
-function getLogicTypeDisplayInfo(logicType?: AgentLogicType): { label: string | null; icon: React.ReactNode | null } {
-  if (!logicType) return { label: "Prompt", icon: <Brain className="w-3 h-3 mr-1" /> }; // Default if undefined
-  switch (logicType) {
-    case 'prompt':
-      return { label: "AI Prompt", icon: <Brain className="w-3 h-3 mr-1" /> };
-    case 'rag':
-      return { label: "Knowledge Q&A", icon: <DatabaseZap className="w-3 h-3 mr-1" /> };
-    default: 
-      return { label: "Custom", icon: <Info className="w-3 h-3 mr-1" /> }; // Should not be reached
-  }
-}
-
-function getDirectionDisplayInfo(direction?: AgentDirection): { label: string | null; icon: React.ReactNode | null } {
-  if (!direction) return { label: null, icon: null };
-  switch (direction) {
-    case 'inbound':
-      return { label: "Inbound", icon: <ArrowDownCircle className="w-3 h-3 mr-1" /> };
-    case 'outbound':
-      return { label: "Outbound", icon: <ArrowUpCircle className="w-3 h-3 mr-1" /> };
-    default:
-      return { label: "N/A", icon: <Info className="w-3 h-3 mr-1" /> };
-  }
-}
-
 
 export function AgentCard({ agent, onDelete }: AgentCardProps) {
   const [formattedDate, setFormattedDate] = useState('');
@@ -62,12 +31,11 @@ export function AgentCard({ agent, onDelete }: AgentCardProps) {
       setFormattedDate(dateToFormat.toLocaleDateString());
     }
   }, [agent.createdAt]);
-
-  const { label: logicTypeLabel, icon: logicTypeIcon } = getLogicTypeDisplayInfo(agent.primaryLogic);
-  const { label: directionLabel, icon: directionIcon } = getDirectionDisplayInfo(agent.direction);
+  
+  const displayInfo = agent.jobId ? jobDisplayInfo[agent.jobId] : jobDisplayInfo.custom;
+  const JobIcon = displayInfo.icon;
 
   const defaultNavigationPage = agent.primaryLogic === 'rag' ? 'knowledge' : 'personality';
-
 
   return (
     <Card className="flex flex-col h-full">
@@ -77,24 +45,10 @@ export function AgentCard({ agent, onDelete }: AgentCardProps) {
             <Bot className="w-7 h-7 sm:w-8 sm:w-8 shrink-0" />
             <CardTitle className="font-headline text-lg sm:text-xl break-all">{agent.generatedName || agent.name}</CardTitle>
           </div>
-          <div className="flex flex-col items-end gap-1">
-            {agent.agentType && (
-              <Badge variant="outline" className="text-xs capitalize h-fit px-1.5 py-0.5 sm:px-2">
-                {getAgentTypeIcon(agent.agentType)}
-                <span className="ml-1">{agent.agentType}</span>
-              </Badge>
-            )}
-            {directionLabel && (
-              <Badge variant="secondary" className="text-xs capitalize h-fit px-1.5 py-0.5 sm:px-2">
-                {directionIcon} {directionLabel}
-              </Badge>
-            )}
-            {logicTypeLabel && (
-              <Badge variant="secondary" className="text-xs capitalize h-fit px-1.5 py-0.5 sm:px-2">
-                {logicTypeIcon} {logicTypeLabel}
-              </Badge>
-            )}
-          </div>
+          <Badge variant="outline" className="text-xs capitalize h-fit px-1.5 py-0.5 sm:px-2">
+            <JobIcon className="w-3 h-3" />
+            <span className="ml-1">{displayInfo.label}</span>
+          </Badge>
         </div>
         <CardDescription className="line-clamp-2 h-10 text-xs sm:text-sm">{agent.description}</CardDescription>
       </CardHeader>

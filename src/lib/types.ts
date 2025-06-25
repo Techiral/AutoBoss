@@ -73,6 +73,9 @@ export type Client = z.infer<typeof ClientSchema>;
 
 
 // Agent related types
+export const JobIdSchema = z.enum(["website_support", "website_lead_gen", "inbound_call_answering", "outbound_sales_calls", "custom"]);
+export type JobId = z.infer<typeof JobIdSchema>;
+
 export type AgentType = 'chat' | 'voice' | 'hybrid';
 export type AgentLogicType = 'prompt' | 'rag';
 export type AgentDirection = 'inbound' | 'outbound';
@@ -86,6 +89,7 @@ export const AgentSchema = z.object({
   userId: z.string(),
   clientId: z.string(),
   clientName: z.string().optional(), // Denormalized for convenience
+  jobId: JobIdSchema.optional(), // The primary "Job to be Done"
   agentType: z.custom<AgentType>(),
   primaryLogic: z.custom<AgentLogicType>().optional(),
   direction: z.custom<AgentDirection>().optional(),

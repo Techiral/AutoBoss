@@ -4,15 +4,15 @@
 import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, ShoppingCart, HomeIcon as RealEstateIcon, CalendarCheck, BotIcon, Lightbulb, LayoutGrid, MessageSquare, Phone, Brain, DatabaseZap } from "lucide-react";
+import { ArrowRight, ShoppingCart, HomeIcon as RealEstateIcon, CalendarCheck, BotIcon, Lightbulb, LayoutGrid, MessageSquare, Phone, Brain, DatabaseZap, Handshake, PhoneCall } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { AgentPurposeType, AgentType, AgentDirection, AgentLogicType } from "@/lib/types";
+import type { AgentPurposeType, AgentType, AgentDirection, AgentLogicType, JobId } from "@/lib/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 
 // Re-defining AgentTemplate interface locally if not imported from public page
 export interface AgentTemplate {
-  id: string;
+  id: JobId; // Use JobId for consistency
   name: string;
   description: string;
   icon: React.ElementType;
@@ -30,81 +30,51 @@ export interface AgentTemplate {
 
 const agentTemplates: AgentTemplate[] = [
   {
-    id: 'ecommerce_support',
-    name: 'E-commerce Support Bot',
-    description: 'Answers store questions, tracks orders, handles returns. Keeps client customers happy.',
-    icon: ShoppingCart,
+    id: 'website_support',
+    name: '24/7 Website Support Agent',
+    description: 'Answers store questions, tracks orders, and handles returns. A tireless helper for your client’s customers.',
+    icon: MessageSquare,
     category: "Client Customer Service",
-    tags: ["e-commerce", "support", "chat", "save time"],
+    tags: ["support", "chat", "save time", "24/7 help", "e-commerce"],
     defaultValues: {
       agentPurpose: 'support',
       agentType: 'chat',
-      primaryLogic: 'rag',
+      primaryLogic: 'rag', 
       role: "I am a friendly and efficient support assistant for [Client Name]'s online store. I help customers by answering questions about their orders, our products, shipping, and returns. My goal is to provide quick and helpful information.",
       personality: "Patient, clear, and positive. I'm always happy to help!"
     }
   },
   {
-    id: 'real_estate_lead_gen',
-    name: 'Real Estate Lead Catcher',
-    description: 'For real estate clients. Finds buyer/seller needs, gets contacts, suggests viewings.',
-    icon: RealEstateIcon,
+    id: 'website_lead_gen',
+    name: 'Website Lead Catcher',
+    description: 'For any service business. Finds out what visitors need, gets their contact info, and qualifies them as leads.',
+    icon: Handshake,
     category: "Client Sales & Lead Gen",
-    tags: ["real estate", "leads", "sales", "get clients"],
+    tags: ["real estate", "leads", "sales", "get clients", "services"],
     defaultValues: {
       agentPurpose: 'sales',
       agentType: 'chat',
-      primaryLogic: 'prompt',
-      role: "I'm an assistant for [Client Name]'s Real Estate. I chat with visitors to understand their property needs, like if they're looking to buy, sell, or rent, their budget, and preferred areas. I then collect their contact details so an agent can follow up.",
+      primaryLogic: 'prompt', 
+      role: "I'm a helpful assistant for [Client Name]. I chat with visitors to understand what they're looking for, then collect their contact details so the team can follow up. My goal is to make sure no potential customer slips through the cracks.",
       personality: "Engaging, professional, and helpful. I ask good questions to understand what people are looking for."
     }
   },
   {
-    id: 'dental_appointment_voice',
-    name: 'Dental Clinic Voice Booker',
-    description: 'Voice agent for dental clinics. Books, changes, cancels appointments 24/7. Saves receptionist time.',
-    icon: CalendarCheck,
-    category: "Client Appointment Scheduling",
-    tags: ["healthcare", "dental", "appointments", "voice", "automation"],
+    id: 'inbound_call_answering',
+    name: 'AI Voice Receptionist',
+    description: 'An AI that answers the phone, provides key business info (like hours/location), and can route calls. Saves receptionist time.',
+    icon: PhoneCall,
+    category: "Client Operations",
+    tags: ["receptionist", "info", "appointments", "voice", "automation"],
     defaultValues: {
-      agentPurpose: 'custom',
+      agentPurpose: 'info', 
       agentType: 'voice',
       direction: 'inbound',
-      primaryLogic: 'prompt',
-      role: "I'm the automated assistant for [Client Name]'s Dental Clinic. I can help you schedule a new appointment, reschedule, or cancel an existing one. Just tell me what you need!",
-      personality: "Clear, calm, and efficient. I speak naturally and confirm details carefully."
+      primaryLogic: 'rag', 
+      role: "I'm the automated phone assistant for [Client Name]. I can provide information about our hours and services, or connect you to the right department. Just tell me what you need!",
+      personality: "Clear, calm, and efficient. I speak naturally and understand various requests."
     }
   },
-  {
-    id: 'faq_info_bot',
-    name: 'Instant Info Bot (FAQ Master)',
-    description: 'Feed it client FAQs or docs. It becomes an expert, answering questions on their site 24/7.',
-    icon: Lightbulb,
-    category: "Client Information & Support",
-    tags: ["faq", "info", "knowledge base", "website help"],
-    defaultValues: {
-        agentPurpose: "info",
-        agentType: "chat",
-        primaryLogic: "rag",
-        role: "I'm an information assistant for [Client Name]. I have access to their key documents and FAQs. Ask me anything about their services, policies, or general information, and I'll do my best to answer based on what I've learned.",
-        personality: "Factual, direct, and helpful. My main job is to give you the correct information quickly."
-    }
-  },
-  {
-    id: 'general_purpose_assistant',
-    name: 'General AI Helper',
-    description: 'Flexible AI for your client. Brainstorms ideas, drafts emails, answers general questions.',
-    icon: BotIcon,
-    category: "Client Custom & General",
-    tags: ["general", "custom", "creative", "flexible"],
-    defaultValues: {
-        agentPurpose: "custom",
-        agentType: "chat",
-        primaryLogic: "prompt",
-        role: "I am a versatile AI assistant for [Client Name]. You can tell me what you need help with - whether it's brainstorming, summarizing text, or answering general questions. My goal is to be a helpful AI partner.",
-        personality: "Adaptable! You can define my tone - friendly, formal, funny, etc. By default, I'm helpful and neutral."
-    }
-  }
 ];
 
 export default function AppTemplatesPage() {
@@ -116,10 +86,10 @@ export default function AppTemplatesPage() {
             <LayoutGrid className="w-7 h-7 sm:w-8 sm:w-8" />
             <div>
                 <CardTitle className="font-headline text-xl sm:text-2xl">
-                    AI Agent Templates Gallery
+                    AI Agent Job Templates
                 </CardTitle>
                 <CardDescription className="text-sm mt-1">
-                    Browse these pre-configured AI agent templates to quickly start a new project for one of your clients.
+                    Instead of starting from scratch, pick a pre-configured job for your new AI employee.
                 </CardDescription>
             </div>
           </div>
@@ -149,16 +119,12 @@ export default function AppTemplatesPage() {
                     ))}
                 </div>
               )}
-               <div className="mt-2 space-y-0.5 text-xs">
-                  {template.defaultValues.agentType && <Badge variant="outline" className="mr-1"><MessageSquare className="w-2.5 h-2.5 mr-1"/>{template.defaultValues.agentType}</Badge>}
-                  {template.defaultValues.primaryLogic && <Badge variant="outline"><Brain className="w-2.5 h-2.5 mr-1"/>{template.defaultValues.primaryLogic === 'rag' ? 'Knowledge-Based' : 'Persona-Driven'}</Badge>}
-               </div>
             </CardContent>
             <CardFooter className="p-4 sm:p-5 pt-2">
               <Button asChild size="sm" className="w-full text-xs sm:text-sm">
                 {/* This link will now go to agent creation, which will handle client selection if needed */}
                 <Link href={`/agents/create?templateId=${template.id}`}>
-                  Use This Template <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                  Select This Job <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
                 </Link>
               </Button>
             </CardFooter>
@@ -167,10 +133,9 @@ export default function AppTemplatesPage() {
       </div>
        <Alert className="mt-6 sm:mt-8 bg-secondary">
           <Lightbulb className="h-4 w-4" />
-          <AlertTitle>Using a Template:</AlertTitle>
+          <AlertTitle>How to Use a Job Template:</AlertTitle>
           <AlertDescription className="text-muted-foreground text-xs sm:text-sm">
-            Clicking "Use This Template" will take you to the agent creation form.
-            If you haven't selected a client yet for this new agent, you'll be prompted to choose or create one on that page.
+            Clicking "Select This Job" takes you to the new agent form. If you haven't chosen a client for this AI employee, you'll be prompted to pick one there.
           </AlertDescription>
       </Alert>
     </div>

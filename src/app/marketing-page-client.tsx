@@ -3,7 +3,7 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Zap, Brain, Rocket, Eye, Palette, BarChart3, PlayCircle, Star, Menu, X as CloseIcon, ShieldCheck, Smile, TrendingUp, SearchCode, Edit3, Handshake, Info, Layers, LifeBuoy, Users, Filter, UploadCloud, Share2, DollarSign, Store, Users2, Briefcase, BotIcon, LayoutGrid, Settings, UserCheck, AlertTriangle, BookOpen, MessageSquarePlus, GitFork, Gauge, Languages, CheckCircle, Users as ClientIcon, Lightbulb, Book, PackageSearch } from "lucide-react";
+import { ArrowRight, Zap, Brain, Rocket, Eye, Palette, BarChart3, PlayCircle, Star, Menu, X as CloseIcon, ShieldCheck, Smile, TrendingUp, SearchCode, Edit3, Handshake, Info, Layers, LifeBuoy, Users, Filter, UploadCloud, Share2, DollarSign, Store, Users2, Briefcase, BotIcon, LayoutGrid, Settings, UserCheck, AlertTriangle, BookOpen, MessageSquarePlus, GitFork, Gauge, Languages, CheckCircle, Lightbulb, Book, PackageSearch, MessageSquare, PhoneCall } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { Logo } from "@/components/logo";
@@ -84,7 +84,7 @@ export default function MarketingPageClient() {
     { href: "#how-it-works", label: "How It Works" },
     { href: "/showcase", label: "Agent Showcase" },
     { href: "/playbook", label: "Client Playbook" },
-    { href: "/templates", label: "AI Templates" },
+    { href: "/templates", label: "AI Jobs" },
     { href: "/support", label: "Help Center" },
   ];
 
@@ -200,20 +200,20 @@ export default function MarketingPageClient() {
 
         <section ref={toolkitRef} id="toolkit" className={cn("scroll-reveal bg-background w-full py-12 md:py-16 lg:py-20", toolkitVisible && "visible")}>
           <div className="container mx-auto px-4 md:px-6 text-center max-w-screen-xl">
-            <h2 className="font-headline text-2xl sm:text-3xl font-bold tracking-tight text-primary">Everything You Need for Your AI Agency:</h2>
+            <h2 className="font-headline text-2xl sm:text-3xl font-bold tracking-tight text-primary">Everything You Need to Get the Job Done:</h2>
             <p className="text-muted-foreground text-sm md:text-base max-w-md mx-auto my-3 md:my-4">
-              Key tools to manage client projects and build effective AI agents that solve real business problems.
+              Your toolkit for managing client projects and building effective AI employees that solve real business problems.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-5 max-w-4xl mx-auto text-left">
-              <SimpleBenefitCard icon={<Briefcase className="w-5 h-5"/>} title="Client Workspaces" description="Keep each client's agents, training info, and settings neatly organized in their own private space." animationDelay="delay-100" />
-              <SimpleBenefitCard icon={<BotIcon className="w-5 h-5"/>} title="Flexible Agent Builder" description="Build text chatbots for websites, AI voice agents for phone calls, or a mix of both – all in one place." animationDelay="delay-200" />
-              <SimpleBenefitCard icon={<UploadCloud className="w-5 h-5"/>} title="Simple 'Train Your AI' Step" description="Use your client's own documents (like PDFs, Word files, FAQs) or website content to teach the AI about their business." animationDelay="delay-300" />
-              <SimpleBenefitCard icon={<Share2 className="w-5 h-5"/>} title="Easy Agent Launch" description="Get AI agents working for your clients fast using simple embed codes or direct links. No tech mess." animationDelay="delay-400" />
+              <SimpleBenefitCard icon={<Briefcase className="w-5 h-5"/>} title="Client Workspaces" description="Keep each client's AI employees, training info, and settings neatly organized in their own private space." animationDelay="delay-100" />
+              <SimpleBenefitCard icon={<BotIcon className="w-5 h-5"/>} title="Hire Your AI Employee" description="Build AI for specific jobs: website chat, answering phone calls, or a mix of both – all in one place." animationDelay="delay-200" />
+              <SimpleBenefitCard icon={<UploadCloud className="w-5 h-5"/>} title="Simple 'On-the-Job' Training" description="Use your client's own documents (like FAQs or service lists) or website content to teach the AI about their business." animationDelay="delay-300" />
+              <SimpleBenefitCard icon={<Share2 className="w-5 h-5"/>} title="Easy Deployment" description="Get AI employees working for your clients fast using simple embed codes or direct links. No tech mess." animationDelay="delay-400" />
             </div>
           </div>
         </section>
 
-        <section ref={howItWorksRef} id="how-it-works" className={cn("scroll-reveal bg-secondary w-full py-12 md:py-16 lg:py-20", howItWorksVisible && "visible")}>
+        <section ref={howItWorksRef} id="how-it-works" className={cn("scroll-reveal bg-secondary w-full py-12 md:py-16 lg:py-20", howItWorksRef && "visible")}>
           <div className="container mx-auto px-4 md:px-6 text-center max-w-screen-xl">
             <h2 className="font-headline text-2xl sm:text-3xl font-bold tracking-tight text-primary">The 3-Step Plan to Your First AI Client:</h2>
             <p className="text-muted-foreground text-sm md:text-base max-w-md mx-auto my-3 md:my-4">
@@ -221,9 +221,9 @@ export default function MarketingPageClient() {
             </p>
             <div className="relative mx-auto max-w-5xl grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-5 items-stretch">
                 {[
-                    { number: "1", title: "Set Up Your Client", description: "Create a space in AutoBoss for your client. Get their basic business info and what they need help with.", icon: <Users2 className="w-5 h-5 text-primary"/>, animationDelay:"delay-100", hint: "client setup icon" },
-                    { number: "2", title: "Build & Teach Their AI", description: "Pick an agent type (chat/voice), say what it's for using our simple tools, and feed it their specific info.", icon: <Edit3 className="w-5 h-5 text-primary"/>, animationDelay:"delay-150", hint: "ai agent building icon" },
-                    { number: "3", title: "Launch & Get Paid!", description: "Put the AI agent to work for your client. Offer support, show them the good results, and grow your agency.", icon: <CheckCircle className="w-5 h-5 text-primary"/>, animationDelay:"delay-200", hint: "launch success checkmark" },
+                    { number: "1", title: "Add a Client Project", description: "Create a space in AutoBoss for your client. Get their basic business info and what job they need done.", icon: <Users2 className="w-5 h-5 text-primary"/>, animationDelay:"delay-100", hint: "client setup icon" },
+                    { number: "2", title: "Hire & Train Their AI", description: "Choose a job for the AI (like 'Answer Website Questions'), give it a personality, and feed it specific client info.", icon: <Edit3 className="w-5 h-5 text-primary"/>, animationDelay:"delay-150", hint: "ai agent building icon" },
+                    { number: "3", title: "Deploy & Get Paid!", description: "Put the AI employee to work for your client. Offer support, show them the results, and grow your agency.", icon: <CheckCircle className="w-5 h-5 text-primary"/>, animationDelay:"delay-200", hint: "launch success checkmark" },
                 ].map((step, index, arr) => {
                   const [stepRef, stepIsVisible] = useIntersectionObserver({ threshold: 0.3 });
                   return (
@@ -247,12 +247,12 @@ export default function MarketingPageClient() {
         <section ref={videoDemoRef} id="video-demo-placeholder" className={cn("scroll-reveal bg-background w-full py-12 md:py-16 lg:py-20 text-center", videoDemoVisible && "visible")}>
           <div className="container mx-auto px-4 md:px-6 max-w-screen-xl">
             <h2 className="font-headline text-2xl sm:text-3xl font-bold tracking-tight text-primary">See How Easy It Is (Quick Video)</h2>
-            <p className="text-muted-foreground text-sm md:text-base max-w-md mx-auto my-3 md:my-4">Watch how fast you can build and teach an AI agent for a client using AutoBoss. No tech skills? No problem!</p>
+            <p className="text-muted-foreground text-sm md:text-base max-w-md mx-auto my-3 md:my-4">Watch how fast you can hire and train an AI employee for a client using AutoBoss. No tech skills? No problem!</p>
             <div className="max-w-2xl mx-auto aspect-video bg-muted/20 rounded-lg shadow-xl flex items-center justify-center text-muted-foreground border border-border/50 relative overflow-hidden cursor-pointer group" data-ai-hint="clean video player interface dark theme">
                 <Image src="https://placehold.co/1280x720.png" alt="AutoBoss Platform Demo Video Thumbnail" layout="fill" objectFit="cover" className="opacity-20 group-hover:opacity-10 transition-opacity" data-ai-hint="dark theme agency software thumbnail" loading="lazy"/>
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-foreground/80 bg-black/50 p-4 z-10">
                      <PlayCircle size={40} className="sm:size-50 text-primary cursor-pointer group-hover:scale-110 group-hover:text-primary-dark transition-all duration-300"/>
-                     <p className="mt-2 text-xs font-semibold">Watch: Your First AI Agent in Under 5 Mins (Demo Coming Soon)</p>
+                     <p className="mt-2 text-xs font-semibold">Watch: Your First AI Employee in Under 5 Mins (Demo Coming Soon)</p>
                 </div>
             </div>
           </div>
@@ -357,7 +357,7 @@ export default function MarketingPageClient() {
           <nav className="flex flex-wrap justify-center gap-1 sm:gap-2 mt-1 sm:mt-0">
             <Link href="/showcase" className="text-[10px] text-muted-foreground hover:text-primary transition-colors" prefetch={false}>Agent Showcase</Link>
             <Link href="/playbook" className="text-[10px] text-muted-foreground hover:text-primary transition-colors" prefetch={false}>Client Playbook</Link>
-            <Link href="/templates" className="text-[10px] text-muted-foreground hover:text-primary transition-colors" prefetch={false}>AI Templates</Link>
+            <Link href="/templates" className="text-[10px] text-muted-foreground hover:text-primary transition-colors" prefetch={false}>AI Jobs</Link>
             <Link href="/support" className="text-[10px] text-muted-foreground hover:text-primary transition-colors" prefetch={false}>Help Center</Link>
             <Link href="#" className="text-[10px] text-muted-foreground hover:text-primary transition-colors" prefetch={false}>Terms</Link> {/* Placeholder */}
             <Link href="#" className="text-[10px] text-muted-foreground hover:text-primary transition-colors" prefetch={false}>Privacy</Link> {/* Placeholder */}
