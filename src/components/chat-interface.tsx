@@ -149,7 +149,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: messageText,
-          conversationId: conversationId, // Pass current conversation ID
+          conversationId: conversationId || undefined,
           agentConfig: {
             generatedName: agentRef.current.generatedName,
             generatedPersona: agentRef.current.generatedPersona,
