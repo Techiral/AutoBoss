@@ -107,7 +107,7 @@ export const AgentSchema = z.object({
   agentImageDataUri: z.string().optional().describe("Base64 Data URI for the agent's branding image. Keep very small for Firestore!"),
   agentImageUrl: z.string().url().optional().nullable().describe("Public URL for the agent's branding image for social sharing."),
   ogDescription: z.string().max(300, "OG description should be 300 characters or less.").optional().describe("Custom description for social media sharing."),
-  elevenLabsVoiceId: z.string().optional().nullable().describe("The Voice ID from ElevenLabs to be used for this agent's speech."),
+  voiceName: z.string().optional().describe("The pre-built voice name from the TTS provider (e.g., Google's 'Algenib')."),
   isPubliclyShared: z.boolean().optional().default(false),
   sharedAt: z.custom<Timestamp>().optional().nullable(),
   showcaseMetrics: z.object({
@@ -167,7 +167,7 @@ export type OutboundTaskPayload = z.infer<typeof OutboundTaskPayloadSchema>;
 export const GenerateSpeechInputSchema = z.object({
   text: z.string().min(1, 'Text to speak cannot be empty.'),
   agentId: z.string().min(1, 'Agent ID is required for logging and storage paths.'),
-  voiceId: z.string().optional().describe("The ElevenLabs Voice ID to use. Falls back to a default if not provided."),
+  voiceName: z.string().optional().describe("The Google TTS voice name to use. Falls back to a default if not provided."),
 });
 export type GenerateSpeechInput = z.infer<typeof GenerateSpeechInputSchema>;
 

@@ -68,9 +68,11 @@ export default function TestAgentPage() {
         audioRef.current = new Audio();
         audioRef.current.onplay = () => setIsSpeaking(true);
         audioRef.current.onended = () => setIsSpeaking(false);
-        audioRef.current.onerror = () => {
+        audioRef.current.onerror = (e) => {
             setIsSpeaking(false);
-            toast({ title: "Audio Error", description: "Could not play agent's voice.", variant: "destructive" });
+            const error = (e.target as HTMLAudioElement).error;
+            console.error("Audio playback error:", error);
+            toast({ title: "Audio Error", description: `Could not play agent's voice. Code: ${error?.code}, Message: ${error?.message}`, variant: "destructive" });
         };
     }
     // Cleanup on unmount
@@ -95,9 +97,11 @@ export default function TestAgentPage() {
       const result = await generateSpeech({
         text: cleanedText,
         agentId,
-        voiceId: agent.elevenLabsVoiceId || undefined,
+        voiceName: agent.voiceName,
       });
       if (audioRef.current) {
+        // Fix: Pause any ongoing playback before setting a new source to prevent interruption errors.
+        audioRef.current.pause();
         audioRef.current.src = result.audioUrl;
         await audioRef.current.play();
       }

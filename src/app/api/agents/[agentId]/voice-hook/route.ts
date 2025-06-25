@@ -119,9 +119,13 @@ export async function POST(
       }
     }
     
-    // For reliability, the live voice hook now uses Twilio's built-in TTS.
-    // The higher-quality custom voice from Genkit is used in the web-based test interface.
-    twiml.say({ voice: 'alice', language: 'en-US' }, agentResponseText);
+    // Map selected agent voice to a Twilio-compatible voice.
+    const maleVoices = ['Calvin', 'Enceladus'];
+    const twilioVoice = agent.voiceName && maleVoices.includes(agent.voiceName) ? 'man' : 'alice';
+
+    console.log(`[${timestamp}] Using Twilio voice: '${twilioVoice}' based on agent setting: '${agent.voiceName || 'default'}'`);
+
+    twiml.say({ voice: twilioVoice, language: 'en-US' }, agentResponseText);
 
     const actionUrl = new URL(`/api/agents/${agentId}/voice-hook`, request.nextUrl.origin);
     Object.entries(newHistoryForUrlParams).forEach(([key, value]) => {

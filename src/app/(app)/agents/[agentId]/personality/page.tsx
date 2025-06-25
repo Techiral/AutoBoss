@@ -29,13 +29,21 @@ const MAX_IMAGE_SIZE_BYTES = 100 * 1024; // 100KB limit for Data URI storage
 const MAX_IMAGE_SIZE_MB_DISPLAY = (MAX_IMAGE_SIZE_BYTES / (1024 * 1024)).toFixed(1);
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
+const availableVoices = [
+  { id: 'default', name: 'Default Voice' },
+  { id: 'Algenib', name: 'Female Voice 1 (Standard)' },
+  { id: 'Calliope', name: 'Female Voice 2 (Crisp)' },
+  { id: 'Calvin', name: 'Male Voice 1 (Deep)' },
+  { id: 'Enceladus', name: 'Male Voice 2 (Standard)' },
+];
+
 const formSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters").max(100, "Name too long"),
   role: z.string().min(10, "Role description must be at least 10 characters").max(1000, "Role description too long (max 1000 chars)"),
   personality: z.string().min(10, "Personality description must be at least 10 characters").max(1000, "Personality description too long (max 1000 chars)"),
   agentTone: AgentToneSchema.default("neutral"),
+  voiceName: z.string().optional(),
   ogDescription: z.string().max(300, "Social media description max 300 chars.").optional(),
-  elevenLabsVoiceId: z.string().optional().nullable(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -60,8 +68,8 @@ export default function PersonalityPage() {
         role: "",
         personality: "",
         agentTone: "neutral",
+        voiceName: "default",
         ogDescription: "",
-        elevenLabsVoiceId: "",
     }
   });
 
@@ -74,8 +82,8 @@ export default function PersonalityPage() {
         setValue("role", agent.role || '');
         setValue("personality", agent.personality || '');
         setValue("agentTone", agent.agentTone || "neutral"); 
+        setValue("voiceName", agent.voiceName || "default");
         setValue("ogDescription", agent.ogDescription || '');
-        setValue("elevenLabsVoiceId", agent.elevenLabsVoiceId || '');
         if (agent.agentImageUrl) {
           setCurrentImageUrl(agent.agentImageUrl);
         }
@@ -154,12 +162,12 @@ export default function PersonalityPage() {
         role: data.role,
         personality: data.personality,
         agentTone: data.agentTone as AgentToneType, 
+        voiceName: data.voiceName === 'default' ? undefined : data.voiceName,
         generatedName: result.agentName,
         generatedPersona: result.agentPersona,
         generatedGreeting: result.agentGreeting,
         agentImageDataUri: selectedImageDataUri || currentAgent.agentImageDataUri, // Pass new Data URI to updateAgent
         ogDescription: data.ogDescription || undefined,
-        elevenLabsVoiceId: data.elevenLabsVoiceId || undefined,
       };
 
       // updateAgent in AppContext now handles the image upload logic
@@ -242,33 +250,56 @@ export default function PersonalityPage() {
               {errors.personality && <p className="text-xs text-destructive">{errors.personality.message}</p>}
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="agentTone" className="flex items-center">
-                Conversational Tone
-                <Tooltip>
-                  <TooltipTrigger asChild><HelpCircle className="w-3.5 h-3.5 ml-1.5 text-muted-foreground cursor-help"/></TooltipTrigger>
-                  <TooltipContent><p>Select the overall tone the agent should use in conversations.</p></TooltipContent>
-                </Tooltip>
-              </Label>
-              <Controller
-                name="agentTone"
-                control={control}
-                render={({ field }) => (
-                  <Select onValueChange={field.onChange} value={field.value || "neutral"}>
-                    <SelectTrigger id="agentTone">
-                      <SelectValue placeholder="Select agent's tone" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="neutral"><div className="flex items-center gap-2"><Smile className="w-4 h-4"/>Neutral / Default</div></SelectItem>
-                      <SelectItem value="friendly"><div className="flex items-center gap-2"><Smile className="w-4 h-4"/>Friendly & Warm</div></SelectItem>
-                      <SelectItem value="professional"><div className="flex items-center gap-2"><Smile className="w-4 h-4"/>Professional & Precise</div></SelectItem>
-                      <SelectItem value="witty"><div className="flex items-center gap-2"><Smile className="w-4 h-4"/>Witty & Playful</div></SelectItem>
-                    </SelectContent>
-                  </Select>
+             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="agentTone" className="flex items-center">
+                    Conversational Tone
+                  </Label>
+                  <Controller
+                    name="agentTone"
+                    control={control}
+                    render={({ field }) => (
+                      <Select onValueChange={field.onChange} value={field.value || "neutral"}>
+                        <SelectTrigger id="agentTone">
+                          <SelectValue placeholder="Select tone" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="neutral">Neutral</SelectItem>
+                          <SelectItem value="friendly">Friendly</SelectItem>
+                          <SelectItem value="professional">Professional</SelectItem>
+                          <SelectItem value="witty">Witty</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  {errors.agentTone && <p className="text-xs text-destructive">{errors.agentTone.message}</p>}
+                </div>
+                
+                {(currentAgent.agentType === 'voice' || currentAgent.agentType === 'hybrid') && (
+                    <div className="space-y-1.5">
+                        <Label htmlFor="voiceName" className="flex items-center">
+                            Agent Voice
+                        </Label>
+                         <Controller
+                            name="voiceName"
+                            control={control}
+                            render={({ field }) => (
+                              <Select onValueChange={field.onChange} value={field.value || "default"}>
+                                <SelectTrigger id="voiceName">
+                                  <SelectValue placeholder="Select a voice" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {availableVoices.map(voice => (
+                                        <SelectItem key={voice.id} value={voice.id}>{voice.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                              </Select>
+                            )}
+                          />
+                        {errors.voiceName && <p className="text-xs text-destructive">{errors.voiceName.message}</p>}
+                    </div>
                 )}
-              />
-              {errors.agentTone && <p className="text-xs text-destructive">{errors.agentTone.message}</p>}
-            </div>
+             </div>
 
              {(generatedDetails || (currentAgent.generatedName && currentAgent.generatedPersona)) && (
               <div className="space-y-3 sm:space-y-4 pt-3 sm:pt-4 border-t">
@@ -348,25 +379,6 @@ export default function PersonalityPage() {
                 <Textarea id="ogDescription" placeholder="Briefly describe what this agent does..." {...register("ogDescription")} rows={3} maxLength={300} />
                 {errors.ogDescription && <p className="text-xs text-destructive">{errors.ogDescription.message}</p>}
             </div>
-            
-            {(currentAgent.agentType === 'voice' || currentAgent.agentType === 'hybrid') && (
-              <>
-                <Separator />
-                <div className="space-y-1.5">
-                  <Label htmlFor="elevenLabsVoiceId" className="flex items-center">
-                      ElevenLabs Voice ID
-                      <Tooltip>
-                          <TooltipTrigger asChild><HelpCircle className="w-3.5 h-3.5 ml-1.5 text-muted-foreground cursor-help"/></TooltipTrigger>
-                          <TooltipContent side="top">
-                              <p className="max-w-xs">Enter a specific Voice ID from your ElevenLabs VoiceLab to give this agent a unique voice. If left blank, a default voice will be used. This requires an ElevenLabs API key (either yours or the system's) to be configured.</p>
-                          </TooltipContent>
-                      </Tooltip>
-                  </Label>
-                  <Input id="elevenLabsVoiceId" placeholder="e.g., 21m00Tcm4TlvDq8ikWAM" {...register("elevenLabsVoiceId")} />
-                  {errors.elevenLabsVoiceId && <p className="text-xs text-destructive">{errors.elevenLabsVoiceId.message}</p>}
-                </div>
-              </>
-            )}
 
           </CardContent>
         </Card>

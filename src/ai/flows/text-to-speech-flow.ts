@@ -38,10 +38,12 @@ async function toWavBase64(
 }
 
 export async function generateSpeech(input: GenerateSpeechInput): Promise<GenerateSpeechOutput> {
-  const { text, agentId } = input;
+  const { text, agentId, voiceName } = input;
   const timestamp = new Date().toISOString();
 
-  console.log(`[${timestamp}] [Gemini TTS Flow] Received request for agent ${agentId}. Generating Data URI.`);
+  // Use the selected voice or a high-quality default.
+  const selectedVoice = voiceName && voiceName !== 'default' ? voiceName : 'Algenib'; 
+  console.log(`[${timestamp}] [Gemini TTS Flow] Received request for agent ${agentId}. Voice: ${selectedVoice}. Generating Data URI.`);
 
   try {
     const { media } = await ai.generate({
@@ -50,8 +52,7 @@ export async function generateSpeech(input: GenerateSpeechInput): Promise<Genera
         responseModalities: ['AUDIO'],
         speechConfig: {
           voiceConfig: {
-            // Using a default prebuilt voice. This could be expanded later to use agent-specific voices.
-            prebuiltVoiceConfig: { voiceName: 'Algenib' },
+            prebuiltVoiceConfig: { voiceName: selectedVoice },
           },
         },
       },
