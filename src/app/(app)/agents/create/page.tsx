@@ -389,7 +389,7 @@ export default function CreateAgentPage() {
               <Label htmlFor="personality" className="flex items-center">How should this AI sound and behave?
                 <Tooltip>
                     <TooltipTrigger asChild><HelpCircle className="w-3.5 h-3.5 ml-1.5 text-muted-foreground cursor-help"/></TooltipTrigger>
-                    <TooltipContent><p>Describe its personality. E.g., "Friendly, patient, and professional. Always polite and uses simple language."</p></TooltipContent>
+                    <TooltipContent><p>Describe its personality. E.g., "Friendly, patient, and professional. Uses simple language."</p></TooltipContent>
                 </Tooltip>
               </Label>
               <Textarea
