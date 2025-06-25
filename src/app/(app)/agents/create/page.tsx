@@ -59,9 +59,7 @@ export default function CreateAgentPage() {
   const { currentUser } = useAuth();
   
   const queryClientId = searchParams.get('clientId');
-  const queryClientName = searchParams.get('clientName');
-  const templateId = searchParams.get('templateId');
-
+  
   const [activeClient, setActiveClient] = useState<Client | null | undefined>(undefined);
   const [requiresClientSelection, setRequiresClientSelection] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -113,6 +111,23 @@ export default function CreateAgentPage() {
       setActiveClient(undefined); 
     }
   }, [formSelectedClientId, isLoadingClients, getClientById, requiresClientSelection]);
+  
+  // Pre-fill form if a template is selected from the gallery
+  useEffect(() => {
+    const templateId = searchParams.get('templateId') as JobId | null;
+    if (templateId) {
+      const job = agentJobs.find(j => j.id === templateId);
+      if (job) {
+        setValue('jobId', job.id);
+        const { agentType, primaryLogic, direction, agentPurpose } = job.details;
+        setValue('agentType', agentType);
+        setValue('primaryLogic', primaryLogic);
+        setValue('direction', direction);
+        setValue('agentPurpose', agentPurpose);
+        setShowAdvanced(job.id === 'custom');
+      }
+    }
+  }, [searchParams, setValue]);
 
 
   const getLogicTypeLabel = (logicType?: AgentLogicType): string => {
@@ -291,15 +306,13 @@ export default function CreateAgentPage() {
                     onValueChange={(value) => {
                         field.onChange(value);
                         const job = agentJobs.find(j => j.id === value);
-                        if (job && job.id !== 'custom') {
+                        if (job) {
                             const { agentType, primaryLogic, direction, agentPurpose } = job.details;
                             setValue('agentType', agentType);
                             setValue('primaryLogic', primaryLogic);
                             setValue('direction', direction);
                             setValue('agentPurpose', agentPurpose);
-                            setShowAdvanced(false);
-                        } else {
-                            setShowAdvanced(true);
+                            setShowAdvanced(job.id === 'custom');
                         }
                     }}
                     value={field.value}
