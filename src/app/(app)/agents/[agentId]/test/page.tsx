@@ -38,11 +38,10 @@ export default function TestAgentPage() {
 
   const chatInterfaceRef = useRef<ChatInterfaceHandles>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const isSpeakingRef = useRef(false); // Use a ref for a synchronous lock
+  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const [isListening, setIsListening] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false); // UI state
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const [autoSpeakEnabled, setAutoSpeakEnabled] = useState(true);
   const [speechApiError, setSpeechApiError] = useState<string | null>(null);
   const [speechRecognitionSupported, setSpeechRecognitionSupported] = useState(true);
@@ -53,7 +52,6 @@ export default function TestAgentPage() {
     if (!isLoadingAgents && agentId) {
       const foundAgent = getAgent(agentId as string);
       setAgent(foundAgent);
-      // Set default auto-speak based on agent type
       if (foundAgent?.agentType === 'voice' || foundAgent?.agentType === 'hybrid') {
         setAutoSpeakEnabled(true);
       }
@@ -62,49 +60,39 @@ export default function TestAgentPage() {
     }
   }, [agentId, getAgent, isLoadingAgents]);
 
-  const resetSpeechState = useCallback(() => {
-      isSpeakingRef.current = false;
+  const stopCurrentAudio = useCallback(() => {
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause();
+      currentAudioRef.current.onended = null;
+      currentAudioRef.current.onerror = null;
+      currentAudioRef.current = null;
       setIsSpeaking(false);
+    }
   }, []);
 
+
   useEffect(() => {
-    // Check for SpeechRecognition support
     if (typeof window !== 'undefined' && (!window.SpeechRecognition && !window.webkitSpeechRecognition)) {
       setSpeechRecognitionSupported(false);
       setSpeechApiError("Speech recognition not supported by your browser.");
     }
     
-    // Setup audio element for playback
-    if (!audioRef.current) {
-        audioRef.current = new Audio();
-        audioRef.current.onended = resetSpeechState;
-        audioRef.current.onerror = (e) => {
-            const error = (e.target as HTMLAudioElement).error;
-            console.error("Audio playback error:", error);
-            toast({ title: "Audio Error", description: `Could not play agent's voice. Code: ${error?.code}, Message: ${error?.message}`, variant: "destructive" });
-            resetSpeechState();
-        };
-    }
-
     // Cleanup on unmount
     return () => {
       recognitionRef.current?.abort();
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.src = "";
-      }
-      resetSpeechState();
+      stopCurrentAudio();
     };
-  }, [toast, resetSpeechState]);
+  }, [stopCurrentAudio]);
 
 
   const speakText = useCallback(async (text: string) => {
-    if (!text || !autoSpeakEnabled || !agentId || !agent || isSpeakingRef.current) return;
+    if (!text || !autoSpeakEnabled || !agentId || !agent) return;
+
+    stopCurrentAudio();
 
     const cleanedText = stripEmojis(text);
     if (!cleanedText) return;
 
-    isSpeakingRef.current = true;
     setIsSpeaking(true);
 
     try {
@@ -114,20 +102,31 @@ export default function TestAgentPage() {
         voiceName: agent.voiceName,
       });
 
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.src = result.audioUrl;
-        await audioRef.current.play();
-      } else {
-        // If audio element is gone for some reason, reset state
-        resetSpeechState();
-      }
+      const newAudio = new Audio(result.audioUrl);
+      currentAudioRef.current = newAudio;
+
+      newAudio.onended = () => {
+        setIsSpeaking(false);
+        currentAudioRef.current = null;
+      };
+
+      newAudio.onerror = (e) => {
+        const error = (e.target as HTMLAudioElement).error;
+        console.error("Audio playback error:", error);
+        toast({ title: "Audio Error", description: error?.code ? `Could not play agent's voice. Code: ${error.code}, Message: ${error.message}` : "The browser could not play the generated audio.", variant: "destructive" });
+        setIsSpeaking(false);
+        currentAudioRef.current = null;
+      };
+
+      await newAudio.play();
+
     } catch (error: any) {
       console.error("Error generating or playing speech:", error);
       toast({ title: "Speech Generation Failed", description: error.message || "Could not generate voice.", variant: "destructive" });
-      resetSpeechState();
+      setIsSpeaking(false);
+      currentAudioRef.current = null;
     }
-  }, [agentId, agent, toast, autoSpeakEnabled, resetSpeechState]);
+  }, [agentId, agent, toast, autoSpeakEnabled, stopCurrentAudio]);
 
 
   const handleNewAgentMessage = useCallback((message: ChatMessageType) => {
@@ -144,10 +143,7 @@ export default function TestAgentPage() {
     if (isListening) {
       recognitionRef.current?.stop();
     } else {
-      if (audioRef.current && !audioRef.current.paused) {
-        audioRef.current.pause();
-        resetSpeechState();
-      }
+      stopCurrentAudio();
 
       const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
       recognitionRef.current = new SpeechRecognitionAPI();
@@ -272,7 +268,7 @@ export default function TestAgentPage() {
                   <PhoneOff className="h-4 w-4 text-primary" />
                   <AlertTitle className="text-primary text-sm">Voice Test Simulation</AlertTitle>
                   <AlertDescription className="text-muted-foreground text-xs">
-                    This page now simulates calls using your agent's actual configured voice (e.g., ElevenLabs). The real-world call via Twilio will use the same voice generation service.
+                    This page now simulates calls using your agent's actual configured voice. The real-world call via Twilio will use its own high-quality voice synthesis.
                   </AlertDescription>
               </Alert>
           </CardFooter>
