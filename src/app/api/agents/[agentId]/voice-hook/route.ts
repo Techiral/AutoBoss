@@ -2,13 +2,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import twilio from 'twilio';
 import { db } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
-import type { Agent } from '@/lib/types';
+import { doc, getDoc, setDoc, Timestamp, collection } from 'firebase/firestore';
+import type { Agent, Conversation, ChatMessage } from '@/lib/types';
 import { generateVoiceResponse, VoiceResponseInput } from '@/ai/flows/voice-response-flow';
 
-const MAX_HISTORY_ITEMS_IN_URL = 2; // Number of recent exchanges (1 user + 1 agent) = 4 items total (u1,a1,u2,a2)
 
-// Helper to convert Firestore Timestamps in agent data
 const convertAgentDataForVoice = (agentData: any): Agent => {
   const newAgent = { ...agentData };
   if (newAgent.createdAt && newAgent.createdAt.toDate) {
@@ -39,10 +37,9 @@ export async function POST(
   try {
     const requestBody = await request.formData();
     const twilioData = Object.fromEntries(requestBody.entries());
-    const searchParams = request.nextUrl.searchParams;
-
+    
     console.log(`[${timestamp}] Twilio Request Data for ${agentId}:`, JSON.stringify(twilioData));
-
+    
     const speechResult = twilioData.SpeechResult as string | undefined;
     const callSid = twilioData.CallSid as string;
 
@@ -57,84 +54,92 @@ export async function POST(
     }
     
     const agent = convertAgentDataForVoice({ id: agentSnap.id, ...agentSnap.data() });
-    let agentResponseText = agent.generatedGreeting || `Hello, you've reached ${agent.generatedName || agent.name}. How can I help?`;
-    
-    const shortHistoryFromUrl: string[] = [];
-    for(let i = 1; i <= MAX_HISTORY_ITEMS_IN_URL; i++) {
-        const userMsg = searchParams.get(`u${i}`);
-        const agentMsg = searchParams.get(`a${i}`);
-        if (userMsg) shortHistoryFromUrl.push(`User: ${userMsg}`);
-        if (agentMsg) shortHistoryFromUrl.push(`Agent: ${agentMsg}`);
+
+    const conversationRef = doc(db, 'conversations', callSid);
+    const conversationSnap = await getDoc(conversationRef);
+    let conversation: Conversation;
+
+    if (conversationSnap.exists()) {
+        conversation = conversationSnap.data() as Conversation;
+    } else {
+        conversation = {
+            id: callSid,
+            agentId: agent.id,
+            userId: agent.userId,
+            createdAt: Timestamp.now(),
+            updatedAt: Timestamp.now(),
+            status: 'ongoing',
+            messages: [],
+            messageCount: 0,
+        };
     }
-    
-    let newHistoryForUrlParams: Record<string, string> = {};
+
+    let agentResponseText = agent.generatedGreeting || `Hello, you've reached ${agent.generatedName || agent.name}. How can I help?`;
 
     if (speechResult && speechResult.trim()) {
-      console.log(`[${timestamp}] User speech for ${callSid} (Agent: ${agent.id}): "${speechResult}"`);
-      
-      const voiceInput: VoiceResponseInput = {
-        userInput: speechResult,
-        agentName: agent.generatedName,
-        agentPersona: agent.generatedPersona,
-        agentRole: agent.role,
-        agentTone: agent.agentTone || "neutral",
-        shortHistory: shortHistoryFromUrl,
-        knowledgeItems: agent.knowledgeItems && agent.primaryLogic === 'rag' ? agent.knowledgeItems : undefined,
-      };
+        console.log(`[${timestamp}] User speech for ${callSid}: "${speechResult}"`);
+        
+        const userMessage: ChatMessage = {
+            id: `msg-user-${Date.now()}`,
+            sender: 'user',
+            text: speechResult,
+            timestamp: Date.now()
+        };
+        conversation.messages.push(userMessage);
 
-      try {
-        const llmResponse = await generateVoiceResponse(voiceInput);
-        agentResponseText = llmResponse.agentResponse;
-        console.log(`[${timestamp}] LLM Voice Response for ${callSid}: "${agentResponseText}"`);
-      } catch (flowError: any) {
-        console.error(`[${timestamp}] Error calling generateVoiceResponse flow for ${callSid}:`, flowError);
-        agentResponseText = "I'm having a little trouble understanding right now. Could you please repeat that?";
-      }
-      
-      const currentTurnHistory = [...shortHistoryFromUrl, `User: ${speechResult}`, `Agent: ${agentResponseText}`];
-      const historyToPassOn = currentTurnHistory.slice(-MAX_HISTORY_ITEMS_IN_URL * 2); 
-      
-      let uIndex = 1, aIndex = 1;
-      historyToPassOn.forEach(item => {
-          if (item.startsWith("User: ") && uIndex <= MAX_HISTORY_ITEMS_IN_URL) {
-              newHistoryForUrlParams[`u${uIndex++}`] = item.substring(6);
-          } else if (item.startsWith("Agent: ") && aIndex <= MAX_HISTORY_ITEMS_IN_URL) {
-              newHistoryForUrlParams[`a${aIndex++}`] = item.substring(7);
-          }
-      });
-
-    } else {
-      console.log(`[${timestamp}] Initial interaction or empty/timeout speech for ${callSid}. Greeting with: "${agentResponseText}"`);
-      if (shortHistoryFromUrl.length > 0) {
-        let uIndex = 1, aIndex = 1;
-        shortHistoryFromUrl.forEach(item => {
-            if (item.startsWith("User: ") && uIndex <= MAX_HISTORY_ITEMS_IN_URL) {
-                newHistoryForUrlParams[`u${uIndex++}`] = item.substring(6);
-            } else if (item.startsWith("Agent: ") && aIndex <= MAX_HISTORY_ITEMS_IN_URL) {
-                newHistoryForUrlParams[`a${aIndex++}`] = item.substring(7);
-            }
-        });
-      } else {
-         newHistoryForUrlParams['a1'] = agentResponseText;
-      }
+        const historyForFlow = conversation.messages.map(msg => `${msg.sender === 'user' ? 'User' : 'Agent'}: ${msg.text}`);
+        
+        const voiceInput: VoiceResponseInput = {
+            userInput: speechResult,
+            agentName: agent.generatedName,
+            agentPersona: agent.generatedPersona,
+            agentRole: agent.role,
+            agentTone: agent.agentTone || "neutral",
+            shortHistory: historyForFlow,
+            knowledgeItems: agent.primaryLogic === 'rag' ? agent.knowledgeItems : [],
+        };
+        
+        try {
+            const llmResponse = await generateVoiceResponse(voiceInput);
+            agentResponseText = llmResponse.agentResponse;
+            console.log(`[${timestamp}] LLM Voice Response for ${callSid}: "${agentResponseText}"`);
+        } catch (flowError: any) {
+            console.error(`[${timestamp}] Error calling generateVoiceResponse flow for ${callSid}:`, flowError);
+            agentResponseText = "I'm having a little trouble understanding right now. Could you please repeat that?";
+        }
+        
+        const agentMessage: ChatMessage = {
+            id: `msg-agent-${Date.now()}`,
+            sender: 'agent',
+            text: agentResponseText,
+            timestamp: Date.now()
+        };
+        conversation.messages.push(agentMessage);
+    } else if (conversation.messages.length === 0) {
+        // Initial greeting
+        const agentGreetingMessage: ChatMessage = {
+            id: `msg-agent-greeting-${Date.now()}`,
+            sender: 'agent',
+            text: agentResponseText,
+            timestamp: Date.now()
+        };
+        conversation.messages.push(agentGreetingMessage);
     }
-    
-    // Map selected agent voice to a Twilio-compatible voice.
+
+    conversation.updatedAt = Timestamp.now();
+    conversation.messageCount = conversation.messages.length;
+
+    await setDoc(conversationRef, conversation);
+
     const maleVoices = ['Calvin', 'Enceladus'];
     const twilioVoice = agent.voiceName && maleVoices.includes(agent.voiceName) ? 'man' : 'alice';
 
-    console.log(`[${timestamp}] Using Twilio voice: '${twilioVoice}' based on agent setting: '${agent.voiceName || 'default'}'`);
-
     twiml.say({ voice: twilioVoice, language: 'en-US' }, agentResponseText);
-
-    const actionUrl = new URL(`/api/agents/${agentId}/voice-hook`, request.nextUrl.origin);
-    Object.entries(newHistoryForUrlParams).forEach(([key, value]) => {
-        actionUrl.searchParams.set(key, value);
-    });
     
+    const actionUrl = new URL(`/api/agents/${agentId}/voice-hook`, request.nextUrl.origin);
     twiml.gather({
       input: 'speech',
-      action: actionUrl.pathname + actionUrl.search, 
+      action: actionUrl.pathname, // No more URL params for history
       speechTimeout: 'auto',
       timeout: 5,
       profanityFilter: true,
