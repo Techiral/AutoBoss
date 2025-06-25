@@ -24,7 +24,7 @@ interface UserCredentials {
   twilioAccountSid?: string | null;
   twilioAuthToken?: string | null;
   twilioPhoneNumber?: string | null;
-  elevenLabsApiKey?: string | null;
+  googleApiKey?: string | null;
 }
 
 interface AuthContextType {
@@ -74,8 +74,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           twilioAccountSid: "",
           twilioAuthToken: "",
           twilioPhoneNumber: "",
-          elevenLabsApiKey: "",
-          elevenLabsCreditsUsed: 0,
+          googleApiKey: "",
+          ttsCreditsUsed: 0,
         };
         await setDoc(userRef, userData);
         console.log("AuthContext: User document created in Firestore for UID:", user.uid);
@@ -102,8 +102,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (existingData.twilioAccountSid === undefined) updates.twilioAccountSid = "";
         if (existingData.twilioAuthToken === undefined) updates.twilioAuthToken = "";
         if (existingData.twilioPhoneNumber === undefined) updates.twilioPhoneNumber = "";
-        if (existingData.elevenLabsApiKey === undefined) updates.elevenLabsApiKey = "";
-        if (existingData.elevenLabsCreditsUsed === undefined) updates.elevenLabsCreditsUsed = 0;
+        if (existingData.googleApiKey === undefined) updates.googleApiKey = "";
+        if (existingData.ttsCreditsUsed === undefined) updates.ttsCreditsUsed = 0;
 
 
         if (Object.keys(updates).length > 0) {
@@ -291,7 +291,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (credentials.twilioAccountSid !== undefined && credentials.twilioAccountSid !== null) updateData.twilioAccountSid = credentials.twilioAccountSid;
       if (credentials.twilioAuthToken !== undefined && credentials.twilioAuthToken !== null) updateData.twilioAuthToken = credentials.twilioAuthToken;
       if (credentials.twilioPhoneNumber !== undefined) updateData.twilioPhoneNumber = credentials.twilioPhoneNumber;
-      if (credentials.elevenLabsApiKey !== undefined && credentials.elevenLabsApiKey !== null) updateData.elevenLabsApiKey = credentials.elevenLabsApiKey;
+      if (credentials.googleApiKey !== undefined && credentials.googleApiKey !== null) updateData.googleApiKey = credentials.googleApiKey;
       
       await setDoc(userRef, updateData, { merge: true });
       toast({ title: "API Credentials Updated", description: "Your API settings have been saved." });

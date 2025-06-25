@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Settings as SettingsIcon, Trash2, Moon, Sun, Loader2, Mail, KeyRound, ShieldAlert, PhoneCall, CheckCircle2, Mic, Lightbulb, AlertCircle } from "lucide-react";
+import { Settings as SettingsIcon, Trash2, Moon, Sun, Loader2, Mail, KeyRound, ShieldAlert, PhoneCall, CheckCircle2, Mic, Lightbulb, AlertCircle, Sparkles } from "lucide-react";
 import { useAppContext } from "../layout";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -37,7 +37,7 @@ const credentialsFormSchema = z.object({
   twilioPhoneNumber: z.string().optional().refine(val => !val || /^\+[1-9]\d{1,14}$/.test(val), {
     message: "Invalid Twilio phone number format (e.g., +12223334444)",
   }),
-  elevenLabsApiKey: z.string().optional(),
+  googleApiKey: z.string().optional(),
 });
 type CredentialsFormData = z.infer<typeof credentialsFormSchema>;
 
@@ -50,11 +50,11 @@ export default function SettingsPage() {
   const [isSavingCredentials, setIsSavingCredentials] = useState(false);
   const [hasSendGridKey, setHasSendGridKey] = useState(false);
   const [hasTwilioSid, setHasTwilioSid] = useState(false);
-  const [hasElevenLabsKey, setHasElevenLabsKey] = useState(false);
+  const [hasGoogleKey, setHasGoogleKey] = useState(false);
   const [isLoadingCredentials, setIsLoadingCredentials] = useState(true);
-  const [elevenLabsCreditsUsed, setElevenLabsCreditsUsed] = useState(0);
+  const [ttsCreditsUsed, setTtsCreditsUsed] = useState(0);
 
-  const FREE_TIER_CREDIT_LIMIT = parseInt(process.env.NEXT_PUBLIC_ELEVENLABS_FREE_TIER_CREDIT_LIMIT || '50');
+  const FREE_TIER_CREDIT_LIMIT = 15;
 
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<CredentialsFormData>({
     resolver: zodResolver(credentialsFormSchema),
@@ -64,7 +64,7 @@ export default function SettingsPage() {
       twilioAccountSid: "",
       twilioAuthToken: "",
       twilioPhoneNumber: "",
-      elevenLabsApiKey: "",
+      googleApiKey: "",
     }
   });
 
@@ -78,13 +78,13 @@ export default function SettingsPage() {
           setValue("twilioPhoneNumber", creds.twilioPhoneNumber || "");
           setHasSendGridKey(!!creds.sendGridApiKey);
           setHasTwilioSid(!!creds.twilioAccountSid);
-          setHasElevenLabsKey(!!creds.elevenLabsApiKey);
-          setElevenLabsCreditsUsed(creds.elevenLabsCreditsUsed || 0);
+          setHasGoogleKey(!!creds.googleApiKey);
+          setTtsCreditsUsed(creds.ttsCreditsUsed || 0);
         } else {
           setHasSendGridKey(false);
           setHasTwilioSid(false);
-          setHasElevenLabsKey(false);
-          setElevenLabsCreditsUsed(0);
+          setHasGoogleKey(false);
+          setTtsCreditsUsed(0);
         }
         setIsLoadingCredentials(false);
       };
@@ -109,22 +109,22 @@ export default function SettingsPage() {
       twilioAccountSid: data.twilioAccountSid || undefined,
       twilioAuthToken: data.twilioAuthToken || undefined,
       twilioPhoneNumber: data.twilioPhoneNumber || undefined,
-      elevenLabsApiKey: data.elevenLabsApiKey || undefined,
+      googleApiKey: data.googleApiKey || undefined,
     });
     if (success) {
         if (data.sendGridApiKey) setHasSendGridKey(true);
         if (data.twilioAccountSid) setHasTwilioSid(true);
-        if (data.elevenLabsApiKey) setHasElevenLabsKey(true);
+        if (data.googleApiKey) setHasGoogleKey(true);
     }
     setIsSavingCredentials(false);
     setValue("sendGridApiKey", ""); 
     setValue("twilioAccountSid", ""); 
     setValue("twilioAuthToken", "");
-    setValue("elevenLabsApiKey", "");
+    setValue("googleApiKey", "");
   };
   
   const isLoading = isAppContextLoading || authLoading || isLoadingCredentials;
-  const creditsRemaining = FREE_TIER_CREDIT_LIMIT - elevenLabsCreditsUsed;
+  const creditsRemaining = FREE_TIER_CREDIT_LIMIT - ttsCreditsUsed;
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -145,45 +145,44 @@ export default function SettingsPage() {
             </CardTitle>
             <CardDescription className="text-xs sm:text-sm">
                 Connect your own API keys to enable agent abilities like sending emails or making calls. Keys are stored securely and associated with your user profile.
-                 <strong className="block mt-1">IMPORTANT: To enable built-in free tier usage for your users, you must set the `ELEVENLABS_API_KEY` in your project's .env file.</strong>
             </CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 p-4 sm:p-6">
 
-            {/* ElevenLabs Card */}
+            {/* Google AI Card */}
             <Card className="flex flex-col">
               <CardHeader>
-                <CardTitle className="text-base sm:text-lg flex items-center gap-2"><Mic className="w-4 h-4"/>ElevenLabs</CardTitle>
-                <CardDescription className="text-xs">Enable high-quality, realistic voices for your agents.</CardDescription>
+                <CardTitle className="text-base sm:text-lg flex items-center gap-2"><Sparkles className="w-4 h-4"/>Google AI</CardTitle>
+                <CardDescription className="text-xs">Provide your own key for unlimited AI text and voice generation.</CardDescription>
                 {isLoadingCredentials && <div className="flex items-center text-xs text-muted-foreground"><Loader2 className="h-3 w-3 mr-1 animate-spin"/>Loading Status...</div>}
-                {!isLoadingCredentials && hasElevenLabsKey && (
+                {!isLoadingCredentials && hasGoogleKey && (
                     <Alert variant="default" className="p-2 text-xs border-foreground/30">
                         <CheckCircle2 className="h-3.5 w-3.5" />
-                        <AlertTitle className="text-xs font-medium">Your API Key is Active</AlertTitle>
-                        <AlertDescription className="text-[11px]">Unlimited voice generation enabled.</AlertDescription>
+                        <AlertTitle className="text-xs font-medium">Your Google AI Key is Active</AlertTitle>
+                        <AlertDescription className="text-[11px]">All AI features will use your personal key.</AlertDescription>
                     </Alert>
                 )}
-                 {!isLoadingCredentials && !hasElevenLabsKey && (
+                 {!isLoadingCredentials && !hasGoogleKey && (
                     <Alert variant="default" className="p-2 text-xs">
                         <AlertCircle className="h-3.5 w-3.5" />
-                        <AlertTitle className="text-xs font-medium">Using Built-in Free Tier</AlertTitle>
-                        <AlertDescription className="text-[11px]">{creditsRemaining > 0 ? `${creditsRemaining} generations remaining.` : `Limit reached.`} Add your key for unlimited use.</AlertDescription>
+                        <AlertTitle className="text-xs font-medium">Using System's Free Tier</AlertTitle>
+                        <AlertDescription className="text-[11px]">{creditsRemaining > 0 ? `${creditsRemaining} TTS generations remaining today.` : `Daily limit reached.`} Add your key for unlimited use.</AlertDescription>
                     </Alert>
                 )}
               </CardHeader>
               <CardContent className="flex-grow space-y-3">
                 <div className="space-y-1">
-                    <Label htmlFor="elevenLabsApiKey" className="text-xs font-medium">Your ElevenLabs API Key</Label>
-                    <Input id="elevenLabsApiKey" type="password" placeholder={hasElevenLabsKey ? "API Key is set (Enter new to change)" : "Paste your API Key for unlimited usage"} {...register("elevenLabsApiKey")} disabled={isLoading || isSavingCredentials}/>
-                    {errors.elevenLabsApiKey && <p className="text-xs text-destructive">{errors.elevenLabsApiKey.message}</p>}
+                    <Label htmlFor="googleApiKey" className="text-xs font-medium">Your Google AI API Key</Label>
+                    <Input id="googleApiKey" type="password" placeholder={hasGoogleKey ? "API Key is set (Enter new to change)" : "Paste your API Key for unlimited usage"} {...register("googleApiKey")} disabled={isLoading || isSavingCredentials}/>
+                    {errors.googleApiKey && <p className="text-xs text-destructive">{errors.googleApiKey.message}</p>}
                 </div>
                 <Alert variant="default" className="p-3 text-xs bg-card">
                     <Lightbulb className="h-3.5 w-3.5" />
                     <AlertTitle className="text-xs font-medium">How to get your key:</AlertTitle>
                     <AlertDescription className="text-[11px] space-y-1 mt-1">
-                        <p>1. Login to your <a href="https://elevenlabs.io/" target="_blank" rel="noopener noreferrer" className="underline">ElevenLabs.io</a> account.</p>
-                        <p>2. Click your profile icon in the top right, then 'Profile'.</p>
-                        <p>3. Your API Key is the first value listed. Copy it here.</p>
+                        <p>1. Go to <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="underline">Google AI Studio</a>.</p>
+                        <p>2. Create a new API key in a project with billing enabled.</p>
+                        <p>3. Copy your key and paste it here.</p>
                     </AlertDescription>
                 </Alert>
               </CardContent>

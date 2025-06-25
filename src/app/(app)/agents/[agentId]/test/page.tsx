@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Switch } from "@/components/ui/switch";
 import { generateSpeech } from "@/ai/flows/text-to-speech-flow";
+import { useAuth } from "@/contexts/AuthContext";
 
 declare global {
   interface Window {
@@ -33,6 +34,7 @@ export default function TestAgentPage() {
   const params = useParams();
   const appContextValue = useAppContext();
   const { getAgent, isLoadingAgents } = appContextValue;
+  const { currentUser } = useAuth();
   const [agent, setAgent] = useState<Agent | null | undefined>(undefined);
   const { toast } = useToast();
 
@@ -86,7 +88,7 @@ export default function TestAgentPage() {
 
 
   const speakText = useCallback(async (text: string) => {
-    if (!text || !autoSpeakEnabled || !agentId || !agent) return;
+    if (!text || !autoSpeakEnabled || !agentId || !agent || !currentUser) return;
 
     stopCurrentAudio();
 
@@ -99,6 +101,7 @@ export default function TestAgentPage() {
       const result = await generateSpeech({
         text: cleanedText,
         agentId,
+        userId: currentUser.uid,
         voiceName: agent.voiceName,
       });
 
@@ -126,7 +129,7 @@ export default function TestAgentPage() {
       setIsSpeaking(false);
       currentAudioRef.current = null;
     }
-  }, [agentId, agent, toast, autoSpeakEnabled, stopCurrentAudio]);
+  }, [agentId, agent, toast, autoSpeakEnabled, stopCurrentAudio, currentUser]);
 
 
   const handleNewAgentMessage = useCallback((message: ChatMessageType) => {
