@@ -39,10 +39,11 @@ export default function TestAgentPage() {
   const chatInterfaceRef = useRef<ChatInterfaceHandles>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const isSpeakingRef = useRef(false); // Use a ref for a synchronous lock
 
   const [isListening, setIsListening] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [autoSpeakEnabled, setAutoSpeakEnabled] = useState(true); // Default to on for voice agents
+  const [isSpeaking, setIsSpeaking] = useState(false); // UI state
+  const [autoSpeakEnabled, setAutoSpeakEnabled] = useState(true);
   const [speechApiError, setSpeechApiError] = useState<string | null>(null);
   const [speechRecognitionSupported, setSpeechRecognitionSupported] = useState(true);
   
@@ -52,10 +53,19 @@ export default function TestAgentPage() {
     if (!isLoadingAgents && agentId) {
       const foundAgent = getAgent(agentId as string);
       setAgent(foundAgent);
+      // Set default auto-speak based on agent type
+      if (foundAgent?.agentType === 'voice' || foundAgent?.agentType === 'hybrid') {
+        setAutoSpeakEnabled(true);
+      }
     } else if (!isLoadingAgents && !agentId) {
       setAgent(null);
     }
   }, [agentId, getAgent, isLoadingAgents]);
+
+  const resetSpeechState = useCallback(() => {
+      isSpeakingRef.current = false;
+      setIsSpeaking(false);
+  }, []);
 
   useEffect(() => {
     // Check for SpeechRecognition support
@@ -63,18 +73,19 @@ export default function TestAgentPage() {
       setSpeechRecognitionSupported(false);
       setSpeechApiError("Speech recognition not supported by your browser.");
     }
+    
     // Setup audio element for playback
     if (!audioRef.current) {
         audioRef.current = new Audio();
-        audioRef.current.onplay = () => setIsSpeaking(true);
-        audioRef.current.onended = () => setIsSpeaking(false);
+        audioRef.current.onended = resetSpeechState;
         audioRef.current.onerror = (e) => {
-            setIsSpeaking(false);
             const error = (e.target as HTMLAudioElement).error;
             console.error("Audio playback error:", error);
             toast({ title: "Audio Error", description: `Could not play agent's voice. Code: ${error?.code}, Message: ${error?.message}`, variant: "destructive" });
+            resetSpeechState();
         };
     }
+
     // Cleanup on unmount
     return () => {
       recognitionRef.current?.abort();
@@ -82,35 +93,41 @@ export default function TestAgentPage() {
         audioRef.current.pause();
         audioRef.current.src = "";
       }
+      resetSpeechState();
     };
-  }, [toast]);
+  }, [toast, resetSpeechState]);
 
 
   const speakText = useCallback(async (text: string) => {
-    if (!text || !autoSpeakEnabled || !agentId || !agent) return;
+    if (!text || !autoSpeakEnabled || !agentId || !agent || isSpeakingRef.current) return;
 
     const cleanedText = stripEmojis(text);
     if (!cleanedText) return;
 
+    isSpeakingRef.current = true;
     setIsSpeaking(true);
+
     try {
       const result = await generateSpeech({
         text: cleanedText,
         agentId,
         voiceName: agent.voiceName,
       });
+
       if (audioRef.current) {
-        // Fix: Pause any ongoing playback before setting a new source to prevent interruption errors.
         audioRef.current.pause();
         audioRef.current.src = result.audioUrl;
         await audioRef.current.play();
+      } else {
+        // If audio element is gone for some reason, reset state
+        resetSpeechState();
       }
     } catch (error: any) {
       console.error("Error generating or playing speech:", error);
       toast({ title: "Speech Generation Failed", description: error.message || "Could not generate voice.", variant: "destructive" });
-      setIsSpeaking(false);
+      resetSpeechState();
     }
-  }, [agentId, agent, toast, autoSpeakEnabled]);
+  }, [agentId, agent, toast, autoSpeakEnabled, resetSpeechState]);
 
 
   const handleNewAgentMessage = useCallback((message: ChatMessageType) => {
@@ -127,8 +144,9 @@ export default function TestAgentPage() {
     if (isListening) {
       recognitionRef.current?.stop();
     } else {
-      if (audioRef.current?.played) {
+      if (audioRef.current && !audioRef.current.paused) {
         audioRef.current.pause();
+        resetSpeechState();
       }
 
       const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
