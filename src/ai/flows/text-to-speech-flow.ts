@@ -1,69 +1,90 @@
 
 'use server';
 /**
- * @fileOverview A simplified flow for generating speech from text using a configured voice.
- * This flow is designed to be stateless and relies on provided API keys and voice IDs.
+ * @fileOverview A simplified flow for generating speech from text using Genkit and Google's TTS model.
  *
- * - generateSpeech - Generates spoken audio from text.
+ * - generateSpeech - Generates spoken audio from text, stores it, and returns a public URL.
  */
-
 import { storage } from '@/lib/firebase';
 import type { GenerateSpeechInput, GenerateSpeechOutput } from '@/lib/types';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
+import wav from 'wav';
 
-export async function generateSpeech(input: GenerateSpeechInput): Promise<GenerateSpeechOutput> {
-  const { text, agentId, voiceId } = input;
-  const timestamp = new Date().toISOString();
-
-  console.log(`[${timestamp}] [TTS Flow] Received request for agent ${agentId}.`);
-
-  const apiKeyToUse = process.env.ELEVENLABS_API_KEY;
-
-  if (!apiKeyToUse) {
-    console.error(`[${timestamp}] [TTS Flow] System-wide ElevenLabs API key (ELEVENLABS_API_KEY) is not configured in environment variables.`);
-    throw new Error("Text-to-speech service is not configured by the administrator.");
-  }
-  
-  const effectiveVoiceId = voiceId || '21m00Tcm4TlvDq8ikWAM'; // Default voice ID for 'Rachel'
-  const ttsUrl = `https://api.elevenlabs.io/v1/text-to-speech/${effectiveVoiceId}`;
-  
-  console.log(`[${timestamp}] [TTS Flow] Generating speech with voice: ${effectiveVoiceId}`);
-
-  try {
-    const response = await fetch(ttsUrl, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'xi-api-key': apiKeyToUse,
-        },
-        body: JSON.stringify({
-            text: text,
-            model_id: 'eleven_multilingual_v2',
-        }),
+async function toWav(
+  pcmData: Buffer,
+  channels = 1,
+  rate = 24000,
+  sampleWidth = 2
+): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const writer = new wav.Writer({
+      channels,
+      sampleRate: rate,
+      bitDepth: sampleWidth * 8,
     });
 
-    if (!response.ok) {
-        const errorBody = await response.text();
-        console.error(`[${timestamp}] [TTS Flow] ElevenLabs API error for agent ${agentId}: Status ${response.status}`, errorBody);
-        let userMessage = `Failed to generate speech. Status: ${response.status}.`;
-        if (response.status === 401) {
-            userMessage = 'The provided system-wide ElevenLabs API key is invalid or expired. Please check server configuration.';
-        }
-        throw new Error(userMessage);
+    const bufs: Buffer[] = [];
+    writer.on('error', reject);
+    writer.on('data', (d) => {
+      bufs.push(d);
+    });
+    writer.on('end', () => {
+      resolve(Buffer.concat(bufs));
+    });
+
+    writer.write(pcmData);
+    writer.end();
+  });
+}
+
+
+export async function generateSpeech(input: GenerateSpeechInput): Promise<GenerateSpeechOutput> {
+  const { text, agentId, voiceId } = input; // voiceId is unused with Gemini but kept for signature compatibility
+  const timestamp = new Date().toISOString();
+
+  console.log(`[${timestamp}] [Gemini TTS Flow] Received request for agent ${agentId}.`);
+
+  try {
+    const { media } = await ai.generate({
+      model: 'googleai/gemini-2.5-flash-preview-tts',
+      config: {
+        responseModalities: ['AUDIO'],
+        speechConfig: {
+          voiceConfig: {
+            // Using a default prebuilt voice. Voice selection could be expanded later.
+            prebuiltVoiceConfig: { voiceName: 'Algenib' },
+          },
+        },
+      },
+      prompt: text,
+    });
+
+    if (!media || !media.url) {
+        throw new Error('AI model did not return any audio media.');
     }
+
+    // The data URI contains base64 encoded raw PCM audio data.
+    const audioBuffer = Buffer.from(
+      media.url.substring(media.url.indexOf(',') + 1),
+      'base64'
+    );
     
-    const audioBuffer = await response.arrayBuffer();
-    const content = Buffer.from(audioBuffer);
-    
-    const storageRef = ref(storage, `tts-audio/${agentId}-${Date.now()}.mp3`);
-    await uploadBytes(storageRef, content, { contentType: 'audio/mpeg' });
+    // Convert the raw PCM data to a valid WAV file buffer.
+    const wavBuffer = await toWav(audioBuffer);
+
+    // Upload the WAV buffer to Firebase Storage.
+    const storageRef = ref(storage, `tts-audio/${agentId}-${Date.now()}.wav`);
+    await uploadBytes(storageRef, wavBuffer, { contentType: 'audio/wav' });
     const downloadURL = await getDownloadURL(storageRef);
     
-    console.log(`[${timestamp}] [TTS Flow] Speech generated and uploaded for agent ${agentId}. URL: ${downloadURL}`);
+    console.log(`[${timestamp}] [Gemini TTS Flow] Speech generated and uploaded for agent ${agentId}. URL: ${downloadURL}`);
+    
     return { audioUrl: downloadURL };
 
   } catch (error: any) {
-    console.error(`[${timestamp}] [TTS Flow] Error during ElevenLabs API call or storage upload for agent ${agentId}:`, error);
+    console.error(`[${timestamp}] [Gemini TTS Flow] Error during Gemini TTS call or storage upload for agent ${agentId}:`, error);
     throw new Error(`Failed to generate speech: ${error.message}`);
   }
 }
