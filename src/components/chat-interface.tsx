@@ -151,6 +151,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
           message: messageText,
           conversationId: conversationId || undefined,
           agentConfig: {
+            userId: agentRef.current.userId,
             generatedName: agentRef.current.generatedName,
             generatedPersona: agentRef.current.generatedPersona,
             role: agentRef.current.role,

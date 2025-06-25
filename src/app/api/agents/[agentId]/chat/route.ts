@@ -9,6 +9,7 @@ import { doc, getDoc, setDoc, collection, Timestamp, writeBatch, increment } fro
 
 // Zod Schema for the agent configuration passed in the body
 const AgentConfigSchema = z.object({
+  userId: z.string().describe("The ID of the user who owns the agent."),
   generatedName: z.string().optional(),
   generatedPersona: z.string().optional(),
   role: z.string().optional(),
@@ -72,18 +73,12 @@ export async function POST(
   try {
     let currentConversation: Conversation;
     if (isNewConversation) {
-      // Fetch agent to get owner's userId
-      const agentRef = doc(db, 'agents', agentId);
-      const agentSnap = await getDoc(agentRef);
-      if (!agentSnap.exists()) {
-          return createErrorResponse(404, "Agent configuration not found on server.");
-      }
-      const agentData = agentSnap.data() as Agent;
-      
+      // Use the userId passed from the authenticated client context
+      // This avoids a direct, unauthenticated read from the API
       currentConversation = {
         id: conversationId,
         agentId: agentId,
-        userId: agentData.userId, // Storing the agent owner's ID
+        userId: agentConfig.userId, // Storing the agent owner's ID from the payload
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
         status: 'ongoing',
