@@ -9,7 +9,7 @@
 
 import { storage } from '@/lib/firebase';
 import type { GenerateSpeechInput, GenerateSpeechOutput } from '@/lib/types';
-import { ElevenLabsClient } from 'elevenlabs-node';
+import * as elevenlabsNode from 'elevenlabs-node';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 export async function generateSpeech(input: GenerateSpeechInput): Promise<GenerateSpeechOutput> {
@@ -30,7 +30,7 @@ export async function generateSpeech(input: GenerateSpeechInput): Promise<Genera
   console.log(`[${timestamp}] [TTS Flow] Generating speech with voice: ${effectiveVoiceId}`);
 
   try {
-    const elevenlabs = new ElevenLabsClient({ apiKey: apiKeyToUse });
+    const elevenlabs = new elevenlabsNode.ElevenLabsClient({ apiKey: apiKeyToUse });
     const audio = await elevenlabs.generate({
       voice: effectiveVoiceId,
       text,
@@ -54,7 +54,7 @@ export async function generateSpeech(input: GenerateSpeechInput): Promise<Genera
   } catch (error: any) {
     console.error(`[${timestamp}] [TTS Flow] Error during ElevenLabs API call or storage upload for agent ${agentId}:`, error);
     if (error.message && (error.message.includes('401') || error.message.toLowerCase().includes('invalid api key'))) {
-       throw new Error('The provided system-wide ElevenLabs API Key is invalid or expired. Please check server configuration.');
+       throw new Error('The provided system-wide ElevenLabs API key is invalid or expired. Please check server configuration.');
     }
     throw new Error(`Failed to generate speech: ${error.message}`);
   }
