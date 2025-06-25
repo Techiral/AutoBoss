@@ -9,7 +9,6 @@
 
 import { storage } from '@/lib/firebase';
 import type { GenerateSpeechInput, GenerateSpeechOutput } from '@/lib/types';
-import * as elevenlabs from 'elevenlabs-node';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 export async function generateSpeech(input: GenerateSpeechInput): Promise<GenerateSpeechOutput> {
@@ -25,25 +24,37 @@ export async function generateSpeech(input: GenerateSpeechInput): Promise<Genera
     throw new Error("Text-to-speech service is not configured by the administrator.");
   }
   
-  // Use the provided voiceId or fallback to a default voice.
-  const effectiveVoiceId = voiceId || 'Rachel';
+  const effectiveVoiceId = voiceId || 'Rachel'; // Default voice
+  const ttsUrl = `https://api.elevenlabs.io/v1/text-to-speech/${effectiveVoiceId}`;
+  
   console.log(`[${timestamp}] [TTS Flow] Generating speech with voice: ${effectiveVoiceId}`);
 
   try {
-    const elevenlabsClient = new elevenlabs.ElevenLabsClient({ apiKey: apiKeyToUse });
-    const audio = await elevenlabsClient.generate({
-      voice: effectiveVoiceId,
-      text,
-      model_id: 'eleven_multilingual_v2',
+    const response = await fetch(ttsUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'xi-api-key': apiKeyToUse,
+        },
+        body: JSON.stringify({
+            text: text,
+            model_id: 'eleven_multilingual_v2',
+        }),
     });
 
-    const chunks: Buffer[] = [];
-    for await (const chunk of audio) {
-      chunks.push(chunk);
+    if (!response.ok) {
+        const errorBody = await response.text();
+        console.error(`[${timestamp}] [TTS Flow] ElevenLabs API error for agent ${agentId}: Status ${response.status}`, errorBody);
+        let userMessage = `Failed to generate speech. Status: ${response.status}.`;
+        if (response.status === 401) {
+            userMessage = 'The provided system-wide ElevenLabs API key is invalid or expired. Please check server configuration.';
+        }
+        throw new Error(userMessage);
     }
-    const content = Buffer.concat(chunks);
     
-    // Use agentId in the path to keep files organized
+    const audioBuffer = await response.arrayBuffer();
+    const content = Buffer.from(audioBuffer);
+    
     const storageRef = ref(storage, `tts-audio/${agentId}-${Date.now()}.mp3`);
     await uploadBytes(storageRef, content, { contentType: 'audio/mpeg' });
     const downloadURL = await getDownloadURL(storageRef);
@@ -53,9 +64,6 @@ export async function generateSpeech(input: GenerateSpeechInput): Promise<Genera
 
   } catch (error: any) {
     console.error(`[${timestamp}] [TTS Flow] Error during ElevenLabs API call or storage upload for agent ${agentId}:`, error);
-    if (error.message && (error.message.includes('401') || error.message.toLowerCase().includes('invalid api key'))) {
-       throw new Error('The provided system-wide ElevenLabs API key is invalid or expired. Please check server configuration.');
-    }
     throw new Error(`Failed to generate speech: ${error.message}`);
   }
 }
