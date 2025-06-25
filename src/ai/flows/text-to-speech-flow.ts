@@ -9,7 +9,7 @@
 
 import { storage } from '@/lib/firebase';
 import type { GenerateSpeechInput, GenerateSpeechOutput } from '@/lib/types';
-import * as elevenlabsNode from 'elevenlabs-node';
+import { ElevenLabsClient } from 'elevenlabs-node';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 export async function generateSpeech(input: GenerateSpeechInput): Promise<GenerateSpeechOutput> {
@@ -30,7 +30,7 @@ export async function generateSpeech(input: GenerateSpeechInput): Promise<Genera
   console.log(`[${timestamp}] [TTS Flow] Generating speech with voice: ${effectiveVoiceId}`);
 
   try {
-    const elevenlabs = new elevenlabsNode.ElevenLabsClient({ apiKey: apiKeyToUse });
+    const elevenlabs = new ElevenLabsClient({ apiKey: apiKeyToUse });
     const audio = await elevenlabs.generate({
       voice: effectiveVoiceId,
       text,
