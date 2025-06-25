@@ -7,7 +7,7 @@ import { useAppContext } from '../../layout';
 import type { Agent } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Loader2, Bot, BookOpen, MessageSquare, Share2, Settings } from 'lucide-react';
+import { AlertTriangle, Loader2, Bot, BookOpen, MessageSquare, Share2, Settings, BarChart3 } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
@@ -46,6 +46,7 @@ export default function AgentDetailLayout({ children }: { children: React.ReactN
   const navItems = agentId ? [
       { href: `/agents/${agentId}/personality`, label: 'Personality', icon: Settings },
       { href: `/agents/${agentId}/knowledge`, label: 'Knowledge', icon: BookOpen },
+      { href: `/agents/${agentId}/analytics`, label: 'Analytics', icon: BarChart3 },
       { href: `/agents/${agentId}/test`, label: 'Test Agent', icon: MessageSquare },
       { href: `/agents/${agentId}/export`, label: 'Deploy & Share', icon: Share2 },
     ] : [];
@@ -83,7 +84,7 @@ export default function AgentDetailLayout({ children }: { children: React.ReactN
       </div>
       
       <Tabs value={pathname} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
             {navItems.map(item => (
                 <TabsTrigger key={item.href} value={item.href} asChild>
                     <Link href={item.href}>

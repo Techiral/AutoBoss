@@ -50,13 +50,13 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true); 
+  const [conversationId, setConversationId] = useState<string | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const [currentAgent, setCurrentAgent] = useState<Agent>(initialAgent);
   const agentRef = useRef(currentAgent); 
-  const conversationHistoryRef = useRef<string[]>([]); 
   const lastUserMessageRef = useRef<string | null>(null);
   const autoRetryCountRef = useRef<number>(0);
 
@@ -65,10 +65,10 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
     setCurrentAgent(initialAgent);
     agentRef.current = initialAgent;
     setIsInitializing(true); 
-    conversationHistoryRef.current = [];
     setMessages([]); 
     lastUserMessageRef.current = null;
     autoRetryCountRef.current = 0;
+    setConversationId(null); // Reset conversation ID on agent change
   }, [initialAgent]);
 
 
@@ -89,9 +89,9 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
     if (!agentRef.current) return;
     console.log("ChatInterface: Initializing chat for agent:", agentRef.current.id);
     setIsLoading(true);
-    conversationHistoryRef.current = []; 
     lastUserMessageRef.current = null;
     autoRetryCountRef.current = 0;
+    setConversationId(null);
 
     const initialMessagesList: ExtendedChatMessage[] = [];
     
@@ -103,7 +103,6 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
         timestamp: Date.now()
       };
       initialMessagesList.push(greetingMsg);
-      conversationHistoryRef.current.push(`Agent: ${agentRef.current.generatedGreeting}`);
       if (onNewAgentMessage) onNewAgentMessage(greetingMsg);
     }
     
@@ -137,13 +136,12 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
         timestamp: Date.now(),
       };
       setMessages((prev) => [...prev, userMessage]);
-      conversationHistoryRef.current.push(`User: ${userMessage.text}`);
       setInput(""); 
     }
     
     setIsLoading(true);
     
-    console.log("ChatInterface: Sending message to API. Agent Primary Logic:", agentRef.current.primaryLogic, "Is Auto Retry:", isAutoRetry);
+    console.log("ChatInterface: Sending message to API. Agent Primary Logic:", agentRef.current.primaryLogic, "Is Auto Retry:", isAutoRetry, "Conv ID:", conversationId);
 
     try {
       const response = await fetch(`/api/agents/${agentRef.current.id}/chat`, {
@@ -151,7 +149,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: messageText,
-          conversationHistory: conversationHistoryRef.current,
+          conversationId: conversationId, // Pass current conversation ID
           agentConfig: {
             generatedName: agentRef.current.generatedName,
             generatedPersona: agentRef.current.generatedPersona,
@@ -170,6 +168,11 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
         throw new Error(errorDetail);
       }
       
+      // Persist the conversationId returned from the API
+      if (data.conversationId) {
+        setConversationId(data.conversationId);
+      }
+      
       let agentResponseText = data.reply;
       let agentResponse: ExtendedChatMessage | null = null;
 
@@ -185,7 +188,6 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
         
         setMessages((prev) => [...prev, agentResponse as ExtendedChatMessage]);
         if (onNewAgentMessage) onNewAgentMessage(agentResponse);
-        conversationHistoryRef.current.push(`Agent: ${(agentResponse as ExtendedChatMessage).text}`); 
         
         const lowerCaseAgentResponse = agentResponseText.toLowerCase();
         const isPlaceholder = PLACEHOLDER_RESPONSES.some(phrase => lowerCaseAgentResponse.includes(phrase));
@@ -208,7 +210,6 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
          };
          setMessages((prev) => [...prev, noReplyMsg]);
          if (onNewAgentMessage) onNewAgentMessage(noReplyMsg);
-         conversationHistoryRef.current.push(`Agent: ${noReplyMsg.text}`);
          autoRetryCountRef.current = 0; 
       }
       
@@ -227,7 +228,6 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
       };
       setMessages((prev) => [...prev, errorResponse]);
       if(onNewAgentMessage) onNewAgentMessage(errorResponse);
-      conversationHistoryRef.current.push(`Agent: ${errorResponse.text}`);
       autoRetryCountRef.current = 0; 
     } finally {
       const lowerCaseAgentResponse = messages[messages.length -1]?.text?.toLowerCase() || "";

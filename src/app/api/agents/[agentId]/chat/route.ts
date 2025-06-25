@@ -2,8 +2,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { autonomousReasoning, AutonomousReasoningInput } from '@/ai/flows/autonomous-reasoning';
-import type { Agent, AgentLogicType, ChatMessage, KnowledgeItem } from '@/lib/types';
-import { KnowledgeItemSchema, AgentToneSchema } from '@/lib/types';
+import type { Agent, AgentLogicType, ChatMessage, KnowledgeItem, Conversation } from '@/lib/types';
+import { KnowledgeItemSchema, AgentToneSchema, ChatMessageSchema } from '@/lib/types';
+import { db } from '@/lib/firebase';
+import { doc, getDoc, setDoc, collection, Timestamp, writeBatch, increment } from 'firebase/firestore';
 
 // Zod Schema for the agent configuration passed in the body
 const AgentConfigSchema = z.object({
@@ -18,7 +20,7 @@ const AgentConfigSchema = z.object({
 // Zod Schema for the complete Request Body
 const RequestBodySchema = z.object({
   message: z.string().describe("User's input message."),
-  conversationHistory: z.array(z.string()).optional().describe("A list of past messages in 'Sender: Message' format."),
+  conversationId: z.string().optional().describe("ID of the ongoing conversation session."),
   agentConfig: AgentConfigSchema.describe("The necessary configuration of the agent to perform reasoning."),
 });
 type ApiRequestBody = z.infer<typeof RequestBodySchema>;
@@ -59,14 +61,57 @@ export async function POST(
     return createErrorResponse(400, "Malformed JSON in request body.");
   }
 
-  const { message: userInput, conversationHistory: clientHistory, agentConfig } = requestBody;
-  console.log(`API Route (Stateless): Received request for agent ${agentId}. UserInput: "${userInput ? userInput.substring(0,50) + '...' : 'N/A'}"`);
+  const { message: userInput, conversationId: clientConversationId, agentConfig } = requestBody;
+  console.log(`API Route (Stateful): Received request for agent ${agentId}. Conversation ID: ${clientConversationId || '(new)'}`);
+
+  const batch = writeBatch(db);
+  const conversationId = clientConversationId || doc(collection(db, "conversations")).id;
+  const conversationRef = doc(db, "conversations", conversationId);
+  const isNewConversation = !clientConversationId;
 
   try {
-    const historyForAutonomousReasoning = (clientHistory || []).join('\n');
-    const primaryLogic = agentConfig.primaryLogic || 'prompt';
+    let currentConversation: Conversation;
+    if (isNewConversation) {
+      // Fetch agent to get owner's userId
+      const agentRef = doc(db, 'agents', agentId);
+      const agentSnap = await getDoc(agentRef);
+      if (!agentSnap.exists()) {
+          return createErrorResponse(404, "Agent configuration not found on server.");
+      }
+      const agentData = agentSnap.data() as Agent;
+      
+      currentConversation = {
+        id: conversationId,
+        agentId: agentId,
+        userId: agentData.userId, // Storing the agent owner's ID
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+        status: 'ongoing',
+        messages: [],
+        messageCount: 0,
+      };
+    } else {
+      const conversationSnap = await getDoc(conversationRef);
+      if (!conversationSnap.exists()) {
+        return createErrorResponse(404, "Conversation session not found.");
+      }
+      currentConversation = conversationSnap.data() as Conversation;
+    }
+
+    const userMessage: ChatMessage = {
+      id: `msg-${Date.now()}`,
+      sender: 'user',
+      text: userInput,
+      timestamp: Date.now(),
+    };
+    currentConversation.messages.push(userMessage);
+
+    const historyForAutonomousReasoning = currentConversation.messages
+      .map(msg => `${msg.sender === 'user' ? 'User' : 'Agent'}: ${msg.text}`)
+      .join('\n');
     
-    console.log(`API Route (Stateless): Executing autonomousReasoning for agent ${agentId}. Primary Logic: ${primaryLogic}, Tone: ${agentConfig.agentTone}`);
+    const primaryLogic = agentConfig.primaryLogic || 'prompt';
+    console.log(`API Route: Executing autonomousReasoning for agent ${agentId}. Logic: ${primaryLogic}`);
     
     const reasoningInput: AutonomousReasoningInput = {
       agentName: agentConfig.generatedName,
@@ -80,18 +125,40 @@ export async function POST(
     
     const result = await autonomousReasoning(reasoningInput);
     
-    const updatedHistory = [...(clientHistory || []), `User: ${userInput}`, `Agent: ${result.responseToUser}`];
+    const agentMessage: ChatMessage = {
+      id: `msg-${Date.now() + 1}`,
+      sender: 'agent',
+      text: result.responseToUser,
+      timestamp: Date.now(),
+      reasoning: result.reasoning,
+      relevantKnowledgeIds: result.relevantKnowledgeIds,
+    };
+    currentConversation.messages.push(agentMessage);
+    currentConversation.updatedAt = Timestamp.now();
+    currentConversation.messageCount = currentConversation.messages.length;
+
+    // Add conversation update to the batch
+    batch.set(conversationRef, currentConversation);
+
+    // Add agent analytics update to the batch
+    const agentRef = doc(db, 'agents', agentId);
+    batch.update(agentRef, {
+        'analytics.totalMessages': increment(2),
+        ...(isNewConversation && { 'analytics.totalConversations': increment(1) })
+    });
+    
+    // Commit all writes at once
+    await batch.commit();
 
     return NextResponse.json({ 
-      type: primaryLogic, 
       reply: result.responseToUser,
       reasoning: result.reasoning,
       relevantKnowledgeIds: result.relevantKnowledgeIds,
+      conversationId: conversationId,
     }, { status: 200 });
 
   } catch (error: any) {
-    console.error(`API Route (Stateless): Unhandled error for agent ${agentId} | UserInput: "${userInput ? userInput.substring(0,50) + '...' : 'N/A'}" | Error:`, error.message, error.stack);
+    console.error(`API Route: Unhandled error for agent ${agentId} | Conversation ID: ${conversationId} | Error:`, error.message, error.stack);
     return createErrorResponse(500, 'Oops! Something went wrong on our end while processing your request. Please try again in a moment.', { internalError: error.message });
   }
 }
-    

@@ -115,22 +115,35 @@ export const AgentSchema = z.object({
     customMetricLabel: z.string().optional(),
     customMetricValue: z.string().optional(),
   }).optional(),
+  analytics: z.object({
+    totalConversations: z.number().optional(),
+    totalMessages: z.number().optional(),
+  }).optional(),
 });
 export type Agent = z.infer<typeof AgentSchema>;
 
+// Conversation History & Analytics Types
+export const ChatMessageSchema = z.object({
+  id: z.string(),
+  sender: z.enum(['user', 'agent']),
+  text: z.string(),
+  timestamp: z.number(),
+  reasoning: z.string().optional(),
+  relevantKnowledgeIds: z.array(z.string()).optional(),
+});
+export type ChatMessage = z.infer<typeof ChatMessageSchema>;
 
-export interface ChatMessage {
-  id: string;
-  sender: 'user' | 'agent';
-  text: string;
-  timestamp: number;
-  intent?: string;
-  entities?: Record<string, string>;
-  reasoning?: string;
-  relevantKnowledgeIds?: string[];
-  conversationHistory?: string[];
-}
-
+export const ConversationSchema = z.object({
+  id: z.string(),
+  agentId: z.string(),
+  userId: z.string(), // This is the agent owner's ID
+  createdAt: z.custom<Timestamp>(),
+  updatedAt: z.custom<Timestamp>(),
+  status: z.enum(['ongoing', 'resolved', 'failed']),
+  messages: z.array(ChatMessageSchema),
+  messageCount: z.number().optional(),
+});
+export type Conversation = z.infer<typeof ConversationSchema>;
 
 // For Outbound Enqueue API
 export const OutboundTaskPayloadSchema = z.object({
