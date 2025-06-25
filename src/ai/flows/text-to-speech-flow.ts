@@ -57,9 +57,6 @@ export async function generateSpeech(input: GenerateSpeechInput): Promise<Genera
   console.log(`[${timestamp}] [TTS Flow] Generating speech using custom provider. Key Index: ${currentKeyIndex}`);
 
   try {
-    // IMPORTANT: Using the model name 'provider-5/gpt-4o' as requested.
-    // Standard OpenAI TTS models are 'tts-1' or 'tts-1-hd'.
-    // If this request fails, the model name may need to be adjusted based on the provider's documentation.
     const response = await fetch("https://api.a4f.co/v1/audio/speech", {
       method: 'POST',
       headers: {
@@ -67,7 +64,7 @@ export async function generateSpeech(input: GenerateSpeechInput): Promise<Genera
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'provider-5/gpt-4o',
+        model: 'tts-1-hd', // Using a standard high-quality TTS model instead of a chat model to fix 404 error.
         input: text,
         voice: 'nova', // Using 'nova' as a high-quality default voice from the standard OpenAI TTS options
       }),
