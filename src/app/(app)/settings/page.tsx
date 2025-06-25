@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -37,7 +36,6 @@ const credentialsFormSchema = z.object({
   twilioPhoneNumber: z.string().optional().refine(val => !val || /^\+[1-9]\d{1,14}$/.test(val), {
     message: "Invalid Twilio phone number format (e.g., +12223334444)",
   }),
-  googleApiKey: z.string().optional(),
 });
 type CredentialsFormData = z.infer<typeof credentialsFormSchema>;
 
@@ -50,11 +48,7 @@ export default function SettingsPage() {
   const [isSavingCredentials, setIsSavingCredentials] = useState(false);
   const [hasSendGridKey, setHasSendGridKey] = useState(false);
   const [hasTwilioSid, setHasTwilioSid] = useState(false);
-  const [hasGoogleKey, setHasGoogleKey] = useState(false);
   const [isLoadingCredentials, setIsLoadingCredentials] = useState(true);
-  const [ttsCreditsUsed, setTtsCreditsUsed] = useState(0);
-
-  const FREE_TIER_CREDIT_LIMIT = 15;
 
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<CredentialsFormData>({
     resolver: zodResolver(credentialsFormSchema),
@@ -64,7 +58,6 @@ export default function SettingsPage() {
       twilioAccountSid: "",
       twilioAuthToken: "",
       twilioPhoneNumber: "",
-      googleApiKey: "",
     }
   });
 
@@ -78,13 +71,9 @@ export default function SettingsPage() {
           setValue("twilioPhoneNumber", creds.twilioPhoneNumber || "");
           setHasSendGridKey(!!creds.sendGridApiKey);
           setHasTwilioSid(!!creds.twilioAccountSid);
-          setHasGoogleKey(!!creds.googleApiKey);
-          setTtsCreditsUsed(creds.ttsCreditsUsed || 0);
         } else {
           setHasSendGridKey(false);
           setHasTwilioSid(false);
-          setHasGoogleKey(false);
-          setTtsCreditsUsed(0);
         }
         setIsLoadingCredentials(false);
       };
@@ -109,22 +98,18 @@ export default function SettingsPage() {
       twilioAccountSid: data.twilioAccountSid || undefined,
       twilioAuthToken: data.twilioAuthToken || undefined,
       twilioPhoneNumber: data.twilioPhoneNumber || undefined,
-      googleApiKey: data.googleApiKey || undefined,
     });
     if (success) {
         if (data.sendGridApiKey) setHasSendGridKey(true);
         if (data.twilioAccountSid) setHasTwilioSid(true);
-        if (data.googleApiKey) setHasGoogleKey(true);
     }
     setIsSavingCredentials(false);
     setValue("sendGridApiKey", ""); 
     setValue("twilioAccountSid", ""); 
     setValue("twilioAuthToken", "");
-    setValue("googleApiKey", "");
   };
   
   const isLoading = isAppContextLoading || authLoading || isLoadingCredentials;
-  const creditsRemaining = FREE_TIER_CREDIT_LIMIT - ttsCreditsUsed;
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -148,46 +133,6 @@ export default function SettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 p-4 sm:p-6">
-
-            {/* Google AI Card */}
-            <Card className="flex flex-col">
-              <CardHeader>
-                <CardTitle className="text-base sm:text-lg flex items-center gap-2"><Sparkles className="w-4 h-4"/>Google AI</CardTitle>
-                <CardDescription className="text-xs">Provide your own key for unlimited AI text and voice generation.</CardDescription>
-                {isLoadingCredentials && <div className="flex items-center text-xs text-muted-foreground"><Loader2 className="h-3 w-3 mr-1 animate-spin"/>Loading Status...</div>}
-                {!isLoadingCredentials && hasGoogleKey && (
-                    <Alert variant="default" className="p-2 text-xs border-foreground/30">
-                        <CheckCircle2 className="h-3.5 w-3.5" />
-                        <AlertTitle className="text-xs font-medium">Your Google AI Key is Active</AlertTitle>
-                        <AlertDescription className="text-[11px]">All AI features will use your personal key.</AlertDescription>
-                    </Alert>
-                )}
-                 {!isLoadingCredentials && !hasGoogleKey && (
-                    <Alert variant="default" className="p-2 text-xs">
-                        <AlertCircle className="h-3.5 w-3.5" />
-                        <AlertTitle className="text-xs font-medium">Using System's Free Tier</AlertTitle>
-                        <AlertDescription className="text-[11px]">{creditsRemaining > 0 ? `${creditsRemaining} TTS generations remaining today.` : `Daily limit reached.`} Add your key for unlimited use.</AlertDescription>
-                    </Alert>
-                )}
-              </CardHeader>
-              <CardContent className="flex-grow space-y-3">
-                <div className="space-y-1">
-                    <Label htmlFor="googleApiKey" className="text-xs font-medium">Your Google AI API Key</Label>
-                    <Input id="googleApiKey" type="password" placeholder={hasGoogleKey ? "API Key is set (Enter new to change)" : "Paste your API Key for unlimited usage"} {...register("googleApiKey")} disabled={isLoading || isSavingCredentials}/>
-                    {errors.googleApiKey && <p className="text-xs text-destructive">{errors.googleApiKey.message}</p>}
-                </div>
-                <Alert variant="default" className="p-3 text-xs bg-card">
-                    <Lightbulb className="h-3.5 w-3.5" />
-                    <AlertTitle className="text-xs font-medium">How to get your key:</AlertTitle>
-                    <AlertDescription className="text-[11px] space-y-1 mt-1">
-                        <p>1. Go to <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="underline">Google AI Studio</a>.</p>
-                        <p>2. Create a new API key in a project with billing enabled.</p>
-                        <p>3. Copy your key and paste it here.</p>
-                    </AlertDescription>
-                </Alert>
-              </CardContent>
-            </Card>
-
             {/* SendGrid Card */}
             <Card className="flex flex-col">
               <CardHeader>
@@ -231,7 +176,7 @@ export default function SettingsPage() {
             </Card>
 
             {/* Twilio Card */}
-            <Card className="flex flex-col md:col-span-2">
+            <Card className="flex flex-col">
               <CardHeader>
                 <CardTitle className="text-base sm:text-lg flex items-center gap-2"><PhoneCall className="w-4 h-4"/>Twilio</CardTitle>
                 <CardDescription className="text-xs">Enable your agents to make and receive voice calls.</CardDescription>
@@ -249,34 +194,22 @@ export default function SettingsPage() {
                     </Alert>
                 )}
               </CardHeader>
-              <CardContent className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-4">
-                 <div className="space-y-3">
-                    <div className="space-y-1">
-                        <Label htmlFor="twilioAccountSid" className="text-xs font-medium">Account SID</Label>
-                        <Input id="twilioAccountSid" type="password" placeholder={hasTwilioSid ? "Account SID is set (Enter new to change)" : "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"} {...register("twilioAccountSid")} disabled={isLoading || isSavingCredentials}/>
-                        {errors.twilioAccountSid && <p className="text-xs text-destructive">{errors.twilioAccountSid.message}</p>}
-                    </div>
-                    <div className="space-y-1">
-                        <Label htmlFor="twilioAuthToken" className="text-xs font-medium">Auth Token</Label>
-                        <Input id="twilioAuthToken" type="password" placeholder={hasTwilioSid ? "Auth Token is set (Enter new SID first)" : "Your Twilio Auth Token"} {...register("twilioAuthToken")} disabled={isLoading || isSavingCredentials}/>
-                         {errors.twilioAuthToken && <p className="text-xs text-destructive">{errors.twilioAuthToken.message}</p>}
-                    </div>
-                     <div className="space-y-1">
-                        <Label htmlFor="twilioPhoneNumber" className="text-xs font-medium">Default Twilio Phone Number</Label>
-                        <Input id="twilioPhoneNumber" type="tel" placeholder="+1234567890 (E.164 format)" {...register("twilioPhoneNumber")} disabled={isLoading || isSavingCredentials}/>
-                        {errors.twilioPhoneNumber && <p className="text-xs text-destructive">{errors.twilioPhoneNumber.message}</p>}
-                    </div>
-                 </div>
-                 <Alert variant="default" className="p-3 text-xs bg-card my-auto">
-                    <Lightbulb className="h-3.5 w-3.5" />
-                    <AlertTitle className="text-xs font-medium">How to get your credentials:</AlertTitle>
-                    <AlertDescription className="text-[11px] space-y-1 mt-1">
-                        <p>1. Login to your <a href="https://www.twilio.com/console" target="_blank" rel="noopener noreferrer" className="underline">Twilio Console</a>.</p>
-                        <p>2. Your Account SID and Auth Token are on the dashboard.</p>
-                        <p>3. Buy or manage your numbers under 'Phone Numbers'.</p>
-                        <p>4. Remember to copy the number in E.164 format (e.g., +15551234567).</p>
-                    </AlertDescription>
-                </Alert>
+              <CardContent className="flex-grow space-y-3">
+                 <div className="space-y-1">
+                    <Label htmlFor="twilioAccountSid" className="text-xs font-medium">Account SID</Label>
+                    <Input id="twilioAccountSid" type="password" placeholder={hasTwilioSid ? "Account SID is set (Enter new to change)" : "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"} {...register("twilioAccountSid")} disabled={isLoading || isSavingCredentials}/>
+                    {errors.twilioAccountSid && <p className="text-xs text-destructive">{errors.twilioAccountSid.message}</p>}
+                </div>
+                <div className="space-y-1">
+                    <Label htmlFor="twilioAuthToken" className="text-xs font-medium">Auth Token</Label>
+                    <Input id="twilioAuthToken" type="password" placeholder={hasTwilioSid ? "Auth Token is set (Enter new SID first)" : "Your Twilio Auth Token"} {...register("twilioAuthToken")} disabled={isLoading || isSavingCredentials}/>
+                     {errors.twilioAuthToken && <p className="text-xs text-destructive">{errors.twilioAuthToken.message}</p>}
+                </div>
+                 <div className="space-y-1">
+                    <Label htmlFor="twilioPhoneNumber" className="text-xs font-medium">Default Twilio Phone Number</Label>
+                    <Input id="twilioPhoneNumber" type="tel" placeholder="+1234567890 (E.164 format)" {...register("twilioPhoneNumber")} disabled={isLoading || isSavingCredentials}/>
+                    {errors.twilioPhoneNumber && <p className="text-xs text-destructive">{errors.twilioPhoneNumber.message}</p>}
+                </div>
               </CardContent>
             </Card>
 

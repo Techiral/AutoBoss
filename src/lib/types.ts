@@ -1,4 +1,3 @@
-
 import { z } from 'zod';
 import type { Timestamp } from 'firebase/firestore';
 
@@ -14,7 +13,6 @@ export const UserProfileSchema = z.object({
   twilioAccountSid: z.string().optional().nullable().describe("User's Twilio Account SID."),
   twilioAuthToken: z.string().optional().nullable().describe("User's Twilio Auth Token."),
   twilioPhoneNumber: z.string().optional().nullable().describe("User's default Twilio Phone Number for sending SMS/making calls."),
-  googleApiKey: z.string().optional().nullable().describe("User's own Google AI API Key for Genkit calls."),
   ttsCreditsUsed: z.number().optional().describe("Counter for free tier usage of the system's TTS key."),
 });
 export type UserProfile = z.infer<typeof UserProfileSchema>;
@@ -166,8 +164,6 @@ export type OutboundTaskPayload = z.infer<typeof OutboundTaskPayloadSchema>;
 // For Text-to-Speech Flow
 export const GenerateSpeechInputSchema = z.object({
   text: z.string().min(1, 'Text to speak cannot be empty.'),
-  agentId: z.string().min(1, 'Agent ID is required for logging and storage paths.'),
-  userId: z.string().min(1, 'User ID is required for API key lookup.'),
   voiceName: z.string().optional().describe("The Google TTS voice name to use. Falls back to a default if not provided."),
 });
 export type GenerateSpeechInput = z.infer<typeof GenerateSpeechInputSchema>;
