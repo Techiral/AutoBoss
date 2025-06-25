@@ -70,20 +70,28 @@ export default function AnalyticsPage() {
       setIsLoading(true);
       setError(null);
       try {
+        // Simplify the query to filter only by agentId. Sorting will be done client-side.
         const q = query(
           collection(db, "conversations"),
-          where("agentId", "==", agentId),
-          orderBy("createdAt", "desc")
+          where("agentId", "==", agentId)
         );
         const querySnapshot = await getDocs(q);
         const fetchedConversations = querySnapshot.docs.map(doc => convertFirestoreTimestamp({ id: doc.id, ...doc.data() }));
+        
+        // Sort conversations in-memory by creation date, descending.
+        fetchedConversations.sort((a, b) => {
+            const dateA = new Date(a.createdAt as string).getTime();
+            const dateB = new Date(b.createdAt as string).getTime();
+            return dateB - dateA;
+        });
+
         setConversations(fetchedConversations);
         if (fetchedConversations.length > 0) {
           setSelectedConversation(fetchedConversations[0]);
         }
       } catch (e: any) {
         console.error("Error fetching conversations:", e);
-        setError(`Failed to load conversations: ${e.message}. Ensure Firestore indexes are set up if prompted in console.`);
+        setError(`Failed to load conversations: ${e.message}. If this persists, the database may require an index.`);
       } finally {
         setIsLoading(false);
       }

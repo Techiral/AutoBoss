@@ -6,7 +6,7 @@ import { ArrowRight, Eye, Search, Info, Bot, AlertTriangle, MessageSquare, Trend
 import { cn } from "@/lib/utils";
 import type { Agent } from "@/lib/types";
 import { db } from '@/lib/firebase';
-import { collection, query, where, orderBy, limit, getDocs, Timestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
 import Image from "next/image";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Logo } from "@/components/logo";
@@ -36,11 +36,11 @@ const convertAgentTimestamps = (agentData: any): Agent => {
 async function getPublicAgents(): Promise<Agent[]> {
   try {
     const agentsRef = collection(db, 'agents');
+    // Simplify the query to only filter by the necessary field.
+    // Sorting and limiting will be done in the server component after fetching.
     const q = query(
       agentsRef,
-      where('isPubliclyShared', '==', true),
-      orderBy('sharedAt', 'desc'), // Order by when they were shared, newest first
-      limit(50) // Limit to a reasonable number for display
+      where('isPubliclyShared', '==', true)
     );
     const querySnapshot = await getDocs(q);
     const agents: Agent[] = [];
@@ -50,9 +50,6 @@ async function getPublicAgents(): Promise<Agent[]> {
     return agents;
   } catch (error) {
     console.error("Error fetching public agents for showcase:", error);
-    // It's important to re-throw or handle this, as a permissions error here
-    // will manifest on this page. For now, returning [] and letting the UI
-    // show a message is one approach.
     return [];
   }
 }
@@ -115,15 +112,18 @@ function AgentShowcaseCard({ agent, baseUrl }: AgentShowcaseCardProps) {
 
 
 export default async function ShowcasePage() {
-  let agents = await getPublicAgents();
+  const allPublicAgents = await getPublicAgents();
   const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || "http://localhost:3000";
 
-  // Sort by queries handled if the metric exists, otherwise keep default sort (by sharedAt date)
-  agents.sort((a, b) => {
-    const queriesA = a.showcaseMetrics?.queriesHandled ?? 0;
-    const queriesB = b.showcaseMetrics?.queriesHandled ?? 0;
-    return queriesB - queriesA;
+  // Sort and limit the agents here, on the server, after fetching.
+  const sortedAgents = allPublicAgents.sort((a, b) => {
+    // Sort by sharedAt date descending (newest first) as a primary sort key
+    const dateA = a.sharedAt ? new Date(a.sharedAt as string).getTime() : 0;
+    const dateB = b.sharedAt ? new Date(b.sharedAt as string).getTime() : 0;
+    return dateB - dateA;
   });
+
+  const agents = sortedAgents.slice(0, 50);
 
   return (
     <div className="bg-background text-foreground min-h-screen">
@@ -158,29 +158,24 @@ export default async function ShowcasePage() {
           </CardHeader>
         </Card>
 
-        {agents.length === 0 && (
+        {agents.length === 0 ? (
           <div className="space-y-4">
             <Alert className="max-w-lg mx-auto">
               <Search className="h-4 w-4" />
               <AlertTitle>Showcase Is Eagerly Awaiting Agents!</AlertTitle>
               <AlertDescription>
-                No agents have been publicly shared yet, or there might be a configuration step needed.
-                Be the first to showcase your creation! You can make your agent public from its 'Deploy & Share' settings page in your dashboard.
+                No agents have been publicly shared yet. Be the first to showcase your creation! You can make your agent public from its 'Deploy & Share' settings page in your dashboard.
               </AlertDescription>
             </Alert>
             <Alert variant="destructive" className="max-w-lg mx-auto bg-destructive/10 border-destructive/30">
                 <AlertTriangle className="h-4 w-4" />
-                <AlertTitle className="font-semibold">Important for Admins/Developers</AlertTitle>
+                <AlertTitle className="font-semibold">Note for Developers</AlertTitle>
                 <AlertDescription className="text-xs">
-                    If this showcase remains empty after agents have been marked public, please ensure a <strong>composite index</strong> is created in Firestore for the 'agents' collection.
-                    It should include `isPubliclyShared` (Ascending/Descending) and `sharedAt` (Descending).
-                    Firestore often provides a link to create this index in the server logs or console if the query fails.
+                    If this showcase remains empty after agents have been marked public, please ensure your Firestore Security Rules allow public reads for documents where `isPubliclyShared` is true. No special index is required with this updated code.
                 </AlertDescription>
             </Alert>
           </div>
-        )}
-
-        {agents.length > 0 && (
+        ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
             {agents.map((agent) => (
               <AgentShowcaseCard key={agent.id} agent={agent} baseUrl={appDomain}/>
