@@ -94,7 +94,7 @@ export default function MarketingPageClient() {
       quote: "Helped a friend set up an FAQ bot for her bakery using AutoBoss. Much easier than I thought, and she's thrilled! Finally, something that makes AI simple for everyday businesses.", delay: "delay-100", aiHint: "woman diverse business"
     },
     {
-      type: "metric", metrics: [ { icon: <Zap className="w-5 h-5 sm:w-6 sm:w-6 mb-1 opacity-80"/>, value: "AI, Made Easy.", label: "No Coding. Ever." }, { icon: <ClientIcon className="w-4 h-4 sm:w-5 sm:w-5 mt-2 mb-1 opacity-80"/>, value: "Client-Focused.", label: "Real Business Solutions." } ],
+      type: "metric", metrics: [ { icon: <Zap className="w-5 h-5 sm:w-6 sm:w-6 mb-1 opacity-80"/>, value: "AI, Made Easy.", label: "No Coding. Ever." }, { icon: <Briefcase className="w-4 h-4 sm:w-5 sm:w-5 mt-2 mb-1 opacity-80"/>, value: "Client-Focused.", label: "Real Business Solutions." } ],
       delay: "delay-200", aiHint: "dashboard ui modern"
     },
     {
@@ -192,7 +192,7 @@ export default function MarketingPageClient() {
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-5 max-w-3xl mx-auto">
                   <SimpleBenefitCard icon={<Zap className="w-5 h-5" />} title="No Coding. Really." description="You don't need to be a programmer. AutoBoss handles the tricky AI tech, so you can focus on your clients." animationDelay="delay-100"/>
-                  <SimpleBenefitCard icon={<ClientIcon className="w-5 h-5" />} title="Client-Focused Results" description="Create AI tools that genuinely help businesses save time, find more leads, or give better service. That's what they value." animationDelay="delay-200"/>
+                  <SimpleBenefitCard icon={<Briefcase className="w-5 h-5" />} title="Client-Focused Results" description="Create AI tools that genuinely help businesses save time, find more leads, or give better service. That's what they value." animationDelay="delay-200"/>
                   <SimpleBenefitCard icon={<Rocket className="w-5 h-5" />} title="Your AI Agency, Fast-Tracked." description="We give you a clear, simple path to start offering AI services, without the usual headaches and long learning curves." animationDelay="delay-300"/>
                 </div>
             </div>
