@@ -64,7 +64,7 @@ export async function generateSpeech(input: GenerateSpeechInput): Promise<Genera
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'tts-1-hd', // Using a standard high-quality TTS model instead of a chat model to fix 404 error.
+        model: 'tts-1', // Using the standard TTS model, which is compatible with the /audio/speech endpoint.
         input: text,
         voice: 'nova', // Using 'nova' as a high-quality default voice from the standard OpenAI TTS options
       }),
