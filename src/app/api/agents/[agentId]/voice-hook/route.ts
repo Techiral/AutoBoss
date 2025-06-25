@@ -5,7 +5,6 @@ import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import type { Agent } from '@/lib/types';
 import { generateVoiceResponse, VoiceResponseInput } from '@/ai/flows/voice-response-flow';
-import { generateSpeech } from '@/ai/flows/text-to-speech-flow';
 
 const MAX_HISTORY_ITEMS_IN_URL = 2; // Number of recent exchanges (1 user + 1 agent) = 4 items total (u1,a1,u2,a2)
 
@@ -120,21 +119,9 @@ export async function POST(
       }
     }
     
-    try {
-      // Use the centralized generateSpeech flow
-      const { audioUrl } = await generateSpeech({
-        text: agentResponseText,
-        agentId,
-        voiceId: agent.elevenLabsVoiceId || undefined,
-      });
-      twiml.play(audioUrl);
-    } catch (speechError: any) {
-       console.warn(`[${timestamp}] Fallback to Twilio TTS for call ${callSid} as custom TTS failed:`, speechError.message);
-       // Let the user know there's an issue with the voice service before falling back
-       twiml.say({ voice: 'alice' }, "There is an issue with my primary voice service.");
-       twiml.say({ voice: 'alice', language: 'en-US' }, agentResponseText);
-    }
-
+    // For reliability, the live voice hook now uses Twilio's built-in TTS.
+    // The higher-quality custom voice from Genkit is used in the web-based test interface.
+    twiml.say({ voice: 'alice', language: 'en-US' }, agentResponseText);
 
     const actionUrl = new URL(`/api/agents/${agentId}/voice-hook`, request.nextUrl.origin);
     Object.entries(newHistoryForUrlParams).forEach(([key, value]) => {
