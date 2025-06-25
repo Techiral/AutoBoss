@@ -149,3 +149,15 @@ export const OutboundTaskPayloadSchema = z.object({
   scheduledAt: z.string().datetime({ offset: true }).optional().describe("Optional ISO 8601 timestamp for scheduled sending."),
 });
 export type OutboundTaskPayload = z.infer<typeof OutboundTaskPayloadSchema>;
+
+// For Text-to-Speech Flow
+export const GenerateSpeechInputSchema = z.object({
+  text: z.string().min(1, 'Text to speak cannot be empty.'),
+  agentId: z.string().min(1, 'Agent ID is required to determine the voice and user context.'),
+});
+export type GenerateSpeechInput = z.infer<typeof GenerateSpeechInputSchema>;
+
+export const GenerateSpeechOutputSchema = z.object({
+  audioUrl: z.string().url().describe('A public URL to the generated MP3 audio file.'),
+});
+export type GenerateSpeechOutput = z.infer<typeof GenerateSpeechOutputSchema>;

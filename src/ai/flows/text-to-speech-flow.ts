@@ -4,32 +4,15 @@
  * @fileOverview A Genkit flow for generating speech from text using an agent's specific voice settings, with credit system.
  *
  * - generateSpeech - Generates spoken audio from text.
- * - GenerateSpeechInput - Input schema for the flow.
- * - GenerateSpeechOutput - Output schema for the flow.
  */
 
-import { z } from 'zod';
 import { db, storage } from '@/lib/firebase';
 import { doc, getDoc, setDoc, increment } from 'firebase/firestore';
-import type { Agent, UserProfile } from '@/lib/types';
+import type { Agent, UserProfile, GenerateSpeechInput, GenerateSpeechOutput } from '@/lib/types';
 import { ElevenLabsClient } from 'elevenlabs-node';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const FREE_TIER_LIMIT = parseInt(process.env.ELEVENLABS_FREE_TIER_CREDIT_LIMIT || '50');
-
-// Input schema for the text-to-speech flow
-export const GenerateSpeechInputSchema = z.object({
-  text: z.string().min(1, 'Text to speak cannot be empty.'),
-  agentId: z.string().min(1, 'Agent ID is required to determine the voice and user context.'),
-});
-export type GenerateSpeechInput = z.infer<typeof GenerateSpeechInputSchema>;
-
-// Output schema for the text-to-speech flow
-export const GenerateSpeechOutputSchema = z.object({
-  audioUrl: z.string().url().describe('A public URL to the generated MP3 audio file.'),
-});
-export type GenerateSpeechOutput = z.infer<typeof GenerateSpeechOutputSchema>;
-
 
 export async function generateSpeech(input: GenerateSpeechInput): Promise<GenerateSpeechOutput> {
   const { text, agentId } = input;

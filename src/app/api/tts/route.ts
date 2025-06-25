@@ -1,7 +1,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { generateSpeech, GenerateSpeechInputSchema } from '@/ai/flows/text-to-speech-flow';
+import { generateSpeech } from '@/ai/flows/text-to-speech-flow';
+import { GenerateSpeechInputSchema } from '@/lib/types';
 
 const createErrorResponse = (status: number, message: string, details?: any) => {
   console.error(`API Error Response (TTS/${status}): ${message}`, details || '');
