@@ -2,35 +2,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { autonomousReasoning, AutonomousReasoningInput } from '@/ai/flows/autonomous-reasoning';
-import { db } from '@/lib/firebase';
-import { doc, getDoc, Timestamp, updateDoc, increment } from 'firebase/firestore';
-import type { Agent, AgentLogicType, ChatMessage } from '@/lib/types';
+import type { Agent, AgentLogicType, ChatMessage, KnowledgeItem } from '@/lib/types';
+import { KnowledgeItemSchema, AgentToneSchema } from '@/lib/types';
 
-// Helper to convert Firestore Timestamps in agent data
-const convertAgentForApi = (agentData: any): Agent => {
-  const newAgent = { ...agentData };
-  if (newAgent.createdAt && newAgent.createdAt.toDate) {
-    newAgent.createdAt = newAgent.createdAt.toDate().toISOString();
-  }
-  if (newAgent.knowledgeItems) {
-    newAgent.knowledgeItems = newAgent.knowledgeItems.map((item: any) => {
-      if (item.uploadedAt && item.uploadedAt.toDate) {
-        return { ...item, uploadedAt: item.uploadedAt.toDate().toISOString() };
-      }
-      return item;
-    });
-  }
-  // Removed flow conversion
-  if ('flow' in newAgent) {
-    delete (newAgent as any).flow;
-  }
-  return newAgent as Agent;
-};
+// Zod Schema for the agent configuration passed in the body
+const AgentConfigSchema = z.object({
+  generatedName: z.string().optional(),
+  generatedPersona: z.string().optional(),
+  role: z.string().optional(),
+  agentTone: AgentToneSchema.optional(),
+  primaryLogic: z.custom<AgentLogicType>().optional(),
+  knowledgeItems: z.array(KnowledgeItemSchema).optional(),
+});
 
-// Zod Schemas for Request and Response
+// Zod Schema for the complete Request Body
 const RequestBodySchema = z.object({
   message: z.string().describe("User's input message."),
-  conversationHistory: z.array(z.string()).optional().describe("A list of past messages in 'Sender: Message' format. Example: ['User: Hello', 'Agent: Hi there!']"),
+  conversationHistory: z.array(z.string()).optional().describe("A list of past messages in 'Sender: Message' format."),
+  agentConfig: AgentConfigSchema.describe("The necessary configuration of the agent to perform reasoning."),
 });
 type ApiRequestBody = z.infer<typeof RequestBodySchema>;
 
@@ -70,42 +59,23 @@ export async function POST(
     return createErrorResponse(400, "Malformed JSON in request body.");
   }
 
-  const { message: userInput, conversationHistory: clientHistory } = requestBody;
-  console.log(`API Route (Simplified): Received request for agent ${agentId}. UserInput: "${userInput ? userInput.substring(0,50) + '...' : 'N/A'}"`);
-
+  const { message: userInput, conversationHistory: clientHistory, agentConfig } = requestBody;
+  console.log(`API Route (Stateless): Received request for agent ${agentId}. UserInput: "${userInput ? userInput.substring(0,50) + '...' : 'N/A'}"`);
 
   try {
-    const agentRef = doc(db, 'agents', agentId);
-    const agentSnap = await getDoc(agentRef);
-
-    if (!agentSnap.exists()) {
-      return createErrorResponse(404, `Agent with ID '${agentId}' not found.`);
-    }
-    
-    // Increment query count for showcase metrics
-    if (agentSnap.data().isPubliclyShared) {
-        await updateDoc(agentRef, {
-            'showcaseMetrics.queriesHandled': increment(1)
-        });
-    }
-
-    const agent = convertAgentForApi({ id: agentSnap.id, ...agentSnap.data() });
-    const knowledgeItems = agent.knowledgeItems || [];
-    // primaryLogic is now either 'prompt' or 'rag'. No more 'flow' or 'hybrid'.
-    const primaryLogic: AgentLogicType = agent.primaryLogic || 'prompt'; 
-
     const historyForAutonomousReasoning = (clientHistory || []).join('\n');
-
-    console.log(`API Route (Simplified): Executing autonomousReasoning for agent ${agentId}. Primary Logic: ${primaryLogic}, Tone: ${agent.agentTone}`);
+    const primaryLogic = agentConfig.primaryLogic || 'prompt';
+    
+    console.log(`API Route (Stateless): Executing autonomousReasoning for agent ${agentId}. Primary Logic: ${primaryLogic}, Tone: ${agentConfig.agentTone}`);
     
     const reasoningInput: AutonomousReasoningInput = {
-      agentName: agent.generatedName,
-      agentPersona: agent.generatedPersona,
-      agentRole: agent.role,
-      agentTone: agent.agentTone || "neutral", // Pass agentTone
-      context: historyForAutonomousReasoning, 
+      agentName: agentConfig.generatedName,
+      agentPersona: agentConfig.generatedPersona,
+      agentRole: agentConfig.role,
+      agentTone: agentConfig.agentTone || "neutral",
+      context: historyForAutonomousReasoning,
       userInput: userInput,
-      knowledgeItems: primaryLogic === 'rag' ? knowledgeItems : (agent.primaryLogic === 'prompt' && knowledgeItems.length > 0 ? knowledgeItems : []),
+      knowledgeItems: primaryLogic === 'rag' ? agentConfig.knowledgeItems : [],
     };
     
     const result = await autonomousReasoning(reasoningInput);
@@ -117,15 +87,10 @@ export async function POST(
       reply: result.responseToUser,
       reasoning: result.reasoning,
       relevantKnowledgeIds: result.relevantKnowledgeIds,
-      // Client manages its own history display based on replies.
-      // conversationHistory: updatedHistory, // Optionally return if server should be source of truth
     }, { status: 200 });
 
   } catch (error: any) {
-    console.error(`API Route (Simplified): Unhandled error for agent ${agentId} | UserInput: "${userInput ? userInput.substring(0,50) + '...' : 'N/A'}" | Error:`, error.message, error.stack);
-    if (error.message.includes("Agent not found")) { 
-        return createErrorResponse(404, error.message);
-    }
+    console.error(`API Route (Stateless): Unhandled error for agent ${agentId} | UserInput: "${userInput ? userInput.substring(0,50) + '...' : 'N/A'}" | Error:`, error.message, error.stack);
     return createErrorResponse(500, 'Oops! Something went wrong on our end while processing your request. Please try again in a moment.', { internalError: error.message });
   }
 }

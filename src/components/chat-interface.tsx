@@ -150,8 +150,16 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: messageText, 
-          conversationHistory: conversationHistoryRef.current, 
+          message: messageText,
+          conversationHistory: conversationHistoryRef.current,
+          agentConfig: {
+            generatedName: agentRef.current.generatedName,
+            generatedPersona: agentRef.current.generatedPersona,
+            role: agentRef.current.role,
+            agentTone: agentRef.current.agentTone,
+            primaryLogic: agentRef.current.primaryLogic,
+            knowledgeItems: agentRef.current.knowledgeItems || [],
+          },
         }),
       });
 
