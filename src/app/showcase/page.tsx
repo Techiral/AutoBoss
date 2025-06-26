@@ -12,11 +12,8 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Logo } from "@/components/logo";
 import { Badge } from "@/components/ui/badge";
 
-// This is the CRITICAL fix for the "ghost agent" issue.
-// It forces Next.js to re-render the page on every request, ensuring fresh data from Firestore.
 export const dynamic = 'force-dynamic';
 
-// Helper to convert Firestore Timestamps
 const convertAgentTimestamps = (agentData: any): Agent => {
   const newAgent = { ...agentData };
   if (newAgent.createdAt && newAgent.createdAt.toDate) {
@@ -114,9 +111,6 @@ function AgentShowcaseCard({ agent, baseUrl }: AgentShowcaseCardProps) {
 
 export default async function ShowcasePage() {
   const allPublicAgents = await getPublicAgents();
-  
-  // This is the CRITICAL fix for the URL issue.
-  // Use the environment variable as the single source of truth for the public domain.
   const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || 'http://localhost:3000';
 
   const sortedAgents = allPublicAgents.sort((a, b) => {

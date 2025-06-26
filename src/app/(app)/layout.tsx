@@ -53,7 +53,7 @@ interface AppContextType {
   getClientById: (id: string) => Client | undefined;
   deleteClient: (clientId: string) => Promise<void>;
   addAgent: (agentData: Omit<Agent, 'id' | 'createdAt' | 'knowledgeItems' | 'userId' | 'clientId' | 'clientName'>, clientId: string, clientName: string) => Promise<Agent | null>;
-  updateAgent: (agent: Agent, newImageDataUri?: string | null) => Promise<void>;
+  updateAgent: (agent: Agent) => Promise<void>;
   getAgent: (id: string) => Agent | undefined;
   addKnowledgeItem: (agentId: string, item: KnowledgeItem) => Promise<void>;
   deleteAgent: (agentId: string) => Promise<void>;
@@ -255,41 +255,41 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [clients, currentUser]);
 
   const deleteClient = useCallback(async (clientId: string) => {
-    const client = clients.find(c => c.id === clientId);
-    if (!client || !currentUser || currentUser.uid !== client.userId) {
-      toast({ title: "Unauthorized or Client Not Found", description: "Cannot delete client.", variant: "destructive" });
+    if (!currentUser) {
+      toast({ title: "Not Authenticated", description: "You must be logged in.", variant: "destructive" });
       return;
     }
+    const clientRef = doc(db, CLIENTS_COLLECTION, clientId);
     try {
-      const batch = writeBatch(db);
+        const clientSnap = await getDoc(clientRef);
+        if (!clientSnap.exists() || clientSnap.data().userId !== currentUser.uid) {
+            toast({ title: "Unauthorized or Client Not Found", description: "Cannot delete client.", variant: "destructive" });
+            return;
+        }
+        const clientName = clientSnap.data().name;
 
-      // Find all agents for this client to delete them too
-      const agentsQuery = query(collection(db, AGENTS_COLLECTION), where("clientId", "==", clientId), where("userId", "==", currentUser.uid));
-      const agentsSnapshot = await getDocs(agentsQuery);
-      
-      const agentIdsToDelete: string[] = [];
-      agentsSnapshot.forEach(agentDoc => {
-        batch.delete(agentDoc.ref);
-        agentIdsToDelete.push(agentDoc.id);
-      });
+        const batch = writeBatch(db);
+        const agentsQuery = query(collection(db, AGENTS_COLLECTION), where("clientId", "==", clientId), where("userId", "==", currentUser.uid));
+        const agentsSnapshot = await getDocs(agentsQuery);
+        
+        const agentIdsToDelete: string[] = [];
+        agentsSnapshot.forEach(agentDoc => {
+            batch.delete(agentDoc.ref);
+            agentIdsToDelete.push(agentDoc.id);
+        });
 
-      // Delete the client document
-      const clientRef = doc(db, CLIENTS_COLLECTION, clientId);
-      batch.delete(clientRef);
+        batch.delete(clientRef);
+        await batch.commit();
 
-      // Commit all deletions
-      await batch.commit();
-
-      // Update local state
-      setClients(prev => prev.filter(c => c.id !== clientId));
-      setAgents(prevAgents => prevAgents.filter(a => !agentIdsToDelete.includes(a.id)));
-      
-      toast({ title: "Client & Agents Deleted", description: `Client "${client.name}" and all associated agents have been deleted.` });
+        setClients(prev => prev.filter(c => c.id !== clientId));
+        setAgents(prevAgents => prevAgents.filter(a => !agentIdsToDelete.includes(a.id)));
+        
+        toast({ title: "Client & Agents Deleted", description: `Client "${clientName}" and all associated agents have been deleted.` });
     } catch (error) {
-      console.error("Error deleting client and agents from Firestore:", error);
-      toast({ title: "Error Deleting Client", description: "Could not complete the deletion process.", variant: "destructive" });
+        console.error("Error deleting client and agents from Firestore:", error);
+        toast({ title: "Error Deleting Client", description: "Could not complete the deletion process.", variant: "destructive" });
     }
-  }, [clients, currentUser, toast]);
+  }, [currentUser, toast]);
 
 
   const addAgent = useCallback(async (
@@ -312,8 +312,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         createdAt: Timestamp.now() as any, 
         knowledgeItems: [],
         agentTone: agentData.agentTone || "neutral",
-        isPubliclyShared: false, // Default value
-        sharedAt: null, // Default value
+        voiceName: agentData.voiceName === 'default' ? null : agentData.voiceName,
+        isPubliclyShared: false,
+        sharedAt: null,
       };
 
       const { id, ...dataToSave } = newAgentWithDetails;
@@ -334,7 +335,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [currentUser, toast]);
 
-  const updateAgent = useCallback(async (agentToUpdate: Agent, newImageDataUri?: string | null) => {
+  const updateAgent = useCallback(async (agentToUpdate: Agent) => {
     if (!currentUser || currentUser.uid !== agentToUpdate.userId) {
       toast({ title: "Unauthorized", description: "You cannot update this agent.", variant: "destructive" });
       throw new Error("Unauthorized");
@@ -343,40 +344,34 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     try {
       const agentRef = doc(db, AGENTS_COLLECTION, agentToUpdate.id);
       
-      const dataToUpdate = { ...agentToUpdate };
-      
-      // Handle image update. `newImageDataUri` can be a data URI, null (for deletion), or undefined (no change).
-      if (newImageDataUri !== undefined) {
-        dataToUpdate.agentImageUrl = newImageDataUri; // This can be the data URI string or null
-      }
-      
-      // The final object for local state update
-      const finalAgentForState = { ...dataToUpdate };
+      const { id, ...dataToSave } = agentToUpdate;
 
-      // Clean up any transient or unnecessary fields before saving to Firestore
-      const finalDataToSave: any = { ...dataToUpdate };
-      delete finalDataToSave.id; // Don't save the id inside the document
-
+      const saveData: {[key:string]: any} = { ...dataToSave };
+      
       // Convert date strings back to Timestamps for Firestore
-      if (typeof finalDataToSave.createdAt === 'string') {
-        finalDataToSave.createdAt = Timestamp.fromDate(new Date(finalDataToSave.createdAt));
+      if (typeof saveData.createdAt === 'string') {
+        saveData.createdAt = Timestamp.fromDate(new Date(saveData.createdAt));
       }
-      if (finalDataToSave.sharedAt && typeof finalDataToSave.sharedAt === 'string') {
-         finalDataToSave.sharedAt = Timestamp.fromDate(new Date(finalDataToSave.sharedAt));
+      if (saveData.sharedAt && typeof saveData.sharedAt === 'string') {
+         saveData.sharedAt = Timestamp.fromDate(new Date(saveData.sharedAt));
       }
-      if (finalDataToSave.knowledgeItems) {
-        finalDataToSave.knowledgeItems = finalDataToSave.knowledgeItems.map((item: any) => ({
+      if (saveData.knowledgeItems) {
+        saveData.knowledgeItems = saveData.knowledgeItems.map((item: any) => ({
           ...item,
           uploadedAt: typeof item.uploadedAt === 'string' ? Timestamp.fromDate(new Date(item.uploadedAt)) : item.uploadedAt,
         }));
       }
       
-      await setDoc(agentRef, finalDataToSave, { merge: true });
+      // Ensure voiceName is not undefined
+      if (saveData.voiceName === undefined) {
+          saveData.voiceName = null;
+      }
 
-      // Update local state with the final, clean object
+      await setDoc(agentRef, saveData, { merge: true });
+
       setAgents((prevAgents) =>
         prevAgents.map((agent) =>
-          agent.id === agentToUpdate.id ? convertFirestoreTimestampToISO(finalAgentForState, ['createdAt', 'sharedAt']) as Agent : agent
+          agent.id === agentToUpdate.id ? convertFirestoreTimestampToISO(agentToUpdate, ['createdAt', 'sharedAt']) as Agent : agent
         )
       );
 
@@ -387,7 +382,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         errorMessage = "The image is too large to save. Please use an image under 100KB.";
       }
       toast({ title: "Error Updating Agent", description: errorMessage, variant: "destructive" });
-      // Re-throw the error so the calling component's finally block executes
       throw error;
     }
   }, [currentUser, toast]);
@@ -436,20 +430,39 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [agents, currentUser, toast]);
 
   const deleteAgent = useCallback(async (agentId: string) => {
-    const agent = agents.find(a => a.id === agentId);
-    if (!agent || !currentUser || currentUser.uid !== agent.userId) {
-        toast({ title: "Unauthorized or Agent Not Found", description: "Cannot delete agent.", variant: "destructive" });
-        return;
+    if (!currentUser) {
+      toast({ title: "Not Authenticated", description: "You must be logged in to delete an agent.", variant: "destructive" });
+      return;
     }
+
+    const agentRef = doc(db, AGENTS_COLLECTION, agentId);
+
     try {
-      await deleteDoc(doc(db, AGENTS_COLLECTION, agentId));
+      const agentSnap = await getDoc(agentRef);
+
+      if (!agentSnap.exists()) {
+        toast({ title: "Agent Not Found", description: "The agent may have already been deleted.", variant: "destructive" });
+        setAgents(prevAgents => prevAgents.filter(prevAgent => prevAgent.id !== agentId));
+        return;
+      }
+
+      const agentData = agentSnap.data();
+      if (agentData.userId !== currentUser.uid) {
+        toast({ title: "Unauthorized", description: "You do not have permission to delete this agent.", variant: "destructive" });
+        return;
+      }
+
+      await deleteDoc(agentRef);
+
       setAgents(prevAgents => prevAgents.filter(prevAgent => prevAgent.id !== agentId));
-      toast({ title: "Agent Deleted", description: "The agent has been successfully deleted." });
+      
+      toast({ title: "Agent Deleted", description: `Agent "${agentData.name || agentId}" has been successfully deleted.` });
+
     } catch (error) {
       console.error("Error deleting agent from Firestore:", error);
-      toast({ title: "Error Deleting Agent", description: "Could not delete the agent.", variant: "destructive" });
+      toast({ title: "Error Deleting Agent", description: "Could not delete the agent from the database.", variant: "destructive" });
     }
-  }, [agents, currentUser, toast]);
+  }, [currentUser, toast]);
 
   const toggleTheme = useCallback(() => {
     setTheme(prevTheme => {
