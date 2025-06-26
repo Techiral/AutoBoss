@@ -25,8 +25,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import Image from 'next/image';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
-import { storage } from "@/lib/firebase";
-import { ref as storageRef, uploadString, getDownloadURL, deleteObject } from "firebase/storage";
 
 const MAX_TARGET_SIZE_BYTES = 100 * 1024; // 100KB target size
 const MAX_DIMENSION = 800; // Max width/height for resizing
@@ -54,7 +52,6 @@ type FormData = z.infer<typeof formSchema>;
 
 export default function PersonalityPage() {
   const [isLoading, setIsLoading] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
   const [currentAgent, setCurrentAgent] = useState<Agent | null | undefined>(undefined); 
   const [generatedDetails, setGeneratedDetails] = useState<CreateAgentOutput | null>(null);
   const [selectedImageDataUri, setSelectedImageDataUri] = useState<string | undefined>(undefined);
@@ -177,30 +174,19 @@ export default function PersonalityPage() {
   };
   
   const removeImage = async () => {
-    if (!currentAgent || !currentAgent.agentImageUrl) {
-        toast({ title: "No image to remove." });
+    if (!currentAgent) return;
+    if (!currentImageUrl) {
+        toast({ title: "No Image to Remove", description: "There is no saved image for this agent." });
         return;
     }
+    
     setIsLoading(true);
-    try {
-        const imageStorageRef = storageRef(storage, currentAgent.agentImageUrl);
-        await deleteObject(imageStorageRef);
-    } catch (error: any) {
-        if (error.code === 'storage/object-not-found') {
-            console.warn("Image not found in storage, but proceeding to clear from Firestore.");
-        } else {
-            console.error("Error removing image from storage:", error);
-            toast({ title: "Error Removing Image", description: "Could not remove image from storage.", variant: "destructive" });
-            setIsLoading(false);
-            return;
-        }
-    }
     try {
       await updateAgent({ ...currentAgent, agentImageUrl: null });
       setSelectedImageDataUri(undefined);
       setCurrentImageUrl(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
-      toast({ title: "Image Removed", description: "Agent image has been removed." });
+      toast({ title: "Image Removed", description: "Agent image has been removed. Don't forget to save." });
     } catch (error: any) {
       console.error("Error removing image:", error);
       toast({ title: "Error Removing Image", description: error.message || "Could not remove image.", variant: "destructive" });
@@ -235,7 +221,6 @@ export default function PersonalityPage() {
     if (!currentAgent) return;
 
     setIsLoading(true);
-    setIsUploading(false);
     
     try {
       const agentDescriptionForAI = `Name: ${data.name}\nRole: ${data.role}\nPersonality: ${data.personality}\nTone: ${data.agentTone}`;
@@ -246,17 +231,6 @@ export default function PersonalityPage() {
         agentTone: data.agentTone as AgentToneType, 
       });
       setGeneratedDetails(result);
-      
-      let finalAgentImageUrl = currentAgent.agentImageUrl;
-
-      if (selectedImageDataUri) {
-          setIsUploading(true);
-          const imagePath = `agent_images/${currentAgent.id}/profile.jpg`;
-          const imageStorageRef = storageRef(storage, imagePath);
-          await uploadString(imageStorageRef, selectedImageDataUri, 'data_url');
-          finalAgentImageUrl = await getDownloadURL(imageStorageRef);
-          setIsUploading(false);
-      }
       
       const updatedAgentData: Partial<Agent> = { 
         name: data.name,
@@ -269,7 +243,7 @@ export default function PersonalityPage() {
         generatedPersona: result.agentPersona,
         generatedGreeting: result.agentGreeting,
         ogDescription: data.ogDescription || null,
-        agentImageUrl: finalAgentImageUrl,
+        agentImageUrl: selectedImageDataUri || currentImageUrl,
       };
 
       await updateAgent({ ...currentAgent, ...updatedAgentData });
@@ -290,7 +264,6 @@ export default function PersonalityPage() {
       });
     } finally {
       setIsLoading(false);
-      setIsUploading(false);
     }
   };
   
@@ -311,7 +284,6 @@ export default function PersonalityPage() {
   }
 
   const getButtonText = () => {
-    if (isUploading) return "Uploading Image...";
     if (isLoading) return "Saving Details...";
     return "Save All Changes & Regenerate Details";
   }
@@ -498,8 +470,8 @@ export default function PersonalityPage() {
         </Card>
 
         <div className="md:col-span-3 mt-2 sm:mt-0">
-          <Button type="submit" disabled={isLoading || isUploading || isGeneratingImage} className="w-full sm:w-auto">
-            {(isLoading || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          <Button type="submit" disabled={isLoading || isGeneratingImage} className="w-full sm:w-auto">
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {getButtonText()}
           </Button>
         </div>
@@ -508,5 +480,3 @@ export default function PersonalityPage() {
     </TooltipProvider>
   );
 }
-
-    

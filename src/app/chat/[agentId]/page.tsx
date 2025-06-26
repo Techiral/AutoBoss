@@ -59,8 +59,10 @@ export async function generateMetadata(
       const title = agent.generatedName || agent.name || "AI Chat Agent";
       const description = agent.ogDescription || agent.description || `Chat with ${title}.`;
       
-      // Use the agentImageUrl (which may be a Data URI) if available, otherwise fallback to default.
-      const imageUrl = agent.agentImageUrl || defaultOgImage; 
+      // Use the new API route for the image if available, otherwise fallback to default.
+      const imageUrl = agent.agentImageUrl 
+        ? `${APP_DOMAIN}/api/agents/${agentId}/og-image`
+        : defaultOgImage;
 
       return {
         title: `${title} - Powered by AutoBoss`,
