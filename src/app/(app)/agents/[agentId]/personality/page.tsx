@@ -126,20 +126,19 @@ export default function PersonalityPage() {
     if (!currentAgent) return;
     setIsLoading(true);
     try {
-      // Set both to undefined to clear them
-      await updateAgent({ ...currentAgent, agentImageDataUri: undefined, agentImageUrl: undefined });
+      // Call updateAgent with `null` for the image data to signal deletion.
+      await updateAgent(currentAgent, null);
       setSelectedImageDataUri(null);
       setCurrentImageUrl(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
       toast({ title: "Image Removed", description: "Agent image has been removed." });
     } catch (error: any) {
       console.error("Error removing image:", error);
-      toast({ title: "Error Removing Image", description: error.message, variant: "destructive" });
+      toast({ title: "Error Removing Image", description: error.message || "Could not remove image.", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
   };
-
 
   const onSubmit: SubmitHandler<FormData> = async (data) => {
     if (!currentAgent) return;
@@ -166,15 +165,15 @@ export default function PersonalityPage() {
         generatedName: result.agentName,
         generatedPersona: result.agentPersona,
         generatedGreeting: result.agentGreeting,
-        agentImageDataUri: selectedImageDataUri || currentAgent.agentImageDataUri, // Pass new Data URI to updateAgent
         ogDescription: data.ogDescription || undefined,
       };
 
-      // updateAgent in AppContext now handles the image upload logic
-      await updateAgent({ ...currentAgent, ...updatedAgentData });
+      // Call updateAgent with the new data, and pass the selected image data URI separately.
+      await updateAgent({ ...currentAgent, ...updatedAgentData }, selectedImageDataUri || undefined);
       
-      // After successful update, clear the staged data URI
+      // After successful update, clear the staged data URI and the file input
       setSelectedImageDataUri(null); 
+      if (fileInputRef.current) fileInputRef.current.value = "";
 
       toast({
         title: "Personality & Branding Updated!",
@@ -354,7 +353,7 @@ export default function PersonalityPage() {
                     ref={fileInputRef}
                     className="text-xs"
                 />
-                {currentAgent.agentImageUrl && (
+                {currentImageUrl && (
                      <Button type="button" variant="outline" size="sm" onClick={removeImage} disabled={isLoading} className="text-xs mt-1">
                         {isLoading ? <Loader2 className="mr-1.5 h-3 w-3 animate-spin"/> : null}
                         Remove Current Image

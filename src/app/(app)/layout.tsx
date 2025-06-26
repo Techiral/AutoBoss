@@ -54,7 +54,7 @@ interface AppContextType {
   getClientById: (id: string) => Client | undefined;
   deleteClient: (clientId: string) => Promise<void>;
   addAgent: (agentData: Omit<Agent, 'id' | 'createdAt' | 'knowledgeItems' | 'userId' | 'clientId' | 'clientName'>, clientId: string, clientName: string) => Promise<Agent | null>;
-  updateAgent: (agent: Agent) => Promise<void>;
+  updateAgent: (agent: Agent, newImageDataUri?: string | null) => Promise<void>;
   getAgent: (id: string) => Agent | undefined;
   addKnowledgeItem: (agentId: string, item: KnowledgeItem) => Promise<void>;
   deleteAgent: (agentId: string) => Promise<void>;
@@ -314,77 +314,83 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [currentUser, toast]);
 
-  const updateAgent = useCallback(async (updatedAgent: Agent) => {
-    if (!currentUser || currentUser.uid !== updatedAgent.userId) {
+  const updateAgent = useCallback(async (agentToUpdate: Agent, newImageDataUri?: string | null) => {
+    if (!currentUser || currentUser.uid !== agentToUpdate.userId) {
       toast({ title: "Unauthorized", description: "You cannot update this agent.", variant: "destructive" });
-      return;
+      throw new Error("Unauthorized");
     }
+    
     try {
-      const agentRef = doc(db, AGENTS_COLLECTION, updatedAgent.id);
+      const agentRef = doc(db, AGENTS_COLLECTION, agentToUpdate.id);
       
-      const { id, ...dataToUpdate } = updatedAgent;
+      // Clone the agent object to avoid mutating the original state directly
+      const dataToSave = { ...agentToUpdate };
       
-      // Handle image upload if a new data URI is present
-      if (dataToUpdate.agentImageDataUri && dataToUpdate.agentImageDataUri.startsWith('data:image')) {
-        console.log("New agent image data URI found. Uploading to storage...");
-        const storageRef = ref(storage, `agent-images/${id}`);
-        await uploadString(storageRef, dataToUpdate.agentImageDataUri, 'data_url');
+      // The final object for local state update
+      let finalAgentForState = { ...agentToUpdate };
+
+      // Case 1: Upload a new image
+      if (newImageDataUri && newImageDataUri.startsWith('data:image')) {
+        console.log("New image data provided, uploading to storage...");
+        const storageRef = ref(storage, `agent-images/${agentToUpdate.id}`);
+        await uploadString(storageRef, newImageDataUri, 'data_url');
         const downloadURL = await getDownloadURL(storageRef);
-        dataToUpdate.agentImageUrl = downloadURL;
+        dataToSave.agentImageUrl = downloadURL; // Add URL to data being saved
+        finalAgentForState.agentImageUrl = downloadURL; // Update for local state
         console.log("Image uploaded. Public URL:", downloadURL);
-        // We can clear the data URI after upload to save space in Firestore
-        dataToUpdate.agentImageDataUri = ""; 
-      } else if (dataToUpdate.agentImageDataUri === undefined && dataToUpdate.agentImageUrl === undefined) {
-         // This means the user clicked "Remove Image"
-         const storageRef = ref(storage, `agent-images/${id}`);
-         try {
-           await deleteObject(storageRef);
-           console.log(`Removed image from storage for agent ${id}`);
-         } catch (error: any) {
-            if (error.code !== 'storage/object-not-found') {
-                console.error("Error removing image from storage:", error);
-            }
-         }
-      }
-
-
-      const finalDataToUpdate: any = { ...dataToUpdate };
-      if (typeof finalDataToUpdate.createdAt === 'string') {
-        finalDataToUpdate.createdAt = Timestamp.fromDate(new Date(finalDataToUpdate.createdAt));
-      }
-      if (typeof finalDataToUpdate.sharedAt === 'string') {
-        finalDataToUpdate.sharedAt = Timestamp.fromDate(new Date(finalDataToUpdate.sharedAt));
-      } else if (finalDataToUpdate.sharedAt === null) {
-        finalDataToUpdate.sharedAt = null;
-      }
-
-
-      if (finalDataToUpdate.knowledgeItems) {
-        finalDataToUpdate.knowledgeItems = finalDataToUpdate.knowledgeItems.map((item: any) => {
-          if (typeof item.uploadedAt === 'string') {
-            return { ...item, uploadedAt: Timestamp.fromDate(new Date(item.uploadedAt)) };
+      } 
+      // Case 2: Delete the image
+      else if (newImageDataUri === null) {
+        console.log("Image removal requested.");
+        const storageRef = ref(storage, `agent-images/${agentToUpdate.id}`);
+        try {
+          await deleteObject(storageRef);
+          console.log(`Removed image from storage for agent ${agentToUpdate.id}`);
+        } catch (error: any) {
+          if (error.code !== 'storage/object-not-found') {
+            console.error("Error removing image from storage, but proceeding:", error);
           }
-          return item;
-        });
+        }
+        dataToSave.agentImageUrl = null; // Set to null in Firestore
+        finalAgentForState.agentImageUrl = null; // Update for local state
       }
-      finalDataToUpdate.agentTone = finalDataToUpdate.agentTone || "neutral";
-      if ('flow' in finalDataToUpdate) delete finalDataToUpdate.flow;
 
-      await setDoc(agentRef, finalDataToUpdate, { merge: true });
+      // Clean up any transient or unnecessary fields before saving to Firestore
+      const finalDataToSave: any = { ...dataToSave };
+      delete finalDataToSave.id; // Don't save the id inside the document
+      delete finalDataToSave.agentImageDataUri; // Never save the data URI
 
-      // Update local state with the final data (including new image URL)
-      const agentWithUrl = { ...updatedAgent, agentImageUrl: dataToUpdate.agentImageUrl, agentImageDataUri: dataToUpdate.agentImageDataUri };
+      // Convert date strings back to Timestamps for Firestore
+      if (typeof finalDataToSave.createdAt === 'string') {
+        finalDataToSave.createdAt = Timestamp.fromDate(new Date(finalDataToSave.createdAt));
+      }
+      if (finalDataToSave.sharedAt && typeof finalDataToSave.sharedAt === 'string') {
+         finalDataToSave.sharedAt = Timestamp.fromDate(new Date(finalDataToSave.sharedAt));
+      }
+      if (finalDataToSave.knowledgeItems) {
+        finalDataToSave.knowledgeItems = finalDataToSave.knowledgeItems.map((item: any) => ({
+          ...item,
+          uploadedAt: typeof item.uploadedAt === 'string' ? Timestamp.fromDate(new Date(item.uploadedAt)) : item.uploadedAt,
+        }));
+      }
+      
+      await setDoc(agentRef, finalDataToSave, { merge: true });
+
+      // Update local state with the final, clean object
       setAgents((prevAgents) =>
         prevAgents.map((agent) =>
-          agent.id === updatedAgent.id ? convertFirestoreTimestampToISO(agentWithUrl, ['createdAt', 'sharedAt']) as Agent : agent
+          agent.id === agentToUpdate.id ? convertFirestoreTimestampToISO(finalAgentForState, ['createdAt', 'sharedAt']) as Agent : agent
         )
       );
 
-    } catch (error) {
-      console.error("Error updating agent in Firestore:", error);
-      toast({ title: "Error Updating Agent", description: "Could not save agent updates.", variant: "destructive" });
+    } catch (error: any) {
+      console.error("Error updating agent:", error);
+      toast({ title: "Error Updating Agent", description: error.message || "Could not save agent updates.", variant: "destructive" });
+      // Re-throw the error so the calling component's finally block executes
+      throw error;
     }
   }, [currentUser, toast]);
+
 
   const getAgent = useCallback((id: string) => {
     const agent = agents.find(agent => agent.id === id);
