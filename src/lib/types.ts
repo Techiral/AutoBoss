@@ -104,8 +104,8 @@ export const AgentSchema = z.object({
   createdAt: z.custom<Timestamp>(), // Will be converted to string in app state
   knowledgeItems: z.array(KnowledgeItemSchema).optional(),
   agentImageUrl: z.string().optional().nullable().describe("Data URI for the agent's branding image for social sharing."),
-  ogDescription: z.string().max(300, "OG description should be 300 characters or less.").optional().describe("Custom description for social media sharing."),
-  voiceName: z.string().optional().describe("The pre-built voice name from the TTS provider (e.g., Google's 'Algenib')."),
+  ogDescription: z.string().max(300, "OG description should be 300 characters or less.").optional().nullable().describe("Custom description for social media sharing."),
+  voiceName: z.string().optional().nullable().describe("The pre-built voice name from the TTS provider."),
   isPubliclyShared: z.boolean().optional().default(false),
   sharedAt: z.custom<Timestamp>().optional().nullable(),
   showcaseMetrics: z.object({
@@ -164,7 +164,7 @@ export type OutboundTaskPayload = z.infer<typeof OutboundTaskPayloadSchema>;
 // For Text-to-Speech Flow
 export const GenerateSpeechInputSchema = z.object({
   text: z.string().min(1, 'Text to speak cannot be empty.'),
-  voiceName: z.string().optional().describe("The Google TTS voice name to use. Falls back to a default if not provided."),
+  voiceName: z.string().optional().nullable().describe("The pre-built voice name from the TTS provider. Falls back to a default if not provided."),
 });
 export type GenerateSpeechInput = z.infer<typeof GenerateSpeechInputSchema>;
 

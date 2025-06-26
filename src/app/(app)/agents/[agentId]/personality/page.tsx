@@ -30,11 +30,12 @@ const MAX_IMAGE_SIZE_MB_DISPLAY = (MAX_IMAGE_SIZE_BYTES / (1024 * 1024)).toFixed
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
 const availableVoices = [
-  { id: 'default', name: 'Default Voice' },
-  { id: 'Algenib', name: 'Female Voice 1 (Standard)' },
-  { id: 'Calliope', name: 'Female Voice 2 (Crisp)' },
-  { id: 'Calvin', name: 'Male Voice 1 (Deep)' },
-  { id: 'Enceladus', name: 'Male Voice 2 (Standard)' },
+  { id: 'default', name: 'Default Voice (Nova)' },
+  { id: 'alloy', name: 'Alloy' },
+  { id: 'echo', name: 'Echo' },
+  { id: 'fable', name: 'Fable' },
+  { id: 'onyx', name: 'Onyx' },
+  { id: 'shimmer', name: 'Shimmer' },
 ];
 
 const formSchema = z.object({
@@ -161,11 +162,11 @@ export default function PersonalityPage() {
         role: data.role,
         personality: data.personality,
         agentTone: data.agentTone as AgentToneType, 
-        voiceName: data.voiceName === 'default' ? undefined : data.voiceName,
+        voiceName: data.voiceName === 'default' ? null : data.voiceName,
         generatedName: result.agentName,
         generatedPersona: result.agentPersona,
         generatedGreeting: result.agentGreeting,
-        ogDescription: data.ogDescription || undefined,
+        ogDescription: data.ogDescription || null,
       };
 
       // Call updateAgent with the new data, and pass the selected image data URI separately.
