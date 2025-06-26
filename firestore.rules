@@ -21,17 +21,17 @@ service cloud.firestore {
     match /agents/{agentId} {
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
       
-      // Allow read for owners OR for any user if the agent is public.
-      // This single rule covers both 'get' and 'list' operations.
-      allow read: if (request.auth != null && resource.data.userId == request.auth.uid) ||
-                     (resource.data.isPubliclyShared == true);
-      
       // Allow owners to update everything.
       // Allow the public API to update *only* the analytics field.
       allow update: if (request.auth != null && resource.data.userId == request.auth.uid) ||
                       (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['analytics']));
                       
       allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+
+      // Allow reads (get, list) if the user is the owner OR the agent is public.
+      // This rule allows the public showcase query to work.
+      allow read: if (request.auth != null && resource.data.userId == request.auth.uid) ||
+                    (resource.data.isPubliclyShared == true);
     }
 
     // --- Conversations (NEW) ---

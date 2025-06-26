@@ -6,11 +6,12 @@ import { ArrowRight, Eye, Search, Info, Bot, AlertTriangle, MessageSquare, Trend
 import { cn } from "@/lib/utils";
 import type { Agent } from "@/lib/types";
 import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, Timestamp } from 'firestore';
 import Image from "next/image";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Logo } from "@/components/logo";
 import { Badge } from "@/components/ui/badge";
+import { headers } from 'next/headers';
 
 export const dynamic = 'force-dynamic'; // Ensures the page is always dynamically rendered
 
@@ -38,8 +39,7 @@ const convertAgentTimestamps = (agentData: any): Agent => {
 async function getPublicAgents(): Promise<Agent[]> {
   try {
     const agentsRef = collection(db, 'agents');
-    // Simplify the query to only filter by the necessary field.
-    // Sorting and limiting will be done in the server component after fetching.
+    // This query is now allowed by the updated Firestore security rules for public access.
     const q = query(
       agentsRef,
       where('isPubliclyShared', '==', true)
@@ -52,6 +52,7 @@ async function getPublicAgents(): Promise<Agent[]> {
     return agents;
   } catch (error) {
     console.error("Error fetching public agents for showcase:", error);
+    // This error will likely show up in the server logs if the rules are still incorrect.
     return [];
   }
 }
@@ -115,7 +116,12 @@ function AgentShowcaseCard({ agent, baseUrl }: AgentShowcaseCardProps) {
 
 export default async function ShowcasePage() {
   const allPublicAgents = await getPublicAgents();
-  const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || "http://localhost:3000";
+  
+  // Dynamically determine the app's domain from request headers
+  const headersList = headers();
+  const host = headersList.get('host') || 'localhost:3000';
+  const protocol = host.includes('localhost') ? 'http' : 'https';
+  const appDomain = `${protocol}://${host}`;
 
   // Sort and limit the agents here, on the server, after fetching.
   const sortedAgents = allPublicAgents.sort((a, b) => {
@@ -173,7 +179,7 @@ export default async function ShowcasePage() {
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle className="font-semibold">Note for Developers</AlertTitle>
                 <AlertDescription className="text-xs">
-                    If this showcase remains empty after agents have been marked public, please ensure your Firestore Security Rules allow public reads for documents where `isPubliclyShared` is true. No special index is required with this updated code.
+                    If this showcase remains empty after agents have been marked public, your Firestore Security Rules may be blocking the query. This update attempts to fix that.
                 </AlertDescription>
             </Alert>
           </div>
