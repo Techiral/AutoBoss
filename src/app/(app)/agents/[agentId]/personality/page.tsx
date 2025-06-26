@@ -25,9 +25,9 @@ import Image from 'next/image';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 
-const MAX_IMAGE_SIZE_BYTES = 100 * 1024; // 100KB limit for Data URI storage
-const MAX_IMAGE_SIZE_MB_DISPLAY = (MAX_IMAGE_SIZE_BYTES / (1024 * 1024)).toFixed(1);
-const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+const MAX_TARGET_SIZE_BYTES = 100 * 1024; // 100KB target size
+const MAX_DIMENSION = 800; // Max width/height for resizing
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']; // GIFs not supported by canvas resizing
 
 const availableVoices = [
   { id: 'default', name: 'Default Voice (Nova)' },
@@ -104,30 +104,80 @@ export default function PersonalityPage() {
 
   const handleImageFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      if (file.size > MAX_IMAGE_SIZE_BYTES) {
-        toast({ title: "Image Too Large", description: `Please select an image smaller than ${MAX_IMAGE_SIZE_MB_DISPLAY}MB. Larger images may not save correctly or impact performance.`, variant: "destructive" });
-        return;
-      }
-      if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-        toast({ title: "Invalid Image Type", description: "Please select a JPG, PNG, WEBP, or GIF image.", variant: "destructive" });
-        return;
-      }
-      
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setSelectedImageDataUri(reader.result as string);
-        setCurrentImageUrl(reader.result as string); // For optimistic UI update
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      toast({ title: "Invalid Image Type", description: "Please select a JPG, PNG, or WEBP image.", variant: "destructive" });
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
     }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = document.createElement('img');
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let { width, height } = img;
+
+        // Calculate new dimensions
+        if (width > height) {
+          if (width > MAX_DIMENSION) {
+            height *= MAX_DIMENSION / width;
+            width = MAX_DIMENSION;
+          }
+        } else {
+          if (height > MAX_DIMENSION) {
+            width *= MAX_DIMENSION / height;
+            height = MAX_DIMENSION;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          toast({ title: "Image Error", description: "Could not process the image. Please try another.", variant: "destructive" });
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Compress the image to JPEG format, starting with high quality
+        let quality = 0.9;
+        let dataUrl = canvas.toDataURL('image/jpeg', quality);
+
+        // Iteratively reduce quality to meet the size target
+        while (dataUrl.length > MAX_TARGET_SIZE_BYTES && quality > 0.3) {
+          quality -= 0.1;
+          dataUrl = canvas.toDataURL('image/jpeg', quality);
+        }
+
+        if (dataUrl.length > MAX_TARGET_SIZE_BYTES) {
+          toast({
+            title: "Image Still Too Large",
+            description: `After compression, the image is still too large. Please try a different or smaller file.`,
+            variant: "destructive",
+          });
+          if (fileInputRef.current) fileInputRef.current.value = "";
+          return;
+        }
+
+        setSelectedImageDataUri(dataUrl);
+        setCurrentImageUrl(dataUrl); // For optimistic UI update
+        toast({ title: "Image Ready", description: "Image has been resized and is ready to be saved." });
+      };
+      img.onerror = () => {
+        toast({ title: "Image Error", description: "Could not load the selected file as an image.", variant: "destructive"});
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      };
+      img.src = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
   };
   
   const removeImage = async () => {
     if (!currentAgent) return;
     setIsLoading(true);
     try {
-      // Call updateAgent with `null` for the image data to signal deletion.
       await updateAgent(currentAgent, null);
       setSelectedImageDataUri(undefined);
       setCurrentImageUrl(null);
@@ -169,10 +219,8 @@ export default function PersonalityPage() {
         ogDescription: data.ogDescription || null,
       };
 
-      // Call updateAgent with the new data, and pass the selected image data URI separately.
       await updateAgent({ ...currentAgent, ...updatedAgentData }, selectedImageDataUri);
       
-      // After successful update, clear the staged data URI and the file input
       setSelectedImageDataUri(undefined); 
       if (fileInputRef.current) fileInputRef.current.value = "";
 
@@ -337,7 +385,7 @@ export default function PersonalityPage() {
                     <Tooltip>
                         <TooltipTrigger asChild><HelpCircle className="w-3.5 h-3.5 ml-1.5 text-muted-foreground cursor-help"/></TooltipTrigger>
                         <TooltipContent side="top">
-                            <p className="max-w-xs">Upload an image (e.g., logo). This will be stored directly in the agent's data. Keep file size under {MAX_IMAGE_SIZE_MB_DISPLAY}MB.</p>
+                            <p className="max-w-xs">Upload an image (e.g., logo). It will be auto-resized to under 100KB for fast sharing.</p>
                         </TooltipContent>
                     </Tooltip>
                 </Label>
@@ -360,11 +408,11 @@ export default function PersonalityPage() {
                         Remove Current Image
                     </Button>
                 )}
-                 <Alert variant="destructive" className="mt-2 p-2 text-xs bg-destructive/10 border-destructive/20">
-                    <AlertTriangle className="h-3.5 w-3.5"/>
-                    <AlertTitle className="text-xs font-medium">Image Size Limit!</AlertTitle>
+                 <Alert variant="default" className="mt-2 p-2 text-xs bg-secondary">
+                    <ImageIcon className="h-3.5 w-3.5"/>
+                    <AlertTitle className="text-xs font-medium">Automatic Image Resizing</AlertTitle>
                     <AlertDescription className="text-[10px]">
-                        Use small images (e.g. &lt; {MAX_IMAGE_SIZE_MB_DISPLAY}MB, like 100KB). Large images will fail to save or cause performance issues.
+                        Large images will be automatically resized and compressed to under 100KB to ensure fast loading on social media.
                     </AlertDescription>
                 </Alert>
             </div>
