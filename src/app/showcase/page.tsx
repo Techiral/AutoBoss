@@ -6,7 +6,7 @@ import { ArrowRight, Eye, Search, Info, Bot, AlertTriangle, MessageSquare, Trend
 import { cn } from "@/lib/utils";
 import type { Agent } from "@/lib/types";
 import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, Timestamp } from 'firestore';
+import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
 import Image from "next/image";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Logo } from "@/components/logo";
