@@ -11,11 +11,12 @@ import Image from "next/image";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Logo } from "@/components/logo";
 import { Badge } from "@/components/ui/badge";
-import { headers } from 'next/headers';
 
-export const dynamic = 'force-dynamic'; // Ensures the page is always dynamically rendered
+// This is the CRITICAL fix for the "ghost agent" issue.
+// It forces Next.js to re-render the page on every request, ensuring fresh data from Firestore.
+export const dynamic = 'force-dynamic';
 
-// Helper to convert Firestore Timestamps (can be shared or defined locally)
+// Helper to convert Firestore Timestamps
 const convertAgentTimestamps = (agentData: any): Agent => {
   const newAgent = { ...agentData };
   if (newAgent.createdAt && newAgent.createdAt.toDate) {
@@ -24,7 +25,6 @@ const convertAgentTimestamps = (agentData: any): Agent => {
   if (newAgent.sharedAt && newAgent.sharedAt.toDate) {
     newAgent.sharedAt = newAgent.sharedAt.toDate().toISOString();
   }
-  // Ensure knowledgeItems timestamps are also converted if they exist and are used
   if (newAgent.knowledgeItems) {
     newAgent.knowledgeItems = newAgent.knowledgeItems.map((item: any) => {
       if (item.uploadedAt && item.uploadedAt.toDate) {
@@ -39,7 +39,6 @@ const convertAgentTimestamps = (agentData: any): Agent => {
 async function getPublicAgents(): Promise<Agent[]> {
   try {
     const agentsRef = collection(db, 'agents');
-    // This query is now allowed by the updated Firestore security rules for public access.
     const q = query(
       agentsRef,
       where('isPubliclyShared', '==', true)
@@ -52,7 +51,6 @@ async function getPublicAgents(): Promise<Agent[]> {
     return agents;
   } catch (error) {
     console.error("Error fetching public agents for showcase:", error);
-    // This error will likely show up in the server logs if the rules are still incorrect.
     return [];
   }
 }
@@ -64,7 +62,7 @@ interface AgentShowcaseCardProps {
 
 function AgentShowcaseCard({ agent, baseUrl }: AgentShowcaseCardProps) {
     const agentChatUrl = `${baseUrl}/chat/${agent.id}`;
-    const defaultAgentImage = "https://placehold.co/400x300.png"; // Fallback image
+    const defaultAgentImage = "https://placehold.co/400x300.png";
 
     return (
         <Card className="flex flex-col h-full hover:shadow-xl transition-shadow duration-300 overflow-hidden">
@@ -117,15 +115,11 @@ function AgentShowcaseCard({ agent, baseUrl }: AgentShowcaseCardProps) {
 export default async function ShowcasePage() {
   const allPublicAgents = await getPublicAgents();
   
-  // Dynamically determine the app's domain from request headers
-  const headersList = headers();
-  const host = headersList.get('host') || 'localhost:3000';
-  const protocol = host.includes('localhost') ? 'http' : 'https';
-  const appDomain = `${protocol}://${host}`;
+  // This is the CRITICAL fix for the URL issue.
+  // Use the environment variable as the single source of truth for the public domain.
+  const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || 'http://localhost:3000';
 
-  // Sort and limit the agents here, on the server, after fetching.
   const sortedAgents = allPublicAgents.sort((a, b) => {
-    // Sort by sharedAt date descending (newest first) as a primary sort key
     const dateA = a.sharedAt ? new Date(a.sharedAt as string).getTime() : 0;
     const dateB = b.sharedAt ? new Date(b.sharedAt as string).getTime() : 0;
     return dateB - dateA;
