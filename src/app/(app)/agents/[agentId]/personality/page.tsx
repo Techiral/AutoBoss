@@ -25,6 +25,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import Image from 'next/image';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
+import { storage } from "@/lib/firebase";
+import { ref as storageRef, uploadString, getDownloadURL, deleteObject } from "firebase/storage";
 
 const MAX_TARGET_SIZE_BYTES = 100 * 1024; // 100KB target size
 const MAX_DIMENSION = 800; // Max width/height for resizing
@@ -52,6 +54,7 @@ type FormData = z.infer<typeof formSchema>;
 
 export default function PersonalityPage() {
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [currentAgent, setCurrentAgent] = useState<Agent | null | undefined>(undefined); 
   const [generatedDetails, setGeneratedDetails] = useState<CreateAgentOutput | null>(null);
   const [selectedImageDataUri, setSelectedImageDataUri] = useState<string | undefined>(undefined);
@@ -121,7 +124,6 @@ export default function PersonalityPage() {
         const canvas = document.createElement('canvas');
         let { width, height } = img;
 
-        // Calculate new dimensions
         if (width > height) {
           if (width > MAX_DIMENSION) {
             height *= MAX_DIMENSION / width;
@@ -143,11 +145,9 @@ export default function PersonalityPage() {
         }
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Compress the image to JPEG format, starting with high quality
         let quality = 0.9;
         let dataUrl = canvas.toDataURL('image/jpeg', quality);
 
-        // Iteratively reduce quality to meet the size target
         while (dataUrl.length > MAX_TARGET_SIZE_BYTES && quality > 0.3) {
           quality -= 0.1;
           dataUrl = canvas.toDataURL('image/jpeg', quality);
@@ -164,7 +164,7 @@ export default function PersonalityPage() {
         }
 
         setSelectedImageDataUri(dataUrl);
-        setCurrentImageUrl(dataUrl); // For optimistic UI update
+        setCurrentImageUrl(dataUrl); 
         toast({ title: "Image Ready", description: "Image has been resized and is ready to be saved." });
       };
       img.onerror = () => {
@@ -177,8 +177,24 @@ export default function PersonalityPage() {
   };
   
   const removeImage = async () => {
-    if (!currentAgent) return;
+    if (!currentAgent || !currentAgent.agentImageUrl) {
+        toast({ title: "No image to remove." });
+        return;
+    }
     setIsLoading(true);
+    try {
+        const imageStorageRef = storageRef(storage, currentAgent.agentImageUrl);
+        await deleteObject(imageStorageRef);
+    } catch (error: any) {
+        if (error.code === 'storage/object-not-found') {
+            console.warn("Image not found in storage, but proceeding to clear from Firestore.");
+        } else {
+            console.error("Error removing image from storage:", error);
+            toast({ title: "Error Removing Image", description: "Could not remove image from storage.", variant: "destructive" });
+            setIsLoading(false);
+            return;
+        }
+    }
     try {
       await updateAgent({ ...currentAgent, agentImageUrl: null });
       setSelectedImageDataUri(undefined);
@@ -196,7 +212,7 @@ export default function PersonalityPage() {
   const handleGenerateImage = async () => {
     if (!currentAgent) return;
     setIsGeneratingImage(true);
-    const data = watch(); // Get current form data
+    const data = watch(); 
     const imagePrompt = `Minimalist, modern, and professional logo for an AI agent. Name: "${data.name}". Role: "${data.role}". Personality: "${data.personality}". Style: clean vector art, suitable for a social media profile picture, high contrast.`;
     
     try {
@@ -219,6 +235,7 @@ export default function PersonalityPage() {
     if (!currentAgent) return;
 
     setIsLoading(true);
+    setIsUploading(false);
     
     try {
       const agentDescriptionForAI = `Name: ${data.name}\nRole: ${data.role}\nPersonality: ${data.personality}\nTone: ${data.agentTone}`;
@@ -229,6 +246,17 @@ export default function PersonalityPage() {
         agentTone: data.agentTone as AgentToneType, 
       });
       setGeneratedDetails(result);
+      
+      let finalAgentImageUrl = currentAgent.agentImageUrl;
+
+      if (selectedImageDataUri) {
+          setIsUploading(true);
+          const imagePath = `agent_images/${currentAgent.id}/profile.jpg`;
+          const imageStorageRef = storageRef(storage, imagePath);
+          await uploadString(imageStorageRef, selectedImageDataUri, 'data_url');
+          finalAgentImageUrl = await getDownloadURL(imageStorageRef);
+          setIsUploading(false);
+      }
       
       const updatedAgentData: Partial<Agent> = { 
         name: data.name,
@@ -241,7 +269,7 @@ export default function PersonalityPage() {
         generatedPersona: result.agentPersona,
         generatedGreeting: result.agentGreeting,
         ogDescription: data.ogDescription || null,
-        agentImageUrl: selectedImageDataUri === undefined ? currentAgent.agentImageUrl : selectedImageDataUri,
+        agentImageUrl: finalAgentImageUrl,
       };
 
       await updateAgent({ ...currentAgent, ...updatedAgentData });
@@ -262,6 +290,7 @@ export default function PersonalityPage() {
       });
     } finally {
       setIsLoading(false);
+      setIsUploading(false);
     }
   };
   
@@ -279,6 +308,12 @@ export default function PersonalityPage() {
   }
   if (!currentAgent) { 
       return null; 
+  }
+
+  const getButtonText = () => {
+    if (isUploading) return "Uploading Image...";
+    if (isLoading) return "Saving Details...";
+    return "Save All Changes & Regenerate Details";
   }
 
   return (
@@ -463,9 +498,9 @@ export default function PersonalityPage() {
         </Card>
 
         <div className="md:col-span-3 mt-2 sm:mt-0">
-          <Button type="submit" disabled={isLoading || isGeneratingImage} className="w-full sm:w-auto">
-            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            {isLoading ? "Saving Changes..." : "Save All Changes & Regenerate Details"}
+          <Button type="submit" disabled={isLoading || isUploading || isGeneratingImage} className="w-full sm:w-auto">
+            {(isLoading || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {getButtonText()}
           </Button>
         </div>
       </div>
@@ -473,3 +508,5 @@ export default function PersonalityPage() {
     </TooltipProvider>
   );
 }
+
+    
