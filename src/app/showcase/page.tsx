@@ -12,6 +12,8 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Logo } from "@/components/logo";
 import { Badge } from "@/components/ui/badge";
 
+export const dynamic = 'force-dynamic'; // Ensures the page is always dynamically rendered
+
 // Helper to convert Firestore Timestamps (can be shared or defined locally)
 const convertAgentTimestamps = (agentData: any): Agent => {
   const newAgent = { ...agentData };

@@ -252,9 +252,7 @@ export default function ClientDashboardPage() {
             <AlertDialogHeader>
               <AlertDialogTitle>Are you sure?</AlertDialogTitle>
               <AlertDialogDescription>
-                This will delete the client "{clients.find(c => c.id === clientToDelete)?.name}". 
-                Associated agents will NOT be deleted automatically by this action but will become orphaned.
-                Are you sure you want to delete this client?
+                This action cannot be undone. This will permanently delete the client "{clients.find(c => c.id === clientToDelete)?.name}" and ALL of their associated AI agents.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

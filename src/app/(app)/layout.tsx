@@ -261,12 +261,33 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       return;
     }
     try {
-      await deleteDoc(doc(db, CLIENTS_COLLECTION, clientId));
+      const batch = writeBatch(db);
+
+      // Find all agents for this client to delete them too
+      const agentsQuery = query(collection(db, AGENTS_COLLECTION), where("clientId", "==", clientId), where("userId", "==", currentUser.uid));
+      const agentsSnapshot = await getDocs(agentsQuery);
+      
+      const agentIdsToDelete: string[] = [];
+      agentsSnapshot.forEach(agentDoc => {
+        batch.delete(agentDoc.ref);
+        agentIdsToDelete.push(agentDoc.id);
+      });
+
+      // Delete the client document
+      const clientRef = doc(db, CLIENTS_COLLECTION, clientId);
+      batch.delete(clientRef);
+
+      // Commit all deletions
+      await batch.commit();
+
+      // Update local state
       setClients(prev => prev.filter(c => c.id !== clientId));
-      toast({ title: "Client Deleted", description: "The client has been successfully deleted." });
+      setAgents(prevAgents => prevAgents.filter(a => !agentIdsToDelete.includes(a.id)));
+      
+      toast({ title: "Client & Agents Deleted", description: `Client "${client.name}" and all associated agents have been deleted.` });
     } catch (error) {
-      console.error("Error deleting client from Firestore:", error);
-      toast({ title: "Error Deleting Client", variant: "destructive" });
+      console.error("Error deleting client and agents from Firestore:", error);
+      toast({ title: "Error Deleting Client", description: "Could not complete the deletion process.", variant: "destructive" });
     }
   }, [clients, currentUser, toast]);
 
