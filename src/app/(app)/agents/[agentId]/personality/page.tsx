@@ -52,7 +52,7 @@ export default function PersonalityPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [currentAgent, setCurrentAgent] = useState<Agent | null | undefined>(undefined); 
   const [generatedDetails, setGeneratedDetails] = useState<CreateAgentOutput | null>(null);
-  const [selectedImageDataUri, setSelectedImageDataUri] = useState<string | null>(null);
+  const [selectedImageDataUri, setSelectedImageDataUri] = useState<string | undefined>(undefined);
   const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -128,7 +128,7 @@ export default function PersonalityPage() {
     try {
       // Call updateAgent with `null` for the image data to signal deletion.
       await updateAgent(currentAgent, null);
-      setSelectedImageDataUri(null);
+      setSelectedImageDataUri(undefined);
       setCurrentImageUrl(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
       toast({ title: "Image Removed", description: "Agent image has been removed." });
@@ -169,10 +169,10 @@ export default function PersonalityPage() {
       };
 
       // Call updateAgent with the new data, and pass the selected image data URI separately.
-      await updateAgent({ ...currentAgent, ...updatedAgentData }, selectedImageDataUri || undefined);
+      await updateAgent({ ...currentAgent, ...updatedAgentData }, selectedImageDataUri);
       
       // After successful update, clear the staged data URI and the file input
-      setSelectedImageDataUri(null); 
+      setSelectedImageDataUri(undefined); 
       if (fileInputRef.current) fileInputRef.current.value = "";
 
       toast({
@@ -336,7 +336,7 @@ export default function PersonalityPage() {
                     <Tooltip>
                         <TooltipTrigger asChild><HelpCircle className="w-3.5 h-3.5 ml-1.5 text-muted-foreground cursor-help"/></TooltipTrigger>
                         <TooltipContent side="top">
-                            <p className="max-w-xs">Upload an image (e.g., logo). This will be uploaded and stored to generate a public URL for reliable social sharing. Keep file size under {MAX_IMAGE_SIZE_MB_DISPLAY}MB.</p>
+                            <p className="max-w-xs">Upload an image (e.g., logo). This will be stored directly in the agent's data. Keep file size under {MAX_IMAGE_SIZE_MB_DISPLAY}MB.</p>
                         </TooltipContent>
                     </Tooltip>
                 </Label>

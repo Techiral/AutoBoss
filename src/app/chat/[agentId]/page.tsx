@@ -13,6 +13,9 @@ const convertTimestampsToISOForChat = (agentData: any): Agent => {
   if (newAgent.createdAt && newAgent.createdAt.toDate) {
     newAgent.createdAt = newAgent.createdAt.toDate().toISOString();
   }
+  if (newAgent.sharedAt && newAgent.sharedAt.toDate) { 
+    newAgent.sharedAt = newAgent.sharedAt.toDate().toISOString();
+  }
   if (newAgent.knowledgeItems) {
     newAgent.knowledgeItems = newAgent.knowledgeItems.map((item: any) => {
       if (item.uploadedAt && item.uploadedAt.toDate) {
@@ -56,7 +59,7 @@ export async function generateMetadata(
       const title = agent.generatedName || agent.name || "AI Chat Agent";
       const description = agent.ogDescription || agent.description || `Chat with ${title}.`;
       
-      // Use the public agentImageUrl if available, otherwise fallback to default.
+      // Use the agentImageUrl (which may be a Data URI) if available, otherwise fallback to default.
       const imageUrl = agent.agentImageUrl || defaultOgImage; 
 
       return {

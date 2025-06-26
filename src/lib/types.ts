@@ -1,3 +1,4 @@
+
 import { z } from 'zod';
 import type { Timestamp } from 'firebase/firestore';
 
@@ -102,8 +103,7 @@ export const AgentSchema = z.object({
   generatedGreeting: z.string().optional(),
   createdAt: z.custom<Timestamp>(), // Will be converted to string in app state
   knowledgeItems: z.array(KnowledgeItemSchema).optional(),
-  agentImageDataUri: z.string().optional().describe("Base64 Data URI for the agent's branding image. Keep very small for Firestore!"),
-  agentImageUrl: z.string().url().optional().nullable().describe("Public URL for the agent's branding image for social sharing."),
+  agentImageUrl: z.string().optional().nullable().describe("Data URI for the agent's branding image for social sharing."),
   ogDescription: z.string().max(300, "OG description should be 300 characters or less.").optional().describe("Custom description for social media sharing."),
   voiceName: z.string().optional().describe("The pre-built voice name from the TTS provider (e.g., Google's 'Algenib')."),
   isPubliclyShared: z.boolean().optional().default(false),

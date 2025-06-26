@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Home, Bot, Settings, BookOpen, MessageSquare, Share2, Cog, LifeBuoy, Loader2, LogIn, LayoutGrid, Briefcase, MessageSquarePlus, Library, HelpCircleIcon } from 'lucide-react';
 import type { Agent, KnowledgeItem, AgentToneType, Client } from '@/lib/types';
-import { db, storage } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
 import {
   collection,
   getDocs,
@@ -34,7 +34,6 @@ import {
   where,
   writeBatch
 } from 'firebase/firestore';
-import { ref, uploadString, getDownloadURL, deleteObject } from "firebase/storage";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from "@/lib/utils";
@@ -323,42 +322,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     try {
       const agentRef = doc(db, AGENTS_COLLECTION, agentToUpdate.id);
       
-      // Clone the agent object to avoid mutating the original state directly
-      const dataToSave = { ...agentToUpdate };
+      const dataToUpdate = { ...agentToUpdate };
+      
+      // Handle image update. `newImageDataUri` can be a data URI, null (for deletion), or undefined (no change).
+      if (newImageDataUri !== undefined) {
+        dataToUpdate.agentImageUrl = newImageDataUri; // This can be the data URI string or null
+      }
       
       // The final object for local state update
-      let finalAgentForState = { ...agentToUpdate };
-
-      // Case 1: Upload a new image
-      if (newImageDataUri && newImageDataUri.startsWith('data:image')) {
-        console.log("New image data provided, uploading to storage...");
-        const storageRef = ref(storage, `agent-images/${agentToUpdate.id}`);
-        await uploadString(storageRef, newImageDataUri, 'data_url');
-        const downloadURL = await getDownloadURL(storageRef);
-        dataToSave.agentImageUrl = downloadURL; // Add URL to data being saved
-        finalAgentForState.agentImageUrl = downloadURL; // Update for local state
-        console.log("Image uploaded. Public URL:", downloadURL);
-      } 
-      // Case 2: Delete the image
-      else if (newImageDataUri === null) {
-        console.log("Image removal requested.");
-        const storageRef = ref(storage, `agent-images/${agentToUpdate.id}`);
-        try {
-          await deleteObject(storageRef);
-          console.log(`Removed image from storage for agent ${agentToUpdate.id}`);
-        } catch (error: any) {
-          if (error.code !== 'storage/object-not-found') {
-            console.error("Error removing image from storage, but proceeding:", error);
-          }
-        }
-        dataToSave.agentImageUrl = null; // Set to null in Firestore
-        finalAgentForState.agentImageUrl = null; // Update for local state
-      }
+      const finalAgentForState = { ...dataToUpdate };
 
       // Clean up any transient or unnecessary fields before saving to Firestore
-      const finalDataToSave: any = { ...dataToSave };
+      const finalDataToSave: any = { ...dataToUpdate };
       delete finalDataToSave.id; // Don't save the id inside the document
-      delete finalDataToSave.agentImageDataUri; // Never save the data URI
 
       // Convert date strings back to Timestamps for Firestore
       if (typeof finalDataToSave.createdAt === 'string') {
@@ -385,7 +361,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
     } catch (error: any) {
       console.error("Error updating agent:", error);
-      toast({ title: "Error Updating Agent", description: error.message || "Could not save agent updates.", variant: "destructive" });
+      let errorMessage = error.message || "Could not save agent updates.";
+      if (error.code === 'resource-exhausted') {
+        errorMessage = "The image is too large to save. Please use an image under 100KB.";
+      }
+      toast({ title: "Error Updating Agent", description: errorMessage, variant: "destructive" });
       // Re-throw the error so the calling component's finally block executes
       throw error;
     }
