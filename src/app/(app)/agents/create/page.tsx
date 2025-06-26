@@ -13,6 +13,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { createAgent, CreateAgentOutput } from "@/ai/flows/agent-creation";
+import { generateAgentImage } from "@/ai/flows/image-generation-flow";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAppContext } from "../../layout";
 import type { Agent, AgentType, AgentLogicType, AgentDirection, AgentPurposeType, Client, JobId } from "@/lib/types";
@@ -170,6 +171,15 @@ export default function CreateAgentPage() {
       const aiResult = await createAgent({ agentDescription, agentType: data.agentType, direction: data.direction });
       setGeneratedAgentDetails(aiResult);
 
+      let agentImageUrl: string | null = null;
+      try {
+        const imagePrompt = `Minimalist, modern, and professional logo for an AI agent named "${aiResult.agentName}". The agent's persona is: "${aiResult.agentPersona}". Style should be clean, vector art, suitable for a social media profile picture.`;
+        agentImageUrl = await generateAgentImage(imagePrompt);
+      } catch (e: any) {
+        console.warn("Image generation failed during agent creation:", e.message);
+        toast({ title: "Image Generation Skipped", description: `Could not generate an image for the agent, but the agent was created successfully. You can generate one later. Reason: ${e.message}`, variant: "default"});
+      }
+
       const agentDataForContext: Omit<Agent, 'id' | 'createdAt' | 'knowledgeItems' | 'userId' | 'clientId' | 'clientName'> = {
         jobId: data.jobId,
         agentType: data.agentType,
@@ -183,6 +193,7 @@ export default function CreateAgentPage() {
         generatedName: aiResult.agentName,
         generatedPersona: aiResult.agentPersona,
         generatedGreeting: aiResult.agentGreeting,
+        agentImageUrl: agentImageUrl,
       };
 
       const newAgent = await addAgentToContext(agentDataForContext, finalClientId, finalClientName);

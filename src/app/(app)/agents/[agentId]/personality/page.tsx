@@ -12,11 +12,12 @@ import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { createAgent, CreateAgentOutput } from "@/ai/flows/agent-creation";
+import { generateAgentImage } from "@/ai/flows/image-generation-flow";
 import { useParams } from "next/navigation"; 
 import { useAppContext } from "../../../layout"; 
 import type { Agent, AgentToneType } from "@/lib/types"; 
 import { AgentToneSchema } from "@/lib/types"; 
-import { Loader2, Smile, Settings, HelpCircle, Image as ImageIcon, MessageCircle, AlertTriangle, Mic } from "lucide-react"; 
+import { Loader2, Smile, Settings, HelpCircle, Image as ImageIcon, MessageCircle, AlertTriangle, Mic, Sparkles } from "lucide-react"; 
 import { Logo } from "@/components/logo";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; 
@@ -56,6 +57,7 @@ export default function PersonalityPage() {
   const [selectedImageDataUri, setSelectedImageDataUri] = useState<string | undefined>(undefined);
   const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
 
   const { toast } = useToast();
   const params = useParams();
@@ -178,7 +180,7 @@ export default function PersonalityPage() {
     if (!currentAgent) return;
     setIsLoading(true);
     try {
-      await updateAgent(currentAgent, null);
+      await updateAgent({ ...currentAgent, agentImageUrl: null });
       setSelectedImageDataUri(undefined);
       setCurrentImageUrl(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -188,6 +190,28 @@ export default function PersonalityPage() {
       toast({ title: "Error Removing Image", description: error.message || "Could not remove image.", variant: "destructive" });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleGenerateImage = async () => {
+    if (!currentAgent) return;
+    setIsGeneratingImage(true);
+    const data = watch(); // Get current form data
+    const imagePrompt = `Minimalist, modern, and professional logo for an AI agent. Name: "${data.name}". Role: "${data.role}". Personality: "${data.personality}". Style: clean vector art, suitable for a social media profile picture, high contrast.`;
+    
+    try {
+        const imageDataUri = await generateAgentImage(imagePrompt);
+        if (imageDataUri) {
+            setSelectedImageDataUri(imageDataUri);
+            setCurrentImageUrl(imageDataUri);
+            toast({ title: "AI Image Generated!", description: "A new image has been generated. Don't forget to save your changes." });
+        } else {
+            throw new Error("The image generation service did not return an image.");
+        }
+    } catch(error: any) {
+        toast({ title: "Image Generation Failed", description: error.message || "Could not generate an image.", variant: "destructive" });
+    } finally {
+        setIsGeneratingImage(false);
     }
   };
 
@@ -217,9 +241,10 @@ export default function PersonalityPage() {
         generatedPersona: result.agentPersona,
         generatedGreeting: result.agentGreeting,
         ogDescription: data.ogDescription || null,
+        agentImageUrl: selectedImageDataUri === undefined ? currentAgent.agentImageUrl : selectedImageDataUri,
       };
 
-      await updateAgent({ ...currentAgent, ...updatedAgentData }, selectedImageDataUri);
+      await updateAgent({ ...currentAgent, ...updatedAgentData });
       
       setSelectedImageDataUri(undefined); 
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -385,7 +410,7 @@ export default function PersonalityPage() {
                     <Tooltip>
                         <TooltipTrigger asChild><HelpCircle className="w-3.5 h-3.5 ml-1.5 text-muted-foreground cursor-help"/></TooltipTrigger>
                         <TooltipContent side="top">
-                            <p className="max-w-xs">Upload an image (e.g., logo). It will be auto-resized to under 100KB for fast sharing.</p>
+                            <p className="max-w-xs">Upload an image (e.g., logo) or generate one with AI. It will be auto-resized for fast sharing.</p>
                         </TooltipContent>
                     </Tooltip>
                 </Label>
@@ -394,14 +419,20 @@ export default function PersonalityPage() {
                     <Image src={currentImageUrl} alt="Agent image preview" layout="fill" objectFit="cover" />
                   </div>
                 )}
-                <Input 
-                    id="agentImage" 
-                    type="file" 
-                    accept={ALLOWED_IMAGE_TYPES.join(',')}
-                    onChange={handleImageFileChange}
-                    ref={fileInputRef}
-                    className="text-xs"
-                />
+                <div className="flex flex-wrap gap-2 items-center">
+                    <Input 
+                        id="agentImage" 
+                        type="file" 
+                        accept={ALLOWED_IMAGE_TYPES.join(',')}
+                        onChange={handleImageFileChange}
+                        ref={fileInputRef}
+                        className="text-xs flex-1 min-w-[120px]"
+                    />
+                     <Button type="button" variant="outline" size="sm" onClick={handleGenerateImage} disabled={isLoading || isGeneratingImage} className="text-xs">
+                        {isGeneratingImage ? <Loader2 className="mr-1.5 h-3 w-3 animate-spin"/> : <Sparkles className="mr-1.5 h-3 w-3"/>}
+                        Generate
+                    </Button>
+                </div>
                 {currentImageUrl && (
                      <Button type="button" variant="outline" size="sm" onClick={removeImage} disabled={isLoading} className="text-xs mt-1">
                         {isLoading ? <Loader2 className="mr-1.5 h-3 w-3 animate-spin"/> : null}
@@ -432,7 +463,7 @@ export default function PersonalityPage() {
         </Card>
 
         <div className="md:col-span-3 mt-2 sm:mt-0">
-          <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
+          <Button type="submit" disabled={isLoading || isGeneratingImage} className="w-full sm:w-auto">
             {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             {isLoading ? "Saving Changes..." : "Save All Changes & Regenerate Details"}
           </Button>
