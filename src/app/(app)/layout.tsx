@@ -312,7 +312,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         createdAt: Timestamp.now() as any, 
         knowledgeItems: [],
         agentTone: agentData.agentTone || "neutral",
-        voiceName: agentData.voiceName === 'default' ? null : agentData.voiceName,
+        voiceName: agentData.voiceName === 'default' ? null : (agentData.voiceName || null),
         isPubliclyShared: false,
         sharedAt: null,
       };
