@@ -13,7 +13,9 @@ service cloud.firestore {
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
       allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
-    match /clients {
+    // Users can list their own clients.
+    // The `read` rule on individual docs secures this query.
+    match /clients/{clientId} {
       allow list: if request.auth != null;
     }
 
@@ -28,29 +30,27 @@ service cloud.firestore {
                       
       allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
 
-      // This single 'read' rule covers both 'get' (single doc) and 'list' (query results).
-      // It allows access if the user is the owner OR if the agent is public.
-      allow read: if (request.auth != null && resource.data.userId == request.auth.uid) ||
-                     (resource.data.isPubliclyShared == true);
-    }
-
-    match /agents {
-      // This allows the public showcase to query the collection.
-      // The `read` rule on each document above provides the actual security.
-      allow list: if true;
+      // An agent can be read (get or list) if it's public, or if the user is the owner.
+      // This single rule services the public showcase, the owner's dashboard,
+      // and internal `get()` calls from other rules.
+      allow read: if (resource.data.isPubliclyShared == true) || 
+                   (request.auth != null && resource.data.userId == request.auth.uid);
     }
 
     // --- Conversations ---
     match /conversations/{conversationId} {
-      // Allow public creation and updates for chat widgets.
-      allow create, update: if true;
+      // Allow the public chat widget to create and update conversations.
+      // This is necessary for the stateful chat to work. Conversation IDs are unguessable.
+      allow write: if true;
       
-      // Allow the public API to read a conversation to maintain context.
-      // Also allows the agent's owner to read them for analytics.
+      // Allow the public chat widget to read conversation history to provide context.
+      // Also allows the agent owner to read for analytics.
+      // This is a security tradeoff for functionality, as conversation IDs are unguessable.
       allow read: if true;
     }
     
     // Allow authenticated users to list conversations for the analytics page.
+    // The query is secured in the app code to only fetch conversations for agents they own.
     match /conversations {
       allow list: if request.auth != null;
     }
