@@ -1,19 +1,20 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs, orderBy, Timestamp } from "firebase/firestore";
+import { collection, query, where, getDocs, Timestamp } from "firebase/firestore";
 import type { Conversation, ChatMessage, Agent } from "@/lib/types";
 import { useAppContext } from "../../../layout";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { Loader2, AlertTriangle, Bot, User, BarChart3, MessageCircle, ChevronsRight, FileText } from "lucide-react";
+import { Loader2, AlertTriangle, Bot, User, MessageCircle, ChevronsRight, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -46,6 +47,7 @@ export default function AnalyticsPage() {
   const params = useParams();
   const agentId = Array.isArray(params.agentId) ? params.agentId[0] : params.agentId;
   const { getAgent, isLoadingAgents } = useAppContext();
+  const { currentUser, loading: authLoading } = useAuth();
   
   const [agent, setAgent] = useState<Agent | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -54,14 +56,27 @@ export default function AnalyticsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (agentId && !isLoadingAgents) {
-      setAgent(getAgent(agentId) || null);
+    if (isLoadingAgents || authLoading) {
+      return; // Wait until dependencies are ready
     }
-  }, [agentId, getAgent, isLoadingAgents]);
 
-  useEffect(() => {
     if (!agentId) {
       setError("Agent ID is missing.");
+      setIsLoading(false);
+      return;
+    }
+
+    if (!currentUser) {
+      setError("User not authenticated.");
+      setIsLoading(false);
+      return;
+    }
+
+    const currentAgent = getAgent(agentId);
+    setAgent(currentAgent || null);
+
+    if (!currentAgent) {
+      setError("Agent not found.");
       setIsLoading(false);
       return;
     }
@@ -70,15 +85,14 @@ export default function AnalyticsPage() {
       setIsLoading(true);
       setError(null);
       try {
-        // Simplify the query to filter only by agentId. Sorting will be done client-side.
         const q = query(
           collection(db, "conversations"),
-          where("agentId", "==", agentId)
+          where("agentId", "==", agentId),
+          where("userId", "==", currentUser.uid)
         );
         const querySnapshot = await getDocs(q);
         const fetchedConversations = querySnapshot.docs.map(doc => convertFirestoreTimestamp({ id: doc.id, ...doc.data() }));
         
-        // Sort conversations in-memory by creation date, descending.
         fetchedConversations.sort((a, b) => {
             const dateA = new Date(a.createdAt as string).getTime();
             const dateB = new Date(b.createdAt as string).getTime();
@@ -91,19 +105,25 @@ export default function AnalyticsPage() {
         }
       } catch (e: any) {
         console.error("Error fetching conversations:", e);
-        setError(`Failed to load conversations: ${e.message}. If this persists, the database may require an index.`);
+        let errorMessage = `Failed to load conversations: ${e.message}.`;
+        if (e.code === 'failed-precondition') {
+          errorMessage += " This is likely because a database index is required. Please check the browser's developer console for a link to create it automatically.";
+        } else if (e.code === 'permission-denied') {
+           errorMessage += " You do not have permission to view this data.";
+        }
+        setError(errorMessage);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchConversations();
-  }, [agentId]);
+  }, [agentId, getAgent, isLoadingAgents, currentUser, authLoading]);
 
   const totalConversations = agent?.analytics?.totalConversations ?? conversations.length;
   const totalMessages = agent?.analytics?.totalMessages ?? conversations.reduce((acc, curr) => acc + (curr.messageCount || curr.messages.length), 0);
 
-  if (isLoadingAgents) {
+  if (isLoadingAgents || authLoading) {
     return <Card className="p-6"><Loader2 className="animate-spin" /> Loading agent details...</Card>;
   }
 
