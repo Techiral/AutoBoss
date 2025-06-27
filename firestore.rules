@@ -28,26 +28,29 @@ service cloud.firestore {
                       
       allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
 
-      // Allow reads (get, list) if the user is the owner OR the agent is public.
-      // This rule allows the public showcase query to work.
+      // This single 'read' rule covers both 'get' (single doc) and 'list' (query results).
+      // It allows access if the user is the owner OR if the agent is public.
       allow read: if (request.auth != null && resource.data.userId == request.auth.uid) ||
-                    (resource.data.isPubliclyShared == true);
+                     (resource.data.isPubliclyShared == true);
     }
 
-    // --- Conversations (NEW) ---
+    match /agents {
+      // This allows the public showcase to query the collection.
+      // The `read` rule on each document above provides the actual security.
+      allow list: if true;
+    }
+
+    // --- Conversations ---
     match /conversations/{conversationId} {
-      // Allow creation for public chat widgets.
-      allow create: if true;
+      // Allow public creation and updates for chat widgets.
+      allow create, update: if true;
       
-      // Allow updates from the public chat API.
-      allow update: if true;
-      
-      // The agent's owner can read their conversation data for analytics.
-      allow read: if request.auth != null && get(/databases/$(database)/documents/agents/$(resource.data.agentId)).data.userId == request.auth.uid;
+      // Allow the public API to read a conversation to maintain context.
+      // Also allows the agent's owner to read them for analytics.
+      allow read: if true;
     }
     
     // Allow authenticated users to list conversations for the analytics page.
-    // The document-level `read` rule above enforces security.
     match /conversations {
       allow list: if request.auth != null;
     }
