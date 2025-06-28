@@ -82,7 +82,7 @@ Early testers (10 users, June 2025) created AI solutions in under 10 minutes, wi
 - **Supabase**: Relational database for scalable queries, targeting the Startup Challenge.
 - **Next.js/React**: Responsive, minimalistic, beginner-friendly frontend with a black and white UI with both light and dark themes.
 - **Vercel & Netlify**: Dual hosting for uptime and performance optimization [AutoBoss on Vercel](getautoboss.vercel.app), [AutoBoss on Netlify](autoboss.netlify.app).
-- **Supademo**: Interactive onboarding [Supademo]().
+- **Supademo**: Interactive onboarding [Supademo](https://app.supademo.com/demo/cmcghi7sa68j08qsz69ala7cc).
 
 **Why Dual Platforms?** Vercel and Netlify ensure robust deployment, tested for reliability. Firebase’s real-time updates pair with Supabase’s scalable queries, balancing speed and growth.
 
@@ -115,7 +115,7 @@ Join Lakshya, an 18-year-old solo developer, as he unveils AutoBoss, built with 
 
 ### Interactive Demo 🕹️
 
-[Try AutoBoss Interactively!]([invalid url, do not cite])  
+[Try AutoBoss Interactively!](https://app.supademo.com/demo/cmcghi7sa68j08qsz69ala7cc)  
 *Built with Supademo, explore the app in real-time.*
 
 <a name="getting-started"></a>
