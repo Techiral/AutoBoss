@@ -22,7 +22,7 @@ import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore
 import { createAgent, CreateAgentOutput } from "@/ai/flows/agent-creation";
 import { extractKnowledge } from "@/ai/flows/knowledge-extraction";
 import { processUrl } from "@/ai/flows/url-processor";
-import { useAppContext } from "./(app)/layout";
+import { AppProvider, useAppContext } from "./(app)/layout";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -116,7 +116,7 @@ function csvToStructuredText(csvString: string, fileName: string): string {
   return textRepresentation.trim();
 }
 
-export default function VibeBuilderHomepage() {
+function HomePageContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [isProcessingKnowledge, setIsProcessingKnowledge] = useState(false);
   const [publicAgents, setPublicAgents] = useState<Agent[]>([]);
@@ -133,7 +133,7 @@ export default function VibeBuilderHomepage() {
 
   const { toast } = useToast();
   const router = useRouter();
-  const { currentUser } = useAuth();
+  const { currentUser, loading: authLoading } = useAuth();
   const { addAgent: addAgentToContext, addKnowledgeItem } = useAppContext();
 
   const { register, handleSubmit, formState: { errors }, setValue } = useForm<BuilderFormData>({
@@ -141,20 +141,23 @@ export default function VibeBuilderHomepage() {
   });
 
   useEffect(() => {
-    try {
-      const draftJson = sessionStorage.getItem(SESSION_STORAGE_KEY);
-      if (draftJson) {
-        sessionStorage.removeItem(SESSION_STORAGE_KEY);
-        const draft = JSON.parse(draftJson);
-        if (draft.prompt) setValue("prompt", draft.prompt);
-        if (draft.knowledgeSource) setKnowledgeSource(draft.knowledgeSource);
-        if (draft.isPublic) setIsPublic(draft.isPublic);
-        toast({ title: "Draft Restored", description: "Your previous agent draft has been loaded." });
+    // Only restore draft if the user is now logged in.
+    if (!authLoading && currentUser) {
+      try {
+        const draftJson = sessionStorage.getItem(SESSION_STORAGE_KEY);
+        if (draftJson) {
+          sessionStorage.removeItem(SESSION_STORAGE_KEY);
+          const draft = JSON.parse(draftJson);
+          if (draft.prompt) setValue("prompt", draft.prompt);
+          if (draft.knowledgeSource) setKnowledgeSource(draft.knowledgeSource);
+          if (draft.isPublic) setIsPublic(draft.isPublic);
+          toast({ title: "Draft Restored", description: "Your previous agent draft has been loaded." });
+        }
+      } catch (e) {
+        console.error("Failed to parse or restore agent draft from session storage", e);
       }
-    } catch (e) {
-      console.error("Failed to parse or restore agent draft from session storage", e);
     }
-  }, [setValue, toast]);
+  }, [setValue, toast, currentUser, authLoading]);
 
   useEffect(() => {
     async function fetchPublicAgents() {
@@ -296,22 +299,17 @@ export default function VibeBuilderHomepage() {
         agentType: 'chat',
       });
 
-      const tempClientId = "default_client"; 
-      const tempClientName = "Default Client";
-
       const agentDataForContext: Omit<Agent, 'id' | 'createdAt' | 'knowledgeItems' | 'userId' | 'clientId' | 'clientName'> = {
         name: `Agent: ${data.prompt.substring(0, 20)}...`,
         description: data.prompt,
         agentType: 'chat',
         primaryLogic: knowledgeSource ? 'rag' : 'prompt',
         isPubliclyShared: isPublic,
-        sharedAt: isPublic ? Timestamp.now() : null,
-        generatedName: aiResult.agentName,
-        generatedPersona: aiResult.agentPersona,
-        generatedGreeting: aiResult.agentGreeting,
+        // sharedAt will be set by addAgent logic
       };
 
-      const newAgent = await addAgentToContext(agentDataForContext, tempClientId, tempClientName);
+      // Call addAgent without client ID/Name, it will use the default workspace logic.
+      const newAgent = await addAgentToContext(agentDataForContext);
 
       if (newAgent) {
         toast({ title: "Agent Created!", description: "Now processing knowledge source if provided." });
@@ -325,13 +323,14 @@ export default function VibeBuilderHomepage() {
         
         router.push(`/agents/${newAgent.id}/personality`);
       } else {
-         throw new Error("Could not create agent in the database. You may need to create a client first in the dashboard.");
+         throw new Error("Could not create agent in the database. A server-side error occurred.");
       }
 
     } catch (error: any) {
        toast({ title: "Agent Creation Failed", description: error.message || "An unknown error occurred.", variant: "destructive" });
-       setIsLoading(false);
-    } 
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -363,7 +362,7 @@ export default function VibeBuilderHomepage() {
                 rows={3}
                 className="resize-none rounded-lg border-2 border-border bg-card p-4 pr-20 text-base focus-visible:ring-primary"
               />
-              <Button type="submit" size="icon" className="absolute right-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full" disabled={isLoading}>
+              <Button type="submit" size="icon" className="absolute right-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full" disabled={isLoading || isProcessingKnowledge}>
                 {isLoading ? <Loader2 className="animate-spin" /> : <ArrowUp />}
                 <span className="sr-only">Submit</span>
               </Button>
@@ -481,5 +480,13 @@ export default function VibeBuilderHomepage() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+export default function VibeBuilderHomepage() {
+  return (
+    <AppProvider>
+      <HomePageContent />
+    </AppProvider>
   );
 }

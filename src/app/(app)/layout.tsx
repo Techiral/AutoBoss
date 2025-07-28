@@ -42,6 +42,7 @@ import { cn } from "@/lib/utils";
 const LOCAL_STORAGE_THEME_KEY = 'autoBossTheme';
 const AGENTS_COLLECTION = 'agents';
 const CLIENTS_COLLECTION = 'clients';
+const DEFAULT_CLIENT_ID = 'default_workspace';
 
 
 type Theme = 'dark' | 'light';
@@ -52,7 +53,7 @@ interface AppContextType {
   addClient: (clientData: Omit<Client, 'id' | 'createdAt' | 'userId'>) => Promise<Client | null>;
   getClientById: (id: string) => Client | undefined;
   deleteClient: (clientId: string) => Promise<void>;
-  addAgent: (agentData: Omit<Agent, 'id' | 'createdAt' | 'knowledgeItems' | 'userId' | 'clientId' | 'clientName'>, clientId: string, clientName: string) => Promise<Agent | null>;
+  addAgent: (agentData: Omit<Agent, 'id' | 'createdAt' | 'knowledgeItems' | 'userId' | 'clientId' | 'clientName'>, clientId?: string, clientName?: string) => Promise<Agent | null>;
   updateAgent: (agent: Agent) => Promise<void>;
   getAgent: (id: string) => Agent | undefined;
   addKnowledgeItem: (agentId: string, item: KnowledgeItem) => Promise<void>;
@@ -301,27 +302,53 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const addAgent = useCallback(async (
     agentData: Omit<Agent, 'id' | 'createdAt' | 'knowledgeItems' | 'userId' | 'clientId' | 'clientName'>,
-    clientId: string,
-    clientName: string
+    clientId?: string,
+    clientName?: string
   ): Promise<Agent | null> => {
     if (!currentUser) {
       toast({ title: "Not Authenticated", description: "You must be logged in to create an agent.", variant: "destructive" });
       return null;
     }
+
+    let finalClientId = clientId;
+    let finalClientName = clientName;
+
+    // If no client ID is provided, ensure the default workspace exists or create it.
+    if (!finalClientId) {
+      const defaultClientRef = doc(db, CLIENTS_COLLECTION, `${currentUser.uid}_${DEFAULT_CLIENT_ID}`);
+      const defaultClientSnap = await getDoc(defaultClientRef);
+
+      if (!defaultClientSnap.exists()) {
+        const newClientData: Omit<Client, 'id'> = {
+          userId: currentUser.uid,
+          name: 'My Workspace',
+          description: 'A default workspace for agents created from the homepage.',
+          createdAt: Timestamp.now(),
+        };
+        await setDoc(defaultClientRef, newClientData);
+        console.log(`Created default workspace for user ${currentUser.uid}`);
+        finalClientName = 'My Workspace';
+      } else {
+        finalClientName = defaultClientSnap.data().name;
+      }
+      finalClientId = `${currentUser.uid}_${DEFAULT_CLIENT_ID}`;
+    }
+
+
     try {
       const newAgentId = doc(collection(db, AGENTS_COLLECTION)).id;
       const newAgentWithDetails: Agent = {
         ...agentData,
         id: newAgentId,
         userId: currentUser.uid,
-        clientId: clientId,
-        clientName: clientName,
+        clientId: finalClientId,
+        clientName: finalClientName,
         createdAt: Timestamp.now() as any, 
         knowledgeItems: [],
         agentTone: agentData.agentTone || "neutral",
         voiceName: agentData.voiceName === 'default' ? null : (agentData.voiceName || null),
-        isPubliclyShared: false,
-        sharedAt: null,
+        isPubliclyShared: agentData.isPubliclyShared || false,
+        sharedAt: agentData.isPubliclyShared ? Timestamp.now() : null,
       };
 
       const { id, ...dataToSave } = newAgentWithDetails;
@@ -546,8 +573,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const showSidebar = !isPublicPage(pathname);
 
 
-  return (
-    <AppContext.Provider value={{
+  const contextValue: AppContextType = {
         clients,
         agents,
         addClient,
@@ -564,7 +590,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         isLoadingAgents,
         isLoadingClients,
         currentUserUidOnLoad,
-    }}>
+  };
+
+  return (
+    <AppContext.Provider value={contextValue}>
       {children}
     </AppContext.Provider>
   );
