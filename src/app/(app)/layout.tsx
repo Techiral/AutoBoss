@@ -100,7 +100,7 @@ const convertFirestoreTimestampToISO = (data: any, fields: string[]): any => {
 };
 
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+export function AppProvider({ children }: { children: React.ReactNode }) {
   const [clients, setClients] = useState<Client[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [theme, setTheme] = useState<Theme>('dark');
@@ -565,25 +565,39 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         isLoadingClients,
         currentUserUidOnLoad,
     }}>
-      <SidebarProvider defaultOpen={true}>
-        {showSidebar && <AppSidebar />}
-        <div className="flex flex-col flex-1 min-h-screen">
-          {showSidebar && <AppHeader />}
-          {showSidebar ? (
-            <SidebarInset>
-                <main className="flex-1 p-4 sm:p-6 lg:p-8 bg-background text-foreground">
-                {renderContent()}
-                </main>
-            </SidebarInset>
-           ) : (
-             <main className="flex-1 bg-background text-foreground">
-                {renderContent()}
-             </main>
-           )
-          }
-        </div>
-      </SidebarProvider>
+      {children}
     </AppContext.Provider>
+  );
+}
+
+export default function AppLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const isPublicPage = (path: string) => {
+    const publicPaths = ['/login', '/signup', '/playbook', '/templates', '/support', '/'];
+    const publicPrefixes = ['/chat/', '/showcase'];
+    return publicPaths.includes(path) || publicPrefixes.some(prefix => path.startsWith(prefix));
+  };
+  const showSidebar = !isPublicPage(pathname);
+
+  return (
+    <SidebarProvider defaultOpen={true}>
+      {showSidebar && <AppSidebar />}
+      <div className="flex flex-col flex-1 min-h-screen">
+        {showSidebar && <AppHeader />}
+        {showSidebar ? (
+          <SidebarInset>
+              <main className="flex-1 p-4 sm:p-6 lg:p-8 bg-background text-foreground">
+              {children}
+              </main>
+          </SidebarInset>
+          ) : (
+            <main className="flex-1 bg-background text-foreground">
+              {children}
+            </main>
+          )
+        }
+      </div>
+    </SidebarProvider>
   );
 }
 

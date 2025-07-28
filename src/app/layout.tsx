@@ -2,7 +2,8 @@
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
-import { AuthProvider } from '@/contexts/AuthContext'; // Import AuthProvider
+import { AuthProvider } from '@/contexts/AuthContext';
+import { AppProvider } from './(app)/layout'; // Import AppProvider
 
 // Metadata for SEO - specific to this page
 export const metadata: Metadata = {
@@ -62,8 +63,10 @@ export default function RootLayout({
         */}
       </head>
       <body className="font-body antialiased min-h-screen flex flex-col" suppressHydrationWarning={true}>
-        <AuthProvider> {/* Wrap children with AuthProvider */}
-          {children}
+        <AuthProvider>
+          <AppProvider>
+            {children}
+          </AppProvider>
         </AuthProvider>
         <Toaster />
       </body>
