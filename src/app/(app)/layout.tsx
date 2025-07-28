@@ -132,6 +132,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [theme]);
 
+  const isPublicPage = (path: string) => {
+    const publicPaths = ['/login', '/signup', '/playbook', '/templates', '/support', '/'];
+    const publicPrefixes = ['/chat/', '/showcase'];
+    return publicPaths.includes(path) || publicPrefixes.some(prefix => path.startsWith(prefix));
+  };
+
+
   useEffect(() => {
     if (authLoading) {
       // Don't set loading to false here, let the auth state change handle it
@@ -141,7 +148,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
     if (!currentUser) {
        console.log("AppLayout: No current user, authLoading is false.");
-      if (pathname !== '/login' && pathname !== '/signup' && !pathname.startsWith('/chat/') && pathname !== '/playbook' && pathname !== '/templates' && pathname !== '/support') {
+      if (!isPublicPage(pathname)) {
         console.log("AppLayout: Redirecting to login from", pathname);
         router.push('/login');
       } else {
@@ -513,7 +520,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       );
     }
-    if (!authLoading && !currentUser && !(pathname === '/login' || pathname === '/signup' || pathname.startsWith('/chat/') || pathname === '/playbook' || pathname === '/templates' || pathname === '/support')) {
+    if (!authLoading && !currentUser && !isPublicPage(pathname)) {
         console.log("AppLayout: Render condition - Not auth loading, no current user, not public page. Pathname:", pathname);
       return (
         <div className="flex flex-col items-center justify-center flex-1 p-4 text-center">
@@ -523,7 +530,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       );
     }
     // If context is initialized OR it's a public page and auth is done (even if no user)
-    if (isContextInitialized || (!authLoading && (pathname === '/login' || pathname === '/signup' || pathname.startsWith('/chat/') || pathname === '/playbook' || pathname === '/templates' || pathname === '/support'))) {
+    if (isContextInitialized || (!authLoading && isPublicPage(pathname))) {
       console.log("AppLayout: Render condition - Context initialized or public page. Children will be rendered.");
       return children;
     }
@@ -535,6 +542,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
        </div>
     );
   };
+
+  const showSidebar = !isPublicPage(pathname);
 
 
   return (
@@ -557,14 +566,21 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         currentUserUidOnLoad,
     }}>
       <SidebarProvider defaultOpen={true}>
-        <AppSidebar />
+        {showSidebar && <AppSidebar />}
         <div className="flex flex-col flex-1 min-h-screen">
-          <AppHeader />
-          <SidebarInset>
-            <main className="flex-1 p-4 sm:p-6 lg:p-8 bg-background text-foreground">
-              {renderContent()}
-            </main>
-          </SidebarInset>
+          {showSidebar && <AppHeader />}
+          {showSidebar ? (
+            <SidebarInset>
+                <main className="flex-1 p-4 sm:p-6 lg:p-8 bg-background text-foreground">
+                {renderContent()}
+                </main>
+            </SidebarInset>
+           ) : (
+             <main className="flex-1 bg-background text-foreground">
+                {renderContent()}
+             </main>
+           )
+          }
         </div>
       </SidebarProvider>
     </AppContext.Provider>
@@ -597,7 +613,7 @@ function AppSidebar() {
   const pathname = usePathname();
   const { state: sidebarState, isMobile, setOpenMobile } = useSidebar();
   const collapsed = !isMobile && sidebarState === 'collapsed';
-  const { currentUser, loading: authLoading } = useAuth();
+  const { currentUser } = useAuth();
   
   const handleMobileLinkClick = () => {
     if (isMobile) {
@@ -605,14 +621,14 @@ function AppSidebar() {
     }
   };
 
-  if (!currentUser && !(pathname.startsWith('/chat/') || pathname === '/playbook' || pathname === '/templates' || pathname === '/support')) {
-    return <Sidebar><SidebarHeader className="p-3 sm:p-4"><Link href="/" aria-label="AutoBoss Homepage" className="hover:opacity-80 transition-opacity"><Logo collapsed={collapsed} className="h-6 sm:h-7 px-1 sm:px-2 py-1"/></Link></SidebarHeader></Sidebar>;
+  if (!currentUser) {
+    return null;
   }
 
   return (
     <Sidebar>
       <SidebarHeader className="p-3 sm:p-4">
-        <Link href="/dashboard" className="hover:opacity-80 transition-opacity" aria-label="AutoBoss Homepage" onClick={handleMobileLinkClick}>
+        <Link href="/dashboard" className="hover:opacity-80 transition-opacity" aria-label="Dashboard" onClick={handleMobileLinkClick}>
             <Logo collapsed={collapsed} className="h-6 sm:h-7 px-1 sm:px-2 py-1"/>
         </Link>
       </SidebarHeader>
