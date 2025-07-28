@@ -302,40 +302,50 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
 
   const addAgent = useCallback(async (
-    agentData: Omit<Agent, 'id' | 'createdAt' | 'knowledgeItems' | 'userId' | 'clientId' | 'clientName'>
+    agentData: Omit<Agent, 'id' | 'createdAt' | 'knowledgeItems' | 'userId' | 'clientId' | 'clientName'>,
+    clientId?: string,
+    clientName?: string
   ): Promise<Agent | null> => {
     if (!currentUser) {
       toast({ title: "Not Authenticated", description: "You must be logged in to create an agent.", variant: "destructive" });
       return null;
     }
 
-    let finalClientId: string;
-    let finalClientName: string;
+    let finalClientId = clientId;
+    let finalClientName = clientName;
 
-    const defaultClientRef = doc(db, CLIENTS_COLLECTION, `${currentUser.uid}_${DEFAULT_CLIENT_ID}`);
-    const defaultClientSnap = await getDoc(defaultClientRef);
+    // If no client ID is provided, create/use the default workspace.
+    if (!finalClientId) {
+      const defaultClientRef = doc(db, CLIENTS_COLLECTION, `${currentUser.uid}_${DEFAULT_CLIENT_ID}`);
+      const defaultClientSnap = await getDoc(defaultClientRef);
 
-    if (!defaultClientSnap.exists()) {
-      finalClientId = defaultClientRef.id;
-      finalClientName = 'My Workspace';
-      const newClientData: Client = {
-        id: finalClientId,
-        userId: currentUser.uid,
-        name: finalClientName,
-        description: 'A default workspace for agents.',
-        createdAt: Timestamp.now() as any, // Cast for simplicity, will be converted later
-      };
-      await setDoc(defaultClientRef, {
-        userId: newClientData.userId, // CRITICAL FIX: Add userId to the data being saved
-        name: newClientData.name,
-        description: newClientData.description,
-        createdAt: newClientData.createdAt,
-      });
-      console.log(`Created default workspace for user ${currentUser.uid}`);
-      setClients(prev => [...prev, convertFirestoreTimestampToISO(newClientData, ['createdAt'])]);
-    } else {
-      finalClientId = defaultClientSnap.id;
-      finalClientName = defaultClientSnap.data().name;
+      if (!defaultClientSnap.exists()) {
+        finalClientId = defaultClientRef.id;
+        finalClientName = 'My Workspace';
+        const newClientData = {
+          userId: currentUser.uid, // This is the critical fix
+          name: finalClientName,
+          description: 'A default workspace for agents created from the homepage.',
+          createdAt: Timestamp.now(),
+        };
+        await setDoc(defaultClientRef, newClientData);
+        console.log(`Created default workspace for user ${currentUser.uid}`);
+        
+        const clientForState: Client = {
+          id: finalClientId,
+          ...newClientData,
+          createdAt: (newClientData.createdAt as Timestamp).toDate().toISOString()
+        };
+        setClients(prev => [...prev, clientForState]);
+      } else {
+        finalClientId = defaultClientSnap.id;
+        finalClientName = defaultClientSnap.data().name;
+      }
+    }
+    
+    if (!finalClientId || !finalClientName) {
+        toast({ title: "Client Error", description: "Could not determine a client for the agent.", variant: "destructive" });
+        return null;
     }
 
     try {
