@@ -4,82 +4,44 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Users can only read and write to their own profile.
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // --- Clients ---
+    // Clients collection rules
     match /clients/{clientId} {
+      // A user can create a client document for themselves.
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      // A user can read, update, or delete a client document if they are the owner.
       allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
-    match /clients {
-      allow list: if request.auth != null;
-    }
 
-    // --- Agents ---
+    // Agents collection rules
     match /agents/{agentId} {
+      // Allow create if the user is authenticated and is the owner.
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      
-      // Allow owners to update everything.
-      // Allow the public API to update *only* the analytics field.
-      allow update: if (request.auth != null && resource.data.userId == request.auth.uid) ||
-                      (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['analytics']));
-                      
-      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
-
-      // Allow public read for showcase, or owner read.
-      allow get: if (resource.data.isPubliclyShared == true) || 
-                   (request.auth != null && resource.data.userId == request.auth.uid);
-      
-      // Allow authenticated owners to list their own agents.
-      allow list, read: if request.auth != null && resource.data.userId == request.auth.uid;
+      // Allow owner to read, update, delete.
+      allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      // Allow ANYONE to read an agent document IF it is marked as publicly shared.
+      // This is necessary for the public showcase and public chat pages.
+      allow get: if resource.data.isPubliclyShared == true;
+      // Allow list for the showcase page query.
+      allow list: if resource.data.isPubliclyShared == true;
     }
 
-    match /agents {
-       // Allow public listing only if filtered for showcase.
-       // Allow private listing only if filtered by owner's UID.
-      allow list: if (request.query.where.isPubliclyShared == true) || 
-                    (request.auth != null && request.query.where.userId == request.auth.uid);
-    }
-
-    // --- Conversations ---
+    // Conversations can be read/written by the agent's owner for analytics.
+    // The security for individual chat sessions is handled by API logic,
+    // but these rules allow the owner to view transcripts.
     match /conversations/{conversationId} {
-      // Allow creation for public chat widgets.
-      allow create: if true;
-      
-      // Allow updates from the public chat API.
-      allow update: if true;
-      
-      // The agent's owner can read their conversation data for analytics.
-      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
-    }
-    
-    match /conversations {
-      // Allow a user to list conversations IF their query filters by their own UID.
-      allow list: if request.auth != null && request.query.where.userId == request.auth.uid;
+        allow read, write: if request.auth != null && get(/databases/$(database)/documents/agents/$(resource.data.agentId)).data.userId == request.auth.uid;
     }
 
-    // --- OutboundQueue ---
+    // Outbound queue is write-only for authenticated users.
     match /outboundQueue/{taskId} {
       allow create: if request.auth != null;
-    }
-
-    // --- RoadmapFeatures ---
-    match /roadmapFeatures/{featureDocId} {
-      allow read: if true;
-      allow update: if request.auth != null &&
-                       request.resource.data.currentVotes == resource.data.currentVotes + 1 &&
-                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['currentVotes']);
-    }
-
-    // --- UserVotes ---
-    match /userVotes/{voteId} {
-      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
-      allow create: if request.auth != null &&
-                       request.resource.data.userId == request.auth.uid &&
-                       request.resource.data.featureId != null &&
-                       voteId == request.resource.data.userId + '_' + request.resource.data.featureId;
+      // Reading/updating/deleting queue tasks should be handled by a secure backend process/admin only.
+      allow read, update, delete: if false;
     }
   }
 }
