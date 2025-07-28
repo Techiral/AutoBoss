@@ -56,6 +56,7 @@ type KnowledgeSource = {
   type: 'file';
   fileName: string;
   fileDataUri: string; // Store as Data URI to survive session storage
+  isPreStructured: boolean;
 } | {
   type: 'text';
   text: string;
@@ -139,21 +140,19 @@ export default function VibeBuilderHomepage() {
     resolver: zodResolver(builderFormSchema),
   });
 
-  // Load from session storage on mount
   useEffect(() => {
-    const draft = sessionStorage.getItem(SESSION_STORAGE_KEY);
-    if (draft) {
-      try {
-        const { prompt, knowledgeSource, isPublic } = JSON.parse(draft);
-        if (prompt) setValue("prompt", prompt);
-        if (knowledgeSource) setKnowledgeSource(knowledgeSource);
-        if (isPublic) setIsPublic(isPublic);
-        toast({ title: "Draft Restored", description: "Your previous agent draft has been loaded." });
-      } catch (e) {
-        console.error("Failed to parse agent draft from session storage", e);
-      } finally {
+    try {
+      const draftJson = sessionStorage.getItem(SESSION_STORAGE_KEY);
+      if (draftJson) {
         sessionStorage.removeItem(SESSION_STORAGE_KEY);
+        const draft = JSON.parse(draftJson);
+        if (draft.prompt) setValue("prompt", draft.prompt);
+        if (draft.knowledgeSource) setKnowledgeSource(draft.knowledgeSource);
+        if (draft.isPublic) setIsPublic(draft.isPublic);
+        toast({ title: "Draft Restored", description: "Your previous agent draft has been loaded." });
       }
+    } catch (e) {
+      console.error("Failed to parse or restore agent draft from session storage", e);
     }
   }, [setValue, toast]);
 
@@ -181,7 +180,6 @@ export default function VibeBuilderHomepage() {
   const handleSetFileSource = async (file: File | null) => {
     if (!file) return;
     setIsProcessingKnowledge(true);
-    setIsFileDialogOpen(false);
     try {
       const fileDataUri = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
@@ -189,8 +187,10 @@ export default function VibeBuilderHomepage() {
         reader.onerror = reject;
         reader.readAsDataURL(file);
       });
-      setKnowledgeSource({ type: 'file', fileName: file.name, fileDataUri });
+      const isPreStructured = file.name.toLowerCase().endsWith('.csv');
+      setKnowledgeSource({ type: 'file', fileName: file.name, fileDataUri, isPreStructured });
       toast({ title: "File Attached", description: `${file.name} is ready.` });
+      setIsFileDialogOpen(false);
     } catch (e) {
       toast({ title: "Error", description: "Could not read file.", variant: "destructive" });
     } finally {
@@ -207,77 +207,79 @@ export default function VibeBuilderHomepage() {
 
   const handleSetUrlSource = () => {
     if (!urlInput.trim()) return;
-    setKnowledgeSource({ type: 'url', url: urlInput });
+    let validUrl = urlInput;
+    if (!urlInput.startsWith('http://') && !urlInput.startsWith('https://')) {
+      validUrl = `https://${urlInput}`;
+    }
+    setKnowledgeSource({ type: 'url', url: validUrl });
     setIsUrlDialogOpen(false);
-    toast({ title: "URL Added", description: `Agent will learn from ${urlInput}.` });
+    toast({ title: "URL Added", description: `Agent will learn from ${validUrl}.` });
   };
 
-
   const processAndAddKnowledge = async (agentId: string, source: KnowledgeSource) => {
-      let fileName: string = "Knowledge";
-      let documentDataUri: string;
-      let isPreStructured = false;
+    let fileName: string = "Knowledge";
+    let documentDataUri: string;
+    let isPreStructured = false;
 
-      try {
-        if (source.type === 'file') {
-            fileName = source.fileName;
-            const fileResponse = await fetch(source.fileDataUri);
-            const blob = await fileResponse.blob();
-            const fileNameLower = source.fileName.toLowerCase();
-
-            if (fileNameLower.endsWith('.pdf')) {
-                const arrayBuffer = await blob.arrayBuffer();
-                const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-                let textContent = "";
-                for (let i = 1; i <= pdfDoc.numPages; i++) {
-                    const page = await pdfDoc.getPage(i);
-                    textContent += (await page.getTextContent()).items.map(item => 'str' in item ? item.str : '').join(' ');
-                }
-                documentDataUri = `data:text/plain;base64,${Buffer.from(textContent).toString('base64')}`;
-            } else if (fileNameLower.endsWith('.docx')) {
-                const arrayBuffer = await blob.arrayBuffer();
-                const { value } = await mammoth.extractRawText({ arrayBuffer });
-                documentDataUri = `data:text/plain;base64,${Buffer.from(value).toString('base64')}`;
-            } else if (fileNameLower.endsWith('.csv')) {
-                const textContent = await blob.text();
-                const structuredText = csvToStructuredText(textContent, source.fileName);
-                documentDataUri = `data:text/plain;base64,${Buffer.from(structuredText).toString('base64')}`;
-                isPreStructured = true;
-            } else {
-                 documentDataUri = source.fileDataUri;
-            }
-        } else if (source.type === 'text') {
-            fileName = source.fileName;
-            documentDataUri = `data:text/plain;base64,${Buffer.from(source.text).toString('base64')}`;
-        } else { // URL
-            fileName = source.url;
-            const urlResult = await processUrl({ url: source.url });
-            documentDataUri = `data:text/plain;base64,${Buffer.from(urlResult.extractedText).toString('base64')}`;
-            fileName = urlResult.title || fileName;
-        }
-
-        const knowledgeResult = await extractKnowledge({ documentDataUri, isPreStructuredText: isPreStructured });
+    try {
+      if (source.type === 'file') {
+        fileName = source.fileName;
+        isPreStructured = source.isPreStructured;
+        const fileResponse = await fetch(source.fileDataUri);
+        const blob = await fileResponse.blob();
         
-        const newKnowledgeItem: KnowledgeItem = {
-          id: Date.now().toString(),
-          fileName: fileName,
-          uploadedAt: new Date().toISOString(),
-          summary: knowledgeResult.summary,
-          keywords: knowledgeResult.keywords,
-        };
-
-        await addKnowledgeItem(agentId, newKnowledgeItem);
-        toast({ title: "Knowledge Added!", description: `Agent has been successfully trained with "${fileName}".`});
-
-      } catch (error: any) {
-         console.error("Error processing knowledge source:", error);
-         toast({ title: "Knowledge Training Failed", description: `Could not process "${fileName}". Error: ${error.message}`, variant: "destructive" });
+        if (isPreStructured) {
+            const textContent = await blob.text();
+            const structuredText = csvToStructuredText(textContent, source.fileName);
+            documentDataUri = `data:text/plain;base64,${Buffer.from(structuredText).toString('base64')}`;
+        } else if (fileName.toLowerCase().endsWith('.pdf')) {
+            const arrayBuffer = await blob.arrayBuffer();
+            const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            let textContent = "";
+            for (let i = 1; i <= pdfDoc.numPages; i++) {
+                const page = await pdfDoc.getPage(i);
+                textContent += (await page.getTextContent()).items.map(item => 'str' in item ? item.str : '').join(' ');
+            }
+            documentDataUri = `data:text/plain;base64,${Buffer.from(textContent).toString('base64')}`;
+        } else if (fileName.toLowerCase().endsWith('.docx')) {
+            const arrayBuffer = await blob.arrayBuffer();
+            const { value } = await mammoth.extractRawText({ arrayBuffer });
+            documentDataUri = `data:text/plain;base64,${Buffer.from(value).toString('base64')}`;
+        } else {
+             documentDataUri = source.fileDataUri;
+        }
+      } else if (source.type === 'text') {
+        fileName = source.fileName;
+        documentDataUri = `data:text/plain;base64,${Buffer.from(source.text).toString('base64')}`;
+      } else { // URL
+        fileName = source.url;
+        const urlResult = await processUrl({ url: source.url });
+        documentDataUri = `data:text/plain;base64,${Buffer.from(urlResult.extractedText).toString('base64')}`;
+        fileName = urlResult.title || fileName;
       }
+
+      const knowledgeResult = await extractKnowledge({ documentDataUri, isPreStructuredText: isPreStructured });
+      
+      const newKnowledgeItem: KnowledgeItem = {
+        id: Date.now().toString(),
+        fileName: fileName,
+        uploadedAt: new Date().toISOString(),
+        summary: knowledgeResult.summary,
+        keywords: knowledgeResult.keywords,
+      };
+
+      await addKnowledgeItem(agentId, newKnowledgeItem);
+      toast({ title: "Knowledge Added!", description: `Agent has been successfully trained with "${fileName}".`});
+      return true;
+    } catch (error: any) {
+       console.error("Error processing knowledge source:", error);
+       toast({ title: "Knowledge Training Failed", description: `Could not process "${fileName}". Error: ${error.message}`, variant: "destructive" });
+       return false;
+    }
   };
 
   const onSubmit: SubmitHandler<BuilderFormData> = async (data) => {
     if (!currentUser) {
-      // Save state and redirect to login
       const draft = JSON.stringify({ prompt: data.prompt, knowledgeSource, isPublic });
       sessionStorage.setItem(SESSION_STORAGE_KEY, draft);
       router.push('/login?redirect=/');
@@ -315,9 +317,12 @@ export default function VibeBuilderHomepage() {
         toast({ title: "Agent Created!", description: "Now processing knowledge source if provided." });
         
         if (knowledgeSource) {
-            await processAndAddKnowledge(newAgent.id, knowledgeSource);
+          const knowledgeSuccess = await processAndAddKnowledge(newAgent.id, knowledgeSource);
+          if (!knowledgeSuccess) {
+            toast({ title: "Partial Success", description: `Agent was created, but knowledge training failed. You can add it later in the agent's settings.`, variant: "destructive" });
+          }
         }
-
+        
         router.push(`/agents/${newAgent.id}/personality`);
       } else {
          throw new Error("Could not create agent in the database. You may need to create a client first in the dashboard.");
@@ -325,10 +330,8 @@ export default function VibeBuilderHomepage() {
 
     } catch (error: any) {
        toast({ title: "Agent Creation Failed", description: error.message || "An unknown error occurred.", variant: "destructive" });
-    } finally {
        setIsLoading(false);
-       setKnowledgeSource(null);
-    }
+    } 
   };
 
   return (
@@ -372,7 +375,7 @@ export default function VibeBuilderHomepage() {
             <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => setIsFileDialogOpen(true)}><Upload size={14} /> Attach</Button>
             <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => setIsTextDialogOpen(true)}><FileText size={14} /> Paste Text</Button>
             <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => setIsUrlDialogOpen(true)}><LinkIcon size={14} /> From URL</Button>
-            <Button variant="outline" size="sm" className="text-xs gap-1.5" data-active={isPublic} onClick={() => setIsPublic(!isPublic)}><Globe size={14} /> Public</Button>
+            <Button variant="outline" size="sm" className="text-xs gap-1.5" data-state={isPublic ? 'active' : 'inactive'} onClick={() => setIsPublic(!isPublic)}><Globe size={14} /> Public</Button>
           </div>
           {knowledgeSource && (
               <div className="mt-2 text-xs text-muted-foreground p-2 bg-secondary rounded-md">
