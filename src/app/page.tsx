@@ -18,7 +18,7 @@ import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import type { Agent, KnowledgeItem } from "@/lib/types";
 import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, Timestamp, doc, setDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
 import { createAgent, CreateAgentOutput } from "@/ai/flows/agent-creation";
 import { extractKnowledge } from "@/ai/flows/knowledge-extraction";
 import { processUrl } from "@/ai/flows/url-processor";
@@ -26,12 +26,14 @@ import { useAppContext } from "./(app)/layout";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import mammoth from 'mammoth';
 import * as pdfjsLib from 'pdfjs-dist';
 import Papa from 'papaparse';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf.worker.mjs`;
 
+const SESSION_STORAGE_KEY = 'agentBuilderDraft';
 
 const convertAgentTimestamps = (agentData: any): Agent => {
   const newAgent = { ...agentData };
@@ -52,7 +54,8 @@ type BuilderFormData = z.infer<typeof builderFormSchema>;
 
 type KnowledgeSource = {
   type: 'file';
-  file: File;
+  fileName: string;
+  fileDataUri: string; // Store as Data URI to survive session storage
 } | {
   type: 'text';
   text: string;
@@ -88,7 +91,6 @@ function AgentShowcaseCard({ agent }: { agent: Agent }) {
   );
 }
 
-// Re-using the conversion function from knowledge page
 function csvToStructuredText(csvString: string, fileName: string): string {
   const parseResult = Papa.parse<Record<string, string>>(csvString, {
     header: true,
@@ -115,24 +117,45 @@ function csvToStructuredText(csvString: string, fileName: string): string {
 
 export default function VibeBuilderHomepage() {
   const [isLoading, setIsLoading] = useState(false);
+  const [isProcessingKnowledge, setIsProcessingKnowledge] = useState(false);
   const [publicAgents, setPublicAgents] = useState<Agent[]>([]);
   const [isLoadingAgents, setIsLoadingAgents] = useState(true);
   const [knowledgeSource, setKnowledgeSource] = useState<KnowledgeSource | null>(null);
+  const [isPublic, setIsPublic] = useState(false);
 
-  // State for dialogs
   const [isFileDialogOpen, setIsFileDialogOpen] = useState(false);
   const [isTextDialogOpen, setIsTextDialogOpen] = useState(false);
   const [isUrlDialogOpen, setIsUrlDialogOpen] = useState(false);
 
-  // State for inputs within dialogs
   const [pastedText, setPastedText] = useState("");
   const [urlInput, setUrlInput] = useState("");
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const { toast } = useToast();
   const router = useRouter();
   const { currentUser } = useAuth();
   const { addAgent: addAgentToContext, addKnowledgeItem } = useAppContext();
+
+  const { register, handleSubmit, formState: { errors }, setValue } = useForm<BuilderFormData>({
+    resolver: zodResolver(builderFormSchema),
+  });
+
+  // Load from session storage on mount
+  useEffect(() => {
+    const draft = sessionStorage.getItem(SESSION_STORAGE_KEY);
+    if (draft) {
+      try {
+        const { prompt, knowledgeSource, isPublic } = JSON.parse(draft);
+        if (prompt) setValue("prompt", prompt);
+        if (knowledgeSource) setKnowledgeSource(knowledgeSource);
+        if (isPublic) setIsPublic(isPublic);
+        toast({ title: "Draft Restored", description: "Your previous agent draft has been loaded." });
+      } catch (e) {
+        console.error("Failed to parse agent draft from session storage", e);
+      } finally {
+        sessionStorage.removeItem(SESSION_STORAGE_KEY);
+      }
+    }
+  }, [setValue, toast]);
 
   useEffect(() => {
     async function fetchPublicAgents() {
@@ -155,16 +178,38 @@ export default function VibeBuilderHomepage() {
     fetchPublicAgents();
   }, [toast]);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<BuilderFormData>({
-    resolver: zodResolver(builderFormSchema),
-  });
-
-  const handleKnowledgeSubmit = (source: KnowledgeSource) => {
-    setKnowledgeSource(source);
+  const handleSetFileSource = async (file: File | null) => {
+    if (!file) return;
+    setIsProcessingKnowledge(true);
     setIsFileDialogOpen(false);
+    try {
+      const fileDataUri = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      setKnowledgeSource({ type: 'file', fileName: file.name, fileDataUri });
+      toast({ title: "File Attached", description: `${file.name} is ready.` });
+    } catch (e) {
+      toast({ title: "Error", description: "Could not read file.", variant: "destructive" });
+    } finally {
+      setIsProcessingKnowledge(false);
+    }
+  };
+
+  const handleSetTextSource = () => {
+    if (!pastedText.trim()) return;
+    setKnowledgeSource({ type: 'text', text: pastedText, fileName: `Pasted Text - ${new Date().toLocaleTimeString()}` });
     setIsTextDialogOpen(false);
+    toast({ title: "Text Content Added", description: `Ready to be used for agent creation.` });
+  };
+
+  const handleSetUrlSource = () => {
+    if (!urlInput.trim()) return;
+    setKnowledgeSource({ type: 'url', url: urlInput });
     setIsUrlDialogOpen(false);
-    toast({ title: "Knowledge Source Added", description: `Ready to be used for agent creation.` });
+    toast({ title: "URL Added", description: `Agent will learn from ${urlInput}.` });
   };
 
 
@@ -175,12 +220,13 @@ export default function VibeBuilderHomepage() {
 
       try {
         if (source.type === 'file') {
-            fileName = source.file.name;
-            const file = source.file;
-            const fileNameLower = file.name.toLowerCase();
+            fileName = source.fileName;
+            const fileResponse = await fetch(source.fileDataUri);
+            const blob = await fileResponse.blob();
+            const fileNameLower = source.fileName.toLowerCase();
 
             if (fileNameLower.endsWith('.pdf')) {
-                const arrayBuffer = await file.arrayBuffer();
+                const arrayBuffer = await blob.arrayBuffer();
                 const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
                 let textContent = "";
                 for (let i = 1; i <= pdfDoc.numPages; i++) {
@@ -189,21 +235,16 @@ export default function VibeBuilderHomepage() {
                 }
                 documentDataUri = `data:text/plain;base64,${Buffer.from(textContent).toString('base64')}`;
             } else if (fileNameLower.endsWith('.docx')) {
-                const arrayBuffer = await file.arrayBuffer();
+                const arrayBuffer = await blob.arrayBuffer();
                 const { value } = await mammoth.extractRawText({ arrayBuffer });
                 documentDataUri = `data:text/plain;base64,${Buffer.from(value).toString('base64')}`;
             } else if (fileNameLower.endsWith('.csv')) {
-                const textContent = await file.text();
-                const structuredText = csvToStructuredText(textContent, file.name);
+                const textContent = await blob.text();
+                const structuredText = csvToStructuredText(textContent, source.fileName);
                 documentDataUri = `data:text/plain;base64,${Buffer.from(structuredText).toString('base64')}`;
                 isPreStructured = true;
             } else {
-                 documentDataUri = await new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = () => resolve(reader.result as string);
-                    reader.onerror = reject;
-                    reader.readAsDataURL(file);
-                });
+                 documentDataUri = source.fileDataUri;
             }
         } else if (source.type === 'text') {
             fileName = source.fileName;
@@ -236,17 +277,17 @@ export default function VibeBuilderHomepage() {
 
   const onSubmit: SubmitHandler<BuilderFormData> = async (data) => {
     if (!currentUser) {
-      toast({
-        title: "Please Sign In",
-        description: "You need to be logged in to build an agent.",
-        action: <Button onClick={() => router.push('/login')}>Login</Button>
-      });
+      // Save state and redirect to login
+      const draft = JSON.stringify({ prompt: data.prompt, knowledgeSource, isPublic });
+      sessionStorage.setItem(SESSION_STORAGE_KEY, draft);
+      router.push('/login?redirect=/');
       return;
     }
+    
     setIsLoading(true);
     
     try {
-      const agentDescriptionForAI = `Create an AI agent based on this user prompt: "${data.prompt}"`;
+      const agentDescriptionForAI = `Create an AI agent based on this user prompt: "${data.prompt}" ${knowledgeSource ? 'It should be knowledgeable about the attached document.' : ''}`;
       
       const aiResult = await createAgent({
         agentDescription: agentDescriptionForAI,
@@ -261,6 +302,8 @@ export default function VibeBuilderHomepage() {
         description: data.prompt,
         agentType: 'chat',
         primaryLogic: knowledgeSource ? 'rag' : 'prompt',
+        isPubliclyShared: isPublic,
+        sharedAt: isPublic ? Timestamp.now() : null,
         generatedName: aiResult.agentName,
         generatedPersona: aiResult.agentPersona,
         generatedGreeting: aiResult.agentGreeting,
@@ -329,12 +372,12 @@ export default function VibeBuilderHomepage() {
             <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => setIsFileDialogOpen(true)}><Upload size={14} /> Attach</Button>
             <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => setIsTextDialogOpen(true)}><FileText size={14} /> Paste Text</Button>
             <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => setIsUrlDialogOpen(true)}><LinkIcon size={14} /> From URL</Button>
-            <Button variant="outline" size="sm" className="text-xs gap-1.5"><Globe size={14} /> Public</Button>
+            <Button variant="outline" size="sm" className="text-xs gap-1.5" data-active={isPublic} onClick={() => setIsPublic(!isPublic)}><Globe size={14} /> Public</Button>
           </div>
           {knowledgeSource && (
               <div className="mt-2 text-xs text-muted-foreground p-2 bg-secondary rounded-md">
                 <strong>Knowledge Source Ready:</strong> {
-                  knowledgeSource.type === 'file' ? knowledgeSource.file.name : 
+                  knowledgeSource.type === 'file' ? knowledgeSource.fileName : 
                   knowledgeSource.type === 'text' ? 'Pasted Text' : 
                   knowledgeSource.url
                 }. This will be used when you create the agent.
@@ -386,11 +429,11 @@ export default function VibeBuilderHomepage() {
           </DialogHeader>
           <div className="py-4 space-y-2">
             <Label htmlFor="knowledge-file">Document</Label>
-            <Input id="knowledge-file" type="file" onChange={(e) => setSelectedFile(e.target.files?.[0] || null)} />
+            <Input id="knowledge-file" type="file" onChange={(e) => handleSetFileSource(e.target.files?.[0] || null)} disabled={isProcessingKnowledge} />
           </div>
           <DialogFooter>
-            <DialogClose asChild><Button variant="secondary">Cancel</Button></DialogClose>
-            <Button onClick={() => selectedFile && handleKnowledgeSubmit({ type: 'file', file: selectedFile })} disabled={!selectedFile}>Add File</Button>
+            <DialogClose asChild><Button variant="secondary" disabled={isProcessingKnowledge}>Cancel</Button></DialogClose>
+            {isProcessingKnowledge && <Button disabled><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</Button>}
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -412,7 +455,7 @@ export default function VibeBuilderHomepage() {
           </div>
           <DialogFooter>
              <DialogClose asChild><Button variant="secondary">Cancel</Button></DialogClose>
-             <Button onClick={() => handleKnowledgeSubmit({ type: 'text', text: pastedText, fileName: `Pasted Text - ${new Date().toLocaleTimeString()}` })} disabled={!pastedText.trim()}>Add Text</Button>
+             <Button onClick={handleSetTextSource} disabled={!pastedText.trim()}>Add Text</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -430,11 +473,10 @@ export default function VibeBuilderHomepage() {
           </div>
           <DialogFooter>
             <DialogClose asChild><Button variant="secondary">Cancel</Button></DialogClose>
-            <Button onClick={() => handleKnowledgeSubmit({ type: 'url', url: urlInput })} disabled={!urlInput.trim()}>Add URL</Button>
+            <Button onClick={handleSetUrlSource} disabled={!urlInput.trim()}>Add URL</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
   );
 }
-
