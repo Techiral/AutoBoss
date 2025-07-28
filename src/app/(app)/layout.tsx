@@ -32,7 +32,8 @@ import {
   Timestamp,
   query,
   where,
-  writeBatch
+  writeBatch,
+  getDoc, // CRITICAL FIX: Import getDoc
 } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/contexts/AuthContext';
@@ -53,7 +54,7 @@ interface AppContextType {
   addClient: (clientData: Omit<Client, 'id' | 'createdAt' | 'userId'>) => Promise<Client | null>;
   getClientById: (id: string) => Client | undefined;
   deleteClient: (clientId: string) => Promise<void>;
-  addAgent: (agentData: Omit<Agent, 'id' | 'createdAt' | 'knowledgeItems' | 'userId' | 'clientId' | 'clientName'>, clientId?: string, clientName?: string) => Promise<Agent | null>;
+  addAgent: (agentData: Omit<Agent, 'id' | 'createdAt' | 'knowledgeItems' | 'userId' | 'clientId' | 'clientName'>) => Promise<Agent | null>;
   updateAgent: (agent: Agent) => Promise<void>;
   getAgent: (id: string) => Agent | undefined;
   addKnowledgeItem: (agentId: string, item: KnowledgeItem) => Promise<void>;
@@ -301,39 +302,41 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
 
   const addAgent = useCallback(async (
-    agentData: Omit<Agent, 'id' | 'createdAt' | 'knowledgeItems' | 'userId' | 'clientId' | 'clientName'>,
-    clientId?: string,
-    clientName?: string
+    agentData: Omit<Agent, 'id' | 'createdAt' | 'knowledgeItems' | 'userId' | 'clientId' | 'clientName'>
   ): Promise<Agent | null> => {
     if (!currentUser) {
       toast({ title: "Not Authenticated", description: "You must be logged in to create an agent.", variant: "destructive" });
       return null;
     }
 
-    let finalClientId = clientId;
-    let finalClientName = clientName;
+    let finalClientId: string;
+    let finalClientName: string;
 
-    // If no client ID is provided, ensure the default workspace exists or create it.
-    if (!finalClientId) {
-      const defaultClientRef = doc(db, CLIENTS_COLLECTION, `${currentUser.uid}_${DEFAULT_CLIENT_ID}`);
-      const defaultClientSnap = await getDoc(defaultClientRef);
+    const defaultClientRef = doc(db, CLIENTS_COLLECTION, `${currentUser.uid}_${DEFAULT_CLIENT_ID}`);
+    const defaultClientSnap = await getDoc(defaultClientRef);
 
-      if (!defaultClientSnap.exists()) {
-        const newClientData: Omit<Client, 'id'> = {
-          userId: currentUser.uid,
-          name: 'My Workspace',
-          description: 'A default workspace for agents created from the homepage.',
-          createdAt: Timestamp.now(),
-        };
-        await setDoc(defaultClientRef, newClientData);
-        console.log(`Created default workspace for user ${currentUser.uid}`);
-        finalClientName = 'My Workspace';
-      } else {
-        finalClientName = defaultClientSnap.data().name;
-      }
-      finalClientId = `${currentUser.uid}_${DEFAULT_CLIENT_ID}`;
+    if (!defaultClientSnap.exists()) {
+      finalClientId = defaultClientRef.id;
+      finalClientName = 'My Workspace';
+      const newClientData: Client = {
+        id: finalClientId,
+        userId: currentUser.uid,
+        name: finalClientName,
+        description: 'A default workspace for agents.',
+        createdAt: Timestamp.now() as any, // Cast for simplicity, will be converted later
+      };
+      await setDoc(defaultClientRef, {
+        userId: newClientData.userId,
+        name: newClientData.name,
+        description: newClientData.description,
+        createdAt: newClientData.createdAt,
+      });
+      console.log(`Created default workspace for user ${currentUser.uid}`);
+      setClients(prev => [...prev, convertFirestoreTimestampToISO(newClientData, ['createdAt'])]);
+    } else {
+      finalClientId = defaultClientSnap.id;
+      finalClientName = defaultClientSnap.data().name;
     }
-
 
     try {
       const newAgentId = doc(collection(db, AGENTS_COLLECTION)).id;

@@ -141,20 +141,20 @@ function HomePageContent() {
   });
 
   useEffect(() => {
-    // Only restore draft if the user is now logged in.
     if (!authLoading && currentUser) {
       try {
         const draftJson = sessionStorage.getItem(SESSION_STORAGE_KEY);
         if (draftJson) {
-          sessionStorage.removeItem(SESSION_STORAGE_KEY);
           const draft = JSON.parse(draftJson);
           if (draft.prompt) setValue("prompt", draft.prompt);
           if (draft.knowledgeSource) setKnowledgeSource(draft.knowledgeSource);
           if (draft.isPublic) setIsPublic(draft.isPublic);
           toast({ title: "Draft Restored", description: "Your previous agent draft has been loaded." });
+          sessionStorage.removeItem(SESSION_STORAGE_KEY); // Clear draft after restoring
         }
       } catch (e) {
         console.error("Failed to parse or restore agent draft from session storage", e);
+        sessionStorage.removeItem(SESSION_STORAGE_KEY);
       }
     }
   }, [setValue, toast, currentUser, authLoading]);
@@ -224,6 +224,7 @@ function HomePageContent() {
     let documentDataUri: string;
     let isPreStructured = false;
 
+    setIsProcessingKnowledge(true);
     try {
       if (source.type === 'file') {
         fileName = source.fileName;
@@ -278,6 +279,8 @@ function HomePageContent() {
        console.error("Error processing knowledge source:", error);
        toast({ title: "Knowledge Training Failed", description: `Could not process "${fileName}". Error: ${error.message}`, variant: "destructive" });
        return false;
+    } finally {
+        setIsProcessingKnowledge(false);
     }
   };
 
@@ -285,6 +288,7 @@ function HomePageContent() {
     if (!currentUser) {
       const draft = JSON.stringify({ prompt: data.prompt, knowledgeSource, isPublic });
       sessionStorage.setItem(SESSION_STORAGE_KEY, draft);
+      toast({title: "Please Sign In", description: "Your work has been saved. Please sign in to create your agent."});
       router.push('/login?redirect=/');
       return;
     }
@@ -305,10 +309,8 @@ function HomePageContent() {
         agentType: 'chat',
         primaryLogic: knowledgeSource ? 'rag' : 'prompt',
         isPubliclyShared: isPublic,
-        // sharedAt will be set by addAgent logic
       };
 
-      // Call addAgent without client ID/Name, it will use the default workspace logic.
       const newAgent = await addAgentToContext(agentDataForContext);
 
       if (newAgent) {
