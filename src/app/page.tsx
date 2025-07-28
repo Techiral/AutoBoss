@@ -141,6 +141,7 @@ function HomePageContent() {
   });
 
   useEffect(() => {
+    // This effect runs once when the user arrives, after authentication is resolved.
     if (!authLoading && currentUser) {
       try {
         const draftJson = sessionStorage.getItem(SESSION_STORAGE_KEY);
@@ -157,7 +158,7 @@ function HomePageContent() {
         sessionStorage.removeItem(SESSION_STORAGE_KEY);
       }
     }
-  }, [setValue, toast, currentUser, authLoading]);
+  }, [setValue, toast, currentUser, authLoading]); // Depends on currentUser and authLoading
 
   useEffect(() => {
     async function fetchPublicAgents() {
@@ -311,7 +312,7 @@ function HomePageContent() {
         isPubliclyShared: isPublic,
       };
 
-      const newAgent = await addAgentToContext(agentDataForContext);
+      const newAgent = await addAgentToContext(agentDataForContext, aiResult);
 
       if (newAgent) {
         toast({ title: "Agent Created!", description: "Now processing knowledge source if provided." });

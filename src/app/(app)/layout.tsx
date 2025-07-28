@@ -54,7 +54,7 @@ interface AppContextType {
   addClient: (clientData: Omit<Client, 'id' | 'createdAt' | 'userId'>) => Promise<Client | null>;
   getClientById: (id: string) => Client | undefined;
   deleteClient: (clientId: string) => Promise<void>;
-  addAgent: (agentData: Omit<Agent, 'id' | 'createdAt' | 'knowledgeItems' | 'userId' | 'clientId' | 'clientName'>) => Promise<Agent | null>;
+  addAgent: (agentData: Omit<Agent, 'id' | 'createdAt' | 'knowledgeItems' | 'userId' | 'clientId' | 'clientName'>, agentCreationResult: { agentName: string; agentPersona: string; agentGreeting: string; }) => Promise<Agent | null>;
   updateAgent: (agent: Agent) => Promise<void>;
   getAgent: (id: string) => Agent | undefined;
   addKnowledgeItem: (agentId: string, item: KnowledgeItem) => Promise<void>;
@@ -227,29 +227,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const newClientId = doc(collection(db, CLIENTS_COLLECTION)).id;
       const newClientTimestamp = Timestamp.now();
 
-      const dataToSave: {[key: string]: any} = {
-        userId: currentUser.uid,
-        name: clientData.name,
-        createdAt: newClientTimestamp,
-      };
-      if (clientData.website !== undefined) {
-        dataToSave.website = clientData.website;
-      }
-      if (clientData.description !== undefined) {
-        dataToSave.description = clientData.description;
-      }
-
-      await setDoc(doc(db, CLIENTS_COLLECTION, newClientId), dataToSave);
-      
-      const clientForState: Client = {
+      const dataToSave: Client = {
         id: newClientId,
         userId: currentUser.uid,
         name: clientData.name,
-        website: clientData.website === undefined ? "" : clientData.website,
-        description: clientData.description === undefined ? "" : clientData.description,
-        createdAt: newClientTimestamp.toDate().toISOString(),
+        website: clientData.website || "",
+        description: clientData.description || "",
+        createdAt: newClientTimestamp,
       };
 
+      await setDoc(doc(db, CLIENTS_COLLECTION, newClientId), dataToSave);
+      
+      const clientForState = convertFirestoreTimestampToISO(dataToSave, ['createdAt']) as Client;
       setClients((prevClients) => [...prevClients, clientForState]);
       return clientForState;
     } catch (error) {
@@ -258,6 +247,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return null;
     }
   }, [currentUser, toast]);
+
 
   const getClientById = useCallback((id: string) => {
     return clients.find(client => client.id === id && client.userId === currentUser?.uid);
@@ -303,8 +293,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const addAgent = useCallback(async (
     agentData: Omit<Agent, 'id' | 'createdAt' | 'knowledgeItems' | 'userId' | 'clientId' | 'clientName'>,
+    agentCreationResult: { agentName: string; agentPersona: string; agentGreeting: string; },
     clientId?: string,
-    clientName?: string
   ): Promise<Agent | null> => {
     if (!currentUser) {
       toast({ title: "Not Authenticated", description: "You must be logged in to create an agent.", variant: "destructive" });
@@ -312,75 +302,85 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
 
     let finalClientId = clientId;
-    let finalClientName = clientName;
+    let finalClientName = "";
 
     // If no client ID is provided, create/use the default workspace.
     if (!finalClientId) {
-      const defaultClientRef = doc(db, CLIENTS_COLLECTION, `${currentUser.uid}_${DEFAULT_CLIENT_ID}`);
-      const defaultClientSnap = await getDoc(defaultClientRef);
+        const defaultClientRef = doc(db, CLIENTS_COLLECTION, `${currentUser.uid}_${DEFAULT_CLIENT_ID}`);
+        const defaultClientSnap = await getDoc(defaultClientRef);
 
-      if (!defaultClientSnap.exists()) {
-        finalClientId = defaultClientRef.id;
-        finalClientName = 'My Workspace';
-        const newClientData = {
-          userId: currentUser.uid, // This is the critical fix
-          name: finalClientName,
-          description: 'A default workspace for agents created from the homepage.',
-          createdAt: Timestamp.now(),
-        };
-        await setDoc(defaultClientRef, newClientData);
-        console.log(`Created default workspace for user ${currentUser.uid}`);
-        
-        const clientForState: Client = {
-          id: finalClientId,
-          ...newClientData,
-          createdAt: (newClientData.createdAt as Timestamp).toDate().toISOString()
-        };
-        setClients(prev => [...prev, clientForState]);
-      } else {
-        finalClientId = defaultClientSnap.id;
-        finalClientName = defaultClientSnap.data().name;
-      }
+        if (!defaultClientSnap.exists()) {
+            finalClientId = defaultClientRef.id;
+            finalClientName = 'My Workspace';
+            const newClientData = {
+                id: finalClientId,
+                userId: currentUser.uid,
+                name: finalClientName,
+                description: 'Default workspace for your agents.',
+                createdAt: Timestamp.now(),
+            };
+            await setDoc(defaultClientRef, newClientData);
+            const clientForState = convertFirestoreTimestampToISO(newClientData, ['createdAt']) as Client;
+            setClients(prev => [...prev, clientForState]);
+        } else {
+            finalClientId = defaultClientSnap.id;
+            finalClientName = defaultClientSnap.data().name;
+        }
+    } else {
+        const client = getClientById(finalClientId);
+        if (client) {
+            finalClientName = client.name;
+        } else {
+            toast({ title: "Client Error", description: `Client with ID ${finalClientId} not found.`, variant: "destructive" });
+            return null;
+        }
     }
     
-    if (!finalClientId || !finalClientName) {
+    if (!finalClientId) {
         toast({ title: "Client Error", description: "Could not determine a client for the agent.", variant: "destructive" });
         return null;
     }
 
     try {
       const newAgentId = doc(collection(db, AGENTS_COLLECTION)).id;
-      const newAgentWithDetails: Agent = {
+      
+      const newAgent: Agent = {
         ...agentData,
         id: newAgentId,
-        userId: currentUser.uid,
+        userId: currentUser.uid, // CRITICAL: Ensure userId is set
         clientId: finalClientId,
         clientName: finalClientName,
-        createdAt: Timestamp.now() as any, 
+        createdAt: Timestamp.now() as any,
         knowledgeItems: [],
+        generatedName: agentCreationResult.agentName,
+        generatedPersona: agentCreationResult.agentPersona,
+        generatedGreeting: agentCreationResult.agentGreeting,
         agentTone: agentData.agentTone || "neutral",
         voiceName: agentData.voiceName === 'default' ? null : (agentData.voiceName || null),
         isPubliclyShared: agentData.isPubliclyShared || false,
         sharedAt: agentData.isPubliclyShared ? Timestamp.now() : null,
       };
-
-      const { id, ...dataToSave } = newAgentWithDetails;
-      const saveData = {
+      
+      const { id, ...dataToSave } = newAgent;
+      
+      const saveDataForFirestore = {
         ...dataToSave,
-        createdAt: dataToSave.createdAt instanceof Timestamp ? dataToSave.createdAt : Timestamp.fromDate(new Date(dataToSave.createdAt as string)),
-        sharedAt: dataToSave.sharedAt instanceof Timestamp ? dataToSave.sharedAt : (dataToSave.sharedAt ? Timestamp.fromDate(new Date(dataToSave.sharedAt as string)) : null)
+        createdAt: newAgent.createdAt, // This is already a Timestamp
+        sharedAt: newAgent.sharedAt,   // This is already a Timestamp or null
       };
 
-      await setDoc(doc(db, AGENTS_COLLECTION, newAgentId), saveData);
-      const agentForState = convertFirestoreTimestampToISO(newAgentWithDetails, ['createdAt', 'sharedAt']) as Agent;
+      await setDoc(doc(db, AGENTS_COLLECTION, newAgentId), saveDataForFirestore);
+
+      const agentForState = convertFirestoreTimestampToISO(newAgent, ['createdAt', 'sharedAt']) as Agent;
       setAgents((prevAgents) => [...prevAgents, agentForState]);
       return agentForState;
     } catch (error) {
       console.error("Error adding agent to Firestore:", error);
-      toast({ title: "Error Creating Agent", description: "Could not save the new agent.", variant: "destructive" });
+      toast({ title: "Error Creating Agent", description: `Could not save the new agent. Error: ${(error as Error).message}`, variant: "destructive" });
       return null;
     }
-  }, [currentUser, toast]);
+  }, [currentUser, toast, getClientById]);
+
 
   const updateAgent = useCallback(async (agentToUpdate: Agent) => {
     if (!currentUser || currentUser.uid !== agentToUpdate.userId) {
