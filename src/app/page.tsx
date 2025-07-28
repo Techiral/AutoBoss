@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -16,11 +16,22 @@ import { Logo } from "@/components/logo";
 import { UserNav } from "@/components/user-nav";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
-import type { Agent } from "@/lib/types";
+import type { Agent, KnowledgeItem } from "@/lib/types";
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, Timestamp, doc, setDoc } from 'firebase/firestore';
 import { createAgent, CreateAgentOutput } from "@/ai/flows/agent-creation";
+import { extractKnowledge } from "@/ai/flows/knowledge-extraction";
+import { processUrl } from "@/ai/flows/url-processor";
 import { useAppContext } from "./(app)/layout";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import mammoth from 'mammoth';
+import * as pdfjsLib from 'pdfjs-dist';
+import Papa from 'papaparse';
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf.worker.mjs`;
+
 
 const convertAgentTimestamps = (agentData: any): Agent => {
   const newAgent = { ...agentData };
@@ -38,6 +49,18 @@ const builderFormSchema = z.object({
 });
 
 type BuilderFormData = z.infer<typeof builderFormSchema>;
+
+type KnowledgeSource = {
+  type: 'file';
+  file: File;
+} | {
+  type: 'text';
+  text: string;
+  fileName: string;
+} | {
+  type: 'url';
+  url: string;
+};
 
 function AgentShowcaseCard({ agent }: { agent: Agent }) {
   return (
@@ -65,14 +88,51 @@ function AgentShowcaseCard({ agent }: { agent: Agent }) {
   );
 }
 
+// Re-using the conversion function from knowledge page
+function csvToStructuredText(csvString: string, fileName: string): string {
+  const parseResult = Papa.parse<Record<string, string>>(csvString, {
+    header: true,
+    skipEmptyLines: true,
+  });
+  if (parseResult.errors.length > 0) return `Could not fully parse CSV: ${fileName}.`;
+  if (!parseResult.data || parseResult.data.length === 0) return `Empty CSV file: ${fileName}.`;
+  let textRepresentation = `Content of CSV file "${fileName}":\n\n`;
+  parseResult.data.forEach((row, index) => {
+    const headers = Object.keys(row);
+    if (headers.length === 0) return;
+    const firstHeader = headers[0];
+    const firstValue = row[firstHeader];
+    let entryPreamble = `Entry ${index + 1}`;
+    if (firstHeader && firstValue && firstValue.trim() !== "") {
+      entryPreamble = `Details for ${firstHeader.trim()} "${firstValue.trim()}" (Entry ${index + 1})`;
+    }
+    textRepresentation += `${entryPreamble}:\n`;
+    const rowDetails = headers.map(header => `  - The ${header.trim()} is "${(row[header] || 'N/A').trim()}".`);
+    textRepresentation += rowDetails.join("\n") + "\n\n";
+  });
+  return textRepresentation.trim();
+}
+
 export default function VibeBuilderHomepage() {
   const [isLoading, setIsLoading] = useState(false);
   const [publicAgents, setPublicAgents] = useState<Agent[]>([]);
   const [isLoadingAgents, setIsLoadingAgents] = useState(true);
+  const [knowledgeSource, setKnowledgeSource] = useState<KnowledgeSource | null>(null);
+
+  // State for dialogs
+  const [isFileDialogOpen, setIsFileDialogOpen] = useState(false);
+  const [isTextDialogOpen, setIsTextDialogOpen] = useState(false);
+  const [isUrlDialogOpen, setIsUrlDialogOpen] = useState(false);
+
+  // State for inputs within dialogs
+  const [pastedText, setPastedText] = useState("");
+  const [urlInput, setUrlInput] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
   const { toast } = useToast();
   const router = useRouter();
   const { currentUser } = useAuth();
-  const { addAgent: addAgentToContext } = useAppContext();
+  const { addAgent: addAgentToContext, addKnowledgeItem } = useAppContext();
 
   useEffect(() => {
     async function fetchPublicAgents() {
@@ -99,6 +159,81 @@ export default function VibeBuilderHomepage() {
     resolver: zodResolver(builderFormSchema),
   });
 
+  const handleKnowledgeSubmit = (source: KnowledgeSource) => {
+    setKnowledgeSource(source);
+    setIsFileDialogOpen(false);
+    setIsTextDialogOpen(false);
+    setIsUrlDialogOpen(false);
+    toast({ title: "Knowledge Source Added", description: `Ready to be used for agent creation.` });
+  };
+
+
+  const processAndAddKnowledge = async (agentId: string, source: KnowledgeSource) => {
+      let fileName: string = "Knowledge";
+      let documentDataUri: string;
+      let isPreStructured = false;
+
+      try {
+        if (source.type === 'file') {
+            fileName = source.file.name;
+            const file = source.file;
+            const fileNameLower = file.name.toLowerCase();
+
+            if (fileNameLower.endsWith('.pdf')) {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                let textContent = "";
+                for (let i = 1; i <= pdfDoc.numPages; i++) {
+                    const page = await pdfDoc.getPage(i);
+                    textContent += (await page.getTextContent()).items.map(item => 'str' in item ? item.str : '').join(' ');
+                }
+                documentDataUri = `data:text/plain;base64,${Buffer.from(textContent).toString('base64')}`;
+            } else if (fileNameLower.endsWith('.docx')) {
+                const arrayBuffer = await file.arrayBuffer();
+                const { value } = await mammoth.extractRawText({ arrayBuffer });
+                documentDataUri = `data:text/plain;base64,${Buffer.from(value).toString('base64')}`;
+            } else if (fileNameLower.endsWith('.csv')) {
+                const textContent = await file.text();
+                const structuredText = csvToStructuredText(textContent, file.name);
+                documentDataUri = `data:text/plain;base64,${Buffer.from(structuredText).toString('base64')}`;
+                isPreStructured = true;
+            } else {
+                 documentDataUri = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result as string);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                });
+            }
+        } else if (source.type === 'text') {
+            fileName = source.fileName;
+            documentDataUri = `data:text/plain;base64,${Buffer.from(source.text).toString('base64')}`;
+        } else { // URL
+            fileName = source.url;
+            const urlResult = await processUrl({ url: source.url });
+            documentDataUri = `data:text/plain;base64,${Buffer.from(urlResult.extractedText).toString('base64')}`;
+            fileName = urlResult.title || fileName;
+        }
+
+        const knowledgeResult = await extractKnowledge({ documentDataUri, isPreStructuredText: isPreStructured });
+        
+        const newKnowledgeItem: KnowledgeItem = {
+          id: Date.now().toString(),
+          fileName: fileName,
+          uploadedAt: new Date().toISOString(),
+          summary: knowledgeResult.summary,
+          keywords: knowledgeResult.keywords,
+        };
+
+        await addKnowledgeItem(agentId, newKnowledgeItem);
+        toast({ title: "Knowledge Added!", description: `Agent has been successfully trained with "${fileName}".`});
+
+      } catch (error: any) {
+         console.error("Error processing knowledge source:", error);
+         toast({ title: "Knowledge Training Failed", description: `Could not process "${fileName}". Error: ${error.message}`, variant: "destructive" });
+      }
+  };
+
   const onSubmit: SubmitHandler<BuilderFormData> = async (data) => {
     if (!currentUser) {
       toast({
@@ -111,37 +246,35 @@ export default function VibeBuilderHomepage() {
     setIsLoading(true);
     
     try {
-      // For simplicity, we create a generic agent for now.
-      // The full configuration from your plan (knowledge, tone, etc.) would be added here.
       const agentDescriptionForAI = `Create an AI agent based on this user prompt: "${data.prompt}"`;
       
       const aiResult = await createAgent({
         agentDescription: agentDescriptionForAI,
-        agentType: 'chat', // Defaulting to chat for now
+        agentType: 'chat',
       });
 
-      // This part requires a client. In a real scenario, you'd prompt the user to select one.
-      // For now, we'll assume there is a client or handle this gracefully.
-      // In a full implementation, you'd need a client selection modal here if none exists.
-      const tempClientId = "default_client"; // Placeholder
-      const tempClientName = "Default Client"; // Placeholder
+      const tempClientId = "default_client"; 
+      const tempClientName = "Default Client";
 
       const agentDataForContext: Omit<Agent, 'id' | 'createdAt' | 'knowledgeItems' | 'userId' | 'clientId' | 'clientName'> = {
         name: `Agent: ${data.prompt.substring(0, 20)}...`,
         description: data.prompt,
         agentType: 'chat',
-        primaryLogic: 'prompt',
+        primaryLogic: knowledgeSource ? 'rag' : 'prompt',
         generatedName: aiResult.agentName,
         generatedPersona: aiResult.agentPersona,
         generatedGreeting: aiResult.agentGreeting,
       };
 
-      // This function needs to be available from a context.
-      // We will assume `addAgentToContext` exists and is provided.
       const newAgent = await addAgentToContext(agentDataForContext, tempClientId, tempClientName);
 
       if (newAgent) {
-        toast({ title: "Agent Created!", description: "Redirecting you to your new agent's dashboard." });
+        toast({ title: "Agent Created!", description: "Now processing knowledge source if provided." });
+        
+        if (knowledgeSource) {
+            await processAndAddKnowledge(newAgent.id, knowledgeSource);
+        }
+
         router.push(`/agents/${newAgent.id}/personality`);
       } else {
          throw new Error("Could not create agent in the database. You may need to create a client first in the dashboard.");
@@ -151,6 +284,7 @@ export default function VibeBuilderHomepage() {
        toast({ title: "Agent Creation Failed", description: error.message || "An unknown error occurred.", variant: "destructive" });
     } finally {
        setIsLoading(false);
+       setKnowledgeSource(null);
     }
   };
 
@@ -190,12 +324,22 @@ export default function VibeBuilderHomepage() {
             </div>
             {errors.prompt && <p className="text-xs text-destructive mt-2">{errors.prompt.message}</p>}
           </form>
+
           <div className="mt-3 flex items-center gap-2">
-            <Button variant="outline" size="sm" className="text-xs gap-1.5"><Upload size={14} /> Attach</Button>
-            <Button variant="outline" size="sm" className="text-xs gap-1.5"><FileText size={14} /> Paste Text</Button>
-            <Button variant="outline" size="sm" className="text-xs gap-1.5"><LinkIcon size={14} /> From URL</Button>
+            <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => setIsFileDialogOpen(true)}><Upload size={14} /> Attach</Button>
+            <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => setIsTextDialogOpen(true)}><FileText size={14} /> Paste Text</Button>
+            <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => setIsUrlDialogOpen(true)}><LinkIcon size={14} /> From URL</Button>
             <Button variant="outline" size="sm" className="text-xs gap-1.5"><Globe size={14} /> Public</Button>
           </div>
+          {knowledgeSource && (
+              <div className="mt-2 text-xs text-muted-foreground p-2 bg-secondary rounded-md">
+                <strong>Knowledge Source Ready:</strong> {
+                  knowledgeSource.type === 'file' ? knowledgeSource.file.name : 
+                  knowledgeSource.type === 'text' ? 'Pasted Text' : 
+                  knowledgeSource.url
+                }. This will be used when you create the agent.
+              </div>
+            )}
         </div>
         
         <div className="mt-16 sm:mt-20">
@@ -232,6 +376,65 @@ export default function VibeBuilderHomepage() {
           </div>
         </div>
       </main>
+
+      {/* File Upload Dialog */}
+      <Dialog open={isFileDialogOpen} onOpenChange={setIsFileDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Attach Knowledge File</DialogTitle>
+            <DialogDescription>Upload a document for your agent to learn from. Supported: PDF, DOCX, TXT, CSV.</DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-2">
+            <Label htmlFor="knowledge-file">Document</Label>
+            <Input id="knowledge-file" type="file" onChange={(e) => setSelectedFile(e.target.files?.[0] || null)} />
+          </div>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="secondary">Cancel</Button></DialogClose>
+            <Button onClick={() => selectedFile && handleKnowledgeSubmit({ type: 'file', file: selectedFile })} disabled={!selectedFile}>Add File</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Paste Text Dialog */}
+      <Dialog open={isTextDialogOpen} onOpenChange={setIsTextDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Paste Text Content</DialogTitle>
+            <DialogDescription>Paste any text, like an FAQ or product details, for your agent to learn.</DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Textarea
+              placeholder="Paste your content here..."
+              rows={10}
+              value={pastedText}
+              onChange={(e) => setPastedText(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+             <DialogClose asChild><Button variant="secondary">Cancel</Button></DialogClose>
+             <Button onClick={() => handleKnowledgeSubmit({ type: 'text', text: pastedText, fileName: `Pasted Text - ${new Date().toLocaleTimeString()}` })} disabled={!pastedText.trim()}>Add Text</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* From URL Dialog */}
+      <Dialog open={isUrlDialogOpen} onOpenChange={setIsUrlDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Train from Website</DialogTitle>
+            <DialogDescription>Enter a URL and the agent will learn from the content on that page.</DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-2">
+            <Label htmlFor="url-input">Website URL</Label>
+            <Input id="url-input" type="url" placeholder="https://example.com" value={urlInput} onChange={(e) => setUrlInput(e.target.value)} />
+          </div>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="secondary">Cancel</Button></DialogClose>
+            <Button onClick={() => handleKnowledgeSubmit({ type: 'url', url: urlInput })} disabled={!urlInput.trim()}>Add URL</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
