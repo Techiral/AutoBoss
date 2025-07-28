@@ -2,204 +2,162 @@
 "use client";
 
 import { useState } from "react";
-import { useForm, SubmitHandler, Controller } from "react-hook-form";
+import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import { Loader2, Bot, MessageSquare, Phone, Brain, DatabaseZap, ArrowDownCircle, ArrowUpCircle, HelpCircle, Lightbulb, Users, Briefcase, AlertTriangle, Mic, ExternalLink, Settings2, Handshake, PhoneCall, PhoneForwarded, Sparkles, Upload, Link as LinkIcon, TextQuote, FileWarning } from "lucide-react";
+import { Loader2, Bot, Sparkles, Upload, LinkIcon, ArrowUp, Globe, FileText, BotIcon } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tooltip, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import Link from "next/link";
-import { AgentSchema, AgentType, AgentDirection, AgentToneSchema } from "@/lib/types";
 import { Logo } from "@/components/logo";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { UserNav } from "@/components/user-nav";
+import Image from "next/image";
+import { Badge } from "@/components/ui/badge";
+
+// Mock data for the showcase, this would come from a database call
+const mockAgents = [
+    { id: '1', name: 'Pulse-Robot-Template', imageUrl: 'https://placehold.co/600x400.png', remixes: 18901, category: 'Website', userAvatar: 'A' },
+    { id: '2', name: 'Cryptocurrency-Trading-Bot', imageUrl: 'https://placehold.co/600x400.png', remixes: 12036, category: 'Internal Tools', userAvatar: 'B' },
+    { id: '3', name: 'Wrlds-AI-Integration', imageUrl: 'https://placehold.co/600x400.png', remixes: 7300, category: 'Website', userAvatar: 'C' },
+    { id: '4', name: 'Crypto-Trade-Template', imageUrl: 'https://placehold.co/600x400.png', remixes: 6550, category: 'Website', userAvatar: 'D' },
+    { id: '5', name: 'Modern-Seaside-Stay', imageUrl: 'https://placehold.co/600x400.png', remixes: 5985, category: 'Consumer App', userAvatar: 'E' },
+    { id: '6', name: 'Agri-Dom', imageUrl: 'https://placehold.co/600x400.png', remixes: 5410, category: 'Prototype', userAvatar: 'F' },
+];
 
 
 const builderFormSchema = z.object({
-  name: z.string().min(3, "An agent name or concept is required.").max(100),
-  task: z.string().min(10, "Please describe the agent's task in at least 10 characters.").max(1000),
-  agentType: z.custom<AgentType>().default("chat"),
-  direction: z.custom<AgentDirection>().default("inbound"),
-  agentTone: AgentToneSchema.default("neutral"),
-  knowledgeUrl: z.string().url().optional().or(z.literal("")),
-  knowledgeText: z.string().optional(),
+  prompt: z.string().min(10, "Please describe the agent you want to build in more detail.").max(500),
 });
 
 type BuilderFormData = z.infer<typeof builderFormSchema>;
 
-export default function AgentBuilderHomepage() {
+function AgentShowcaseCard({ agent }: { agent: typeof mockAgents[0] }) {
+  return (
+    <div className="group">
+      <div className="aspect-[4/3] w-full overflow-hidden rounded-lg bg-muted border border-border group-hover:opacity-80 transition-opacity">
+        <Image
+          src={agent.imageUrl}
+          alt={agent.name}
+          width={400}
+          height={300}
+          className="h-full w-full object-cover"
+          data-ai-hint="abstract technology"
+        />
+      </div>
+      <div className="mt-2">
+        <h3 className="text-sm font-medium text-foreground truncate">{agent.name}</h3>
+        <div className="flex items-center justify-between mt-1">
+          <p className="text-xs text-muted-foreground">{agent.remixes} Remixes</p>
+          <Badge variant="secondary" className="text-xs">{agent.category}</Badge>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+export default function VibeBuilderHomepage() {
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const { toast } = useToast();
   const router = useRouter();
   const { currentUser } = useAuth();
 
-  const { control, register, handleSubmit, formState: { errors }, watch } = useForm<BuilderFormData>({
+  const { register, handleSubmit, formState: { errors } } = useForm<BuilderFormData>({
     resolver: zodResolver(builderFormSchema),
-    defaultValues: {
-      name: "",
-      task: "",
-      agentType: "chat",
-      direction: "inbound",
-      agentTone: "neutral",
-    },
   });
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files[0]) {
-      setSelectedFile(event.target.files[0]);
-    }
-  };
 
   const onSubmit: SubmitHandler<BuilderFormData> = async (data) => {
     if (!currentUser) {
       toast({
         title: "Please Sign In",
-        description: "You need to be logged in to build an agent. Your configuration will be saved.",
+        description: "You need to be logged in to build an agent.",
         action: <Button onClick={() => router.push('/login')}>Login</Button>
       });
-      // Here you would ideally save the form state to local storage
-      // and retrieve it after login. For now, we just prompt.
       return;
     }
-
     setIsLoading(true);
-    toast({ title: "Building Agent...", description: "Please wait while we set up your new AI agent." });
-    
-    // In a real implementation, you would now pass this data
-    // to a comprehensive agent creation flow.
-    // For now, we simulate the process and then redirect.
-    console.log("Form Data Submitted:", {
-        ...data,
-        fileName: selectedFile?.name,
-    });
-
-    // Simulate creation delay
+    console.log("Form Data Submitted:", data);
     setTimeout(() => {
         setIsLoading(false);
-        // This would be the new agent's ID from the creation flow
         const newAgentId = "new-agent-placeholder-id"; 
         toast({ title: "Agent Created!", description: "Redirecting you to your new agent's dashboard." });
         router.push(`/agents/${newAgentId}/personality`);
-    }, 3000);
+    }, 2000);
   };
 
   return (
-    <TooltipProvider>
-    <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4 sm:p-6">
-      <div className="w-full max-w-2xl">
-        <div className="text-center mb-6">
-            <Logo className="h-10 mx-auto mb-4" />
-            <h1 className="font-headline text-3xl sm:text-4xl font-bold text-primary">Build Your AI Agent</h1>
-            <p className="text-muted-foreground mt-2 text-sm sm:text-base">
-              Describe your agent's task, give it knowledge, and bring it to life in minutes.
+    <div className="min-h-screen w-full bg-background text-foreground">
+       {/* Page Header */}
+      <header className="fixed top-0 left-0 right-0 z-50 h-16 bg-background/80 backdrop-blur-sm">
+        <div className="container mx-auto flex h-full max-w-screen-xl items-center justify-between px-4">
+          <Link href="/" className="hover:opacity-80 transition-opacity">
+            <Logo className="h-7" />
+          </Link>
+          <UserNav />
+        </div>
+      </header>
+
+      {/* Main Content Area */}
+      <main className="container mx-auto max-w-screen-xl px-4 pt-24 pb-12">
+        {/* Builder Section */}
+        <div className="text-center">
+            <h1 className="font-headline text-4xl sm:text-5xl font-bold">Build something <span className="text-primary">Lovable</span></h1>
+            <p className="mt-3 text-base sm:text-lg text-muted-foreground">
+                Create agents, apps, and websites by chatting with AI
             </p>
         </div>
 
-        <Card className="shadow-2xl">
+        <div className="mx-auto mt-8 max-w-2xl">
           <form onSubmit={handleSubmit(onSubmit)}>
-            <CardContent className="p-4 sm:p-6 space-y-6">
-              
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-lg font-semibold flex items-center"><Sparkles className="w-5 h-5 mr-2 text-primary" /> What is your agent's name or concept?</Label>
-                <Input id="name" placeholder="e.g., 'Website Support Bot', 'Lead Qualifier for Real Estate'" {...register("name")} className="text-base" />
-                {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="task" className="text-lg font-semibold">And what is its primary task?</Label>
-                <Textarea
-                  id="task"
-                  placeholder="e.g., 'Answer questions about our products and services based on the provided documents. If it can't answer, it should ask the user for their email to have a human follow up.'"
-                  {...register("task")}
-                  rows={4}
-                  className="text-base"
-                />
-                {errors.task && <p className="text-xs text-destructive">{errors.task.message}</p>}
-              </div>
-              
-              <div className="space-y-4">
-                  <Label className="text-lg font-semibold flex items-center"><Brain className="w-5 h-5 mr-2 text-primary" /> Give your agent knowledge</Label>
-                  <div className="grid gap-4">
-                     {/* File Upload */}
-                     <div className="space-y-1.5">
-                        <Label htmlFor="document" className="text-sm font-medium flex items-center gap-2"><Upload className="w-4 h-4" />Upload a file</Label>
-                        <Input id="document" type="file" onChange={handleFileChange} accept=".txt,.pdf,.md,.docx,.json,.csv,.html,.htm" disabled={isLoading}/>
-                        {selectedFile && <p className="text-xs text-muted-foreground">Selected: {selectedFile.name}</p>}
-                    </div>
-                    {/* URL */}
-                    <div className="space-y-1.5">
-                        <Label htmlFor="knowledgeUrl" className="text-sm font-medium flex items-center gap-2"><LinkIcon className="w-4 h-4" />Add a website URL</Label>
-                        <Input id="knowledgeUrl" placeholder="https://example.com/about-us" {...register("knowledgeUrl")} disabled={isLoading}/>
-                         {errors.knowledgeUrl && <p className="text-xs text-destructive">{errors.knowledgeUrl.message}</p>}
-                    </div>
-                    {/* Paste Text */}
-                    <div className="space-y-1.5">
-                         <Label htmlFor="knowledgeText" className="text-sm font-medium flex items-center gap-2"><TextQuote className="w-4 h-4" />Or, paste text directly</Label>
-                        <Textarea id="knowledgeText" placeholder="Paste product details, FAQs, or any other information here..." {...register("knowledgeText")} rows={5} disabled={isLoading}/>
-                    </div>
-                  </div>
-              </div>
-
-              <div className="space-y-4">
-                <Label className="text-lg font-semibold flex items-center"><Settings2 className="w-5 h-5 mr-2 text-primary" /> Configure its behavior</Label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="space-y-1.5">
-                        <Label htmlFor="agentType">Type</Label>
-                        <Controller name="agentType" control={control} render={({ field }) => (
-                            <Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="agentType"><SelectValue/></SelectTrigger>
-                            <SelectContent><SelectItem value="chat">Chat</SelectItem><SelectItem value="voice">Voice</SelectItem><SelectItem value="hybrid">Hybrid</SelectItem></SelectContent>
-                            </Select>
-                        )} />
-                    </div>
-                     <div className="space-y-1.5">
-                        <Label htmlFor="direction">Direction</Label>
-                        <Controller name="direction" control={control} render={({ field }) => (
-                            <Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="direction"><SelectValue/></SelectTrigger>
-                            <SelectContent><SelectItem value="inbound">Inbound</SelectItem><SelectItem value="outbound">Outbound</SelectItem></SelectContent>
-                            </Select>
-                        )} />
-                    </div>
-                    <div className="space-y-1.5">
-                        <Label htmlFor="agentTone">Tone</Label>
-                        <Controller name="agentTone" control={control} render={({ field }) => (
-                            <Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="agentTone"><SelectValue/></SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="neutral">Neutral</SelectItem>
-                                <SelectItem value="friendly">Friendly</SelectItem>
-                                <SelectItem value="professional">Professional</SelectItem>
-                                <SelectItem value="witty">Witty</SelectItem>
-                            </SelectContent>
-                            </Select>
-                        )} />
-                    </div>
-                </div>
-              </div>
-
-            </CardContent>
-            <CardFooter className="p-4 sm:p-6">
-              <Button type="submit" disabled={isLoading} className="w-full text-lg py-6">
-                {isLoading ? <Loader2 className="mr-2 h-6 w-6 animate-spin" /> : <Bot className="mr-2 h-6 w-6" />}
-                {isLoading ? "Building..." : "Build My Agent"}
+            <div className="relative">
+              <Textarea
+                id="prompt"
+                placeholder="Ask AgentVerse to create a..."
+                {...register("prompt")}
+                rows={3}
+                className="resize-none rounded-lg border-2 border-border bg-card p-4 pr-20 text-base focus-visible:ring-primary"
+              />
+              <Button type="submit" size="icon" className="absolute right-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full" disabled={isLoading}>
+                 {isLoading ? <Loader2 className="animate-spin" /> : <ArrowUp />}
+                 <span className="sr-only">Submit</span>
               </Button>
-            </CardFooter>
+            </div>
+             {errors.prompt && <p className="text-xs text-destructive mt-2">{errors.prompt.message}</p>}
           </form>
-        </Card>
-        <div className="text-center mt-6">
-            <p className="text-xs text-muted-foreground">
-                Already have an account? <Button variant="link" asChild className="p-0 h-auto text-xs"><Link href="/login">Log In</Link></Button>
-            </p>
+           <div className="mt-3 flex items-center gap-2">
+                <Button variant="outline" size="sm" className="text-xs gap-1.5"><Upload size={14} /> Attach</Button>
+                <Button variant="outline" size="sm" className="text-xs gap-1.5"><FileText size={14} /> Paste Text</Button>
+                <Button variant="outline" size="sm" className="text-xs gap-1.5"><LinkIcon size={14} /> From URL</Button>
+                <Button variant="outline" size="sm" className="text-xs gap-1.5"><Globe size={14}/> Public</Button>
+            </div>
         </div>
-      </div>
+        
+        {/* From the Community Section */}
+        <div className="mt-16 sm:mt-20">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold">From the Community</h2>
+            <Button variant="link" asChild>
+                <Link href="/showcase">View All</Link>
+            </Button>
+          </div>
+          
+          <div className="mt-6 grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 xl:gap-x-8">
+            {mockAgents.map((agent) => (
+                <AgentShowcaseCard key={agent.id} agent={agent}/>
+            ))}
+          </div>
+        </div>
+
+      </main>
     </div>
-    </TooltipProvider>
   );
 }
+
+    
