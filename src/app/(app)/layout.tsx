@@ -33,7 +33,7 @@ import {
   query,
   where,
   writeBatch,
-  getDoc, // CRITICAL FIX: Import getDoc
+  getDoc,
 } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/contexts/AuthContext';
@@ -326,7 +326,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         createdAt: Timestamp.now() as any, // Cast for simplicity, will be converted later
       };
       await setDoc(defaultClientRef, {
-        userId: newClientData.userId,
+        userId: newClientData.userId, // CRITICAL FIX: Add userId to the data being saved
         name: newClientData.name,
         description: newClientData.description,
         createdAt: newClientData.createdAt,

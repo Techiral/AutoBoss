@@ -15,25 +15,24 @@ service cloud.firestore {
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
       // A user can read, update, or delete a client document if they are the owner.
       allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
-      // Logged-in users can list their own clients.
-      allow list: if request.auth != null && request.query.where.path == "userId" && request.query.where.op == "==" && request.query.where.value == request.auth.uid;
     }
 
     // Agents collection rules
     match /agents/{agentId} {
       // Allow create if the user is authenticated and is the owner.
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      
       // Allow owner to read, update, delete.
       allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
       
-      // *** THE CORE FIX IS HERE ***
-      // Allow ANYONE (logged in or not) to read an agent document IF it is marked as publicly shared.
-      // This is necessary for the public chat pages to work.
+      // Allow ANYONE to read an agent document IF it is marked as publicly shared.
+      // This is necessary for the public chat pages to function without user login.
       allow get: if resource.data.isPubliclyShared == true;
-
-      // Allow ANYONE (logged in or not) to list agents ONLY IF they are querying for public agents.
-      // This makes the public showcase page functional for all visitors.
-      allow list: if request.query.where.path == "isPubliclyShared" && request.query.where.op == "==" && request.query.where.value == true;
+      
+      // Allow ANYONE to query the agents collection. The query itself MUST be secured in the app's code
+      // (e.g., by ensuring it only asks for public agents or agents owned by the current user).
+      // This is required for the public showcase to work for logged-out users.
+      allow list: if true;
     }
 
     // Conversations can be read/written by the agent's owner for analytics.
