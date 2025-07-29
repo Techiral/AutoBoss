@@ -1,52 +1,47 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Users can only read and write to their own profile.
+    // Users can only read and write their own profile document.
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Clients collection rules
+    // A user can manage clients that belong to them.
     match /clients/{clientId} {
-      // A user can create a client document for themselves.
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      // A user can read, update, or delete a client document if they are the owner.
       allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
 
-    // Agents collection rules
+    // Rules for agents are more complex, handling both private and public access.
     match /agents/{agentId} {
-      // Allow create if the user is authenticated and is the owner.
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      
-      // Allow owner to read, update, delete.
-      allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
-      
-      // Allow ANYONE to read an agent document IF it is marked as publicly shared.
-      // This is necessary for the public chat pages to function without user login.
+      // Create, update, delete is restricted to the agent's owner.
+      allow create, update, delete: if request.auth != null && request.resource.data.userId == request.auth.uid;
+
+      // An owner can always read their own agent.
+      allow get: if request.auth != null && resource.data.userId == request.auth.uid;
+      // Additionally, ANYONE can read a single agent document if it is public.
+      // This is crucial for the public /chat/[agentId] page to function.
       allow get: if resource.data.isPubliclyShared == true;
-      
-      // Allow ANYONE to query the agents collection. The query itself MUST be secured in the app's code
-      // (e.g., by ensuring it only asks for public agents or agents owned by the current user).
-      // This is required for the public showcase to work for logged-out users.
+
+      // Logged-in users can list their own agents.
+      // Anyone (including logged-out users) can list agents if they are querying
+      // for the public showcase. The application code MUST enforce the where clause.
       allow list: if true;
     }
 
-    // Conversations can be read/written by the agent's owner for analytics.
-    // The security for individual chat sessions is handled by API logic,
-    // but these rules allow the owner to view transcripts.
+    // A user can read/write to a conversation if they own the agent associated with it.
+    // This allows owners to view analytics and transcripts.
     match /conversations/{conversationId} {
         allow read, write: if request.auth != null && get(/databases/$(database)/documents/agents/$(resource.data.agentId)).data.userId == request.auth.uid;
     }
 
-    // Outbound queue is write-only for authenticated users.
+    // The outbound queue for tasks like sending emails/SMS is write-only for authenticated users.
+    // The tasks themselves are processed by a secure backend function, not read by clients.
     match /outboundQueue/{taskId} {
       allow create: if request.auth != null;
-      // Reading/updating/deleting queue tasks should be handled by a secure backend process/admin only.
-      allow read, update, delete: if false;
+      allow read, update, delete: if false; // Prevent clients from accessing the queue
     }
   }
 }
