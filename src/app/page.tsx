@@ -225,6 +225,7 @@ function HomePageContent() {
     let isPreStructured = false;
 
     setIsProcessingKnowledge(true);
+    toast({ title: "Training Agent...", description: "Processing knowledge source." });
     try {
       if (source.type === 'file') {
         fileName = source.fileName;
@@ -314,13 +315,10 @@ function HomePageContent() {
       const newAgent = await addAgentToContext(agentDataForContext, aiResult);
 
       if (newAgent) {
-        toast({ title: "Agent Created!", description: "Now processing knowledge source if provided." });
+        toast({ title: "Agent Created!", description: "Redirecting to your new agent..." });
         
         if (knowledgeSource) {
-          const knowledgeSuccess = await processAndAddKnowledge(newAgent.id, knowledgeSource);
-          if (!knowledgeSuccess) {
-            toast({ title: "Partial Success", description: `Agent was created, but knowledge training failed. You can add it later in the agent's settings.`, variant: "destructive" });
-          }
+          await processAndAddKnowledge(newAgent.id, knowledgeSource);
         }
         
         router.push(`/agents/${newAgent.id}/personality`);
@@ -332,7 +330,6 @@ function HomePageContent() {
        toast({ title: "Agent Creation Failed", description: error.message || "An unknown error occurred.", variant: "destructive" });
        setIsLoading(false); // Ensure loading state is turned off on failure
     }
-    // No finally block for setIsLoading(false) because we navigate away on success.
   };
 
   return (
@@ -365,7 +362,7 @@ function HomePageContent() {
                 className="resize-none rounded-lg border-2 border-border bg-card p-4 pr-20 text-base focus-visible:ring-primary"
               />
               <Button type="submit" size="icon" className="absolute right-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full" disabled={isLoading || isProcessingKnowledge}>
-                {isLoading ? <Loader2 className="animate-spin" /> : <ArrowUp />}
+                {(isLoading || isProcessingKnowledge) ? <Loader2 className="animate-spin" /> : <ArrowUp />}
                 <span className="sr-only">Submit</span>
               </Button>
             </div>
@@ -492,5 +489,3 @@ export default function VibeBuilderHomepage() {
     </AppProvider>
   );
 }
-
-    
