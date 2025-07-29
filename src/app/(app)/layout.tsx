@@ -43,8 +43,6 @@ import { cn } from "@/lib/utils";
 const LOCAL_STORAGE_THEME_KEY = 'autoBossTheme';
 const AGENTS_COLLECTION = 'agents';
 const CLIENTS_COLLECTION = 'clients';
-const DEFAULT_CLIENT_ID = 'default_workspace';
-
 
 type Theme = 'dark' | 'light';
 
@@ -298,30 +296,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      const defaultClientId = `${currentUser.uid}_${DEFAULT_CLIENT_ID}`;
-      const defaultClientRef = doc(db, CLIENTS_COLLECTION, defaultClientId);
-      const defaultClientSnap = await getDoc(defaultClientRef);
-      let finalClientName = 'My Workspace';
+        let finalClientId: string;
+        let finalClientName: string;
 
-      if (!defaultClientSnap.exists()) {
-        const newClientData = {
-          userId: currentUser.uid,
-          name: finalClientName,
-          description: 'Default workspace for your agents.',
-          createdAt: Timestamp.now(),
-        };
-        await setDoc(defaultClientRef, newClientData);
-        const clientForState = convertFirestoreTimestampToISO({ id: defaultClientId, ...newClientData }, ['createdAt']) as Client;
-        setClients(prev => [...prev, clientForState]);
-      } else {
-        finalClientName = defaultClientSnap.data().name;
-      }
+        // Check if there are any clients for the user.
+        if (clients.length === 0) {
+            // No clients exist, create a new default one.
+            const newClient = await addClient({ name: 'My Workspace' });
+            if (!newClient) throw new Error("Could not create default workspace.");
+            finalClientId = newClient.id;
+            finalClientName = newClient.name;
+        } else {
+            // Use the first client as the default. This can be improved later with a proper default setting.
+            finalClientId = clients[0].id;
+            finalClientName = clients[0].name;
+        }
 
       const newAgentId = doc(collection(db, AGENTS_COLLECTION)).id;
       const newAgent: Agent = {
         id: newAgentId,
         userId: currentUser.uid,
-        clientId: defaultClientId,
+        clientId: finalClientId,
         clientName: finalClientName,
         ...agentData,
         generatedName: agentCreationResult.agentName,
@@ -346,7 +341,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       toast({ title: "Error Creating Agent", description: `Could not save the new agent. Error: ${(error as Error).message}`, variant: "destructive" });
       return null;
     }
-  }, [currentUser, toast]);
+  }, [currentUser, toast, clients, addClient]);
 
 
   const updateAgent = useCallback(async (agentToUpdate: Agent) => {
