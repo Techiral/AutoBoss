@@ -143,7 +143,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (authLoading) {
-      // Don't set loading to false here, let the auth state change handle it
       console.log("AppLayout: Auth loading, waiting...");
       setIsContextInitialized(false);
       return;
@@ -162,13 +161,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       console.log("AppLayout: Current user found (UID:", currentUser.uid, "), fetching data.");
       setCurrentUserUidOnLoad(currentUser.uid); // Store UID for logging
       const fetchData = async () => {
-        if (!currentUser || !currentUser.uid) { // Explicitly check currentUser.uid
+        if (!currentUser || !currentUser.uid) { 
           console.error("AppLayout: fetchData called but currentUser or currentUser.uid is null/undefined. UID:", currentUser?.uid);
           setIsLoadingAgents(false);
           setIsLoadingClients(false);
-          setIsContextInitialized(true); // Mark as initialized to prevent infinite loading screen
+          setIsContextInitialized(true); 
           toast({ title: "Authentication Error", description: "Could not verify user. Please try logging in again.", variant: "destructive" });
-          router.push('/login'); // Redirect to login if critical auth info is missing
+          router.push('/login'); 
           return;
         }
         
@@ -176,7 +175,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setIsLoadingAgents(true);
         setIsLoadingClients(true);
         try {
-          // Fetch Clients
           console.log("AppLayout: Querying clients for userId:", currentUser.uid);
           const clientQuery = query(collection(db, CLIENTS_COLLECTION), where("userId", "==", currentUser.uid));
           const clientSnapshot = await getDocs(clientQuery);
@@ -188,7 +186,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           console.log("AppLayout: Fetched clients:", fetchedClients.length);
           setIsLoadingClients(false);
 
-          // Fetch Agents
           console.log("AppLayout: Querying agents for userId:", currentUser.uid);
           const agentQuery = query(collection(db, AGENTS_COLLECTION), where("userId", "==", currentUser.uid));
           const agentSnapshot = await getDocs(agentQuery);
@@ -293,65 +290,40 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const addAgent = useCallback(async (
     agentData: Omit<Agent, 'id' | 'createdAt' | 'knowledgeItems' | 'userId' | 'clientId' | 'clientName'>,
-    agentCreationResult: { agentName: string; agentPersona: string; agentGreeting: string; },
-    clientId?: string,
+    agentCreationResult: { agentName: string; agentPersona: string; agentGreeting: string; }
   ): Promise<Agent | null> => {
     if (!currentUser) {
       toast({ title: "Not Authenticated", description: "You must be logged in to create an agent.", variant: "destructive" });
       return null;
     }
 
-    let finalClientId = clientId;
-    let finalClientName = "";
-
-    // If no client ID is provided, create/use the default workspace.
-    if (!finalClientId) {
-        const defaultClientRef = doc(db, CLIENTS_COLLECTION, `${currentUser.uid}_${DEFAULT_CLIENT_ID}`);
-        const defaultClientSnap = await getDoc(defaultClientRef);
-
-        if (!defaultClientSnap.exists()) {
-            finalClientId = defaultClientRef.id;
-            finalClientName = 'My Workspace';
-            const newClientData = {
-                id: finalClientId,
-                userId: currentUser.uid,
-                name: finalClientName,
-                description: 'Default workspace for your agents.',
-                createdAt: Timestamp.now(),
-            };
-            await setDoc(defaultClientRef, newClientData);
-            const clientForState = convertFirestoreTimestampToISO(newClientData, ['createdAt']) as Client;
-            setClients(prev => [...prev, clientForState]);
-        } else {
-            finalClientId = defaultClientSnap.id;
-            finalClientName = defaultClientSnap.data().name;
-        }
-    } else {
-        const client = getClientById(finalClientId);
-        if (client) {
-            finalClientName = client.name;
-        } else {
-            toast({ title: "Client Error", description: `Client with ID ${finalClientId} not found.`, variant: "destructive" });
-            return null;
-        }
-    }
-    
-    if (!finalClientId) {
-        toast({ title: "Client Error", description: "Could not determine a client for the agent.", variant: "destructive" });
-        return null;
-    }
-
     try {
+      const defaultClientId = `${currentUser.uid}_${DEFAULT_CLIENT_ID}`;
+      const defaultClientRef = doc(db, CLIENTS_COLLECTION, defaultClientId);
+      const defaultClientSnap = await getDoc(defaultClientRef);
+      let finalClientName = 'My Workspace';
+
+      if (!defaultClientSnap.exists()) {
+        const newClientData = {
+          userId: currentUser.uid,
+          name: finalClientName,
+          description: 'Default workspace for your agents.',
+          createdAt: Timestamp.now(),
+        };
+        await setDoc(defaultClientRef, newClientData);
+        const clientForState = convertFirestoreTimestampToISO({ id: defaultClientId, ...newClientData }, ['createdAt']) as Client;
+        setClients(prev => [...prev, clientForState]);
+      } else {
+        finalClientName = defaultClientSnap.data().name;
+      }
+
       const newAgentId = doc(collection(db, AGENTS_COLLECTION)).id;
-      
       const newAgent: Agent = {
-        ...agentData,
         id: newAgentId,
-        userId: currentUser.uid, // CRITICAL: Ensure userId is set
-        clientId: finalClientId,
+        userId: currentUser.uid,
+        clientId: defaultClientId,
         clientName: finalClientName,
-        createdAt: Timestamp.now() as any,
-        knowledgeItems: [],
+        ...agentData,
         generatedName: agentCreationResult.agentName,
         generatedPersona: agentCreationResult.agentPersona,
         generatedGreeting: agentCreationResult.agentGreeting,
@@ -359,27 +331,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         voiceName: agentData.voiceName === 'default' ? null : (agentData.voiceName || null),
         isPubliclyShared: agentData.isPubliclyShared || false,
         sharedAt: agentData.isPubliclyShared ? Timestamp.now() : null,
+        knowledgeItems: [],
+        createdAt: Timestamp.now(),
       };
       
-      const { id, ...dataToSave } = newAgent;
+      await setDoc(doc(db, AGENTS_COLLECTION, newAgent.id), newAgent);
       
-      const saveDataForFirestore = {
-        ...dataToSave,
-        createdAt: newAgent.createdAt, // This is already a Timestamp
-        sharedAt: newAgent.sharedAt,   // This is already a Timestamp or null
-      };
-
-      await setDoc(doc(db, AGENTS_COLLECTION, newAgentId), saveDataForFirestore);
-
       const agentForState = convertFirestoreTimestampToISO(newAgent, ['createdAt', 'sharedAt']) as Agent;
       setAgents((prevAgents) => [...prevAgents, agentForState]);
       return agentForState;
+
     } catch (error) {
       console.error("Error adding agent to Firestore:", error);
       toast({ title: "Error Creating Agent", description: `Could not save the new agent. Error: ${(error as Error).message}`, variant: "destructive" });
       return null;
     }
-  }, [currentUser, toast, getClientById]);
+  }, [currentUser, toast]);
 
 
   const updateAgent = useCallback(async (agentToUpdate: Agent) => {
@@ -395,7 +362,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       const saveData: {[key:string]: any} = { ...dataToSave };
       
-      // Convert date strings back to Timestamps for Firestore
       if (typeof saveData.createdAt === 'string') {
         saveData.createdAt = Timestamp.fromDate(new Date(saveData.createdAt));
       }
@@ -409,7 +375,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }));
       }
       
-      // Ensure voiceName is not undefined
       if (saveData.voiceName === undefined) {
           saveData.voiceName = null;
       }
@@ -569,12 +534,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         </div>
       );
     }
-    // If context is initialized OR it's a public page and auth is done (even if no user)
     if (isContextInitialized || (!authLoading && isPublicPage(pathname))) {
       console.log("AppLayout: Render condition - Context initialized or public page. Children will be rendered.");
       return children;
     }
-    // Fallback loading for edge cases
     console.log("AppLayout: Render condition - Fallback loading state.");
     return (
        <div className="flex items-center justify-center flex-1">
@@ -735,3 +698,5 @@ function AppSidebar() {
     </Sidebar>
   );
 }
+
+    

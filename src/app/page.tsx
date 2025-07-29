@@ -141,7 +141,6 @@ function HomePageContent() {
   });
 
   useEffect(() => {
-    // This effect runs once when the user arrives, after authentication is resolved.
     if (!authLoading && currentUser) {
       try {
         const draftJson = sessionStorage.getItem(SESSION_STORAGE_KEY);
@@ -151,14 +150,14 @@ function HomePageContent() {
           if (draft.knowledgeSource) setKnowledgeSource(draft.knowledgeSource);
           if (draft.isPublic) setIsPublic(draft.isPublic);
           toast({ title: "Draft Restored", description: "Your previous agent draft has been loaded." });
-          sessionStorage.removeItem(SESSION_STORAGE_KEY); // Clear draft after restoring
+          sessionStorage.removeItem(SESSION_STORAGE_KEY); 
         }
       } catch (e) {
         console.error("Failed to parse or restore agent draft from session storage", e);
         sessionStorage.removeItem(SESSION_STORAGE_KEY);
       }
     }
-  }, [setValue, toast, currentUser, authLoading]); // Depends on currentUser and authLoading
+  }, [setValue, toast, currentUser, authLoading]);
 
   useEffect(() => {
     async function fetchPublicAgents() {
@@ -331,9 +330,9 @@ function HomePageContent() {
 
     } catch (error: any) {
        toast({ title: "Agent Creation Failed", description: error.message || "An unknown error occurred.", variant: "destructive" });
-    } finally {
-      setIsLoading(false);
+       setIsLoading(false); // Ensure loading state is turned off on failure
     }
+    // No finally block for setIsLoading(false) because we navigate away on success.
   };
 
   return (
@@ -493,3 +492,5 @@ export default function VibeBuilderHomepage() {
     </AppProvider>
   );
 }
+
+    
