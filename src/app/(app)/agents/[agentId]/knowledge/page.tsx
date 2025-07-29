@@ -11,7 +11,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { extractKnowledge } from "@/ai/flows/knowledge-extraction";
 import { processUrl } from "@/ai/flows/url-processor";
-import { Upload, Loader2, FileText, Tag, AlertTriangle, Link as LinkIcon, Brain, Info, Mic, CheckCircle2, TextQuote, FileWarning } from "lucide-react";
+import { Upload, Loader2, FileText, Tag, AlertTriangle, Link as LinkIcon, Brain, Info, Mic, CheckCircle2, TextQuote, FileWarning, Trash2, PlusCircle } from "lucide-react";
 import type { KnowledgeItem, Agent, ProcessedUrlOutput } from "@/lib/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAppContext } from "../../../layout";
@@ -71,10 +71,13 @@ function csvToStructuredText(csvString: string, fileName: string): string {
 
 export default function KnowledgePage() {
   const [isLoadingFile, setIsLoadingFile] = useState(false);
-  const [isProcessingUrl, setIsProcessingUrl] = useState(false);
+  const [isProcessingUrls, setIsProcessingUrls] = useState(false);
   const [isProcessingPastedText, setIsProcessingPastedText] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  
   const [urlInput, setUrlInput] = useState("");
+  const [urlList, setUrlList] = useState<string[]>([]);
+  
   const [pastedTextInput, setPastedTextInput] = useState("");
 
   const { toast } = useToast();
@@ -94,33 +97,12 @@ export default function KnowledgePage() {
 
   const knowledgeItems = currentAgent?.knowledgeItems || [];
 
-  const clearOtherInputs = (except: 'file' | 'url' | 'paste') => {
-    if (except !== 'file') {
-        setSelectedFile(null);
-        const fileInput = document.getElementById('document') as HTMLInputElement;
-        if (fileInput) fileInput.value = '';
-    }
-    if (except !== 'url') setUrlInput("");
-    if (except !== 'paste') setPastedTextInput("");
-  };
-
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       setSelectedFile(event.target.files[0]);
-      clearOtherInputs('file');
     } else {
       setSelectedFile(null);
     }
-  };
-
-  const handleUrlInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setUrlInput(event.target.value);
-    if (event.target.value) clearOtherInputs('url');
-  };
-
-  const handlePastedTextInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setPastedTextInput(event.target.value);
-    if (event.target.value) clearOtherInputs('paste');
   };
 
   const addKnowledgeToAgent = (fileName: string, summary: string, keywords: string[]) => {
@@ -141,7 +123,6 @@ export default function KnowledgePage() {
         description: `Successfully processed and added "${fileName.substring(0, 100)}${fileName.length > 100 ? '...' : ''}". Your agent is now smarter!`,
     });
   }
-
 
   const handleSubmitFile = async () => {
     if (!selectedFile) {
@@ -237,57 +218,80 @@ export default function KnowledgePage() {
     }
   };
 
-  const handleProcessUrl = async () => {
-    if (!urlInput.trim()) {
-        toast({ title: "No URL provided", description: "Please enter a website URL to train from.", variant: "destructive"});
-        return;
+  const handleAddUrlToList = () => {
+    if (!urlInput.trim()) return;
+    let validUrl = urlInput.trim();
+    if (!validUrl.startsWith('http://') && !validUrl.startsWith('https://')) {
+      validUrl = `https://${validUrl}`;
     }
-    let validUrl = urlInput;
-    if (!urlInput.startsWith('http://') && !urlInput.startsWith('https://')) {
-      validUrl = `https://${urlInput}`;
-    }
-
     try {
         new URL(validUrl);
+        if (!urlList.includes(validUrl)) {
+            setUrlList([...urlList, validUrl]);
+            setUrlInput("");
+        } else {
+            toast({ title: "Duplicate URL", description: "This URL is already in the list.", variant: "destructive" });
+        }
     } catch (_) {
-        toast({ title: "Invalid URL", description: "Please enter a valid website URL (e.g., https://example.com/about-us).", variant: "destructive"});
+        toast({ title: "Invalid URL", description: "Please enter a valid website URL.", variant: "destructive" });
+    }
+  };
+
+  const handleRemoveUrlFromList = (urlToRemove: string) => {
+    setUrlList(urlList.filter(url => url !== urlToRemove));
+  };
+  
+  const handleProcessUrls = async () => {
+    if (urlList.length === 0) {
+        toast({ title: "No URLs to process", description: "Please add at least one URL to the list.", variant: "destructive"});
         return;
     }
 
-    setIsProcessingUrl(true);
-    try {
-        const result: ProcessedUrlOutput = await processUrl({ url: validUrl });
+    setIsProcessingUrls(true);
+    toast({ title: `Starting to process ${urlList.length} URL(s)...`, description: "This may take a moment." });
 
-        let displayFileName = result.title || validUrl;
-        try {
-            const parsedUrl = new URL(validUrl);
-            displayFileName = result.title || (parsedUrl.hostname + (parsedUrl.pathname === '/' ? '' : parsedUrl.pathname));
-        } catch { /* ignore if parsing fails, use validUrl or title */ }
+    const results = await Promise.allSettled(
+        urlList.map(async (url) => {
+            try {
+                const result: ProcessedUrlOutput = await processUrl({ url });
+                let displayFileName = result.title || url;
+                try {
+                    const parsedUrl = new URL(url);
+                    displayFileName = result.title || (parsedUrl.hostname + (parsedUrl.pathname === '/' ? '' : parsedUrl.pathname));
+                } catch { /* ignore */ }
 
-        const textDataUri = `data:text/plain;charset=utf-8;base64,${Buffer.from(result.extractedText).toString('base64')}`;
-        const knowledgeResult = await extractKnowledge({ documentDataUri: textDataUri, isPreStructuredText: false }); 
+                const textDataUri = `data:text/plain;charset=utf-8;base64,${Buffer.from(result.extractedText).toString('base64')}`;
+                const knowledgeResult = await extractKnowledge({ documentDataUri: textDataUri, isPreStructuredText: false });
+                
+                return { success: true, fileName: displayFileName, summary: knowledgeResult.summary, keywords: knowledgeResult.keywords };
+            } catch (error: any) {
+                console.error(`Failed to process URL ${url}:`, error);
+                return { success: false, url: url, error: error.message };
+            }
+        })
+    );
 
-        addKnowledgeToAgent(displayFileName.substring(0,100), knowledgeResult.summary, knowledgeResult.keywords);
-        setUrlInput("");
-    } catch (error: any) {
-        console.error("Error processing URL:", error);
-        let errorMessage = error.message || "Failed to process the website. The content might be inaccessible or unsuitable for training.";
-        if (errorMessage.toLowerCase().includes("status 403") || errorMessage.toLowerCase().includes("status 401")) {
-            errorMessage = `Could not access ${validUrl}: Access denied (403/401). The site may require login or block automated access.`;
-        } else if (errorMessage.toLowerCase().includes("status 5")) {
-            errorMessage = `Could not access ${validUrl}: The website's server encountered an error. Please try again later.`;
-        } else if (errorMessage.toLowerCase().includes("enotfound") || errorMessage.toLowerCase().includes("getaddrinfo") || errorMessage.toLowerCase().includes("dns lookup failed")) {
-          errorMessage = `Could not connect to ${validUrl}. Please check the URL or your network connection. (DNS lookup failure)`;
-        } else if (errorMessage.includes("No meaningful text content extracted")) {
-            errorMessage = `No useful text content was found at ${validUrl}. It might be an image, a very complex page, require JavaScript, or direct access might be limited.`;
-        } else if (errorMessage.includes("503") || errorMessage.toLowerCase().includes("model is overloaded")) {
-            errorMessage = `The AI model is currently overloaded processing the content from ${validUrl}. Please try again in a few moments.`;
+    let successCount = 0;
+    results.forEach(res => {
+        if (res.status === 'fulfilled' && res.value.success) {
+            const { fileName, summary, keywords } = res.value;
+            addKnowledgeToAgent(fileName.substring(0, 100), summary, keywords);
+            successCount++;
+        } else if (res.status === 'fulfilled' && !res.value.success) {
+            toast({ title: `Failed to process URL`, description: `Could not train from ${res.value.url}. Reason: ${res.value.error}`, variant: "destructive" });
+        } else if (res.status === 'rejected') {
+            toast({ title: `Critical Error Processing URL`, description: res.reason?.message || "An unknown error occurred.", variant: "destructive" });
         }
-        toast({ title: "Website Training Error", description: errorMessage, variant: "destructive" });
-    } finally {
-        setIsProcessingUrl(false);
+    });
+
+    if (successCount > 0) {
+      toast({ title: "Processing Complete", description: `Successfully trained agent from ${successCount} out of ${urlList.length} URLs.` });
     }
+
+    setUrlList([]);
+    setIsProcessingUrls(false);
   };
+
 
   const handleSubmitPastedText = async () => {
     if (!pastedTextInput.trim()) {
@@ -339,8 +343,7 @@ export default function KnowledgePage() {
     );
   }
 
-  const isVoiceAgent = currentAgent.agentType === 'voice' || currentAgent.agentType === 'hybrid';
-  const isAnyLoading = isLoadingFile || isProcessingUrl || isProcessingPastedText;
+  const isAnyLoading = isLoadingFile || isProcessingUrls || isProcessingPastedText;
 
   return (
     <div className="grid gap-4 md:gap-6 grid-cols-1 lg:grid-cols-3">
@@ -388,22 +391,38 @@ export default function KnowledgePage() {
               </div>
             </div>
 
-            <div className="space-y-1.5">
-                <Label htmlFor="url">Train from Website URL</Label>
-                <Input id="url" type="url" placeholder="e.g., https://example.com/services" value={urlInput} onChange={handleUrlInputChange} disabled={isAnyLoading}/>
+            <div className="space-y-3">
+                <Label htmlFor="url">Train from Website URLs</Label>
+                <div className="flex gap-2">
+                    <Input id="url" type="url" placeholder="https://example.com/about-us" value={urlInput} onChange={(e) => setUrlInput(e.target.value)} disabled={isAnyLoading}/>
+                    <Button variant="outline" size="icon" onClick={handleAddUrlToList} disabled={isAnyLoading || !urlInput.trim()} aria-label="Add URL to list">
+                        <PlusCircle size={18} />
+                    </Button>
+                </div>
+                 {urlList.length > 0 && (
+                    <div className="space-y-2 p-2 border rounded-md max-h-40 overflow-y-auto">
+                        {urlList.map((url, index) => (
+                            <div key={index} className="flex items-center justify-between text-xs">
+                                <span className="truncate pr-2">{url}</span>
+                                <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleRemoveUrlFromList(url)} disabled={isAnyLoading}>
+                                    <Trash2 size={12} />
+                                </Button>
+                            </div>
+                        ))}
+                    </div>
+                )}
+                 <Alert variant="default" className="p-3 text-xs bg-secondary mb-2">
+                    <Info className="h-3.5 w-3.5 text-primary" />
+                    <AlertTitle className="text-xs font-medium">Website Training Tip</AlertTitle>
+                    <AlertDescription className="text-muted-foreground text-[11px]">
+                      Add multiple pages (e.g., pricing, services, FAQ) for a more complete knowledge base.
+                    </AlertDescription>
+                </Alert>
+                <Button onClick={handleProcessUrls} disabled={isAnyLoading || urlList.length === 0} className="w-full">
+                    {isProcessingUrls ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LinkIcon className="mr-2 h-4 w-4" />}
+                    {isProcessingUrls ? `Processing ${urlList.length} URLs...` : `Fetch & Train ${urlList.length} URL(s)`}
+                </Button>
             </div>
-             <Alert variant="default" className="p-3 text-xs bg-secondary mb-2">
-                <Info className="h-3.5 w-3.5 text-primary" />
-                <AlertTitle className="text-xs font-medium">Website Training Tip</AlertTitle>
-                <AlertDescription className="text-muted-foreground text-[11px]">
-                  Best for pages with clear text content. Complex sites or those needing logins may not process well.
-                </AlertDescription>
-            </Alert>
-            <Button onClick={handleProcessUrl} disabled={isAnyLoading || !urlInput.trim()} className="w-full">
-                {isProcessingUrl ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LinkIcon className="mr-2 h-4 w-4" />}
-                {isProcessingUrl ? "Fetching Website..." : "Fetch & Train URL"}
-            </Button>
-            
 
             <div className="relative my-3 sm:my-4">
               <div className="absolute inset-0 flex items-center">
@@ -420,7 +439,7 @@ export default function KnowledgePage() {
                   id="pastedText" 
                   placeholder="Paste text here (e.g., product details, FAQs, sections of a document)..." 
                   value={pastedTextInput} 
-                  onChange={handlePastedTextInputChange} 
+                  onChange={(e) => setPastedTextInput(e.target.value)}
                   rows={8}
                   disabled={isAnyLoading}
                 />
@@ -431,7 +450,7 @@ export default function KnowledgePage() {
             </Button>
 
 
-            {isVoiceAgent && (
+            {currentAgent.agentType === 'voice' && (
                 <Alert variant="default" className="mt-4 p-3 text-xs bg-secondary">
                     <Mic className="h-3.5 w-3.5 text-primary" />
                     <AlertTitle className="text-primary text-xs font-medium">Training Voice Agents?</AlertTitle>
@@ -511,3 +530,4 @@ export default function KnowledgePage() {
     </div>
   );
 }
+
