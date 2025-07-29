@@ -248,7 +248,7 @@ export default function KnowledgePage() {
     }
 
     setIsProcessingUrls(true);
-    toast({ title: `Starting to process ${urlList.length} URL(s)...`, description: "This may take a moment." });
+    toast({ title: `Starting to process ${urlList.length} URL(s)...`, description: "This may take a moment. Dynamic sites require extra time." });
 
     const results = await Promise.allSettled(
         urlList.map(async (url) => {
@@ -415,7 +415,7 @@ export default function KnowledgePage() {
                     <Info className="h-3.5 w-3.5 text-primary" />
                     <AlertTitle className="text-xs font-medium">Website Training Tip</AlertTitle>
                     <AlertDescription className="text-muted-foreground text-[11px]">
-                      Add multiple pages (e.g., pricing, services, FAQ) for a more complete knowledge base.
+                      Add multiple pages (pricing, services, FAQ) for a complete knowledge base. Dynamic, JS-heavy sites may take longer to process.
                     </AlertDescription>
                 </Alert>
                 <Button onClick={handleProcessUrls} disabled={isAnyLoading || urlList.length === 0} className="w-full">
@@ -530,4 +530,3 @@ export default function KnowledgePage() {
     </div>
   );
 }
-

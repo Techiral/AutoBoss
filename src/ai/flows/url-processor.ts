@@ -25,6 +25,48 @@ export type ProcessUrlInput = z.infer<typeof ProcessUrlInputSchema>;
 // Re-export ProcessedUrlOutput type for clarity if this file is imported elsewhere for its types
 export type { ProcessedUrlOutput };
 
+// Helper function to extract text and title from HTML
+const extractContentFromHtml = (html: string): { title?: string, text: string } => {
+  const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+  const pageTitle = titleMatch ? titleMatch[1].trim() : undefined;
+
+  const textContent = htmlToTextConverter(html, {
+    wordwrap: false,
+    selectors: [
+      { selector: 'a', format: 'inline', options: { hideLinkHrefIfSameAsText: true, ignoreHref: false } },
+      { selector: 'img', format: 'skip' },
+      { selector: 'nav', format: 'skip' },
+      { selector: 'footer', format: 'skip' },
+      { selector: 'script', format: 'skip' },
+      { selector: 'style', format: 'skip' },
+      { selector: 'aside', format: 'skip' },
+      { selector: 'header', format: 'skip' },
+      { selector: 'form', format: 'skip' },
+      { selector: 'button', format: 'skip' },
+      { selector: 'input', format: 'skip' },
+      { selector: 'textarea', format: 'skip' },
+      { selector: 'select', format: 'skip' },
+      { selector: 'iframe', format: 'skip'},
+      { selector: 'svg', format: 'skip'},
+      { selector: 'noscript', format: 'skip'},
+      { selector: 'canvas', format: 'skip'},
+      { selector: 'article', format: 'block', options: { itemProp: 'articleBody'} },
+      { selector: 'main', format: 'block', options: {} },
+      { selector: '[role="main"]', format: 'block', options: {}},
+      { selector: '.post-content', format: 'block', options: {} },
+      { selector: '.entry-content', format: 'block', options: {} },
+      { selector: '.article-body', format: 'block', options: {} },
+      { selector: '.content', format: 'block', options: {} },
+      { selector: '.blog-post', format: 'block', options: {} },
+      { selector: '.single-post-content', format: 'block', options: {} },
+      { selector: 'section > .meteredContent', format: 'block', options: {} },
+    ],
+  });
+
+  return { title: pageTitle, text: textContent };
+};
+
+
 export async function processUrl(input: ProcessUrlInput): Promise<ProcessedUrlOutput> {
   return processUrlFlow(input);
 }
@@ -33,145 +75,93 @@ const processUrlFlow = ai.defineFlow(
   {
     name: 'processUrlFlow',
     inputSchema: ProcessUrlInputSchema,
-    outputSchema: ProcessedUrlOutputSchema, // Use the imported schema for the flow's output
+    outputSchema: ProcessedUrlOutputSchema,
   },
-  async (input: ProcessUrlInput): Promise<ProcessedUrlOutput> => { // Return the correct type
-    let htmlContent: string;
-    let textContent: string;
-    let pageTitle: string | undefined;
-
-    console.log(`Attempting direct fetch for URL: ${input.url}`);
+  async (input: ProcessUrlInput): Promise<ProcessedUrlOutput> => {
+    
+    // Attempt 1: Direct fetch with axios (fast, for static sites)
     try {
-      const response = await axios.get(input.url, {
-        headers: {
-          // Using a common browser user-agent
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8,text/xml;q=0.9',
-          'Accept-Language': 'en-US,en;q=0.5',
-        },
-        timeout: 15000 // 15 seconds timeout
-      });
-      htmlContent = response.data;
+        console.log(`Attempting direct fetch for URL: ${input.url}`);
+        const response = await axios.get(input.url, {
+            headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8,text/xml;q=0.9',
+            'Accept-Language': 'en-US,en;q=0.5',
+            },
+            timeout: 10000 // 10 seconds timeout
+        });
 
-      const contentType = response.headers['content-type']?.toLowerCase() || '';
-      if (
-        contentType &&
-        !contentType.includes('text/html') &&
-        !contentType.includes('text/plain') &&
-        !contentType.includes('text/xml') && // Added to allow text/xml
-        !contentType.includes('application/xml') && 
-        !contentType.includes('application/xhtml+xml') &&
-        !contentType.includes('application/rss+xml') &&
-        !contentType.includes('application/atom+xml')
-      ) {
-           throw new Error(`Unsupported content type: ${response.headers['content-type']}. This tool primarily processes HTML, plain text, or XML-based web pages.`);
-      }
+        const contentType = response.headers['content-type']?.toLowerCase() || '';
+         if (
+            contentType &&
+            !contentType.includes('text/html') &&
+            !contentType.includes('text/plain') &&
+            !contentType.includes('text/xml') &&
+            !contentType.includes('application/xml') &&
+            !contentType.includes('application/xhtml+xml') &&
+            !contentType.includes('application/rss+xml') &&
+            !contentType.includes('application/atom+xml')
+        ) {
+            throw new Error(`Unsupported content type: ${contentType}. This tool primarily processes web pages.`);
+        }
 
-      // Extract title from HTML (might not be relevant for pure XML, but harmless)
-      const titleMatch = htmlContent.match(/<title[^>]*>([^<]+)<\/title>/i);
-      pageTitle = titleMatch ? titleMatch[1].trim() : undefined;
+        const { title, text } = extractContentFromHtml(response.data);
 
-      // Convert HTML/XML to text
-      textContent = htmlToTextConverter(htmlContent, {
-        wordwrap: false, 
-        selectors: [
-          { selector: 'a', format: 'inline', options: { hideLinkHrefIfSameAsText: true, ignoreHref: false } },
-          { selector: 'img', format: 'skip' },
-          { selector: 'nav', format: 'skip' },
-          { selector: 'footer', format: 'skip' },
-          { selector: 'script', format: 'skip' },
-          { selector: 'style', format: 'skip' },
-          { selector: 'aside', format: 'skip' },
-          { selector: 'header', format: 'skip' },
-          { selector: 'form', format: 'skip' },
-          { selector: 'button', format: 'skip' },
-          { selector: 'input', format: 'skip' },
-          { selector: 'textarea', format: 'skip' },
-          { selector: 'select', format: 'skip' },
-          { selector: 'iframe', format: 'skip'},
-          { selector: 'svg', format: 'skip'},
-          { selector: 'noscript', format: 'skip'},
-          { selector: 'canvas', format: 'skip'},
-          // Prioritize common main content elements by formatting them as blocks
-          { selector: 'article', format: 'block', options: { itemProp: 'articleBody'} }, 
-          { selector: 'main', format: 'block', options: {} },                         
-          { selector: '[role="main"]', format: 'block', options: {}},                  
-          { selector: '.post-content', format: 'block', options: {} },
-          { selector: '.entry-content', format: 'block', options: {} },
-          { selector: '.article-body', format: 'block', options: {} },
-          { selector: '.content', format: 'block', options: {} }, 
-          { selector: '.blog-post', format: 'block', options: {} },
-          { selector: '.single-post-content', format: 'block', options: {} },
-          { selector: 'section > .meteredContent', format: 'block', options: {} }, 
-        ],
-      });
-
-      if (!textContent.trim()) {
-        throw new Error('No meaningful text content extracted from the URL. The page might be empty, primarily image-based, or require JavaScript to render its content. Direct fetching has limitations with highly dynamic sites.');
-      }
-
-      return {
-        url: input.url,
-        title: pageTitle,
-        extractedText: textContent,
-      };
+        // If direct fetch gives enough content, return it.
+        if (text.trim().length > 500) { // 500 chars as a heuristic for "enough content"
+            console.log(`Direct fetch successful for ${input.url}. Content length: ${text.length}`);
+            return {
+                url: input.url,
+                title: title,
+                extractedText: text,
+            };
+        }
+        console.log(`Direct fetch for ${input.url} yielded insufficient content (${text.length} chars). Attempting fallback.`);
 
     } catch (error: any) {
-      console.error(`Error processing URL ${input.url} with direct fetch:`, error.message);
-      let userFriendlyMessage = `Failed to fetch and process content from URL ${input.url}. `;
-      if (axios.isAxiosError(error)) {
-        if (error.response) {
-          userFriendlyMessage += `Server responded with status ${error.response.status}. The page may be inaccessible or block direct requests.`;
-        } else if (error.request) {
-          userFriendlyMessage += `No response received. The server might be down or the URL incorrect.`;
-        } else {
-          userFriendlyMessage += `Error setting up request: ${error.message}.`;
+        console.warn(`Direct fetch for ${input.url} failed: ${error.message}. Attempting fallback.`);
+    }
+
+    // Attempt 2: Fallback to a browser-based scraping service for dynamic/JS-heavy sites
+    try {
+        console.log(`Attempting browser-based fetch for URL: ${input.url}`);
+        const Jina_API_KEY = process.env.JINA_API_KEY;
+        if (!Jina_API_KEY) {
+            throw new Error("The advanced URL processing service (Jina) is not configured. Please add a JINA_API_KEY to your environment variables.");
         }
-      } else if (error.message.startsWith('Unsupported content type')) {
-         userFriendlyMessage = error.message; 
-      } else {
-        userFriendlyMessage += error.message;
-      }
-      throw new Error(userFriendlyMessage);
+        
+        const response = await axios.get(`https://r.jina.ai/${input.url}`, {
+            headers: {
+                'Authorization': `Bearer ${Jina_API_KEY}`,
+                'Accept': 'text/plain',
+            },
+            timeout: 45000 // 45 seconds timeout for browser rendering
+        });
+
+        const textContent = response.data;
+
+        if (!textContent || typeof textContent !== 'string' || textContent.trim().length < 10) {
+            throw new Error("The advanced scraping service returned no meaningful content. The page might be protected, empty, or inaccessible.");
+        }
+        
+        // We don't get a title directly from this API, so we'll have to rely on a generic name
+        const urlObject = new URL(input.url);
+        const pageTitle = urlObject.hostname.replace(/^www\./, '');
+
+        return {
+            url: input.url,
+            title: pageTitle,
+            extractedText: textContent,
+        };
+    } catch (error: any) {
+        console.error(`Error processing URL ${input.url} with browser-based fallback:`, error.message);
+        let userFriendlyMessage = `Failed to fetch and process content from URL ${input.url}. `;
+        if (axios.isAxiosError(error) && error.response) {
+            userFriendlyMessage += `Service responded with status ${error.response.status}. The page may be inaccessible, or the scraping service credits may be exhausted.`;
+        } else {
+            userFriendlyMessage += error.message;
+        }
+        throw new Error(userFriendlyMessage);
     }
   }
 );
-
-
-/**
- * Chunks a given text into smaller pieces based on sentence boundaries and a maximum length.
- * @param text The text to chunk.
- * @param maxLength The maximum length of each chunk (default: 800 characters).
- * @returns An array of text chunks.
- */
-function chunkText(text: string, maxLength = 800): string[] {
-  if (!text) return [];
-  const normalizedText = text.replace(/\s+/g, ' ').trim();
-  const sentences = normalizedText.split(/(?<=[.?!])\s+(?=[A-Z0-9À-ÖØ-öø-ÿ])/);
-  const chunks: string[] = [];
-  let currentChunk = '';
-
-  for (const sentence of sentences) {
-    const trimmedSentence = sentence.trim();
-    if (!trimmedSentence) continue;
-
-    if ((currentChunk + ' ' + trimmedSentence).length > maxLength) {
-      if (currentChunk) {
-        chunks.push(currentChunk.trim());
-      }
-      currentChunk = trimmedSentence;
-      while (currentChunk.length > maxLength) {
-        chunks.push(currentChunk.substring(0, maxLength));
-        currentChunk = currentChunk.substring(maxLength);
-      }
-    } else {
-      currentChunk = currentChunk ? currentChunk + ' ' + trimmedSentence : trimmedSentence;
-    }
-  }
-
-  if (currentChunk) {
-    chunks.push(currentChunk.trim());
-  }
-  return chunks.filter(chunk => chunk.length > 0);
-}
-

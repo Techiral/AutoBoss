@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
@@ -23,6 +24,7 @@ interface UserCredentials {
   twilioAccountSid?: string | null;
   twilioAuthToken?: string | null;
   twilioPhoneNumber?: string | null;
+  jinaApiKey?: string | null;
 }
 
 interface AuthContextType {
@@ -72,6 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           twilioAccountSid: "",
           twilioAuthToken: "",
           twilioPhoneNumber: "",
+          jinaApiKey: "",
           ttsCreditsUsed: 0,
         };
         await setDoc(userRef, userData);
@@ -99,6 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (existingData.twilioAccountSid === undefined) updates.twilioAccountSid = "";
         if (existingData.twilioAuthToken === undefined) updates.twilioAuthToken = "";
         if (existingData.twilioPhoneNumber === undefined) updates.twilioPhoneNumber = "";
+        if (existingData.jinaApiKey === undefined) updates.jinaApiKey = "";
         if (existingData.ttsCreditsUsed === undefined) updates.ttsCreditsUsed = 0;
 
 
@@ -287,6 +291,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (credentials.twilioAccountSid !== undefined && credentials.twilioAccountSid !== null) updateData.twilioAccountSid = credentials.twilioAccountSid;
       if (credentials.twilioAuthToken !== undefined && credentials.twilioAuthToken !== null) updateData.twilioAuthToken = credentials.twilioAuthToken;
       if (credentials.twilioPhoneNumber !== undefined) updateData.twilioPhoneNumber = credentials.twilioPhoneNumber;
+      if (credentials.jinaApiKey !== undefined) updateData.jinaApiKey = credentials.jinaApiKey;
       
       await setDoc(userRef, updateData, { merge: true });
       toast({ title: "API Credentials Updated", description: "Your API settings have been saved." });
