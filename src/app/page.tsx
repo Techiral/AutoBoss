@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -10,26 +10,26 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import { Loader2, ArrowUp, Upload, FileText, LinkIcon, Globe } from "lucide-react";
+import { Loader2, ArrowUp, Upload, FileText, LinkIcon, Globe, Sparkles } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Logo } from "@/components/logo";
 import { UserNav } from "@/components/user-nav";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
-import type { Agent, KnowledgeItem } from "@/lib/types";
+import type { Agent, KnowledgeItem, ProcessedUrlOutput } from "@/lib/types";
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
-import { createAgent, CreateAgentOutput } from "@/ai/flows/agent-creation";
 import { extractKnowledge } from "@/ai/flows/knowledge-extraction";
 import { processUrl } from "@/ai/flows/url-processor";
 import { AppProvider, useAppContext } from "./(app)/layout";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
 import mammoth from 'mammoth';
 import * as pdfjsLib from 'pdfjs-dist';
 import Papa from 'papaparse';
+import { createAgentFromPrompt, CreateAgentFromPromptInput } from "@/ai/flows/agent-creation";
+
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf.worker.mjs`;
 
@@ -134,7 +134,7 @@ function HomePageContent() {
   const { toast } = useToast();
   const router = useRouter();
   const { currentUser, loading: authLoading } = useAuth();
-  const { addAgent: addAgentToContext, addKnowledgeItem } = useAppContext();
+  const { addAgent: addAgentToContext, addKnowledgeItem, clients } = useAppContext();
 
   const { register, handleSubmit, formState: { errors }, setValue } = useForm<BuilderFormData>({
     resolver: zodResolver(builderFormSchema),
@@ -219,13 +219,13 @@ function HomePageContent() {
     toast({ title: "URL Added", description: `Agent will learn from ${validUrl}.` });
   };
 
-  const processAndAddKnowledge = async (agentId: string, source: KnowledgeSource) => {
+  const processAndAddKnowledge = async (agentId: string, source: KnowledgeSource): Promise<boolean> => {
     let fileName: string = "Knowledge";
     let documentDataUri: string;
     let isPreStructured = false;
 
     setIsProcessingKnowledge(true);
-    toast({ title: "Training Agent...", description: "Processing knowledge source." });
+    toast({ title: "Training Agent...", description: "Processing knowledge source. This may take a moment." });
     try {
       if (source.type === 'file') {
         fileName = source.fileName;
@@ -245,10 +245,12 @@ function HomePageContent() {
                 const page = await pdfDoc.getPage(i);
                 textContent += (await page.getTextContent()).items.map(item => 'str' in item ? item.str : '').join(' ');
             }
+            if(!textContent.trim()) throw new Error("No text content found in PDF.");
             documentDataUri = `data:text/plain;base64,${Buffer.from(textContent).toString('base64')}`;
         } else if (fileName.toLowerCase().endsWith('.docx')) {
             const arrayBuffer = await blob.arrayBuffer();
             const { value } = await mammoth.extractRawText({ arrayBuffer });
+            if(!value.trim()) throw new Error("No text content found in DOCX.");
             documentDataUri = `data:text/plain;base64,${Buffer.from(value).toString('base64')}`;
         } else {
              documentDataUri = source.fileDataUri;
@@ -285,7 +287,7 @@ function HomePageContent() {
     }
   };
 
-  const onSubmit: SubmitHandler<BuilderFormData> = async (data) => {
+ const onSubmit: SubmitHandler<BuilderFormData> = async (data) => {
     if (!currentUser) {
       const draft = JSON.stringify({ prompt: data.prompt, knowledgeSource, isPublic });
       sessionStorage.setItem(SESSION_STORAGE_KEY, draft);
@@ -295,40 +297,41 @@ function HomePageContent() {
     }
     
     setIsLoading(true);
+    toast({ title: "Building Agent...", description: "The AI is processing your request. Please wait." });
     
     try {
-      const agentDescriptionForAI = `Create an AI agent based on this user prompt: "${data.prompt}" ${knowledgeSource ? 'It should be knowledgeable about the attached document.' : ''}`;
+      const existingClientNames = clients.map(c => c.name);
       
-      const aiResult = await createAgent({
-        agentDescription: agentDescriptionForAI,
-        agentType: 'chat',
-      });
-
-      const agentDataForContext: Omit<Agent, 'id' | 'createdAt' | 'knowledgeItems' | 'userId' | 'clientId' | 'clientName'> = {
-        name: `Agent: ${data.prompt.substring(0, 20)}...`,
-        description: data.prompt,
-        agentType: 'chat',
-        primaryLogic: knowledgeSource ? 'rag' : 'prompt',
+      const inputForAICreation: CreateAgentFromPromptInput = {
+        prompt: data.prompt,
+        existingClientNames: existingClientNames,
         isPubliclyShared: isPublic,
+        hasKnowledge: !!knowledgeSource,
       };
 
-      const newAgent = await addAgentToContext(agentDataForContext, aiResult);
+      const agentCreationResult = await createAgentFromPrompt(inputForAICreation);
+
+      const newAgent = await addAgentToContext(agentCreationResult);
 
       if (newAgent) {
-        toast({ title: "Agent Created!", description: "Redirecting to your new agent..." });
+        toast({ title: "Agent Created!", description: `"${newAgent.generatedName}" is ready. Now processing knowledge...` });
         
+        let trainingSuccess = true;
         if (knowledgeSource) {
-          await processAndAddKnowledge(newAgent.id, knowledgeSource);
+          trainingSuccess = await processAndAddKnowledge(newAgent.id, knowledgeSource);
         }
         
-        router.push(`/agents/${newAgent.id}/personality`);
+        // Always redirect, even if knowledge training fails. User can re-train.
+        router.push(`/agents/${newAgent.id}/${trainingSuccess ? 'test' : 'knowledge'}`);
       } else {
-         throw new Error("Could not create agent in the database. A server-side error occurred.");
+         throw new Error("Could not save the new agent to the database. A server-side error occurred.");
       }
 
     } catch (error: any) {
+       console.error("Agent creation failed:", error);
        toast({ title: "Agent Creation Failed", description: error.message || "An unknown error occurred.", variant: "destructive" });
-       setIsLoading(false); // Ensure loading state is turned off on failure
+    } finally {
+       setIsLoading(false);
     }
   };
 
@@ -356,14 +359,14 @@ function HomePageContent() {
             <div className="relative">
               <Textarea
                 id="prompt"
-                placeholder="Ask AgentVerse to create..."
+                placeholder="e.g., Make me a friendly support chatbot for my online shoe store 'Kickz' that can answer questions about shipping and returns..."
                 {...register("prompt")}
                 rows={3}
                 className="resize-none rounded-lg border-2 border-border bg-card p-4 pr-20 text-base focus-visible:ring-primary"
               />
               <Button type="submit" size="icon" className="absolute right-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full" disabled={isLoading || isProcessingKnowledge}>
-                {(isLoading || isProcessingKnowledge) ? <Loader2 className="animate-spin" /> : <ArrowUp />}
-                <span className="sr-only">Submit</span>
+                {(isLoading || isProcessingKnowledge) ? <Loader2 className="animate-spin" /> : <Sparkles />}
+                <span className="sr-only">Build Agent</span>
               </Button>
             </div>
             {errors.prompt && <p className="text-xs text-destructive mt-2">{errors.prompt.message}</p>}

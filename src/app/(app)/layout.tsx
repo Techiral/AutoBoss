@@ -38,6 +38,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from "@/lib/utils";
+import type { AgentCreationOutput } from '@/ai/flows/agent-creation';
 
 
 const LOCAL_STORAGE_THEME_KEY = 'autoBossTheme';
@@ -52,7 +53,7 @@ interface AppContextType {
   addClient: (clientData: Omit<Client, 'id' | 'createdAt' | 'userId'>) => Promise<Client | null>;
   getClientById: (id: string) => Client | undefined;
   deleteClient: (clientId: string) => Promise<void>;
-  addAgent: (agentData: Omit<Agent, 'id' | 'createdAt' | 'knowledgeItems' | 'userId' | 'clientId' | 'clientName'>, agentCreationResult: { agentName: string; agentPersona: string; agentGreeting: string; }) => Promise<Agent | null>;
+  addAgent: (agentCreationResult: AgentCreationOutput) => Promise<Agent | null>;
   updateAgent: (agent: Agent) => Promise<void>;
   getAgent: (id: string) => Agent | undefined;
   addKnowledgeItem: (agentId: string, item: KnowledgeItem) => Promise<void>;
@@ -287,8 +288,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
 
   const addAgent = useCallback(async (
-    agentData: Omit<Agent, 'id' | 'createdAt' | 'knowledgeItems' | 'userId' | 'clientId' | 'clientName'>,
-    agentCreationResult: { agentName: string; agentPersona: string; agentGreeting: string; }
+    agentCreationResult: AgentCreationOutput
   ): Promise<Agent | null> => {
     if (!currentUser) {
       toast({ title: "Not Authenticated", description: "You must be logged in to create an agent.", variant: "destructive" });
@@ -298,19 +298,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
         let finalClientId: string;
         let finalClientName: string;
+        const requestedClientName = agentCreationResult.clientName;
+        
+        const existingClient = clients.find(c => c.name === requestedClientName);
 
-        // Check if there are any clients for the user.
-        if (clients.length === 0) {
-            // No clients exist, create a new default one.
-            const newClient = await addClient({ name: 'My Workspace' });
-            if (!newClient) throw new Error("Could not create default workspace.");
+        if (requestedClientName && existingClient) {
+            // Client already exists, use it
+            finalClientId = existingClient.id;
+            finalClientName = existingClient.name;
+        } else if (requestedClientName && !existingClient) {
+            // A new client name was specified, create it
+            const newClient = await addClient({ name: requestedClientName });
+            if (!newClient) throw new Error("Could not create new client workspace.");
             finalClientId = newClient.id;
             finalClientName = newClient.name;
         } else {
-            // Use the first client as the default. This can be improved later with a proper default setting.
-            finalClientId = clients[0].id;
-            finalClientName = clients[0].name;
+            // No client name mentioned, use or create a default "My Workspace"
+            let defaultWorkspace = clients.find(c => c.name === "My Workspace");
+            if (!defaultWorkspace) {
+                defaultWorkspace = await addClient({ name: "My Workspace" });
+                if (!defaultWorkspace) throw new Error("Could not create default workspace.");
+            }
+            finalClientId = defaultWorkspace.id;
+            finalClientName = defaultWorkspace.name;
         }
+        
 
       const newAgentId = doc(collection(db, AGENTS_COLLECTION)).id;
       const newAgent: Agent = {
@@ -318,19 +330,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         userId: currentUser.uid,
         clientId: finalClientId,
         clientName: finalClientName,
-        ...agentData,
-        generatedName: agentCreationResult.agentName,
-        generatedPersona: agentCreationResult.agentPersona,
-        generatedGreeting: agentCreationResult.agentGreeting,
-        agentTone: agentData.agentTone || "neutral",
-        voiceName: agentData.voiceName === 'default' ? null : (agentData.voiceName || null),
-        isPubliclyShared: agentData.isPubliclyShared || false,
-        sharedAt: agentData.isPubliclyShared ? Timestamp.now() : null,
+        ...agentCreationResult,
+        voiceName: null, // Default voice name
         knowledgeItems: [],
         createdAt: Timestamp.now(),
+        sharedAt: agentCreationResult.isPubliclyShared ? Timestamp.now() : null,
       };
       
-      await setDoc(doc(db, AGENTS_COLLECTION, newAgent.id), newAgent);
+      await setDoc(doc(db, AGENTS_COLLECTION, newAgentId), newAgent);
       
       const agentForState = convertFirestoreTimestampToISO(newAgent, ['createdAt', 'sharedAt']) as Agent;
       setAgents((prevAgents) => [...prevAgents, agentForState]);

@@ -81,7 +81,38 @@ export type AgentLogicType = 'prompt' | 'rag';
 export type AgentDirection = 'inbound' | 'outbound';
 export const AgentToneSchema = z.enum(["neutral", "friendly", "professional", "witty"]);
 export type AgentToneType = z.infer<typeof AgentToneSchema>;
-export type AgentPurposeType = "support" | "sales" | "info" | "custom";
+
+// Input schema for the new agent creation flow
+export const CreateAgentFromPromptInputSchema = z.object({
+  prompt: z
+    .string()
+    .describe('The user\'s natural language request for the agent to be built.'),
+  existingClientNames: z.array(z.string()).optional().describe('A list of client names that already exist for this user, to help the AI match or create a new one.'),
+  isPubliclyShared: z.boolean().optional().describe('Whether the user has indicated this agent should be public.'),
+  hasKnowledge: z.boolean().optional().describe('Whether the user has attached a knowledge source (file, text, or URL).'),
+});
+export type CreateAgentFromPromptInput = z.infer<typeof CreateAgentFromPromptInputSchema>;
+
+
+// Output schema for the new agent creation flow
+export const AgentCreationOutputSchema = z.object({
+  name: z.string().describe("A short, internal-facing name for the agent concept (e.g., 'ACME Support Bot'). This is derived from the prompt."),
+  description: z.string().describe("A one-sentence description of the agent's purpose."),
+  role: z.string().describe("A detailed description of the agent's role and objectives, written in the first person as if the agent is describing its job."),
+  personality: z.string().describe("A detailed description of the agent's personality and communication style."),
+  generatedName: z.string().describe('A creative, catchy, user-facing name for the agent.'),
+  generatedPersona: z
+    .string()
+    .describe('A detailed persona of the agent based on the description, written in the first person.'),
+  generatedGreeting: z.string().describe('A sample greeting from the agent that aligns with its persona and role.'),
+  agentType: z.custom<AgentType>().describe("The type of agent: 'chat', 'voice', or 'hybrid'. Inferred from the prompt (e.g., 'chatbot' -> chat, 'answers the phone' -> voice)."),
+  direction: z.custom<AgentDirection>().optional().describe("The direction of the agent: 'inbound' or 'outbound'. Inferred from the prompt (e.g., 'answers calls' -> inbound). Default to 'inbound' if unsure."),
+  agentTone: AgentToneSchema.describe("The desired conversational tone for the agent (e.g., 'friendly', 'professional'). Inferred from the prompt."),
+  primaryLogic: z.custom<AgentLogicType>().describe("The core logic for the agent. If the prompt implies answering questions from specific info OR if 'hasKnowledge' is true, this MUST be 'rag'. Otherwise, it should be 'prompt' for general conversation."),
+  isPubliclyShared: z.boolean().describe("Whether the agent should be publicly listed."),
+  clientName: z.string().optional().describe("The name of the client this agent is for. If the prompt mentions a name that matches one from 'existingClientNames', use that exact name. If it mentions a new company name, use that new name. If no client or company is mentioned, this field should be omitted."),
+});
+export type AgentCreationOutput = z.infer<typeof AgentCreationOutputSchema>;
 
 
 export const AgentSchema = z.object({

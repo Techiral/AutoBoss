@@ -2,124 +2,98 @@
 'use server';
 
 /**
- * @fileOverview Agent creation flow.
+ * @fileOverview Agent creation flow that intelligently interprets a user's natural language prompt.
  *
- * - createAgent - A function that handles the agent creation process.
- * - CreateAgentInput - The input type for the createAgent function.
- * - CreateAgentOutput - The return type for the createAgent function.
+ * - createAgentFromPrompt - A function that takes a prompt and generates a complete agent configuration.
+ * - CreateAgentFromPromptInput - The input type for the function.
+ * - AgentCreationOutput - The return type for the function, containing all necessary fields for a new agent.
  */
 
 import {ai} from '@/ai/genkit';
-import {z}from 'genkit';
-import type { AgentType, AgentDirection, AgentToneType } from '@/lib/types';
-import { AgentToneSchema } from '@/lib/types';
+import {
+    CreateAgentFromPromptInputSchema, 
+    AgentCreationOutputSchema, 
+    type CreateAgentFromPromptInput, 
+    type AgentCreationOutput 
+} from '@/lib/types';
 
 
-const CreateAgentInputSchema = z.object({
-  agentDescription: z
-    .string()
-    .describe('A description of the agent, including its role and personality.'),
-  agentType: z.custom<AgentType>().optional().describe("The type of agent: 'chat', 'voice', or 'hybrid'. This can influence the generated persona and greeting."),
-  direction: z.custom<AgentDirection>().optional().describe("The direction of the agent: 'inbound' or 'outbound'. This can influence tone or initial greeting strategy."),
-  agentTone: AgentToneSchema.optional().describe("The desired conversational tone for the agent (e.g., 'friendly', 'professional').")
-});
-export type CreateAgentInput = z.infer<typeof CreateAgentInputSchema>;
-
-const CreateAgentOutputSchema = z.object({
-  agentName: z.string().describe('The generated name of the agent.'),
-  agentPersona: z
-    .string()
-    .describe('A more detailed persona of the agent based on the description.'),
-  agentGreeting: z.string().describe('A sample greeting from the agent.'),
-});
-export type CreateAgentOutput = z.infer<typeof CreateAgentOutputSchema>;
-
-export async function createAgent(input: CreateAgentInput): Promise<CreateAgentOutput> {
-  return createAgentFlow(input);
+export async function createAgentFromPrompt(input: CreateAgentFromPromptInput): Promise<AgentCreationOutput> {
+  return createAgentFromPromptFlow(input);
 }
 
-// Internal schema for the prompt, including boolean flags for tone
-const PromptInputSchema = CreateAgentInputSchema.extend({
-  isFriendlyTone: z.boolean().optional(),
-  isProfessionalTone: z.boolean().optional(),
-  isWittyTone: z.boolean().optional(),
-  isNeutralTone: z.boolean().optional(),
-});
-
 const prompt = ai.definePrompt({
-  name: 'createAgentPrompt',
-  input: {schema: PromptInputSchema}, // Use the extended schema here
-  output: {schema: CreateAgentOutputSchema},
-  prompt: `You are an expert in creating AI agents. Based on the description provided, you will generate:
-1. A concise and catchy "agentName".
-2. A detailed "agentPersona" in the first person, embodying the role and personality.
-3. A sample "agentGreeting" that the agent would use to introduce itself.
+  name: 'createAgentFromPrompt',
+  input: {schema: CreateAgentFromPromptInputSchema},
+  output: {schema: AgentCreationOutputSchema},
+  prompt: `You are an expert in creating AI agents based on user requests. A user has provided the following prompt. Your task is to analyze it and generate a complete, structured configuration for the new agent.
 
-{{#if agentType}}
-The agent is intended to be a "{{agentType}}" agent.
-{{#if direction}}
-It is also an "{{direction}}" agent.
+--- USER PROMPT ---
+"{{{prompt}}}"
+--- END USER PROMPT ---
+
+--- CONTEXTUAL HINTS ---
+- User wants this agent to be public: {{{isPubliclyShared}}}. Your 'isPubliclyShared' output must reflect this.
+- User has attached a knowledge source: {{{hasKnowledge}}}. This is a strong hint that the agent's primaryLogic should be 'rag' (Retrieval-Augmented Generation) so it can answer questions based on that knowledge. If 'hasKnowledge' is false, and the prompt seems more about general conversation or creative tasks, use 'prompt' as the primaryLogic.
+{{#if existingClientNames}}
+- The user already has clients named: {{#each existingClientNames}}"{{this}}"{{#unless @last}}, {{/unless}}{{/each}}.
+  - If the prompt mentions a company name that closely matches one of these, you MUST use the exact existing name for the 'clientName' output field.
+  - If the prompt mentions a new company name not in this list, use that new name for 'clientName'.
+  - If the prompt does NOT mention any specific client or company, you MUST omit the 'clientName' field entirely.
+{{else}}
+- The user has no existing clients. If the prompt mentions a company name, use that for the 'clientName' field. Otherwise, omit it.
 {{/if}}
-Consider these characteristics when crafting the persona and greeting.
-For example:
-- A 'voice' agent's greeting should be natural and concise for a phone call (e.g., "Hello, this is [Agent Name], how can I help you?").
-- An 'inbound' chat agent might have a welcoming greeting for a website visitor (e.g., "Hi there! I'm [Agent Name], your virtual assistant for [Business]. How can I assist you today?").
-- An 'outbound' agent might have a more direct but polite opening if initiating contact (though full outbound logic is complex, its initial greeting tone can be considered).
-- A 'hybrid' agent should have a versatile greeting.
-This agent will primarily rely on its persona, direct AI prompting, and any trained knowledge (RAG), not a predefined visual flow.
-{{/if}}
+--- END CONTEXTUAL HINTS ---
 
-{{#if agentTone}}
-Desired Conversational Tone: {{agentTone}}.
-  {{#if isFriendlyTone}}
-    Please adopt a warm, approachable, and casual conversational style. Use friendly language and express positive emotions where appropriate.
-  {{else if isProfessionalTone}}
-    Maintain a formal, precise, and respectful tone. Use clear, direct language and avoid slang or overly casual expressions.
-  {{else if isWittyTone}}
-    Incorporate humor, clever wordplay, and a playful attitude. Responses can be lighthearted and engaging, but still relevant.
-  {{else}}
-    Use a balanced and neutral conversational style.
-  {{/if}}
-This tone should influence the generated persona and sample greeting.
-{{/if}}
+Based on all the information, generate the following fields:
 
-Description:
-{{{agentDescription}}}
+1.  **name**: A short, internal-facing name for the agent concept (e.g., 'ACME Support Bot'). This is derived from the prompt.
+2.  **description**: A one-sentence description of the agent's purpose.
+3.  **role**: A detailed description of the agent's role and objectives, written in the first person as if the agent is describing its job.
+4.  **personality**: A detailed description of the agent's personality and communication style.
+5.  **generatedName**: A creative, catchy, user-facing name for the agent.
+6.  **generatedPersona**: A detailed persona of the agent based on the description, written in the first person.
+7.  **generatedGreeting**: A sample greeting from the agent that aligns with its persona and role.
+8.  **agentType**: Infer if it's 'chat', 'voice', or 'hybrid'. Default to 'chat' if unclear.
+9.  **direction**: Infer if it's 'inbound' or 'outbound'. Default to 'inbound'.
+10. **agentTone**: Infer the tone ('friendly', 'professional', 'witty', 'neutral'). Default to 'friendly' if the prompt is casual.
+11. **primaryLogic**: MUST be 'rag' if the agent's purpose is to answer questions from data OR if 'hasKnowledge' is true. Otherwise, 'prompt'.
+12. **isPubliclyShared**: Set based on the user's preference.
+13. **clientName**: Set ONLY if a client/company name is mentioned in the prompt. Match existing names if possible.
 
-Your response MUST be a single, valid JSON object that adheres to the output schema.
-Specifically, it should have the fields: "agentName", "agentPersona", and "agentGreeting".
-Example format:
-{
-  "agentName": "Example Agent",
-  "agentPersona": "I am the Example Agent, here to assist you with...",
-  "agentGreeting": "Hello, I'm Example Agent, ready to help!"
-}`,
+Your response MUST be a single, valid JSON object that strictly adheres to the output schema.
+`,
 });
 
-const createAgentFlow = ai.defineFlow(
+const createAgentFromPromptFlow = ai.defineFlow(
   {
-    name: 'createAgentFlow',
-    inputSchema: CreateAgentInputSchema, // Flow input is still the original schema
-    outputSchema: CreateAgentOutputSchema,
+    name: 'createAgentFromPromptFlow',
+    inputSchema: CreateAgentFromPromptInputSchema,
+    outputSchema: AgentCreationOutputSchema,
   },
-  async (input): Promise<CreateAgentOutput> => {
-    // Prepare input for the prompt by adding boolean tone flags
-    const promptInputData: z.infer<typeof PromptInputSchema> = {
-      ...input,
-      isFriendlyTone: input.agentTone === 'friendly',
-      isProfessionalTone: input.agentTone === 'professional',
-      isWittyTone: input.agentTone === 'witty',
-      isNeutralTone: input.agentTone === 'neutral' || !input.agentTone, // Default to neutral
-    };
-
-    const modelResponse = await prompt(promptInputData); 
+  async (input): Promise<AgentCreationOutput> => {
+    
+    const modelResponse = await prompt(input); 
 
     if (!modelResponse.output) {
       const rawText = modelResponse.response?.text; 
       console.error(
-        'Failed to get structured output from createAgentPrompt. Raw model response:',
+        'Failed to get structured output from createAgentFromPrompt. Raw model response:',
         rawText || 'No raw text available'
       );
+      // Attempt to parse raw text as a fallback
+      if (rawText) {
+        try {
+          const parsed = JSON.parse(rawText);
+          const validation = AgentCreationOutputSchema.safeParse(parsed);
+          if (validation.success) {
+            console.warn("Successfully parsed raw text as fallback agent creation output.");
+            return validation.data;
+          }
+        } catch (e) {
+          // Fall through to the main error
+        }
+      }
       throw new Error(
         'AI agent could not generate valid details. The model did not return the expected JSON format.'
       );
