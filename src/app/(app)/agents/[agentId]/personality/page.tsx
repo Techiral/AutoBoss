@@ -11,11 +11,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { createAgent, CreateAgentOutput } from "@/ai/flows/agent-creation";
+import { createAgentFromPrompt, type CreateAgentFromPromptInput } from "@/ai/flows/agent-creation";
 import { generateAgentImage } from "@/ai/flows/image-generation-flow";
 import { useParams } from "next/navigation"; 
 import { useAppContext } from "../../../layout"; 
-import type { Agent, AgentToneType } from "@/lib/types"; 
+import type { Agent, AgentToneType, AgentCreationOutput } from "@/lib/types"; 
 import { AgentToneSchema } from "@/lib/types"; 
 import { Loader2, Smile, Settings, HelpCircle, Image as ImageIcon, MessageCircle, AlertTriangle, Mic, Sparkles } from "lucide-react"; 
 import { Logo } from "@/components/logo";
@@ -53,7 +53,7 @@ type FormData = z.infer<typeof formSchema>;
 export default function PersonalityPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [currentAgent, setCurrentAgent] = useState<Agent | null | undefined>(undefined); 
-  const [generatedDetails, setGeneratedDetails] = useState<CreateAgentOutput | null>(null);
+  const [generatedDetails, setGeneratedDetails] = useState<AgentCreationOutput | null>(null);
   const [selectedImageDataUri, setSelectedImageDataUri] = useState<string | undefined>(undefined);
   const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -62,7 +62,7 @@ export default function PersonalityPage() {
   const { toast } = useToast();
   const params = useParams();
   const agentId = Array.isArray(params.agentId) ? params.agentId[0] : params.agentId;
-  const { getAgent, updateAgent, isLoadingAgents } = useAppContext();
+  const { getAgent, updateAgent, isLoadingAgents, clients } = useAppContext();
 
   const { control, register, handleSubmit, formState: { errors }, setValue, watch } = useForm<FormData>({ 
     resolver: zodResolver(formSchema),
@@ -92,9 +92,19 @@ export default function PersonalityPage() {
         }
         if (agent.generatedName && agent.generatedPersona && agent.generatedGreeting) {
             setGeneratedDetails({
-                agentName: agent.generatedName,
-                agentPersona: agent.generatedPersona,
-                agentGreeting: agent.generatedGreeting,
+                name: agent.name,
+                description: agent.description,
+                role: agent.role || '',
+                personality: agent.personality || '',
+                generatedName: agent.generatedName,
+                generatedPersona: agent.generatedPersona,
+                generatedGreeting: agent.generatedGreeting,
+                agentType: agent.agentType,
+                direction: agent.direction,
+                agentTone: agent.agentTone || "neutral",
+                primaryLogic: agent.primaryLogic || "prompt",
+                isPubliclyShared: agent.isPubliclyShared || false,
+                clientName: agent.clientName
             });
         }
       }
@@ -223,25 +233,29 @@ export default function PersonalityPage() {
     setIsLoading(true);
     
     try {
-      const agentDescriptionForAI = `Name: ${data.name}\nRole: ${data.role}\nPersonality: ${data.personality}\nTone: ${data.agentTone}`;
-      const result = await createAgent({ 
-        agentDescription: agentDescriptionForAI, 
-        agentType: currentAgent.agentType, 
-        direction: currentAgent.direction,
-        agentTone: data.agentTone as AgentToneType, 
-      });
+      const promptForAI = `Regenerate details for an existing agent with the following updated core information. Focus on generating a new creative name, persona, and greeting based on these details.\nName: ${data.name}\nRole: ${data.role}\nPersonality: ${data.personality}\nTone: ${data.agentTone}`;
+      const existingClientNames = clients.map(c => c.name);
+
+      const inputForAICreation: CreateAgentFromPromptInput = {
+        prompt: promptForAI,
+        existingClientNames: existingClientNames,
+        isPubliclyShared: currentAgent.isPubliclyShared || false,
+        hasKnowledge: (currentAgent.knowledgeItems || []).length > 0,
+      };
+      
+      const result = await createAgentFromPrompt(inputForAICreation);
       setGeneratedDetails(result);
       
       const updatedAgentData: Partial<Agent> = { 
         name: data.name,
-        description: `Purpose: ${currentAgent.agentPurpose || 'N/A'}. Type: ${currentAgent.agentType}. Logic: ${currentAgent.primaryLogic || 'N/A'}. Role: ${data.role}. Personality: ${data.personality}.`,
+        description: result.description,
         role: data.role,
         personality: data.personality,
         agentTone: data.agentTone as AgentToneType, 
         voiceName: data.voiceName === 'default' ? null : data.voiceName,
-        generatedName: result.agentName,
-        generatedPersona: result.agentPersona,
-        generatedGreeting: result.agentGreeting,
+        generatedName: result.generatedName,
+        generatedPersona: result.generatedPersona,
+        generatedGreeting: result.generatedGreeting,
         ogDescription: data.ogDescription || null,
         agentImageUrl: selectedImageDataUri || currentImageUrl,
       };
@@ -253,7 +267,7 @@ export default function PersonalityPage() {
 
       toast({
         title: "Personality & Branding Updated!",
-        description: `Agent "${result.agentName}" details have been successfully updated.`,
+        description: `Agent "${result.generatedName}" details have been successfully updated.`,
       });
     } catch (error: any) {
       console.error("Error updating personality:", error);
@@ -386,15 +400,15 @@ export default function PersonalityPage() {
                   <h3 className="font-headline text-md sm:text-lg">Current AI Generated Details</h3>
                   <div>
                       <Label className="text-xs font-semibold">Generated Name (User-Facing)</Label>
-                      <p className="text-sm p-2 bg-muted rounded-md mt-1">{generatedDetails?.agentName || currentAgent.generatedName}</p>
+                      <p className="text-sm p-2 bg-muted rounded-md mt-1">{generatedDetails?.generatedName || currentAgent.generatedName}</p>
                   </div>
                   <div>
                       <Label className="text-xs font-semibold">Generated Persona (How it acts)</Label>
-                      <p className="text-sm p-2 bg-muted rounded-md whitespace-pre-wrap mt-1">{generatedDetails?.agentPersona || currentAgent.generatedPersona}</p>
+                      <p className="text-sm p-2 bg-muted rounded-md whitespace-pre-wrap mt-1">{generatedDetails?.generatedPersona || currentAgent.generatedPersona}</p>
                   </div>
                   <div>
                       <Label className="text-xs font-semibold">Sample Greeting</Label>
-                      <p className="text-sm p-2 bg-muted rounded-md mt-1">{generatedDetails?.agentGreeting || currentAgent.generatedGreeting}</p>
+                      <p className="text-sm p-2 bg-muted rounded-md mt-1">{generatedDetails?.generatedGreeting || currentAgent.generatedGreeting}</p>
                   </div>
               </div>
             )}
@@ -480,3 +494,5 @@ export default function PersonalityPage() {
     </TooltipProvider>
   );
 }
+
+    
