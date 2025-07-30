@@ -9,8 +9,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { useRouter } from "next/navigation";
-import { Loader2, ArrowUp, Upload, FileText, LinkIcon, Globe, Sparkles } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Loader2, Upload, FileText, LinkIcon, Globe, Sparkles } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Logo } from "@/components/logo";
 import { UserNav } from "@/components/user-nav";
@@ -18,7 +18,7 @@ import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import type { Agent, KnowledgeItem, ProcessedUrlOutput } from "@/lib/types";
 import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { extractKnowledge } from "@/ai/flows/knowledge-extraction";
 import { processUrl } from "@/ai/flows/url-processor";
 import { AppProvider, useAppContext } from "./(app)/layout";
@@ -55,7 +55,7 @@ type BuilderFormData = z.infer<typeof builderFormSchema>;
 type KnowledgeSource = {
   type: 'file';
   fileName: string;
-  fileDataUri: string; // Store as Data URI to survive session storage
+  fileDataUri: string; 
   isPreStructured: boolean;
 } | {
   type: 'text';
@@ -133,12 +133,25 @@ function HomePageContent() {
 
   const { toast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { currentUser, loading: authLoading } = useAuth();
   const { addAgent: addAgentToContext, addKnowledgeItem, clients } = useAppContext();
 
   const { register, handleSubmit, formState: { errors }, setValue } = useForm<BuilderFormData>({
     resolver: zodResolver(builderFormSchema),
   });
+
+  useEffect(() => {
+    const prefillPrompt = (clientId: string | null, clientName: string | null) => {
+        if (clientId && clientName) {
+            const prompt = `Build an agent for my client '${clientName}' that can...`;
+            setValue("prompt", prompt);
+        }
+    }
+    const clientId = searchParams.get('clientId');
+    const clientName = searchParams.get('clientName');
+    prefillPrompt(clientId, clientName);
+  }, [searchParams, setValue]);
 
   useEffect(() => {
     if (!authLoading && currentUser) {
@@ -229,15 +242,12 @@ function HomePageContent() {
     try {
       if (source.type === 'file') {
         fileName = source.fileName;
+        documentDataUri = source.fileDataUri;
         isPreStructured = source.isPreStructured;
         const fileResponse = await fetch(source.fileDataUri);
         const blob = await fileResponse.blob();
         
-        if (isPreStructured) {
-            const textContent = await blob.text();
-            const structuredText = csvToStructuredText(textContent, source.fileName);
-            documentDataUri = `data:text/plain;base64,${Buffer.from(structuredText).toString('base64')}`;
-        } else if (fileName.toLowerCase().endsWith('.pdf')) {
+        if (fileName.toLowerCase().endsWith('.pdf')) {
             const arrayBuffer = await blob.arrayBuffer();
             const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
             let textContent = "";
@@ -252,8 +262,10 @@ function HomePageContent() {
             const { value } = await mammoth.extractRawText({ arrayBuffer });
             if(!value.trim()) throw new Error("No text content found in DOCX.");
             documentDataUri = `data:text/plain;base64,${Buffer.from(value).toString('base64')}`;
-        } else {
-             documentDataUri = source.fileDataUri;
+        } else if (isPreStructured) {
+            const textContent = await blob.text();
+            const structuredText = csvToStructuredText(textContent, source.fileName);
+            documentDataUri = `data:text/plain;base64,${Buffer.from(structuredText).toString('base64')}`;
         }
       } else if (source.type === 'text') {
         fileName = source.fileName;
@@ -321,7 +333,6 @@ function HomePageContent() {
           trainingSuccess = await processAndAddKnowledge(newAgent.id, knowledgeSource);
         }
         
-        // Always redirect, even if knowledge training fails. User can re-train.
         router.push(`/agents/${newAgent.id}/${trainingSuccess ? 'test' : 'knowledge'}`);
       } else {
          throw new Error("Could not save the new agent to the database. A server-side error occurred.");
@@ -332,6 +343,7 @@ function HomePageContent() {
        toast({ title: "Agent Creation Failed", description: error.message || "An unknown error occurred.", variant: "destructive" });
     } finally {
        setIsLoading(false);
+       setKnowledgeSource(null);
     }
   };
 
@@ -348,9 +360,9 @@ function HomePageContent() {
 
       <main className="container mx-auto max-w-screen-xl px-4 pt-24 pb-12">
         <div className="text-center">
-          <h1 className="font-headline text-4xl sm:text-5xl font-bold">Build something <span className="text-primary">Lovable</span></h1>
+          <h1 className="font-headline text-4xl sm:text-5xl font-bold">Build an agent, <span className="text-primary">instantly</span></h1>
           <p className="mt-3 text-base sm:text-lg text-muted-foreground">
-            Create agents, apps, and websites by chatting with AI
+            Just describe what you want. Our AI will build it, name it, and give it a personality.
           </p>
         </div>
 
@@ -379,12 +391,18 @@ function HomePageContent() {
             <Button variant="outline" size="sm" className="text-xs gap-1.5" data-state={isPublic ? 'active' : 'inactive'} onClick={() => setIsPublic(!isPublic)}><Globe size={14} /> Public</Button>
           </div>
           {knowledgeSource && (
-              <div className="mt-2 text-xs text-muted-foreground p-2 bg-secondary rounded-md">
-                <strong>Knowledge Source Ready:</strong> {
-                  knowledgeSource.type === 'file' ? knowledgeSource.fileName : 
-                  knowledgeSource.type === 'text' ? 'Pasted Text' : 
-                  knowledgeSource.url
-                }. This will be used when you create the agent.
+              <div className="mt-2 text-xs text-muted-foreground p-2 bg-secondary rounded-md flex justify-between items-center">
+                <span className="truncate pr-2">
+                  <strong>Ready to train:</strong> {
+                    knowledgeSource.type === 'file' ? knowledgeSource.fileName : 
+                    knowledgeSource.type === 'text' ? 'Pasted Text' : 
+                    knowledgeSource.url
+                  }
+                </span>
+                <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => setKnowledgeSource(null)}>
+                  <span className="sr-only">Remove knowledge source</span>
+                  &times;
+                </Button>
               </div>
             )}
         </div>

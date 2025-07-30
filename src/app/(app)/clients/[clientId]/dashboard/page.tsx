@@ -2,15 +2,13 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { useParams, useRouter, Link } from 'next/navigation';
 import { useAppContext } from '../../../layout';
 import type { Agent, Client } from '@/lib/types';
 import { AgentCard } from '@/components/agent-card';
 import { Button } from '@/components/ui/button';
 import { Loader2, AlertTriangle, PlusCircle, Briefcase, Bot } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { cn } from '@/lib/utils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,7 +23,6 @@ import { Logo } from '@/components/logo';
 
 export default function ClientAgentsDashboardPage() {
   const params = useParams();
-  const router = useRouter();
   const { 
     agents, 
     isLoadingAgents, 
@@ -84,7 +81,7 @@ export default function ClientAgentsDashboardPage() {
         <AlertTitle>Client Not Found</AlertTitle>
         <AlertDescription>
           The client you are looking for does not exist or could not be loaded. 
-          Please return to the <Link href="/dashboard" className="underline">main dashboard</Link>.
+          Please return to the <Link href="/" className="underline">main dashboard</Link>.
         </AlertDescription>
       </Alert>
     );
@@ -100,8 +97,8 @@ export default function ClientAgentsDashboardPage() {
             {client.description && <p className="text-sm text-muted-foreground mt-1">{client.description}</p>}
         </div>
         <Button asChild size="sm" className="w-full sm:w-auto">
-          <Link href={`/agents/create?clientId=${client.id}&clientName=${encodeURIComponent(client.name)}`}>
-            <PlusCircle className="mr-2 h-4 w-4 sm:h-5 sm:w-5" /> Create New Agent for {client.name}
+          <Link href={`/?clientId=${client.id}&clientName=${encodeURIComponent(client.name)}`}>
+            <PlusCircle className="mr-2 h-4 w-4 sm:h-5 sm:w-5" /> Create New Agent
           </Link>
         </Button>
       </div>
@@ -112,12 +109,6 @@ export default function ClientAgentsDashboardPage() {
             <AlertTitle>No Agents Yet for {client.name}</AlertTitle>
             <AlertDescription className="text-sm space-y-1">
               <p>This client doesn't have any AI agents. Get started by clicking the button above!</p>
-              <ol className="list-decimal list-inside pl-2 text-xs">
-                <li>Click "Create New Agent for {client.name}".</li>
-                <li>Define the agent's purpose, type, and core personality traits.</li>
-                <li>Train it with specific knowledge (documents, website URLs).</li>
-                <li>Test and then export the agent for your client.</li>
-              </ol>
             </AlertDescription>
           </Alert>
       ) : (

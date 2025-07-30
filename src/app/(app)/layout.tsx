@@ -18,8 +18,14 @@ import {
   SidebarTrigger,
   SidebarInset,
   useSidebar,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
 } from '@/components/ui/sidebar';
-import { Home, Bot, Settings, BookOpen, MessageSquare, Share2, Cog, LifeBuoy, Loader2, LogIn, LayoutGrid, Briefcase, MessageSquarePlus, Library, HelpCircleIcon } from 'lucide-react';
+import { Home, Bot, Settings, BookOpen, MessageSquare, Share2, Cog, LifeBuoy, Loader2, LogIn, LayoutGrid, Briefcase, MessageSquarePlus, Library, HelpCircleIcon, ChevronDown } from 'lucide-react';
 import type { Agent, KnowledgeItem, AgentToneType, Client } from '@/lib/types';
 import { db } from '@/lib/firebase';
 import {
@@ -38,7 +44,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from "@/lib/utils";
-import type { AgentCreationOutput } from '@/ai/flows/agent-creation';
+import type { AgentCreationOutput } from '@/lib/types';
 
 
 const LOCAL_STORAGE_THEME_KEY = 'autoBossTheme';
@@ -181,7 +187,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           clientSnapshot.forEach((doc) => {
             fetchedClients.push(convertFirestoreTimestampToISO({ id: doc.id, ...doc.data() }, ['createdAt']) as Client);
           });
-          setClients(fetchedClients);
+          setClients(fetchedClients.sort((a,b) => a.name.localeCompare(b.name)));
           console.log("AppLayout: Fetched clients:", fetchedClients.length);
           setIsLoadingClients(false);
 
@@ -235,7 +241,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       await setDoc(doc(db, CLIENTS_COLLECTION, newClientId), dataToSave);
       
       const clientForState = convertFirestoreTimestampToISO(dataToSave, ['createdAt']) as Client;
-      setClients((prevClients) => [...prevClients, clientForState]);
+      setClients((prevClients) => [...prevClients, clientForState].sort((a,b) => a.name.localeCompare(b.name)));
       return clientForState;
     } catch (error) {
       console.error("Error adding client to Firestore:", error);
@@ -303,21 +309,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const existingClient = clients.find(c => c.name === requestedClientName);
 
         if (requestedClientName && existingClient) {
-            // Client already exists, use it
             finalClientId = existingClient.id;
             finalClientName = existingClient.name;
         } else if (requestedClientName && !existingClient) {
-            // A new client name was specified, create it
             const newClient = await addClient({ name: requestedClientName });
             if (!newClient) throw new Error("Could not create new client workspace.");
             finalClientId = newClient.id;
             finalClientName = newClient.name;
         } else {
-            // No client name mentioned, use or create a default "My Workspace"
             let defaultWorkspace = clients.find(c => c.name === "My Workspace");
             if (!defaultWorkspace) {
-                defaultWorkspace = await addClient({ name: "My Workspace" });
-                if (!defaultWorkspace) throw new Error("Could not create default workspace.");
+                const newClient = await addClient({ name: "My Workspace" });
+                if (!newClient) throw new Error("Could not create default workspace.");
+                defaultWorkspace = newClient;
             }
             finalClientId = defaultWorkspace.id;
             finalClientName = defaultWorkspace.name;
@@ -331,7 +335,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         clientId: finalClientId,
         clientName: finalClientName,
         ...agentCreationResult,
-        voiceName: null, // Default voice name
+        voiceName: null,
         knowledgeItems: [],
         createdAt: Timestamp.now(),
         sharedAt: agentCreationResult.isPubliclyShared ? Timestamp.now() : null,
@@ -633,8 +637,9 @@ function AppHeader() {
 function AppSidebar() {
   const pathname = usePathname();
   const { state: sidebarState, isMobile, setOpenMobile } = useSidebar();
-  const collapsed = !isMobile && sidebarState === 'collapsed';
   const { currentUser } = useAuth();
+  const { clients, agents, isLoadingAgents, isLoadingClients } = useAppContext();
+  const collapsed = !isMobile && sidebarState === 'collapsed';
   
   const handleMobileLinkClick = () => {
     if (isMobile) {
@@ -645,40 +650,58 @@ function AppSidebar() {
   if (!currentUser) {
     return null;
   }
+  
+  const agentsByClient = clients.reduce((acc, client) => {
+    acc[client.id] = agents.filter(agent => agent.clientId === client.id);
+    return acc;
+  }, {} as Record<string, Agent[]>);
+
 
   return (
     <Sidebar>
       <SidebarHeader className="p-3 sm:p-4">
-        <Link href="/dashboard" className="hover:opacity-80 transition-opacity" aria-label="Dashboard" onClick={handleMobileLinkClick}>
+        <Link href="/" className="hover:opacity-80 transition-opacity" aria-label="Dashboard" onClick={handleMobileLinkClick}>
             <Logo collapsed={collapsed} className="h-6 sm:h-7 px-1 sm:px-2 py-1"/>
         </Link>
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
           <SidebarMenuItem>
-            <Link href="/dashboard" onClick={handleMobileLinkClick}>
-              <SidebarMenuButton isActive={pathname.startsWith('/dashboard') || pathname.startsWith('/clients/')} tooltip={collapsed ? 'Client Dashboard' : undefined}>
-                <Briefcase />
-                <span>Client Dashboard</span>
+             <Link href="/" onClick={handleMobileLinkClick}>
+              <SidebarMenuButton isActive={pathname === '/'} tooltip={collapsed ? 'Agent Builder' : undefined}>
+                <Home />
+                <span>Agent Builder</span>
               </SidebarMenuButton>
             </Link>
           </SidebarMenuItem>
-          <SidebarMenuItem>
-            <Link href="/app/templates-gallery" onClick={handleMobileLinkClick}>
-              <SidebarMenuButton isActive={pathname === '/app/templates-gallery'} tooltip={collapsed ? 'Agent Templates' : undefined}>
-                <Library />
-                <span>Agent Templates</span>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-           <SidebarMenuItem>
-            <Link href="/app/user-support" onClick={handleMobileLinkClick}>
-              <SidebarMenuButton isActive={pathname === '/app/user-support'} tooltip={collapsed ? 'Help & Support' : undefined}>
-                <HelpCircleIcon />
-                <span>Help & Support</span>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
+          {isLoadingClients || isLoadingAgents ? (
+            <div className="p-2 space-y-2">
+              <div className="h-8 rounded-md bg-muted animate-pulse" />
+              <div className="h-8 rounded-md bg-muted animate-pulse" />
+            </div>
+          ) : (
+            clients.map(client => (
+              <SidebarGroup key={client.id} className="p-0">
+                  <SidebarGroupLabel className="group/label flex items-center justify-between text-xs px-2 mx-2 text-muted-foreground font-semibold uppercase">
+                      <span className="truncate">{client.name}</span>
+                  </SidebarGroupLabel>
+                  <SidebarGroupContent>
+                      <SidebarMenu>
+                        {(agentsByClient[client.id] || []).map(agent => (
+                           <SidebarMenuItem key={agent.id}>
+                              <Link href={`/agents/${agent.id}/personality`} onClick={handleMobileLinkClick}>
+                                  <SidebarMenuButton isActive={pathname.startsWith(`/agents/${agent.id}`)} tooltip={collapsed ? (agent.generatedName || agent.name) : undefined} size="sm">
+                                      <Bot/>
+                                      <span>{agent.generatedName || agent.name}</span>
+                                  </SidebarMenuButton>
+                              </Link>
+                           </SidebarMenuItem>
+                        ))}
+                      </SidebarMenu>
+                  </SidebarGroupContent>
+              </SidebarGroup>
+            ))
+          )}
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="p-3 sm:p-4 space-y-1 sm:space-y-2">
@@ -700,5 +723,3 @@ function AppSidebar() {
     </Sidebar>
   );
 }
-
-    
