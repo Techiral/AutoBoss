@@ -63,12 +63,23 @@ const processUrlFlow = ai.defineFlow(
 
     } catch (error: any) {
         console.error(`Error processing URL ${input.url} with md.dhr.wtf:`, error.message);
-        let userFriendlyMessage = `Failed to fetch and process content from URL ${input.url}. `;
+        let userFriendlyMessage = `Failed to fetch and process content from URL: ${input.url}. `;
+
         if (axios.isAxiosError(error) && error.response) {
-            userFriendlyMessage += `The service responded with status ${error.response.status}. The page may be inaccessible or the service may be temporarily down.`;
+             if (error.response.status === 500 || error.response.status === 403) {
+                 const lowerCaseUrl = input.url.toLowerCase();
+                 if (lowerCaseUrl.includes('linkedin.com') || lowerCaseUrl.includes('facebook.com') || lowerCaseUrl.includes('instagram.com') || lowerCaseUrl.includes('twitter.com') || lowerCaseUrl.includes('x.com')) {
+                    userFriendlyMessage = `This site (${new URL(input.url).hostname}) is protected and requires a login, so its content cannot be automatically used for training. Please copy and paste the relevant text instead.`;
+                 } else {
+                    userFriendlyMessage += `The service responded with status ${error.response.status}. The page may be inaccessible, require a login, or the service may be temporarily down.`;
+                 }
+            } else {
+                 userFriendlyMessage += `The service responded with status ${error.response.status}.`;
+            }
         } else {
             userFriendlyMessage += error.message;
         }
+        
         throw new Error(userFriendlyMessage);
     }
   }
