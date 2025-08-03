@@ -48,8 +48,8 @@ export function BoltBadge() {
   }
 
   const badgeSrc = isDarkTheme 
-    ? "https://placehold.co/80x80/FFFFFF/0D0D0D.png?text=B" // White circle for dark bg
-    : "https://placehold.co/80x80/0D0D0D/FFFFFF.png?text=B"; // Black circle for light bg
+    ? "https://i.ibb.co/KpN06mnr/white-circle-360x360.png" // White circle for dark bg
+    : "https://i.ibb.co/ztn5WFS/black-circle-360x360.png"; // Black circle for light bg
 
   const badgeAlt = isDarkTheme ? "Bolt.new badge white" : "Bolt.new badge black";
 
