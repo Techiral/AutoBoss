@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Eye, Search, Info, Bot, AlertTriangle, MessageSquare, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Agent } from "@/lib/types";
-import { db } from '@/lib/firebase';
+import { db } from '@/lib/firebase-client';
 import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
 import Image from "next/image";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";

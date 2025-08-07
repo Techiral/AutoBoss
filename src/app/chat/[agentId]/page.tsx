@@ -1,6 +1,6 @@
 
 import type { Metadata, ResolvingMetadata } from 'next';
-import { db } from '@/lib/firebase';
+import { db } from '@/lib/firebase-client';
 import { doc, getDoc } from 'firebase/firestore';
 import type { Agent } from "@/lib/types";
 import ChatClientPage from './chat-client-page'; // Import the new client component
