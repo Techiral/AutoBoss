@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import { db } from "@/lib/firebase";
+import { db } from "@/lib/firebase-client";
 import { collection, query, where, getDocs, Timestamp } from "firebase/firestore";
 import type { Conversation, ChatMessage, Agent } from "@/lib/types";
 import { useAppContext } from "../../../layout";

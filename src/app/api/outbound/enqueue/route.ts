@@ -1,7 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { db } from '@/lib/firebase';
+import { adminDb } from '@/lib/firebase-admin';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { OutboundTaskPayloadSchema, type OutboundTaskPayload } from '@/lib/types'; // Assuming you'll define this in types.ts
 
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
       queueDocData.scheduledAt = new Date(scheduledAt); // Store as Firestore Timestamp if possible, or JS Date
     }
 
-    const docRef = await addDoc(collection(db, "outboundQueue"), queueDocData);
+    const docRef = await adminDb.collection("outboundQueue").add(queueDocData);
     
     console.log(`[${timestamp}] Successfully enqueued task of type '${type}' for '${to}'. Document ID: ${docRef.id}`);
     return NextResponse.json({ 

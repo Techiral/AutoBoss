@@ -1,6 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/firebase';
+import { db } from '@/lib/firebase-client';
 import { doc, getDoc } from 'firebase/firestore';
 import type { Agent } from '@/lib/types';
 import { redirect } from 'next/navigation';

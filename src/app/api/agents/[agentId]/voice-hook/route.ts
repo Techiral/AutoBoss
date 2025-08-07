@@ -1,7 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import twilio from 'twilio';
-import { db } from '@/lib/firebase';
+import { adminDb } from '@/lib/firebase-admin';
 import { doc, getDoc, setDoc, Timestamp, collection } from 'firebase/firestore';
 import type { Agent, Conversation, ChatMessage } from '@/lib/types';
 import { generateVoiceResponse, VoiceResponseInput } from '@/ai/flows/voice-response-flow';
@@ -43,7 +43,7 @@ export async function POST(
     const speechResult = twilioData.SpeechResult as string | undefined;
     const callSid = twilioData.CallSid as string;
 
-    const agentRef = doc(db, 'agents', agentId);
+    const agentRef = adminDb.doc(`agents/${agentId}`);
     const agentSnap = await getDoc(agentRef);
 
     if (!agentSnap.exists()) {
@@ -53,9 +53,9 @@ export async function POST(
       return new NextResponse(twiml.toString(), { headers: { 'Content-Type': 'application/xml' } });
     }
     
-    const agent = convertAgentDataForVoice({ id: agentSnap.id, ...agentSnap.data() });
+    const agent = convertAgentDataForVoice({ id: agentSnap.id, ...(agentSnap.data() || {}) });
 
-    const conversationRef = doc(db, 'conversations', callSid);
+    const conversationRef = adminDb.doc(`conversations/${callSid}`);
     const conversationSnap = await getDoc(conversationRef);
     let conversation: Conversation;
 
@@ -138,7 +138,7 @@ export async function POST(
     
     const actionUrl = new URL(`/api/agents/${agentId}/voice-hook`, request.nextUrl.origin);
     twiml.gather({
-      input: 'speech',
+      input: ['speech'],
       action: actionUrl.pathname, // No more URL params for history
       speechTimeout: 'auto',
       timeout: 5,

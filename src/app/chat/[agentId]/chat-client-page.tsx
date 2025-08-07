@@ -9,10 +9,11 @@ import type { Agent } from "@/lib/types";
 import { Loader2, AlertTriangle } from "lucide-react";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Logo } from "@/components/logo";
-import { db } from '@/lib/firebase';
+import { db } from '@/lib/firebase-client';
 import { doc, getDoc } from 'firebase/firestore'; 
 import { Button } from "@/components/ui/button";
-import { useAppContext } from "@/app/(app)/layout"; 
+import { useAppContext } from "@/app/(app)/layout";
+import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 
 
@@ -45,6 +46,7 @@ export default function ChatClientPage({ agentId }: ChatClientPageProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [appDomain, setAppDomain] = useState("");
+  const { currentUser } = useAuth();
   
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -162,7 +164,7 @@ export default function ChatClientPage({ agentId }: ChatClientPageProps) {
             </div>
         </main>
          <footer className="text-center p-3 sm:p-4 border-t text-xs text-muted-foreground">
-            {(agent.isPubliclyShared || appContextInstance?.currentUser?.uid === agent.userId) ? ( // Show "Powered by" if it's from showcase or owner is viewing
+            {(agent.isPubliclyShared || currentUser?.uid === agent.userId) ? ( // Show "Powered by" if it's from showcase or owner is viewing
                 <>Powered by <Link href={poweredByLink} target="_blank" rel="noopener noreferrer" className="hover:underline text-primary">AutoBoss</Link></>
             ) : (
                 "AI Agent" // Generic for privately shared links to clients
