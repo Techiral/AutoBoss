@@ -16,8 +16,14 @@ service cloud.firestore {
 
     // Rules for agents are more complex, handling both private and public access.
     match /agents/{agentId} {
-      // Create, update, delete is restricted to the agent's owner.
-      allow create, update, delete: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      // Create and delete are restricted to the agent's owner.
+      allow create, delete: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      
+      // Update is allowed for the owner, and a separate rule allows the backend to safely update analytics.
+      allow update: if request.auth != null && (
+        resource.data.userId == request.auth.uid ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['analytics'])
+      );
 
       // An owner can always read their own agent.
       allow get: if request.auth != null && resource.data.userId == request.auth.uid;
@@ -29,12 +35,31 @@ service cloud.firestore {
       // Anyone (including logged-out users) can list agents if they are querying
       // for the public showcase. The application code MUST enforce the where clause.
       allow list: if true;
+
+      // **FIX**: Add rules for the 'knowledge' subcollection.
+      // This is crucial for the RAG (Retrieval-Augmented Generation) functionality of the agent.
+      match /knowledge/{knowledgeId} {
+        // The owner of the agent can manage the knowledge base.
+        allow write, delete: if request.auth != null && get(/databases/$(database)/documents/agents/$(agentId)).data.userId == request.auth.uid;
+        // The agent's backend process needs to read the knowledge. This rule allows any authenticated
+        // user (including server-side processes) to read from the knowledge base.
+        allow read: if request.auth != null;
+      }
     }
 
-    // A user can read/write to a conversation if they own the agent associated with it.
-    // This allows owners to view analytics and transcripts.
+    // Rules for conversations ensure that only the user associated with the conversation can access it.
     match /conversations/{conversationId} {
-        allow read, write: if request.auth != null && get(/databases/$(database)/documents/agents/$(resource.data.agentId)).data.userId == request.auth.uid;
+      // A user can create a conversation if their UID is on the new document.
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      
+      // The user who owns the conversation can read and write to it.
+      allow read, write: if request.auth != null && resource.data.userId == request.auth.uid;
+
+      // Rules must be explicitly defined for subcollections.
+      match /messages/{messageId} {
+        // The owner of the parent conversation can read and write messages.
+        allow read, write: if request.auth != null && get(/databases/$(database)/documents/conversations/$(conversationId)).data.userId == request.auth.uid;
+      }
     }
 
     // The outbound queue for tasks like sending emails/SMS is write-only for authenticated users.

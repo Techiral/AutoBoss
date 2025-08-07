@@ -16,8 +16,8 @@ import { Logo } from "@/components/logo";
 import { UserNav } from "@/components/user-nav";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
-import type { Agent, KnowledgeItem, ProcessedUrlOutput } from "@/lib/types";
-import { db } from '@/lib/firebase';
+import type { Agent, KnowledgeItem, ProcessedUrlOutput, CreateAgentFromPromptInput } from "@/lib/types";
+import { db } from '@/lib/firebase-client';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { extractKnowledge } from "@/ai/flows/knowledge-extraction";
 import { processUrl } from "@/ai/flows/url-processor";
@@ -28,7 +28,7 @@ import { Label } from "@/components/ui/label";
 import mammoth from 'mammoth';
 import * as pdfjsLib from 'pdfjs-dist';
 import Papa from 'papaparse';
-import { createAgentFromPrompt, CreateAgentFromPromptInput } from "@/ai/flows/agent-creation";
+import { createAgentFromPrompt } from "@/ai/flows/agent-creation";
 
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf.worker.mjs`;

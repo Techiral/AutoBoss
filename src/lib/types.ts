@@ -1,6 +1,16 @@
 
 import { z } from 'zod';
-import type { Timestamp } from 'firebase/firestore';
+
+// A generic Timestamp schema that works for both client and admin SDKs
+const TimestampSchema = z.custom<any>((val) => {
+  return (
+    typeof val === 'object' &&
+    val !== null &&
+    'seconds' in val &&
+    'nanoseconds' in val
+  );
+});
+type Timestamp = z.infer<typeof TimestampSchema>;
 
 // Zod Schema for UserProfile (stored in Firestore 'users' collection)
 export const UserProfileSchema = z.object({
@@ -8,7 +18,7 @@ export const UserProfileSchema = z.object({
   displayName: z.string().optional(),
   photoDataUri: z.string().optional().describe("Base64 encoded Data URI for profile photo."),
   phoneNumber: z.string().optional().describe("User's phone number, potentially for voice agent features or account recovery."),
-  createdAt: z.custom<Timestamp>(),
+  createdAt: TimestampSchema,
   sendGridApiKey: z.string().optional().nullable().describe("User's own SendGrid API Key."),
   userDefaultFromEmail: z.string().email().optional().nullable().describe("User's default 'From' email for SendGrid."),
   twilioAccountSid: z.string().optional().nullable().describe("User's Twilio Account SID."),
@@ -67,7 +77,7 @@ export const ClientSchema = z.object({
   name: z.string().min(1, "Client name cannot be empty."),
   website: z.string().url().optional().or(z.literal("")),
   description: z.string().max(500, "Description too long").optional().or(z.literal("")),
-  createdAt: z.custom<Timestamp>(),
+  createdAt: TimestampSchema,
 });
 export type Client = z.infer<typeof ClientSchema>;
 
@@ -81,6 +91,9 @@ export type AgentLogicType = 'prompt' | 'rag';
 export type AgentDirection = 'inbound' | 'outbound';
 export const AgentToneSchema = z.enum(["neutral", "friendly", "professional", "witty"]);
 export type AgentToneType = z.infer<typeof AgentToneSchema>;
+
+export const AgentPurposeSchema = z.enum(["customer_support", "lead_generation", "sales", "faq", "custom"]);
+export type AgentPurposeType = z.infer<typeof AgentPurposeSchema>;
 
 // Input schema for the new agent creation flow
 export const CreateAgentFromPromptInputSchema = z.object({
@@ -133,13 +146,13 @@ export const AgentSchema = z.object({
   generatedName: z.string().optional(),
   generatedPersona: z.string().optional(),
   generatedGreeting: z.string().optional(),
-  createdAt: z.custom<Timestamp>(), // Will be converted to string in app state
+  createdAt: TimestampSchema, // Will be converted to string in app state
   knowledgeItems: z.array(KnowledgeItemSchema).optional(),
   agentImageUrl: z.string().optional().nullable().describe("Data URI for the agent's branding image for social sharing."),
   ogDescription: z.string().max(300, "OG description should be 300 characters or less.").optional().nullable().describe("Custom description for social media sharing."),
   voiceName: z.string().optional().nullable().describe("The pre-built voice name from the TTS provider."),
   isPubliclyShared: z.boolean().optional().default(false),
-  sharedAt: z.custom<Timestamp>().optional().nullable(),
+  sharedAt: TimestampSchema.optional().nullable(),
   showcaseMetrics: z.object({
     queriesHandled: z.number().optional(),
     customMetricLabel: z.string().optional(),
@@ -167,8 +180,8 @@ export const ConversationSchema = z.object({
   id: z.string(),
   agentId: z.string(),
   userId: z.string(), // This is the agent owner's ID
-  createdAt: z.custom<Timestamp>(),
-  updatedAt: z.custom<Timestamp>(),
+  createdAt: TimestampSchema,
+  updatedAt: TimestampSchema,
   status: z.enum(['ongoing', 'resolved', 'failed']),
   messages: z.array(ChatMessageSchema),
   messageCount: z.number().optional(),

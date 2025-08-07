@@ -11,7 +11,7 @@ import {
   updateProfile,
   sendPasswordResetEmail,
 } from 'firebase/auth';
-import { auth, db } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase-client';
 import { useToast } from '@/hooks/use-toast';
 import { doc, setDoc, getDoc, Timestamp } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/types';

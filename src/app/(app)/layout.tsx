@@ -27,7 +27,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Home, Bot, Settings, BookOpen, MessageSquare, Share2, Cog, LifeBuoy, Loader2, LogIn, LayoutGrid, Briefcase, MessageSquarePlus, Library, HelpCircleIcon, ChevronDown } from 'lucide-react';
 import type { Agent, KnowledgeItem, AgentToneType, Client } from '@/lib/types';
-import { db } from '@/lib/firebase';
+import { db } from '@/lib/firebase-client';
 import {
   collection,
   getDocs,

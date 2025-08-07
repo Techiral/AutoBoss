@@ -3,9 +3,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { autonomousReasoning, AutonomousReasoningInput } from '@/ai/flows/autonomous-reasoning';
 import type { Agent, AgentLogicType, ChatMessage, KnowledgeItem, Conversation } from '@/lib/types';
-import { KnowledgeItemSchema, AgentToneSchema, ChatMessageSchema } from '@/lib/types';
-import { db } from '@/lib/firebase';
-import { doc, getDoc, setDoc, collection, Timestamp, writeBatch, increment } from 'firebase/firestore';
+import { KnowledgeItemSchema, AgentToneSchema } from '@/lib/types';
+import { adminDb } from '@/lib/firebase-admin'; // Using Firebase Admin SDK
+import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 
 // Zod Schema for the agent configuration passed in the body
 const AgentConfigSchema = z.object({
@@ -43,9 +43,9 @@ const createErrorResponse = (status: number, message: string, details?: Record<s
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { agentId: string } }
+  { params: { agentId } }: { params: { agentId: string } }
 ) {
-  const { agentId } = params;
+  const rawBody = await request.json();
 
   if (!agentId) {
     return createErrorResponse(400, "Agent ID is missing in the path.");
@@ -53,7 +53,6 @@ export async function POST(
 
   let requestBody: ApiRequestBody;
   try {
-    const rawBody = await request.json();
     requestBody = RequestBodySchema.parse(rawBody);
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -65,29 +64,27 @@ export async function POST(
   const { message: userInput, conversationId: clientConversationId, agentConfig } = requestBody;
   console.log(`API Route (Stateful): Received request for agent ${agentId}. Conversation ID: ${clientConversationId || '(new)'}`);
 
-  const batch = writeBatch(db);
-  const conversationId = clientConversationId || doc(collection(db, "conversations")).id;
-  const conversationRef = doc(db, "conversations", conversationId);
+  const batch = adminDb.batch();
+  const conversationId = clientConversationId || adminDb.collection("conversations").doc().id;
+  const conversationRef = adminDb.collection("conversations").doc(conversationId);
   const isNewConversation = !clientConversationId;
 
   try {
     let currentConversation: Conversation;
     if (isNewConversation) {
-      // Use the userId passed from the authenticated client context
-      // This avoids a direct, unauthenticated read from the API
       currentConversation = {
         id: conversationId,
         agentId: agentId,
-        userId: agentConfig.userId, // Storing the agent owner's ID from the payload
-        createdAt: Timestamp.now(),
-        updatedAt: Timestamp.now(),
+        userId: agentConfig.userId,
+        createdAt: FieldValue.serverTimestamp() as Timestamp,
+        updatedAt: FieldValue.serverTimestamp() as Timestamp,
         status: 'ongoing',
         messages: [],
         messageCount: 0,
       };
     } else {
-      const conversationSnap = await getDoc(conversationRef);
-      if (!conversationSnap.exists()) {
+      const conversationSnap = await conversationRef.get();
+      if (!conversationSnap.exists) {
         return createErrorResponse(404, "Conversation session not found.");
       }
       currentConversation = conversationSnap.data() as Conversation;
@@ -129,17 +126,17 @@ export async function POST(
       relevantKnowledgeIds: result.relevantKnowledgeIds,
     };
     currentConversation.messages.push(agentMessage);
-    currentConversation.updatedAt = Timestamp.now();
+    currentConversation.updatedAt = FieldValue.serverTimestamp() as Timestamp;
     currentConversation.messageCount = currentConversation.messages.length;
 
     // Add conversation update to the batch
     batch.set(conversationRef, currentConversation);
 
     // Add agent analytics update to the batch
-    const agentRef = doc(db, 'agents', agentId);
+    const agentRef = adminDb.collection('agents').doc(agentId);
     batch.update(agentRef, {
-        'analytics.totalMessages': increment(2),
-        ...(isNewConversation && { 'analytics.totalConversations': increment(1) })
+        'analytics.totalMessages': FieldValue.increment(2),
+        ...(isNewConversation && { 'analytics.totalConversations': FieldValue.increment(1) })
     });
     
     // Commit all writes at once
