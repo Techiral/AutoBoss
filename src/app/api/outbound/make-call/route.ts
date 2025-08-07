@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import twilio from 'twilio';
 import { z } from 'zod';
-import { db } from '@/lib/firebase';
+import { adminDb } from '@/lib/firebase-admin';
 import { doc, getDoc } from 'firebase/firestore';
 import type { Agent, UserProfile } from '@/lib/types';
 
@@ -39,14 +39,14 @@ export async function POST(request: NextRequest) {
 
   if (agentId) {
      try {
-      const agentRef = doc(db, 'agents', agentId);
-      const agentSnap = await getDoc(agentRef);
-      if (agentSnap.exists()) {
+      const agentRef = adminDb.doc(`agents/${agentId}`);
+      const agentSnap = await agentRef.get();
+      if (agentSnap.exists) {
         const agentData = agentSnap.data() as Agent;
         if (agentData.userId) {
-          const userRef = doc(db, 'users', agentData.userId);
-          const userSnap = await getDoc(userRef);
-          if (userSnap.exists()) {
+          const userRef = adminDb.doc(`users/${agentData.userId}`);
+          const userSnap = await userRef.get();
+          if (userSnap.exists) {
             const userProfile = userSnap.data() as UserProfile;
             userAccountSid = userProfile.twilioAccountSid || null;
             userAuthToken = userProfile.twilioAuthToken || null;
