@@ -16,6 +16,7 @@ const AgentConfigSchema = z.object({
   agentTone: AgentToneSchema.optional(),
   primaryLogic: z.custom<AgentLogicType>().optional(),
   knowledgeItems: z.array(KnowledgeItemSchema).optional(),
+  mcpServerUrl: z.string().url().optional().describe("Optional MCP server URL for external tool access."),
 });
 
 // Zod Schema for the complete Request Body
@@ -113,6 +114,7 @@ export async function POST(
       context: historyForAutonomousReasoning,
       userInput: userInput,
       knowledgeItems: primaryLogic === 'rag' ? agentConfig.knowledgeItems : [],
+      mcpServerUrl: agentConfig.mcpServerUrl,
     };
     
     const result = await autonomousReasoning(reasoningInput);

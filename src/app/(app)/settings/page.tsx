@@ -36,6 +36,7 @@ const credentialsFormSchema = z.object({
   twilioPhoneNumber: z.string().optional().refine(val => !val || /^\+[1-9]\d{1,14}$/.test(val), {
     message: "Invalid Twilio phone number format (e.g., +12223334444)",
   }),
+  mcpServerUrl: z.string().url({ message: "Invalid URL format." }).optional().or(z.literal('')),
 });
 type CredentialsFormData = z.infer<typeof credentialsFormSchema>;
 
@@ -58,6 +59,7 @@ export default function SettingsPage() {
       twilioAccountSid: "",
       twilioAuthToken: "",
       twilioPhoneNumber: "",
+      mcpServerUrl: "",
     }
   });
 
@@ -69,6 +71,7 @@ export default function SettingsPage() {
         if (creds) {
           setValue("userDefaultFromEmail", creds.userDefaultFromEmail || "");
           setValue("twilioPhoneNumber", creds.twilioPhoneNumber || "");
+          setValue("mcpServerUrl", creds.mcpServerUrl || "");
           setHasSendGridKey(!!creds.sendGridApiKey);
           setHasTwilioSid(!!creds.twilioAccountSid);
         } else {
@@ -98,6 +101,7 @@ export default function SettingsPage() {
       twilioAccountSid: data.twilioAccountSid || undefined,
       twilioAuthToken: data.twilioAuthToken || undefined,
       twilioPhoneNumber: data.twilioPhoneNumber || undefined,
+      mcpServerUrl: data.mcpServerUrl || undefined,
     });
     if (success) {
         if (data.sendGridApiKey) setHasSendGridKey(true);
@@ -210,6 +214,35 @@ export default function SettingsPage() {
                     <Input id="twilioPhoneNumber" type="tel" placeholder="+1234567890 (E.164 format)" {...register("twilioPhoneNumber")} disabled={isLoading || isSavingCredentials}/>
                     {errors.twilioPhoneNumber && <p className="text-xs text-destructive">{errors.twilioPhoneNumber.message}</p>}
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* MCP Server Card */}
+            <Card className="flex flex-col">
+              <CardHeader>
+                <CardTitle className="text-base sm:text-lg flex items-center gap-2"><Sparkles className="w-4 h-4"/>MCP Server</CardTitle>
+                <CardDescription className="text-xs">Connect your agents to external tools via MCP (Model Context Protocol).</CardDescription>
+              </CardHeader>
+              <CardContent className="flex-grow space-y-3">
+                <div className="space-y-1">
+                  <Label htmlFor="mcpServerUrl" className="text-xs font-medium">MCP Server URL</Label>
+                  <Input 
+                    id="mcpServerUrl" 
+                    type="url" 
+                    placeholder="https://your-mcp-server.com/sse" 
+                    {...register("mcpServerUrl")} 
+                    disabled={isLoading || isSavingCredentials}
+                  />
+                  {errors.mcpServerUrl && <p className="text-xs text-destructive">{errors.mcpServerUrl.message}</p>}
+                </div>
+                <Alert variant="default" className="p-3 text-xs bg-card">
+                  <Lightbulb className="h-3.5 w-3.5" />
+                  <AlertTitle className="text-xs font-medium">What is MCP?</AlertTitle>
+                  <AlertDescription className="text-[11px] space-y-1 mt-1">
+                    <p>MCP (Model Context Protocol) allows your AI agents to access external tools like web browsers, file systems, APIs, and more.</p>
+                    <p>Enter the URL of your MCP server to enable these capabilities for all your agents.</p>
+                  </AlertDescription>
+                </Alert>
               </CardContent>
             </Card>
 

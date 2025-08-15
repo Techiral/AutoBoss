@@ -1,72 +1,8 @@
-rules_version = '2';
-
+// Firestore security rules for MCP server URLs
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Users can only read and write their own profile document.
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-
-    // A user can manage clients that belong to them.
-    match /clients/{clientId} {
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
-    }
-
-    // Rules for agents are more complex, handling both private and public access.
-    match /agents/{agentId} {
-      // Create and delete are restricted to the agent's owner.
-      allow create, delete: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      
-      // Update is allowed for the owner, and a separate rule allows the backend to safely update analytics.
-      allow update: if request.auth != null && (
-        resource.data.userId == request.auth.uid ||
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['analytics'])
-      );
-
-      // An owner can always read their own agent.
-      allow get: if request.auth != null && resource.data.userId == request.auth.uid;
-      // Additionally, ANYONE can read a single agent document if it is public.
-      // This is crucial for the public /chat/[agentId] page to function.
-      allow get: if resource.data.isPubliclyShared == true;
-
-      // Logged-in users can list their own agents.
-      // Anyone (including logged-out users) can list agents if they are querying
-      // for the public showcase. The application code MUST enforce the where clause.
-      allow list: if true;
-
-      // **FIX**: Add rules for the 'knowledge' subcollection.
-      // This is crucial for the RAG (Retrieval-Augmented Generation) functionality of the agent.
-      match /knowledge/{knowledgeId} {
-        // The owner of the agent can manage the knowledge base.
-        allow write, delete: if request.auth != null && get(/databases/$(database)/documents/agents/$(agentId)).data.userId == request.auth.uid;
-        // The agent's backend process needs to read the knowledge. This rule allows any authenticated
-        // user (including server-side processes) to read from the knowledge base.
-        allow read: if request.auth != null;
-      }
-    }
-
-    // Rules for conversations ensure that only the user associated with the conversation can access it.
-    match /conversations/{conversationId} {
-      // A user can create a conversation if their UID is on the new document.
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      
-      // The user who owns the conversation can read and write to it.
-      allow read, write: if request.auth != null && resource.data.userId == request.auth.uid;
-
-      // Rules must be explicitly defined for subcollections.
-      match /messages/{messageId} {
-        // The owner of the parent conversation can read and write messages.
-        allow read, write: if request.auth != null && get(/databases/$(database)/documents/conversations/$(conversationId)).data.userId == request.auth.uid;
-      }
-    }
-
-    // The outbound queue for tasks like sending emails/SMS is write-only for authenticated users.
-    // The tasks themselves are processed by a secure backend function, not read by clients.
-    match /outboundQueue/{taskId} {
-      allow create: if request.auth != null;
-      allow read, update, delete: if false; // Prevent clients from accessing the queue
+    match /mcpServers/{serverId} {
+      allow read, write: if request.auth != null; // Allow authenticated users to read/write
     }
   }
 }
