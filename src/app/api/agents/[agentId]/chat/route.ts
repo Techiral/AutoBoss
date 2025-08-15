@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { autonomousReasoning, AutonomousReasoningInput } from '@/ai/flows/autonomous-reasoning';
+import { MCPIntegrationService } from '@/lib/mcp-integration';
 import type { Agent, AgentLogicType, ChatMessage, KnowledgeItem, Conversation } from '@/lib/types';
 import { KnowledgeItemSchema, AgentToneSchema } from '@/lib/types';
 import { adminDb } from '@/lib/firebase-admin'; // Using Firebase Admin SDK
@@ -106,6 +107,26 @@ export async function POST(
     const primaryLogic = agentConfig.primaryLogic || 'prompt';
     console.log(`API Route: Executing autonomousReasoning for agent ${agentId}. Logic: ${primaryLogic}`);
     
+    // Check if MCP should be used for this request
+    let mcpResult: string | null = null;
+    if (agentConfig.mcpServerUrl && userInput.toLowerCase().includes('mcp') || 
+        userInput.toLowerCase().includes('tool') || 
+        userInput.toLowerCase().includes('external') ||
+        userInput.toLowerCase().includes('google docs') ||
+        userInput.toLowerCase().includes('zapier')) {
+      
+      console.log(`MCP request detected, using MCP server: ${agentConfig.mcpServerUrl}`);
+      
+      try {
+        const mcpService = new MCPIntegrationService();
+        mcpResult = await mcpService.executeWithMCP(userInput, agentConfig.mcpServerUrl);
+        console.log("MCP execution result:", mcpResult);
+      } catch (mcpError) {
+        console.error("MCP execution failed:", mcpError);
+        mcpResult = `MCP execution failed: ${mcpError instanceof Error ? mcpError.message : 'Unknown error'}`;
+      }
+    }
+    
     const reasoningInput: AutonomousReasoningInput = {
       agentName: agentConfig.generatedName,
       agentPersona: agentConfig.generatedPersona,
@@ -119,10 +140,16 @@ export async function POST(
     
     const result = await autonomousReasoning(reasoningInput);
     
+    // If MCP was used, incorporate the result into the agent's response
+    let finalResponse = result.responseToUser;
+    if (mcpResult) {
+      finalResponse = `I've used my MCP tools to help with your request. Here's what I found:\n\n${mcpResult}\n\n${result.responseToUser}`;
+    }
+    
     const agentMessage: ChatMessage = {
       id: `msg-${Date.now() + 1}`,
       sender: 'agent',
-      text: result.responseToUser,
+      text: finalResponse,
       timestamp: Date.now(),
       reasoning: result.reasoning,
       relevantKnowledgeIds: result.relevantKnowledgeIds,
@@ -145,10 +172,12 @@ export async function POST(
     await batch.commit();
 
     return NextResponse.json({ 
-      reply: result.responseToUser,
+      reply: finalResponse,
       reasoning: result.reasoning,
       relevantKnowledgeIds: result.relevantKnowledgeIds,
       conversationId: conversationId,
+      mcpUsed: !!mcpResult,
+      mcpResult: mcpResult,
     }, { status: 200 });
 
   } catch (error: any) {
