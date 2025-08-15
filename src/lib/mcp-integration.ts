@@ -1,137 +1,113 @@
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+
 export class MCPIntegrationService {
-  private isConnected = false;
+  private client: Client | null = null;
+  private transport: StreamableHTTPClientTransport | null = null;
   private serverUrl: string | null = null;
+
+  private async ensureConnected(serverUrl: string): Promise<void> {
+    if (this.client && this.transport && this.serverUrl === serverUrl) return;
+    
+    await this.disconnect();
+    this.serverUrl = serverUrl;
+    this.transport = new StreamableHTTPClientTransport(new URL(serverUrl));
+    this.client = new Client(
+      { name: "autoboss-mcp-client", version: "1.0.0" },
+      { capabilities: {} }
+    );
+    
+    console.log("Connecting to MCP server:", serverUrl);
+    await this.client.connect(this.transport);
+    console.log("✅ Connected to MCP server");
+  }
 
   async testConnection(serverUrl: string): Promise<boolean> {
     try {
-      console.log("Testing MCP connection to:", serverUrl);
-      
-      // Test basic HTTP connectivity to the MCP server
-      const response = await fetch(serverUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-        },
-      });
-
-      console.log("MCP connection test response:", response.status, response.statusText);
-
-      if (response.ok || response.status === 200) {
-        this.isConnected = true;
-        this.serverUrl = serverUrl;
-        console.log("✅ MCP connection successful");
-        return true;
-      }
-
-      // If it's not an HTTP server, we'll assume it's working for now
-      // This allows for future subprocess server integration
-      this.isConnected = true;
-      this.serverUrl = serverUrl;
-      console.log("✅ MCP connection assumed successful");
+      await this.ensureConnected(serverUrl);
+      // Simple tool list as a sanity check
+      await this.client!.listTools();
+      console.log("✅ MCP connection test successful");
       return true;
     } catch (error) {
-      console.error('❌ MCP connection test failed:', error);
-      this.isConnected = false;
-      this.serverUrl = null;
+      console.error("❌ MCP connection test failed:", error);
+      await this.disconnect();
       return false;
     }
   }
 
   async connectToServer(serverUrl: string): Promise<boolean> {
     try {
-      // Test connection
-      const isConnected = await this.testConnection(serverUrl);
-      if (isConnected) {
-        this.serverUrl = serverUrl;
-        return true;
-      }
-      return false;
+      return await this.testConnection(serverUrl);
     } catch (error) {
       console.error('Failed to connect to MCP server:', error);
-      this.isConnected = false;
-      this.serverUrl = null;
       return false;
     }
   }
 
-  async executeWithMCP(prompt: string, serverUrl?: string): Promise<string> {
+  async listTools(serverUrl: string): Promise<any> {
     try {
-      if (!this.isConnected && serverUrl) {
-        await this.connectToServer(serverUrl);
-      }
-
-      if (!this.isConnected || !this.serverUrl) {
-        throw new Error('MCP client not connected');
-      }
-
-      console.log("Executing MCP prompt:", prompt, "on server:", this.serverUrl);
-
-      // For HTTP/SSE servers, we'll make a request to execute the prompt
-      if (this.serverUrl.startsWith('http://') || this.serverUrl.startsWith('https://')) {
-        try {
-          // Try to execute the prompt with the MCP server
-          const response = await fetch(this.serverUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ 
-              prompt,
-              method: "tools/call",
-              params: {
-                name: "execute_prompt",
-                arguments: { prompt }
-              }
-            }),
-          });
-
-          console.log("MCP execution response status:", response.status);
-
-          if (response.ok) {
-            const result = await response.json();
-            console.log("MCP execution result:", result);
-            return result.result || result.output || `Executed via MCP server: ${prompt}`;
-          }
-
-          // If that fails, try a simpler approach
-          const simpleResponse = await fetch(this.serverUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ prompt }),
-          });
-
-          if (simpleResponse.ok) {
-            const result = await simpleResponse.json();
-            console.log("Simple MCP execution result:", result);
-            return result.result || result.output || `Executed via MCP server: ${prompt}`;
-          }
-
-          // If both fail, return a working response indicating MCP is available
-          return `MCP integration is working! I can now access external tools through the MCP server at ${this.serverUrl}. Your request "${prompt}" has been received and can be processed by the MCP server. The server responded with status ${response.status}.`;
-        } catch (httpError) {
-          console.error("HTTP execution error:", httpError);
-          // If HTTP execution fails, return a working response indicating MCP is available
-          return `MCP integration is working! I can now access external tools through the MCP server at ${this.serverUrl}. Your request "${prompt}" can be processed by the MCP server. Connection test successful.`;
-        }
-      }
-
-      return `MCP integration is working! I can now access external tools through the MCP server at ${this.serverUrl}.`;
+      await this.ensureConnected(serverUrl);
+      console.log("Fetching available tools from MCP server...");
+      const tools = await this.client!.listTools();
+      console.log("Available MCP tools:", tools);
+      return tools;
     } catch (error) {
-      console.error('Error executing MCP tool:', error);
+      console.error("Failed to list MCP tools:", error);
+      throw error;
+    }
+  }
+
+  async callTool(serverUrl: string, name: string, args: Record<string, any>): Promise<any> {
+    try {
+      await this.ensureConnected(serverUrl);
+      console.log(`Calling MCP tool: ${name} with args:`, args);
+      const result = await this.client!.callTool({ name, arguments: args });
+      console.log(`MCP tool ${name} result:`, result);
+      return result;
+    } catch (error) {
+      console.error(`Failed to call MCP tool ${name}:`, error);
+      throw error;
+    }
+  }
+
+  // Back-compat shim used by existing chat route
+  async executeWithMCP(prompt: string, serverUrl?: string): Promise<string> {
+    if (!serverUrl) throw new Error("No MCP server URL provided");
+    
+    try {
+      await this.ensureConnected(serverUrl);
+      // Return tool list so the agent stops hallucinating
+      const tools = await this.client!.listTools();
+      return `MCP connected successfully! Available tools: ${JSON.stringify(tools, null, 2)}`;
+    } catch (error) {
+      console.error("MCP execution failed:", error);
       throw new Error(`MCP execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
   async disconnect(): Promise<void> {
-    this.isConnected = false;
-    this.serverUrl = null;
+    try {
+      if (this.client) {
+        console.log("Closing MCP client connection...");
+        await this.client.close();
+      }
+      if (this.transport) {
+        console.log("Closing MCP transport...");
+        await this.transport.close();
+      }
+    } catch (error) {
+      console.error("Error during MCP disconnect:", error);
+    } finally {
+      this.client = null;
+      this.transport = null;
+      this.serverUrl = null;
+      console.log("MCP connection closed");
+    }
   }
 
   isServerConnected(): boolean {
-    return this.isConnected;
+    return this.client !== null && this.transport !== null;
   }
 
   getServerUrl(): string | null {

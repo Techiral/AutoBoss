@@ -109,18 +109,68 @@ export async function POST(
     
     // Check if MCP should be used for this request
     let mcpResult: string | null = null;
-    if (agentConfig.mcpServerUrl && userInput.toLowerCase().includes('mcp') || 
-        userInput.toLowerCase().includes('tool') || 
-        userInput.toLowerCase().includes('external') ||
-        userInput.toLowerCase().includes('google docs') ||
-        userInput.toLowerCase().includes('zapier')) {
-      
-      console.log(`MCP request detected, using MCP server: ${agentConfig.mcpServerUrl}`);
+    if (agentConfig.mcpServerUrl) {
+      const lc = userInput.toLowerCase();
+      const wantsList = /(what|which).*(tools|capabilities)|list (tools|capabilities)/i.test(lc);
+      const wantsFindDoc = /(find).*(document|doc)/i.test(lc);
+      const wantsCreateDoc = /(create|make).*(document|doc)/i.test(lc);
+      const wantsAppendText = /(append|add).*(text|content)/i.test(lc);
       
       try {
         const mcpService = new MCPIntegrationService();
-        mcpResult = await mcpService.executeWithMCP(userInput, agentConfig.mcpServerUrl);
-        console.log("MCP execution result:", mcpResult);
+        
+        if (wantsList) {
+          console.log("MCP request detected: listing tools");
+          const tools = await mcpService.listTools(agentConfig.mcpServerUrl);
+          mcpResult = `Available MCP tools:\n${JSON.stringify(tools, null, 2)}`;
+        } else if (wantsFindDoc) {
+          // Extract quoted title from user input
+          const m = userInput.match(/"([^"]+)"|'([^']+)'/);
+          const title = m ? (m[1] || m[2]) : undefined;
+          
+          if (!title) {
+            mcpResult = `To find a Google Doc, please include the document title in quotes. For example: "find a document titled 'Quarterly Report'"`;
+          } else {
+            console.log(`MCP request detected: finding document with title "${title}"`);
+            const result = await mcpService.callTool(
+              agentConfig.mcpServerUrl,
+              "google_docs_find_a_document",
+              { title }
+            );
+            mcpResult = `Found document "${title}":\n${JSON.stringify(result, null, 2)}`;
+          }
+        } else if (wantsCreateDoc) {
+          // Extract quoted title and content
+          const titleMatch = userInput.match(/"([^"]+)"|'([^']+)'/);
+          const title = titleMatch ? (titleMatch[1] || titleMatch[2]) : "New Document";
+          
+          if (titleMatch) {
+            console.log(`MCP request detected: creating document with title "${title}"`);
+            const result = await mcpService.callTool(
+              agentConfig.mcpServerUrl,
+              "google_docs_create_document_from_text",
+              { 
+                title,
+                text: "Document created via AutoBoss MCP integration"
+              }
+            );
+            mcpResult = `Created document "${title}":\n${JSON.stringify(result, null, 2)}`;
+          } else {
+            mcpResult = `To create a document, please include the title in quotes. For example: "create a document titled 'My New Doc'"`;
+          }
+        } else if (wantsAppendText) {
+          // Extract quoted text to append
+          const textMatch = userInput.match(/"([^"]+)"|'([^']+)'/);
+          const text = textMatch ? (textMatch[1] || textMatch[2]) : undefined;
+          
+          if (text) {
+            console.log(`MCP request detected: appending text "${text}"`);
+            // Note: This would need a document ID in a real implementation
+            mcpResult = `To append text, I need a document ID. For now, here's what would be appended: "${text}"`;
+          } else {
+            mcpResult = `To append text, please include the content in quotes. For example: "append text 'New content here'"`;
+          }
+        }
       } catch (mcpError) {
         console.error("MCP execution failed:", mcpError);
         mcpResult = `MCP execution failed: ${mcpError instanceof Error ? mcpError.message : 'Unknown error'}`;
@@ -143,7 +193,7 @@ export async function POST(
     // If MCP was used, incorporate the result into the agent's response
     let finalResponse = result.responseToUser;
     if (mcpResult) {
-      finalResponse = `I've used my MCP tools to help with your request. Here's what I found:\n\n${mcpResult}\n\n${result.responseToUser}`;
+      finalResponse = `🔧 **MCP Tools Used**\n\n${mcpResult}\n\n---\n\n${result.responseToUser}`;
     }
     
     const agentMessage: ChatMessage = {
