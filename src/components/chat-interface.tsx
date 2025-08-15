@@ -12,6 +12,7 @@ import type { ChatMessage as ChatMessageType, Agent } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import type { useAppContext as UseAppContextType } from "@/app/(app)/layout";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ExtendedChatMessage extends ChatMessageType {
   reasoning?: string;
@@ -26,7 +27,7 @@ export interface ChatInterfaceHandles {
 
 interface ChatInterfaceProps {
   agent: Agent;
-  appContext?: ReturnType<UseAppContextType>; 
+  appContext?: any; // Simplified type to avoid complex type issues
   onNewAgentMessage?: (message: ExtendedChatMessage) => void;
 }
 
@@ -51,14 +52,32 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
   const [isLoading, setIsLoading] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true); 
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [mcpServerUrl, setMcpServerUrl] = useState<string | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { getUserCredentials } = useAuth();
 
   const [currentAgent, setCurrentAgent] = useState<Agent>(initialAgent);
   const agentRef = useRef(currentAgent); 
   const lastUserMessageRef = useRef<string | null>(null);
   const autoRetryCountRef = useRef<number>(0);
+
+  // Load user's MCP server URL on component mount
+  useEffect(() => {
+    const loadMcpUrl = async () => {
+      try {
+        const credentials = await getUserCredentials();
+        if (credentials?.mcpServerUrl) {
+          setMcpServerUrl(credentials.mcpServerUrl);
+        }
+      } catch (error) {
+        console.error('Failed to load MCP server URL:', error);
+      }
+    };
+    
+    loadMcpUrl();
+  }, [getUserCredentials]);
 
 
   useEffect(() => {
@@ -158,6 +177,7 @@ export const ChatInterface = forwardRef<ChatInterfaceHandles, ChatInterfaceProps
             agentTone: agentRef.current.agentTone,
             primaryLogic: agentRef.current.primaryLogic,
             knowledgeItems: agentRef.current.knowledgeItems || [],
+            mcpServerUrl: mcpServerUrl,
           },
         }),
       });

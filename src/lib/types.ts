@@ -26,6 +26,7 @@ export const UserProfileSchema = z.object({
   twilioPhoneNumber: z.string().optional().nullable().describe("User's default Twilio Phone Number for sending SMS/making calls."),
   jinaApiKey: z.string().optional().nullable().describe("User's Jina AI Reader API Key for web scraping."),
   ttsCreditsUsed: z.number().optional().describe("Counter for free tier usage of the system's TTS key."),
+  mcpServerUrl: z.string().url().optional().nullable().describe("User's MCP server URL for external tool access."),
 });
 export type UserProfile = z.infer<typeof UserProfileSchema>;
 

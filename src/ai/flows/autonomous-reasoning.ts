@@ -23,6 +23,7 @@ const AutonomousReasoningInputSchema = z.object({
   context: z.string().describe('The current context of the conversation, including past messages.'),
   userInput: z.string().describe('The user input to analyze and respond to.'),
   knowledgeItems: z.array(KnowledgeItemSchema).optional().describe("An array of knowledge items. If the persona aligns with the style of these items (e.g., transcripts of a specific person), use them not just for facts but also to emulate the style."),
+  mcpServerUrl: z.string().url().optional().describe("Optional MCP server URL for external tool access."),
 });
 export type AutonomousReasoningInput = z.infer<typeof AutonomousReasoningInputSchema>;
 
@@ -50,6 +51,7 @@ const PromptInputSchema = z.object({
   context: z.string(),
   userInput: z.string(),
   retrievedChunksText: z.string().optional().describe("Concatenated text of relevant chunks retrieved from the knowledge base."),
+  mcpServerUrl: z.string().url().optional().describe("Optional MCP server URL for external tool access."),
 });
 
 
@@ -118,6 +120,14 @@ The "reasoning" field should explicitly mention that retrieved knowledge chunks 
 {{else}}
 You will rely on your general knowledge, the conversation context, and MOST IMPORTANTLY, your defined persona and tone to answer.
 The "reasoning" field should reflect if general knowledge was used and how the persona was maintained.
+{{/if}}
+
+{{#if mcpServerUrl}}
+--- MCP Tool Access Available ---
+You have access to external tools through an MCP server at: {{mcpServerUrl}}
+This means you can perform actions like web browsing, file operations, API calls, and other automated tasks.
+If the user's request would benefit from external tool access, you can mention this capability and suggest how it could help.
+--- End MCP Tool Access ---
 {{/if}}
 
 Your response MUST be a single, valid JSON object adhering to the output schema:
@@ -191,12 +201,13 @@ const autonomousReasoningFlow = ai.defineFlow(
       context: input.context,
       userInput: input.userInput,
       retrievedChunksText: retrievedChunksText,
+      mcpServerUrl: input.mcpServerUrl,
     };
 
     const modelResponse = await prompt(promptInputData);
 
     if (!modelResponse.output) {
-        const rawText = modelResponse.response?.text;
+        const rawText = modelResponse.text;
         console.error("Autonomous reasoning failed to produce structured output. Raw response:", rawText);
         if (rawText) {
             try {

@@ -407,6 +407,22 @@ function HomePageContent() {
             )}
         </div>
         
+        {/* MCP Capabilities Display */}
+        {currentUser && (
+          <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <span className="text-sm font-medium text-blue-900 dark:text-blue-100">AI Agent Superpowers</span>
+            </div>
+            <p className="text-xs text-blue-800 dark:text-blue-200">
+              Your agents can now access external tools and automate real-world tasks! 
+              <Link href="/settings" className="underline ml-1 hover:text-blue-600 dark:hover:text-blue-300">
+                Configure MCP server in settings
+              </Link>
+            </p>
+          </div>
+        )}
+        
         <div className="mt-16 sm:mt-20">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold">From the Community</h2>

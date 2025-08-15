@@ -25,6 +25,7 @@ interface UserCredentials {
   twilioAuthToken?: string | null;
   twilioPhoneNumber?: string | null;
   jinaApiKey?: string | null;
+  mcpServerUrl?: string | null;
 }
 
 interface AuthContextType {
@@ -75,6 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           twilioAuthToken: "",
           twilioPhoneNumber: "",
           jinaApiKey: "",
+          mcpServerUrl: "",
           ttsCreditsUsed: 0,
         };
         await setDoc(userRef, userData);
@@ -103,6 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (existingData.twilioAuthToken === undefined) updates.twilioAuthToken = "";
         if (existingData.twilioPhoneNumber === undefined) updates.twilioPhoneNumber = "";
         if (existingData.jinaApiKey === undefined) updates.jinaApiKey = "";
+        if (existingData.mcpServerUrl === undefined) updates.mcpServerUrl = "";
         if (existingData.ttsCreditsUsed === undefined) updates.ttsCreditsUsed = 0;
 
 
@@ -292,6 +295,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (credentials.twilioAuthToken !== undefined && credentials.twilioAuthToken !== null) updateData.twilioAuthToken = credentials.twilioAuthToken;
       if (credentials.twilioPhoneNumber !== undefined) updateData.twilioPhoneNumber = credentials.twilioPhoneNumber;
       if (credentials.jinaApiKey !== undefined) updateData.jinaApiKey = credentials.jinaApiKey;
+      if (credentials.mcpServerUrl !== undefined) updateData.mcpServerUrl = credentials.mcpServerUrl;
       
       await setDoc(userRef, updateData, { merge: true });
       toast({ title: "API Credentials Updated", description: "Your API settings have been saved." });
