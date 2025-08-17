@@ -44,6 +44,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from "@/lib/utils";
+import { MCPAutomation } from '@/components/mcp-automation';
 import type { AgentCreationOutput } from '@/lib/types';
 
 
@@ -576,6 +577,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AppContext.Provider value={contextValue}>
+      <MCPAutomation />
       {children}
     </AppContext.Provider>
   );
