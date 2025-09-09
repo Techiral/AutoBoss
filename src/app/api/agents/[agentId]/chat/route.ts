@@ -152,7 +152,10 @@ export async function POST(
                   console.log(`MCP request detected: finding document with title "${title}"`);
                   const result = await client.callTool({
                     name: "google_docs_find_a_document",
-                    arguments: { title: title }
+                    arguments: {
+                      instructions: "Execute the Google Docs: Find a Document tool with the following parameters",
+                      title: title,
+                    },
                   });
                   mcpResult = `Found document "${title}":\n${JSON.stringify(result, null, 2)}`;
                 }
