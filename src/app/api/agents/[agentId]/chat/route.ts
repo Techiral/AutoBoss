@@ -2,7 +2,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { autonomousReasoning, AutonomousReasoningInput } from '@/ai/flows/autonomous-reasoning';
-import { MCPIntegrationService } from '@/lib/mcp-integration';
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { Agent, AgentLogicType, ChatMessage, KnowledgeItem, Conversation } from '@/lib/types';
 import { KnowledgeItemSchema, AgentToneSchema } from '@/lib/types';
 import { adminDb } from '@/lib/firebase-admin'; // Using Firebase Admin SDK
@@ -107,7 +108,6 @@ export async function POST(
     const primaryLogic = agentConfig.primaryLogic || 'prompt';
     console.log(`API Route: Executing autonomousReasoning for agent ${agentId}. Logic: ${primaryLogic}`);
     
-    // Check if MCP should be used for this request
     let mcpResult: string | null = null;
     if (agentConfig.mcpServerUrl) {
       const lc = userInput.toLowerCase();
@@ -116,64 +116,73 @@ export async function POST(
       const wantsCreateDoc = /(create|make).*(document|doc)/i.test(lc);
       const wantsAppendText = /(append|add).*(text|content)/i.test(lc);
       
+      let client: Client | null = null;
+      let transport: StreamableHTTPClientTransport | null = null;
+
       try {
-        const mcpService = new MCPIntegrationService();
-        
-        if (wantsList) {
-          console.log("MCP request detected: listing tools");
-          const tools = await mcpService.listTools(agentConfig.mcpServerUrl);
-          mcpResult = `Available MCP tools:\n${JSON.stringify(tools, null, 2)}`;
-        } else if (wantsFindDoc) {
-          // Extract quoted title from user input
-          const m = userInput.match(/"([^"]+)"|'([^']+)'/);
-          const title = m ? (m[1] || m[2]) : undefined;
-          
-          if (!title) {
-            mcpResult = `To find a Google Doc, please include the document title in quotes. For example: "find a document titled 'Quarterly Report'"`;
-          } else {
-            console.log(`MCP request detected: finding document with title "${title}"`);
-            const result = await mcpService.callTool(
-              agentConfig.mcpServerUrl,
-              "google_docs_find_a_document",
-              { title }
+        if (wantsList || wantsFindDoc || wantsCreateDoc || wantsAppendText) {
+            client = new Client(
+              { name: "autoboss-backend-client", version: "1.0.0" },
+              { capabilities: {} }
             );
-            mcpResult = `Found document "${title}":\n${JSON.stringify(result, null, 2)}`;
-          }
-        } else if (wantsCreateDoc) {
-          // Extract quoted title and content
-          const titleMatch = userInput.match(/"([^"]+)"|'([^']+)'/);
-          const title = titleMatch ? (titleMatch[1] || titleMatch[2]) : "New Document";
-          
-          if (titleMatch) {
-            console.log(`MCP request detected: creating document with title "${title}"`);
-            const result = await mcpService.callTool(
-              agentConfig.mcpServerUrl,
-              "google_docs_create_document_from_text",
-              { 
-                title,
-                text: "Document created via AutoBoss MCP integration"
+            transport = new StreamableHTTPClientTransport(new URL(agentConfig.mcpServerUrl));
+            await client.connect(transport);
+        }
+
+        if (client) {
+            if (wantsList) {
+              console.log("MCP request detected: listing tools");
+              const tools = await client.listTools();
+              mcpResult = `Available MCP tools:\n${JSON.stringify(tools, null, 2)}`;
+            } else if (wantsFindDoc) {
+              const m = userInput.match(/"([^"]+)"|'([^']+)'/);
+              const title = m ? (m[1] || m[2]) : undefined;
+              
+              if (!title) {
+                mcpResult = `To find a Google Doc, please include the document title in quotes. For example: "find a document titled 'Quarterly Report'"`;
+              } else {
+                console.log(`MCP request detected: finding document with title "${title}"`);
+                const result = await client.callTool({
+                  name: "google_docs_find_a_document",
+                  arguments: { title }
+                });
+                mcpResult = `Found document "${title}":\n${JSON.stringify(result, null, 2)}`;
               }
-            );
-            mcpResult = `Created document "${title}":\n${JSON.stringify(result, null, 2)}`;
-          } else {
-            mcpResult = `To create a document, please include the title in quotes. For example: "create a document titled 'My New Doc'"`;
-          }
-        } else if (wantsAppendText) {
-          // Extract quoted text to append
-          const textMatch = userInput.match(/"([^"]+)"|'([^']+)'/);
-          const text = textMatch ? (textMatch[1] || textMatch[2]) : undefined;
-          
-          if (text) {
-            console.log(`MCP request detected: appending text "${text}"`);
-            // Note: This would need a document ID in a real implementation
-            mcpResult = `To append text, I need a document ID. For now, here's what would be appended: "${text}"`;
-          } else {
-            mcpResult = `To append text, please include the content in quotes. For example: "append text 'New content here'"`;
-          }
+            } else if (wantsCreateDoc) {
+              const titleMatch = userInput.match(/"([^"]+)"|'([^']+)'/);
+              const title = titleMatch ? (titleMatch[1] || titleMatch[2]) : "New Document";
+              
+              if (titleMatch) {
+                console.log(`MCP request detected: creating document with title "${title}"`);
+                const result = await client.callTool({
+                  name: "google_docs_create_document_from_text",
+                  arguments: { 
+                    title,
+                    text: "Document created via AutoBoss MCP integration"
+                  }
+                });
+                mcpResult = `Created document "${title}":\n${JSON.stringify(result, null, 2)}`;
+              } else {
+                mcpResult = `To create a document, please include the title in quotes. For example: "create a document titled 'My New Doc'"`;
+              }
+            } else if (wantsAppendText) {
+              const textMatch = userInput.match(/"([^"]+)"|'([^']+)'/);
+              const text = textMatch ? (textMatch[1] || textMatch[2]) : undefined;
+              
+              if (text) {
+                console.log(`MCP request detected: appending text "${text}"`);
+                mcpResult = `To append text, I need a document ID. For now, here's what would be appended: "${text}"`;
+              } else {
+                mcpResult = `To append text, please include the content in quotes. For example: "append text 'New content here'"`;
+              }
+            }
         }
       } catch (mcpError) {
         console.error("MCP execution failed:", mcpError);
         mcpResult = `MCP execution failed: ${mcpError instanceof Error ? mcpError.message : 'Unknown error'}`;
+      } finally {
+          if (transport) await transport.close();
+          if (client) await client.close();
       }
     }
     
@@ -190,7 +199,6 @@ export async function POST(
     
     const result = await autonomousReasoning(reasoningInput);
     
-    // If MCP was used, incorporate the result into the agent's response
     let finalResponse = result.responseToUser;
     if (mcpResult) {
       finalResponse = `🔧 **MCP Tools Used**\n\n${mcpResult}\n\n---\n\n${result.responseToUser}`;
@@ -208,17 +216,14 @@ export async function POST(
     currentConversation.updatedAt = FieldValue.serverTimestamp() as Timestamp;
     currentConversation.messageCount = currentConversation.messages.length;
 
-    // Add conversation update to the batch
     batch.set(conversationRef, currentConversation);
 
-    // Add agent analytics update to the batch
     const agentRef = adminDb.collection('agents').doc(agentId);
     batch.update(agentRef, {
         'analytics.totalMessages': FieldValue.increment(2),
         ...(isNewConversation && { 'analytics.totalConversations': FieldValue.increment(1) })
     });
     
-    // Commit all writes at once
     await batch.commit();
 
     return NextResponse.json({ 
