@@ -106,7 +106,7 @@ export async function POST(
       .join('\n');
     
     const primaryLogic = agentConfig.primaryLogic || 'prompt';
-    console.log(`API Route: Executing autonomousReasoning for agent ${agentId}. Logic: ${primaryLogic}`);
+    console.log(`API Route: Executing for agent ${agentId}. Logic: ${primaryLogic}`);
     
     let mcpResult: string | null = null;
     if (agentConfig.mcpServerUrl) {
@@ -197,22 +197,33 @@ export async function POST(
       }
     }
     
-    const reasoningInput: AutonomousReasoningInput = {
-      agentName: agentConfig.generatedName,
-      agentPersona: agentConfig.generatedPersona,
-      agentRole: agentConfig.role,
-      agentTone: agentConfig.agentTone || "neutral",
-      context: historyForAutonomousReasoning,
-      userInput: userInput,
-      knowledgeItems: primaryLogic === 'rag' ? agentConfig.knowledgeItems : [],
-      mcpServerUrl: agentConfig.mcpServerUrl,
-    };
-    
-    const result = await autonomousReasoning(reasoningInput);
-    
-    let finalResponse = result.responseToUser;
+    let finalResponse: string;
+    let reasoning: string | undefined;
+    let relevantKnowledgeIds: string[] | undefined;
+
     if (mcpResult) {
-      finalResponse = `🔧 **MCP Tools Used**\n\n${mcpResult}\n\n---\n\n${result.responseToUser}`;
+      // If a tool was used, the result is the direct output.
+      // No need for further reasoning, this prevents hallucination.
+      finalResponse = `🔧 **MCP Tools Used**\n\n${mcpResult}`;
+      reasoning = "MCP tool was executed directly based on user intent.";
+      relevantKnowledgeIds = [];
+    } else {
+      // If no tool was used, proceed with autonomous reasoning.
+      const reasoningInput: AutonomousReasoningInput = {
+        agentName: agentConfig.generatedName,
+        agentPersona: agentConfig.generatedPersona,
+        agentRole: agentConfig.role,
+        agentTone: agentConfig.agentTone || "neutral",
+        context: historyForAutonomousReasoning,
+        userInput: userInput,
+        knowledgeItems: primaryLogic === 'rag' ? agentConfig.knowledgeItems : [],
+        mcpServerUrl: agentConfig.mcpServerUrl,
+      };
+
+      const result = await autonomousReasoning(reasoningInput);
+      finalResponse = result.responseToUser;
+      reasoning = result.reasoning;
+      relevantKnowledgeIds = result.relevantKnowledgeIds;
     }
     
     const agentMessage: ChatMessage = {
@@ -220,8 +231,8 @@ export async function POST(
       sender: 'agent',
       text: finalResponse,
       timestamp: Date.now(),
-      reasoning: result.reasoning,
-      relevantKnowledgeIds: result.relevantKnowledgeIds,
+      reasoning: reasoning,
+      relevantKnowledgeIds: relevantKnowledgeIds,
     };
     currentConversation.messages.push(agentMessage);
     currentConversation.updatedAt = FieldValue.serverTimestamp() as Timestamp;
@@ -239,8 +250,8 @@ export async function POST(
 
     return NextResponse.json({ 
       reply: finalResponse,
-      reasoning: result.reasoning,
-      relevantKnowledgeIds: result.relevantKnowledgeIds,
+      reasoning: reasoning,
+      relevantKnowledgeIds: relevantKnowledgeIds,
       conversationId: conversationId,
       mcpUsed: !!mcpResult,
       mcpResult: mcpResult,
