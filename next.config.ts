@@ -48,7 +48,7 @@ const nextConfig: NextConfig = {
           {
             key: 'Content-Security-Policy',
             // A more permissive policy for the main app pages to allow all secure connections
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://placehold.co https://fonts.gstatic.com; font-src 'self' https://fonts.gstatic.com; frame-ancestors 'self'; connect-src 'self' https://*;",
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https://placehold.co https://fonts.gstatic.com; font-src 'self' https://fonts.gstatic.com; frame-ancestors 'self'; connect-src 'self' https://*;",
           }
         ]
       }
