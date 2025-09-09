@@ -135,19 +135,27 @@ export async function POST(
               const tools = await client.listTools();
               mcpResult = `Available MCP tools:\n${JSON.stringify(tools, null, 2)}`;
             } else if (wantsFindDoc) {
-              const m = userInput.match(/"([^"]+)"|'([^']+)'/);
-              const title = m ? (m[1] || m[2]) : undefined;
-              
-              if (!title) {
-                mcpResult = `To find a Google Doc, please include the document title in quotes. For example: "find a document titled 'Quarterly Report'"`;
-              } else {
-                console.log(`MCP request detected: finding document with title "${title}"`);
-                const result = await client.callTool({
-                  name: "google_docs_find_a_document",
-                  arguments: { title }
-                });
-                mcpResult = `Found document "${title}":\n${JSON.stringify(result, null, 2)}`;
-              }
+                let title: string | undefined;
+                const quotedMatch = userInput.match(/"([^"]+)"|'([^']+)'/);
+                if (quotedMatch) {
+                  title = quotedMatch[1] || quotedMatch[2];
+                } else {
+                  const namedMatch = userInput.match(/(?:named|titled) ([^\s.,;!?]+)/i);
+                  if (namedMatch) {
+                    title = namedMatch[1];
+                  }
+                }
+
+                if (!title) {
+                  mcpResult = `To find a Google Doc, please include the document title in quotes (e.g., "find a document titled 'My Report'") or use the word "named" (e.g., "find the doc named MyReport").`;
+                } else {
+                  console.log(`MCP request detected: finding document with title "${title}"`);
+                  const result = await client.callTool({
+                    name: "google_docs_find_a_document",
+                    arguments: { title: title }
+                  });
+                  mcpResult = `Found document "${title}":\n${JSON.stringify(result, null, 2)}`;
+                }
             } else if (wantsCreateDoc) {
               const titleMatch = userInput.match(/"([^"]+)"|'([^']+)'/);
               const title = titleMatch ? (titleMatch[1] || titleMatch[2]) : "New Document";
