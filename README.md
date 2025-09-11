@@ -1,7 +1,7 @@
 <div align="center">
  
 # AutoBoss: Your AI Agency Dream, Simplified
-
+ 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Bolt.new](https://img.shields.io/badge/Bolt.new-4B0082?style=flat&logo=ai&logoColor=white)](https://bolt.new)
 [![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=flat&logo=firebase&logoColor=black)](https://firebase.google.com/)
